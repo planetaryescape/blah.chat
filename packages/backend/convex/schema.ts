@@ -6,6 +6,7 @@ import {
   modelProfilesTable,
   modelsTable,
 } from "./schema/models";
+import { routingExamplesTable, routingFeedbackTable } from "./schema/routing";
 
 export default defineSchema({
   // AI Model Management (DB-backed configuration)
@@ -13,6 +14,10 @@ export default defineSchema({
   modelHistory: modelHistoryTable,
   autoRouterConfig: autoRouterConfigTable,
   modelProfiles: modelProfilesTable,
+
+  // Classifier Router
+  routingExamples: routingExamplesTable,
+  routingFeedback: routingFeedbackTable,
 
   users: defineTable({
     clerkId: v.string(),
@@ -308,6 +313,23 @@ export default defineSchema({
         reasoning: v.string(),
         // True when model was kept from previous message (sticky routing)
         isSticky: v.optional(v.boolean()),
+        // Classifier v2 fields (optional for backward compat)
+        routeLabel: v.optional(v.string()),
+        classifierVersion: v.optional(v.string()),
+        trace: v.optional(
+          v.object({
+            routerMode: v.string(),
+            hardRuleMatched: v.optional(v.string()),
+            topSimilarityScore: v.optional(v.number()),
+            topRouteLabel: v.optional(v.string()),
+            secondRouteLabel: v.optional(v.string()),
+            secondSimilarityScore: v.optional(v.number()),
+            usedFallbackLlm: v.optional(v.boolean()),
+            embeddingLatencyMs: v.optional(v.number()),
+            totalLatencyMs: v.optional(v.number()),
+            candidateModels: v.optional(v.array(v.string())),
+          }),
+        ),
       }),
     ),
     // DEPRECATED (Phase 2): Source citations migrated to normalized tables

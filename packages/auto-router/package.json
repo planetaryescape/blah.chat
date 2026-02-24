@@ -20,10 +20,35 @@
     "./prompts": {
       "types": "./dist/prompts.d.ts",
       "import": "./dist/prompts.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js"
+    },
+    "./bins": {
+      "types": "./dist/bins.d.ts",
+      "import": "./dist/bins.js"
+    },
+    "./hard-rules": {
+      "types": "./dist/hard-rules.d.ts",
+      "import": "./dist/hard-rules.js"
+    },
+    "./classifier": {
+      "types": "./dist/classifier.d.ts",
+      "import": "./dist/classifier.js"
+    },
+    "./bin-selector": {
+      "types": "./dist/bin-selector.d.ts",
+      "import": "./dist/bin-selector.js"
+    },
+    "./examples": {
+      "types": "./dist/examples.d.ts",
+      "import": "./dist/examples.js"
     }
   },
   "files": [
     "dist",
+    "data",
     "README.md",
     "CHANGELOG.md"
   ],
@@ -31,7 +56,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup src/index.ts src/core.ts src/profiles.ts src/prompts.ts --format esm --dts --clean",
+    "build": "tsup src/index.ts src/core.ts src/profiles.ts src/prompts.ts src/types.ts src/bins.ts src/hard-rules.ts src/classifier.ts src/bin-selector.ts src/examples.ts --format esm --dts --clean",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "bun run build"
   },

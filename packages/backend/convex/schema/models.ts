@@ -206,6 +206,12 @@ export const autoRouterConfigTable = defineTable({
   contextBuffer: v.number(), // default: 1.2 (20% margin)
   longContextThreshold: v.number(), // default: 128000
 
+  // Classifier-based router (v2) settings
+  routerMode: v.optional(v.string()), // "legacy_scoring" | "classifier_v1" | "shadow_compare"
+  classifierConfidenceThreshold: v.optional(v.number()), // default: 0.82
+  classifierTopK: v.optional(v.number()), // default: 5
+  classifierFallbackEnabled: v.optional(v.boolean()), // default: true
+
   // Audit
   updatedAt: v.number(),
   updatedBy: v.optional(v.id("users")),

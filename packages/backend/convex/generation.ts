@@ -165,6 +165,20 @@ export const generateResponse = internalAction({
           };
           reasoning: string;
           isSticky?: boolean;
+          routeLabel?: string;
+          classifierVersion?: string;
+          trace?: {
+            routerMode: string;
+            hardRuleMatched?: string;
+            topSimilarityScore?: number;
+            topRouteLabel?: string;
+            secondRouteLabel?: string;
+            secondSimilarityScore?: number;
+            usedFallbackLlm?: boolean;
+            embeddingLatencyMs?: number;
+            totalLatencyMs?: number;
+            candidateModels?: string[];
+          };
         }
       | undefined;
 
@@ -294,6 +308,20 @@ export const generateResponse = internalAction({
           reasoning: string;
           candidatesConsidered: number;
           isSticky?: boolean;
+          routeLabel?: string;
+          classifierVersion?: string;
+          trace?: {
+            routerMode: string;
+            hardRuleMatched?: string;
+            topSimilarityScore?: number;
+            topRouteLabel?: string;
+            secondRouteLabel?: string;
+            secondSimilarityScore?: number;
+            usedFallbackLlm?: boolean;
+            embeddingLatencyMs?: number;
+            totalLatencyMs?: number;
+            candidateModels?: string[];
+          };
         };
 
         // Use the selected model
@@ -303,6 +331,9 @@ export const generateResponse = internalAction({
           classification: routerResult.classification,
           reasoning: routerResult.reasoning,
           isSticky: routerResult.isSticky,
+          routeLabel: routerResult.routeLabel,
+          classifierVersion: routerResult.classifierVersion,
+          trace: routerResult.trace,
         };
 
         logger.info("Auto router selected model", {

@@ -51,6 +51,7 @@ export {
   projectNotesTable,
   projectsTable,
 } from "./projects";
+export { routingExamplesTable, routingFeedbackTable } from "./routing";
 export { scheduledPromptsTable, sharesTable } from "./shares";
 export {
   bookmarkTagsTable,

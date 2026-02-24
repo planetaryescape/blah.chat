@@ -27,7 +27,7 @@ import {
 import { generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
-import { internal } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
@@ -121,6 +121,44 @@ export const routeMessage = internalAction({
     const startTime = Date.now();
 
     try {
+      // Check router mode from config
+      const routerConfig = (await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        api.models.queries.getRouterConfig,
+        {},
+      )) as { routerMode?: string } | null;
+
+      const routerMode = routerConfig?.routerMode ?? "legacy_scoring";
+
+      if (routerMode === "classifier_v1" || routerMode === "shadow_compare") {
+        const classifierResult = (await (ctx.runAction as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.ai.classifierRouter.routeMessageV2,
+          {
+            userMessage: args.userMessage,
+            conversationId: args.conversationId,
+            userId: args.userId,
+            hasAttachments: args.hasAttachments,
+            attachmentTypes: args.attachmentTypes,
+            currentContextTokens: args.currentContextTokens,
+            preferences: args.preferences,
+            previousSelectedModel: args.previousSelectedModel,
+            excludedModels: args.excludedModels,
+          },
+        )) as RouterResult;
+
+        if (routerMode === "classifier_v1") {
+          return classifierResult;
+        }
+
+        // shadow_compare: log classifier result, continue with legacy
+        logger.info("Shadow compare - classifier result", {
+          tag: "AutoRouter",
+          classifierModel: classifierResult.selectedModelId,
+          classifierReasoning: classifierResult.reasoning,
+        });
+      }
+
       // Build previous model context for sticky routing evaluation
       let previousModelContext:
         | {

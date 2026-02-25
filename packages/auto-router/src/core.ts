@@ -1,9 +1,12 @@
 import {
   MODEL_CONFIG,
   MODEL_PROFILES,
+  type ModelConfigForRouter,
+  type ModelProfile,
   type RouterPreferences,
   type TaskClassification,
 } from "./profiles";
+import type { ModelRegistry } from "./registry";
 
 export type CostTier = "cheap" | "mid" | "premium";
 
@@ -28,13 +31,27 @@ export function getCostTier(pricing: {
   return "premium";
 }
 
+function resolveModels(
+  registry?: ModelRegistry,
+): Record<string, ModelConfigForRouter> {
+  return registry?.models ?? MODEL_CONFIG;
+}
+
+function resolveProfiles(
+  registry?: ModelRegistry,
+): Record<string, ModelProfile> {
+  return registry?.profiles ?? MODEL_PROFILES;
+}
+
 export function getEligibleModels(
   classification: TaskClassification,
   currentContextTokens: number,
   excludedModels?: string[],
+  registry?: ModelRegistry,
 ): string[] {
-  return Object.keys(MODEL_CONFIG).filter((modelId) => {
-    const config = MODEL_CONFIG[modelId];
+  const models = resolveModels(registry);
+  return Object.keys(models).filter((modelId) => {
+    const config = models[modelId];
 
     if (excludedModels?.includes(modelId)) return false;
     if (config.isInternalOnly) return false;
@@ -62,8 +79,13 @@ export function getEligibleModels(
   });
 }
 
-export function getSpeedBonus(modelId: string): number {
-  const config = MODEL_CONFIG[modelId];
+export function getSpeedBonus(
+  modelId: string,
+  registry?: ModelRegistry,
+): number {
+  const models = resolveModels(registry);
+  const config = models[modelId];
+  if (!config) return 0;
 
   if (config.hostOrder?.includes("cerebras")) return 12;
   if (config.hostOrder?.includes("groq")) return 10;
@@ -83,11 +105,15 @@ export function scoreModels(
   classification: TaskClassification,
   preferences: RouterPreferences,
   previousSelectedModel?: string,
+  registry?: ModelRegistry,
 ): ScoredModel[] {
+  const models = resolveModels(registry);
+  const profiles = resolveProfiles(registry);
+
   return modelIds
     .map((modelId) => {
-      const config = MODEL_CONFIG[modelId];
-      const profile = MODEL_PROFILES[modelId];
+      const config = models[modelId];
+      const profile = profiles[modelId];
 
       let score = 50;
 
@@ -118,7 +144,7 @@ export function scoreModels(
       const costPenalty = (avgCost / 30) * (preferences.costBias / 100) * 20;
       score -= costPenalty;
 
-      score += getSpeedBonus(modelId) * (preferences.speedBias / 100);
+      score += getSpeedBonus(modelId, registry) * (preferences.speedBias / 100);
 
       if (previousSelectedModel && modelId === previousSelectedModel) {
         score += 25;
@@ -149,11 +175,13 @@ export function selectWithExploration(
   scoredModels: ScoredModel[],
   classification: Pick<TaskClassification, "complexity" | "isHighStakes">,
   random: () => number = Math.random,
+  registry?: ModelRegistry,
 ): ScoredModel & { explorationPick: boolean } {
   if (scoredModels.length === 0) {
     throw new Error("No scored models to select from");
   }
 
+  const models = resolveModels(registry);
   const sorted = [...scoredModels].sort((a, b) => b.score - a.score);
   const tiers: Record<CostTier, ScoredModel[]> = {
     cheap: [],
@@ -162,7 +190,8 @@ export function selectWithExploration(
   };
 
   for (const model of sorted) {
-    const config = MODEL_CONFIG[model.modelId];
+    const config = models[model.modelId];
+    if (!config) continue;
     const tier = getCostTier(config.pricing);
     tiers[tier].push(model);
   }

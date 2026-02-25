@@ -1,7 +1,26 @@
 {
   "name": "@blah-chat/auto-router",
   "version": "0.1.0",
+  "description": "Two-stage LLM model router: hard rules + embedding similarity. Zero runtime deps, sub-5ms classification.",
   "type": "module",
+  "license": "MIT",
+  "author": "Bhekani Khumalo",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/planetaryescape/blah.chat",
+    "directory": "packages/auto-router"
+  },
+  "keywords": [
+    "llm",
+    "model-router",
+    "ai",
+    "embedding",
+    "classifier",
+    "openai",
+    "anthropic",
+    "gemini",
+    "model-selection"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -44,6 +63,18 @@
     "./examples": {
       "types": "./dist/examples.d.ts",
       "import": "./dist/examples.js"
+    },
+    "./router": {
+      "types": "./dist/router.d.ts",
+      "import": "./dist/router.js"
+    },
+    "./embedding": {
+      "types": "./dist/embedding.d.ts",
+      "import": "./dist/embedding.js"
+    },
+    "./registry": {
+      "types": "./dist/registry.d.ts",
+      "import": "./dist/registry.js"
     }
   },
   "files": [
@@ -56,13 +87,15 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup src/index.ts src/core.ts src/profiles.ts src/prompts.ts src/types.ts src/bins.ts src/hard-rules.ts src/classifier.ts src/bin-selector.ts src/examples.ts --format esm --dts --clean",
+    "build": "tsup src/index.ts src/core.ts src/profiles.ts src/prompts.ts src/types.ts src/bins.ts src/hard-rules.ts src/classifier.ts src/bin-selector.ts src/examples.ts src/router.ts src/embedding.ts src/registry.ts --format esm --dts --clean",
     "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run",
     "prepublishOnly": "bun run build"
   },
   "devDependencies": {
-    "@blah-chat/config": "workspace:*",
     "tsup": "^8.5.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16"
   }
 }

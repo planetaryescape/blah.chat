@@ -367,7 +367,7 @@
     },
     "packages/api-client": {
       "name": "@blah-chat/api-client",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "dependencies": {
         "eventsource-parser": "^3.0.6",
         "openapi-fetch": "^0.15.0",
@@ -400,9 +400,9 @@
       "name": "@blah-chat/auto-router",
       "version": "0.1.0",
       "devDependencies": {
-        "@blah-chat/config": "workspace:*",
         "tsup": "^8.5.0",
         "typescript": "^5.9.3",
+        "vitest": "^4.0.16",
       },
     },
     "packages/backend": {

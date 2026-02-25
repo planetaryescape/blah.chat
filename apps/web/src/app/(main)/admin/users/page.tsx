@@ -45,6 +45,7 @@ type UserWithUsage = {
   isAdmin: boolean;
   tier?: "free" | "tier1" | "tier2";
   createdAt: number;
+  lastMessageDate?: string;
   usage: {
     totalCost: number;
     totalTokens: number;
@@ -176,6 +177,32 @@ function UsersPageContent() {
             {formatDistanceToNow(row.original.createdAt, { addSuffix: true })}
           </span>
         ),
+      },
+      {
+        id: "lastActive",
+        accessorFn: (row) => row.lastMessageDate,
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Last Active
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => {
+          const date = row.original.lastMessageDate;
+          if (!date) {
+            return <span className="text-muted-foreground">Never</span>;
+          }
+          return (
+            <span className="text-muted-foreground">
+              {formatDistanceToNow(new Date(`${date}T00:00:00`), {
+                addSuffix: true,
+              })}
+            </span>
+          );
+        },
       },
       {
         id: "totalSpent",

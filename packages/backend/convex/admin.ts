@@ -39,6 +39,7 @@ export const listUsers = query({
       isAdmin: u.isAdmin ?? false,
       tier: u.tier,
       createdAt: u.createdAt,
+      lastMessageDate: u.lastMessageDate,
     }));
   },
 });

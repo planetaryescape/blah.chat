@@ -796,11 +796,22 @@ export const getUserDailySpend = query({
       (acc, record) => {
         const date = record.date;
         if (!acc[date]) {
-          acc[date] = { date, totalCost: 0, totalTokens: 0, requestCount: 0 };
+          acc[date] = {
+            date,
+            totalCost: 0,
+            totalTokens: 0,
+            totalInputTokens: 0,
+            totalOutputTokens: 0,
+            requestCount: 0,
+            messageCount: 0,
+          };
         }
         acc[date].totalCost += record.cost;
         acc[date].totalTokens += record.inputTokens + record.outputTokens;
+        acc[date].totalInputTokens += record.inputTokens;
+        acc[date].totalOutputTokens += record.outputTokens;
         acc[date].requestCount += 1;
+        acc[date].messageCount += record.messageCount || 0;
         return acc;
       },
       {} as Record<
@@ -809,7 +820,10 @@ export const getUserDailySpend = query({
           date: string;
           totalCost: number;
           totalTokens: number;
+          totalInputTokens: number;
+          totalOutputTokens: number;
           requestCount: number;
+          messageCount: number;
         }
       >,
     );

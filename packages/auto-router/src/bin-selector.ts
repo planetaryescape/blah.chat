@@ -17,6 +17,7 @@ interface BinSelectionInput {
   excludedModels?: string[];
   currentContextTokens?: number;
   requiresVision?: boolean;
+  contextBuffer?: number;
 }
 
 interface BinSelectionResult {
@@ -32,10 +33,11 @@ function isModelEligible(modelId: string, input: BinSelectionInput): boolean {
   if (config.isInternalOnly) return false;
   if (input.excludedModels?.includes(modelId)) return false;
 
-  // Context window check
+  // Context window check (buffer defaults to 1.2x, configurable via autoRouterConfig)
   if (
     input.currentContextTokens &&
-    config.contextWindow < input.currentContextTokens * 1.2
+    config.contextWindow <
+      input.currentContextTokens * (input.contextBuffer ?? 1.2)
   ) {
     return false;
   }

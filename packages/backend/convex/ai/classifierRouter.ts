@@ -162,6 +162,7 @@ export const routeMessageV2 = internalAction({
     previousSelectedModel: v.optional(v.string()),
     previousRouteLabel: v.optional(v.string()),
     excludedModels: v.optional(v.array(v.string())),
+    contextBuffer: v.optional(v.number()),
     classifierConfig: v.optional(
       v.object({
         confidenceThreshold: v.optional(v.number()),
@@ -284,6 +285,7 @@ export const routeMessageV2 = internalAction({
         currentContextTokens: args.currentContextTokens,
         requiresVision:
           classifierResult.routeLabel === "vision" || args.hasAttachments,
+        contextBuffer: args.contextBuffer,
       });
 
       // 6. Build backward-compatible classification

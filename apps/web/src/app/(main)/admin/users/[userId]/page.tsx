@@ -335,6 +335,75 @@ export default function UserDetailPage({
             </div>
           </div>
 
+          {/* Daily Activity Log */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Daily Activity Log</CardTitle>
+              <CardDescription>
+                Per-day usage breakdown (no message content)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="max-h-[400px] overflow-auto border rounded-md">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead className="text-right">Messages</TableHead>
+                      <TableHead className="text-right">Requests</TableHead>
+                      <TableHead className="text-right">Input Tokens</TableHead>
+                      <TableHead className="text-right">
+                        Output Tokens
+                      </TableHead>
+                      <TableHead className="text-right">Total Tokens</TableHead>
+                      <TableHead className="text-right">Cost</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {dailySpend.length > 0 ? (
+                      [...dailySpend]
+                        .sort((a: any, b: any) => b.date.localeCompare(a.date))
+                        .map((day: any) => (
+                          <TableRow key={day.date}>
+                            <TableCell className="font-medium">
+                              {day.date}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {day.messageCount ?? 0}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {day.requestCount ?? 0}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {formatCompactNumber(day.totalInputTokens ?? 0)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {formatCompactNumber(day.totalOutputTokens ?? 0)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {formatCompactNumber(day.totalTokens ?? 0)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {formatCurrency(day.totalCost ?? 0)}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                    ) : (
+                      <TableRow>
+                        <TableCell
+                          colSpan={7}
+                          className="h-24 text-center text-muted-foreground"
+                        >
+                          No activity in the selected date range.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Daily Spend Chart */}
           <Card>
             <CardHeader>

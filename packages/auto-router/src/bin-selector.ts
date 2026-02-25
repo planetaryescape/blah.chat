@@ -6,10 +6,15 @@
  */
 
 import { ROUTE_BINS } from "./bins";
-import { MODEL_CONFIG, type RouterPreferences } from "./profiles";
-import type { RouteLabel } from "./types";
+import {
+  MODEL_CONFIG,
+  type ModelConfigForRouter,
+  type RouterPreferences,
+} from "./profiles";
+import type { ModelRegistry } from "./registry";
+import type { ModelBin, RouteLabel } from "./types";
 
-interface BinSelectionInput {
+export interface BinSelectionInput {
   routeLabel: RouteLabel;
   preferences: RouterPreferences;
   previousModelId?: string;
@@ -18,6 +23,8 @@ interface BinSelectionInput {
   currentContextTokens?: number;
   requiresVision?: boolean;
   contextBuffer?: number;
+  registry?: ModelRegistry;
+  fallbackModelId?: string;
 }
 
 interface BinSelectionResult {
@@ -27,13 +34,26 @@ interface BinSelectionResult {
   candidateModels: string[];
 }
 
-function isModelEligible(modelId: string, input: BinSelectionInput): boolean {
-  const config = MODEL_CONFIG[modelId];
+function resolveModels(
+  registry?: ModelRegistry,
+): Record<string, ModelConfigForRouter> {
+  return registry?.models ?? MODEL_CONFIG;
+}
+
+function resolveBins(registry?: ModelRegistry): Record<RouteLabel, ModelBin> {
+  return registry?.bins ?? ROUTE_BINS;
+}
+
+function isModelEligible(
+  modelId: string,
+  input: BinSelectionInput,
+  models: Record<string, ModelConfigForRouter>,
+): boolean {
+  const config = models[modelId];
   if (!config) return false;
   if (config.isInternalOnly) return false;
   if (input.excludedModels?.includes(modelId)) return false;
 
-  // Context window check (buffer defaults to 1.2x, configurable via autoRouterConfig)
   if (
     input.currentContextTokens &&
     config.contextWindow <
@@ -42,7 +62,6 @@ function isModelEligible(modelId: string, input: BinSelectionInput): boolean {
     return false;
   }
 
-  // Vision capability check
   if (input.requiresVision && !config.capabilities.includes("vision")) {
     return false;
   }
@@ -53,23 +72,21 @@ function isModelEligible(modelId: string, input: BinSelectionInput): boolean {
 function sortByCostSpeedPreference(
   modelIds: string[],
   preferences: RouterPreferences,
+  models: Record<string, ModelConfigForRouter>,
 ): string[] {
   return [...modelIds].sort((a, b) => {
-    const configA = MODEL_CONFIG[a];
-    const configB = MODEL_CONFIG[b];
+    const configA = models[a];
+    const configB = models[b];
     if (!configA || !configB) return 0;
 
     const avgCostA = (configA.pricing.input + configA.pricing.output) / 2;
     const avgCostB = (configB.pricing.input + configB.pricing.output) / 2;
 
-    // costBias > 50 means prefer cheaper, speedBias > 50 means prefer faster
     const costWeight = (preferences.costBias - 50) / 50;
     const speedWeight = (preferences.speedBias - 50) / 50;
 
-    // Lower cost is better when costBias > 50
     const costDiff = (avgCostA - avgCostB) * costWeight;
 
-    // Models with fast host orders get speed bonus
     const speedA =
       configA.hostOrder?.includes("cerebras") ||
       configA.hostOrder?.includes("groq")
@@ -87,13 +104,26 @@ function sortByCostSpeedPreference(
 }
 
 export function selectFromBin(input: BinSelectionInput): BinSelectionResult {
-  const bin = ROUTE_BINS[input.routeLabel];
+  const models = resolveModels(input.registry);
+  const bins = resolveBins(input.registry);
+  const bin = bins[input.routeLabel];
+
+  if (!bin) {
+    const fallbackId =
+      input.fallbackModelId ?? Object.keys(models)[0] ?? "openai:gpt-5-mini";
+    return {
+      modelId: fallbackId,
+      candidatesConsidered: 0,
+      isSticky: false,
+      candidateModels: [fallbackId],
+    };
+  }
 
   // Sticky routing: if previous model is in this bin and label unchanged, keep it
   if (
     input.previousModelId &&
     input.previousRouteLabel === input.routeLabel &&
-    isModelEligible(input.previousModelId, input)
+    isModelEligible(input.previousModelId, input, models)
   ) {
     const allCandidates = [...bin.primary, ...bin.fallbacks];
     if (allCandidates.includes(input.previousModelId)) {
@@ -108,13 +138,14 @@ export function selectFromBin(input: BinSelectionInput): BinSelectionResult {
 
   // Filter primary models by eligibility
   const eligiblePrimary = bin.primary.filter((id) =>
-    isModelEligible(id, input),
+    isModelEligible(id, input, models),
   );
 
   if (eligiblePrimary.length > 0) {
     const sorted = sortByCostSpeedPreference(
       eligiblePrimary,
       input.preferences,
+      models,
     );
     return {
       modelId: sorted[0],
@@ -126,13 +157,14 @@ export function selectFromBin(input: BinSelectionInput): BinSelectionResult {
 
   // Try fallbacks
   const eligibleFallbacks = bin.fallbacks.filter((id) =>
-    isModelEligible(id, input),
+    isModelEligible(id, input, models),
   );
 
   if (eligibleFallbacks.length > 0) {
     const sorted = sortByCostSpeedPreference(
       eligibleFallbacks,
       input.preferences,
+      models,
     );
     return {
       modelId: sorted[0],
@@ -148,10 +180,12 @@ export function selectFromBin(input: BinSelectionInput): BinSelectionResult {
   }
 
   // Absolute last resort
+  const fallbackId =
+    input.fallbackModelId ?? Object.keys(models)[0] ?? "openai:gpt-5-mini";
   return {
-    modelId: "openai:gpt-5-mini",
+    modelId: fallbackId,
     candidatesConsidered: 0,
     isSticky: false,
-    candidateModels: ["openai:gpt-5-mini"],
+    candidateModels: [fallbackId],
   };
 }

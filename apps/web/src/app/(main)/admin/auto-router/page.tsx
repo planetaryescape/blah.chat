@@ -35,6 +35,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { useModels, useRouterConfig } from "@/lib/models";
 
 // Safe JSON parse with fallback for malformed data
@@ -68,7 +69,10 @@ type TierWeights = {
 
 type SpeedBonuses = Record<string, number>;
 
+type RouterMode = "legacy_scoring" | "classifier_v1" | "shadow_compare";
+
 const DEFAULT_CONFIG = {
+  routerMode: "legacy_scoring" as RouterMode,
   stickinessBonus: 25,
   reasoningBonus: 15,
   researchBonus: 25,
@@ -97,6 +101,9 @@ const DEFAULT_CONFIG = {
   maxRetries: 3,
   contextBuffer: 1.2,
   longContextThreshold: 128000,
+  classifierConfidenceThreshold: 0.82,
+  classifierTopK: 5,
+  classifierFallbackEnabled: true,
 };
 
 function AutoRouterSkeleton() {
@@ -133,6 +140,8 @@ function _AutoRouterPageContent() {
   useEffect(() => {
     if (config) {
       setFormData({
+        routerMode:
+          (config.routerMode as RouterMode) ?? DEFAULT_CONFIG.routerMode,
         stickinessBonus:
           config.stickinessBonus ?? DEFAULT_CONFIG.stickinessBonus,
         reasoningBonus: config.reasoningBonus ?? DEFAULT_CONFIG.reasoningBonus,
@@ -158,6 +167,13 @@ function _AutoRouterPageContent() {
         contextBuffer: config.contextBuffer ?? DEFAULT_CONFIG.contextBuffer,
         longContextThreshold:
           config.longContextThreshold ?? DEFAULT_CONFIG.longContextThreshold,
+        classifierConfidenceThreshold:
+          config.classifierConfidenceThreshold ??
+          DEFAULT_CONFIG.classifierConfidenceThreshold,
+        classifierTopK: config.classifierTopK ?? DEFAULT_CONFIG.classifierTopK,
+        classifierFallbackEnabled:
+          config.classifierFallbackEnabled ??
+          DEFAULT_CONFIG.classifierFallbackEnabled,
       });
     }
   }, [config]);
@@ -206,6 +222,7 @@ function _AutoRouterPageContent() {
     setIsSaving(true);
     try {
       await updateConfigMutation({
+        routerMode: formData.routerMode,
         stickinessBonus: formData.stickinessBonus,
         reasoningBonus: formData.reasoningBonus,
         researchBonus: formData.researchBonus,
@@ -220,6 +237,9 @@ function _AutoRouterPageContent() {
         maxRetries: formData.maxRetries,
         contextBuffer: formData.contextBuffer,
         longContextThreshold: formData.longContextThreshold,
+        classifierConfidenceThreshold: formData.classifierConfidenceThreshold,
+        classifierTopK: formData.classifierTopK,
+        classifierFallbackEnabled: formData.classifierFallbackEnabled,
       });
       toast.success("Auto-router configuration saved");
       setIsDirty(false);
@@ -248,9 +268,26 @@ function _AutoRouterPageContent() {
             <div className="flex items-center gap-3">
               <Sliders className="h-6 w-6" />
               <div>
-                <h1 className="text-2xl font-semibold">
-                  Auto-Router Configuration
-                </h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-semibold">
+                    Auto-Router Configuration
+                  </h1>
+                  <Badge
+                    variant={
+                      formData.routerMode === "classifier_v1"
+                        ? "default"
+                        : formData.routerMode === "shadow_compare"
+                          ? "secondary"
+                          : "outline"
+                    }
+                  >
+                    {formData.routerMode === "classifier_v1"
+                      ? "Classifier v1"
+                      : formData.routerMode === "shadow_compare"
+                        ? "Shadow Compare"
+                        : "Legacy"}
+                  </Badge>
+                </div>
                 <p className="text-sm text-muted-foreground">
                   Tune model selection scoring and behavior
                 </p>
@@ -279,6 +316,122 @@ function _AutoRouterPageContent() {
       <div className="flex-1 min-h-0 overflow-hidden">
         <ScrollArea className="h-full">
           <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+            {/* Router Mode */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings2 className="h-5 w-5" />
+                  Router Mode
+                </CardTitle>
+                <CardDescription>
+                  Switch between legacy scoring and classifier-based routing
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label>Active Mode</Label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    value={formData.routerMode}
+                    onChange={(e) =>
+                      updateField("routerMode", e.target.value as RouterMode)
+                    }
+                  >
+                    <option value="legacy_scoring">
+                      Legacy Scoring (original weighted formula)
+                    </option>
+                    <option value="classifier_v1">
+                      Classifier v1 (embedding similarity + hard rules)
+                    </option>
+                    <option value="shadow_compare">
+                      Shadow Compare (both run, legacy used, classifier logged)
+                    </option>
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    {formData.routerMode === "legacy_scoring" &&
+                      "Using the original LLM classification + weighted scoring formula."}
+                    {formData.routerMode === "classifier_v1" &&
+                      "Using embedding similarity to labeled examples with deterministic model bins."}
+                    {formData.routerMode === "shadow_compare" &&
+                      "Both systems run in parallel. Legacy results are used, classifier results are logged for comparison."}
+                  </p>
+                </div>
+
+                {formData.routerMode !== "legacy_scoring" && (
+                  <>
+                    <Separator />
+                    <div className="space-y-4">
+                      <Label className="text-base">Classifier Settings</Label>
+                      <div className="grid grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label>Confidence Threshold</Label>
+                            <span className="text-sm font-mono">
+                              {(
+                                formData.classifierConfidenceThreshold * 100
+                              ).toFixed(0)}
+                              %
+                            </span>
+                          </div>
+                          <Slider
+                            value={[
+                              formData.classifierConfidenceThreshold * 100,
+                            ]}
+                            onValueChange={([v]) =>
+                              updateField(
+                                "classifierConfidenceThreshold",
+                                v / 100,
+                              )
+                            }
+                            min={50}
+                            max={99}
+                            step={1}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Minimum similarity confidence to skip LLM fallback
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="classifierTopK">Top-K Examples</Label>
+                          <Input
+                            id="classifierTopK"
+                            type="number"
+                            value={formData.classifierTopK}
+                            onChange={(e) =>
+                              updateField(
+                                "classifierTopK",
+                                Number.parseInt(e.target.value, 10) || 3,
+                              )
+                            }
+                            min={1}
+                            max={20}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Number of similar examples to consider for voting
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>LLM Fallback</Label>
+                          <p className="text-xs text-muted-foreground">
+                            Use LLM to disambiguate when classifier confidence
+                            is low
+                          </p>
+                        </div>
+                        <Switch
+                          checked={formData.classifierFallbackEnabled}
+                          onCheckedChange={(checked) =>
+                            updateField("classifierFallbackEnabled", checked)
+                          }
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Scoring Bonuses */}
             <Card>
               <CardHeader>

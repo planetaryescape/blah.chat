@@ -126,7 +126,13 @@ export const routeMessage = internalAction({
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
         api.models.queries.getRouterConfig,
         {},
-      )) as { routerMode?: string } | null;
+      )) as {
+        routerMode?: string;
+        contextBuffer?: number;
+        classifierConfidenceThreshold?: number;
+        classifierTopK?: number;
+        classifierFallbackEnabled?: boolean;
+      } | null;
 
       const routerMode = routerConfig?.routerMode ?? "legacy_scoring";
 
@@ -144,6 +150,12 @@ export const routeMessage = internalAction({
             preferences: args.preferences,
             previousSelectedModel: args.previousSelectedModel,
             excludedModels: args.excludedModels,
+            contextBuffer: routerConfig?.contextBuffer,
+            classifierConfig: {
+              confidenceThreshold: routerConfig?.classifierConfidenceThreshold,
+              topK: routerConfig?.classifierTopK,
+              fallbackEnabled: routerConfig?.classifierFallbackEnabled,
+            },
           },
         )) as RouterResult;
 

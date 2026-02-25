@@ -486,6 +486,16 @@ export const updateRouterConfig = mutation({
     maxRetries: v.optional(v.number()),
     contextBuffer: v.optional(v.number()),
     longContextThreshold: v.optional(v.number()),
+    routerMode: v.optional(
+      v.union(
+        v.literal("legacy_scoring"),
+        v.literal("classifier_v1"),
+        v.literal("shadow_compare"),
+      ),
+    ),
+    classifierConfidenceThreshold: v.optional(v.number()),
+    classifierTopK: v.optional(v.number()),
+    classifierFallbackEnabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);

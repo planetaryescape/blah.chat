@@ -10,6 +10,7 @@ export interface OptimisticMessage {
   userId?: Id<"users">;
   role: "user" | "assistant";
   content: string;
+  clientMessageId?: string;
   status: "optimistic" | "pending" | "generating" | "complete" | "error";
   model?: string;
   attachments?: Array<{

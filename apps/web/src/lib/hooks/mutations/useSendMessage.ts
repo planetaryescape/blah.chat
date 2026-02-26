@@ -15,6 +15,7 @@ interface SendMessageArgs {
   content: string;
   modelId?: string;
   models?: string[];
+  clientMessageId?: string;
   thinkingEffort?: "none" | "low" | "medium" | "high";
   attachments?: Array<{
     type: "file" | "image" | "audio";
@@ -74,6 +75,10 @@ export function useSendMessage(
     },
 
     onMutate: (variables) => {
+      const clientMessageId =
+        variables.clientMessageId ??
+        `client-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
       // Create optimistic user message
       const optimisticUserMsg: OptimisticMessage = {
         _id: `temp-user-${Date.now()}` as `temp-${string}`,
@@ -81,6 +86,7 @@ export function useSendMessage(
         userId: user?._id,
         role: "user" as const,
         content: variables.content,
+        clientMessageId,
         status: "optimistic" as const,
         attachments: variables.attachments?.map((att) => ({
           id: att.storageId,

@@ -129,6 +129,7 @@ export const sendMessage = mutation({
     content: v.string(),
     modelId: v.optional(v.string()), // Single model (backwards compat)
     models: v.optional(v.array(v.string())), // NEW: Array for comparison
+    clientMessageId: v.optional(v.string()),
     thinkingEffort: v.optional(
       v.union(
         v.literal("none"),
@@ -233,6 +234,10 @@ export const sendMessage = mutation({
         },
       );
     }
+    const conversation = await ctx.db.get(conversationId);
+    if (!conversation) {
+      throw new Error("Conversation not found");
+    }
 
     // 4. Acquire lock BEFORE creating messages (prevents reactive query race condition)
     const lockAcquired = (await (ctx.runMutation as any)(
@@ -257,21 +262,41 @@ export const sendMessage = mutation({
     const assistantMessageIds: Id<"messages">[] = [];
 
     try {
-      // Get tree context: find last message and root for tree fields
-      const existingMessages = await ctx.db
-        .query("messages")
-        .withIndex("by_conversation_created", (q) =>
-          q.eq("conversationId", conversationId!),
-        )
-        .collect();
+      // Tree context: prefer active leaf from conversation over global chronological tail.
+      let lastMessage:
+        | {
+            _id: Id<"messages">;
+            rootMessageId?: Id<"messages">;
+            parentMessageId?: Id<"messages">;
+            parentMessageIds?: Id<"messages">[];
+          }
+        | null
+        | undefined;
+      let rootMessageId: Id<"messages"> | undefined;
 
-      // Sort by createdAt to find last message
-      const sortedMessages = existingMessages.sort(
-        (a, b) => a.createdAt - b.createdAt,
-      );
-      const lastMessage = sortedMessages[sortedMessages.length - 1];
-      const rootMessageId =
-        sortedMessages[0]?.rootMessageId ?? sortedMessages[0]?._id;
+      if (conversation.activeLeafMessageId) {
+        lastMessage = await ctx.db.get(conversation.activeLeafMessageId);
+        if (lastMessage) {
+          rootMessageId = await _deriveRootMessageId(ctx, lastMessage);
+        }
+      }
+
+      if (!lastMessage) {
+        const existingMessages = await ctx.db
+          .query("messages")
+          .withIndex("by_conversation_created", (q) =>
+            q.eq("conversationId", conversationId!),
+          )
+          .collect();
+        const sortedMessages = existingMessages.sort(
+          (a, b) => a.createdAt - b.createdAt,
+        );
+        lastMessage = sortedMessages[sortedMessages.length - 1];
+        rootMessageId =
+          rootMessageId ??
+          sortedMessages[0]?.rootMessageId ??
+          sortedMessages[0]?._id;
+      }
 
       // Insert user message (single) - only after lock acquired
       userMessageId = (await ctx.runMutation(internal.messages.create, {
@@ -279,6 +304,7 @@ export const sendMessage = mutation({
         userId: user._id,
         role: "user",
         content: args.content,
+        clientMessageId: args.clientMessageId,
         attachments: args.attachments,
         status: "complete",
         comparisonGroupId, // Link to comparison group if multi-model

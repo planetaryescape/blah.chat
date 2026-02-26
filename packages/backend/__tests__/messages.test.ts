@@ -154,6 +154,102 @@ describe("convex/messages", () => {
     });
   });
 
+  describe("listActivePathPaginated query", () => {
+    it("returns only active-branch messages when tree flags exist", async () => {
+      const t = convexTest(schema);
+      const identity = createMockIdentity();
+
+      const convId = await t.run(async (ctx) => {
+        const userId = await ctx.db.insert(
+          "users",
+          createTestUserData({ clerkId: identity.subject }),
+        );
+        const cId = await ctx.db.insert(
+          "conversations",
+          createTestConversationData(userId),
+        );
+        await ctx.db.insert(
+          "messages",
+          createTestMessageData(cId, userId, {
+            content: "Active",
+            isActiveBranch: true,
+            createdAt: 1000,
+            updatedAt: 1000,
+          }),
+        );
+        await ctx.db.insert(
+          "messages",
+          createTestMessageData(cId, userId, {
+            content: "Inactive",
+            isActiveBranch: false,
+            createdAt: 2000,
+            updatedAt: 2000,
+          }),
+        );
+        return cId;
+      });
+
+      const asUser = t.withIdentity(identity);
+      const result = await asUser.query(api.messages.listActivePathPaginated, {
+        conversationId: convId,
+        paginationOpts: {
+          numItems: 20,
+          cursor: null,
+        },
+      });
+
+      expect(result.page).toHaveLength(1);
+      expect(result.page[0].content).toBe("Active");
+      expect(result.isDone).toBe(true);
+    });
+
+    it("falls back to chronological conversation list when active flags are absent", async () => {
+      const t = convexTest(schema);
+      const identity = createMockIdentity();
+
+      const convId = await t.run(async (ctx) => {
+        const userId = await ctx.db.insert(
+          "users",
+          createTestUserData({ clerkId: identity.subject }),
+        );
+        const cId = await ctx.db.insert(
+          "conversations",
+          createTestConversationData(userId),
+        );
+        await ctx.db.insert(
+          "messages",
+          createTestMessageData(cId, userId, {
+            content: "First",
+            createdAt: 1000,
+            updatedAt: 1000,
+          }),
+        );
+        await ctx.db.insert(
+          "messages",
+          createTestMessageData(cId, userId, {
+            content: "Second",
+            createdAt: 2000,
+            updatedAt: 2000,
+          }),
+        );
+        return cId;
+      });
+
+      const asUser = t.withIdentity(identity);
+      const result = await asUser.query(api.messages.listActivePathPaginated, {
+        conversationId: convId,
+        paginationOpts: {
+          numItems: 20,
+          cursor: null,
+        },
+      });
+
+      expect(result.page).toHaveLength(2);
+      expect(result.page[0].content).toBe("First");
+      expect(result.page[1].content).toBe("Second");
+    });
+  });
+
   describe("message status states", () => {
     const statuses = [
       "pending",

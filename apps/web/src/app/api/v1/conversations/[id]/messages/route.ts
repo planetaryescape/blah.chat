@@ -12,6 +12,7 @@ const sendSchema = z.object({
   content: z.string().min(1),
   modelId: z.string().optional(),
   models: z.array(z.string()).optional(),
+  clientMessageId: z.string().optional(),
   thinkingEffort: z.enum(["none", "low", "medium", "high"]).optional(),
   attachments: z
     .array(

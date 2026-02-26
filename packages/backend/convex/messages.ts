@@ -43,6 +43,7 @@ export const create = internalMutation({
       ),
     ),
     model: v.optional(v.string()),
+    clientMessageId: v.optional(v.string()),
     comparisonGroupId: v.optional(v.string()),
     parentMessageId: v.optional(v.id("messages")), // Legacy
     branchIndex: v.optional(v.number()), // Legacy
@@ -134,6 +135,7 @@ export const create = internalMutation({
       content: args.content || "",
       status: args.status || "complete",
       model: args.model,
+      clientMessageId: args.clientMessageId,
       comparisonGroupId: args.comparisonGroupId,
       // Legacy branching
       parentMessageId: args.parentMessageId,
@@ -440,6 +442,69 @@ export const listPaginated = query({
       .query("messages")
       .withIndex("by_conversation_created", (q) =>
         q.eq("conversationId", args.conversationId),
+      )
+      .paginate({
+        ...args.paginationOpts,
+        cursor: args.paginationOpts.cursor ?? null,
+      });
+  },
+});
+
+export const listActivePathPaginated = query({
+  args: {
+    conversationId: v.id("conversations"),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) {
+      return { page: [], isDone: true, continueCursor: "" };
+    }
+
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation) {
+      return { page: [], isDone: true, continueCursor: "" };
+    }
+
+    let hasAccess = conversation.userId === user._id;
+    if (!hasAccess && conversation.isCollaborative) {
+      const participant = await ctx.db
+        .query("conversationParticipants")
+        .withIndex("by_user_conversation", (q) =>
+          q.eq("userId", user._id).eq("conversationId", args.conversationId),
+        )
+        .first();
+      hasAccess = participant !== null;
+    }
+
+    if (!hasAccess) {
+      return { page: [], isDone: true, continueCursor: "" };
+    }
+
+    const hasActiveBranchMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation_active", (q) =>
+        q.eq("conversationId", args.conversationId).eq("isActiveBranch", true),
+      )
+      .first();
+
+    if (!hasActiveBranchMessages) {
+      // Migration-safe fallback for conversations without tree metadata.
+      return await ctx.db
+        .query("messages")
+        .withIndex("by_conversation_created", (q) =>
+          q.eq("conversationId", args.conversationId),
+        )
+        .paginate({
+          ...args.paginationOpts,
+          cursor: args.paginationOpts.cursor ?? null,
+        });
+    }
+
+    return await ctx.db
+      .query("messages")
+      .withIndex("by_conversation_active", (q) =>
+        q.eq("conversationId", args.conversationId).eq("isActiveBranch", true),
       )
       .paginate({
         ...args.paginationOpts,

@@ -13,6 +13,131 @@ interface MessageCacheSyncOptions {
   initialNumItems?: number;
 }
 
+type CachedMessage = Doc<"messages">;
+
+export function getPrimaryParentId(
+  message: Pick<CachedMessage, "parentMessageId" | "parentMessageIds">,
+): string | undefined {
+  if (Array.isArray(message.parentMessageIds) && message.parentMessageIds[0]) {
+    return String(message.parentMessageIds[0]);
+  }
+  if (message.parentMessageId) {
+    return String(message.parentMessageId);
+  }
+  return undefined;
+}
+
+function compareTreeOrder(a: CachedMessage, b: CachedMessage): number {
+  const aSibling = typeof a.siblingIndex === "number" ? a.siblingIndex : 0;
+  const bSibling = typeof b.siblingIndex === "number" ? b.siblingIndex : 0;
+  if (aSibling !== bSibling) return aSibling - bSibling;
+  if (a._creationTime !== b._creationTime)
+    return a._creationTime - b._creationTime;
+  return String(a._id).localeCompare(String(b._id));
+}
+
+export function orderMessagesByActivePath(
+  messages: CachedMessage[],
+  activeLeafMessageId?: Id<"messages"> | string,
+): CachedMessage[] {
+  if (messages.length <= 1) return messages;
+
+  const byId = new Map<string, CachedMessage>(
+    messages.map((message) => [String(message._id), message]),
+  );
+  const ordered: CachedMessage[] = [];
+  const visited = new Set<string>();
+
+  if (activeLeafMessageId) {
+    const path: CachedMessage[] = [];
+    let current = byId.get(String(activeLeafMessageId));
+    while (current) {
+      const currentId = String(current._id);
+      if (visited.has(currentId)) break;
+      visited.add(currentId);
+      path.push(current);
+      const parentId = getPrimaryParentId(current);
+      current = parentId ? byId.get(parentId) : undefined;
+    }
+    ordered.push(...path.reverse());
+  }
+
+  const childrenByParent = new Map<string, CachedMessage[]>();
+  for (const message of messages) {
+    const parentId = getPrimaryParentId(message);
+    if (!parentId) continue;
+    const siblings = childrenByParent.get(parentId) ?? [];
+    siblings.push(message);
+    childrenByParent.set(parentId, siblings);
+  }
+  for (const siblings of childrenByParent.values()) {
+    siblings.sort(compareTreeOrder);
+  }
+
+  const roots = messages
+    .filter((message) => {
+      const parentId = getPrimaryParentId(message);
+      return !parentId || !byId.has(parentId);
+    })
+    .sort(compareTreeOrder);
+
+  const pushDepthFirst = (message: CachedMessage) => {
+    const messageId = String(message._id);
+    if (visited.has(messageId)) return;
+    visited.add(messageId);
+    ordered.push(message);
+    for (const child of childrenByParent.get(messageId) ?? []) {
+      pushDepthFirst(child);
+    }
+  };
+
+  for (const root of roots) {
+    pushDepthFirst(root);
+  }
+
+  if (ordered.length !== messages.length) {
+    const remaining = messages
+      .filter((message) => !visited.has(String(message._id)))
+      .sort(compareTreeOrder);
+    ordered.push(...remaining);
+  }
+
+  return ordered;
+}
+
+export function getChildMessagesForParent(
+  messages: CachedMessage[],
+  parentMessageId: Id<"messages"> | string,
+): CachedMessage[] {
+  const targetParentId = String(parentMessageId);
+  const children = messages.filter((message) => {
+    if (
+      message.parentMessageId &&
+      String(message.parentMessageId) === targetParentId
+    ) {
+      return true;
+    }
+    return (
+      Array.isArray(message.parentMessageIds) &&
+      message.parentMessageIds.some((id) => String(id) === targetParentId)
+    );
+  });
+
+  return children.sort(compareTreeOrder);
+}
+
+export function getSiblingsForMessage(
+  messages: CachedMessage[],
+  message: CachedMessage,
+): CachedMessage[] {
+  const parentId = getPrimaryParentId(message);
+  if (!parentId) return [message];
+
+  return messages
+    .filter((candidate) => getPrimaryParentId(candidate) === parentId)
+    .sort(compareTreeOrder);
+}
+
 export function useMessageCacheSync({
   conversationId,
   initialNumItems = 50,
@@ -32,7 +157,7 @@ export function useMessageCacheSync({
   // Subscribe to Convex for real-time updates
   const convexMessages = usePaginatedQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query
-    api.messages.listPaginated,
+    api.messages.listActivePathPaginated,
     conversationId ? { conversationId } : "skip",
     { initialNumItems },
   );
@@ -79,13 +204,23 @@ export function useMessageCacheSync({
 
   // @ts-ignore - Dexie PromiseExtended type incompatible with useLiveQuery generics
   const cachedMessages: Doc<"messages">[] | undefined = useLiveQuery(
-    () =>
-      conversationId
-        ? cache.messages
-            .where("conversationId")
-            .equals(conversationId)
-            .sortBy("createdAt")
-        : [],
+    async () => {
+      if (!conversationId) return [];
+
+      const [conversation, conversationMessages] = await Promise.all([
+        cache.conversations.get(conversationId),
+        cache.messages.where("conversationId").equals(conversationId).toArray(),
+      ]);
+
+      const activeMessages = conversationMessages.filter(
+        (message) => message.isActiveBranch !== false,
+      );
+
+      return orderMessagesByActivePath(
+        activeMessages,
+        conversation?.activeLeafMessageId,
+      );
+    },
     [conversationId],
     undefined, // Return undefined while loading, not []
   );
@@ -443,11 +578,22 @@ export function useCachedChildMessages(
   parentMessageId: Id<"messages"> | string,
 ) {
   return useLiveQuery(
-    () =>
-      cache.messages
-        .where("parentMessageId")
-        .equals(parentMessageId)
-        .sortBy("siblingIndex"),
+    async () => {
+      const parentMessage = await cache.messages.get(parentMessageId);
+      if (!parentMessage) {
+        return cache.messages
+          .where("parentMessageId")
+          .equals(parentMessageId)
+          .sortBy("siblingIndex");
+      }
+
+      const conversationMessages = await cache.messages
+        .where("conversationId")
+        .equals(parentMessage.conversationId)
+        .toArray();
+
+      return getChildMessagesForParent(conversationMessages, parentMessageId);
+    },
     [parentMessageId],
     [] as Doc<"messages">[],
   );
@@ -463,13 +609,12 @@ export function useCachedSiblings(messageId: Id<"messages"> | string) {
       const message = await cache.messages.get(messageId);
       if (!message) return [];
 
-      const parentId = message.parentMessageId;
-      if (!parentId) return [message]; // Root message
+      const conversationMessages = await cache.messages
+        .where("conversationId")
+        .equals(message.conversationId)
+        .toArray();
 
-      return cache.messages
-        .where("parentMessageId")
-        .equals(parentId)
-        .sortBy("siblingIndex");
+      return getSiblingsForMessage(conversationMessages, message);
     },
     [messageId],
     [] as Doc<"messages">[],

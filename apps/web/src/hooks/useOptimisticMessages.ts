@@ -29,112 +29,143 @@ interface UseOptimisticMessagesReturn {
 const MATCH_FUTURE_WINDOW_MS = 10_000;
 const MATCH_PAST_WINDOW_MS = 1_000;
 
-function getParentIds(message: MessageWithOptimistic): string[] {
+function getPrimaryParentId(
+  message: MessageWithOptimistic,
+): string | undefined {
   if (
     "parentMessageIds" in message &&
     Array.isArray(message.parentMessageIds)
   ) {
-    return message.parentMessageIds.map((id) => String(id));
+    const parentId = message.parentMessageIds[0];
+    if (parentId) return String(parentId);
   }
-  return [];
+  if ("parentMessageId" in message && message.parentMessageId) {
+    return String(message.parentMessageId);
+  }
+  return undefined;
+}
+
+function getClientMessageId(
+  message: MessageWithOptimistic,
+): string | undefined {
+  if (!("clientMessageId" in message)) return undefined;
+  return typeof message.clientMessageId === "string" &&
+    message.clientMessageId.length > 0
+    ? message.clientMessageId
+    : undefined;
 }
 
 /**
- * Deterministic chronological sort with tie-breakers:
+ * Preserve server ordering as source of truth while enforcing tree constraints:
  * 1) parent before child
- * 2) user before assistant
- * 3) sibling index
- * 4) creation time/id for stable ordering
+ * 2) user before assistant for same parent cluster
+ * 3) siblingIndex when available
+ * 4) original server order fallback
  */
-function compareMessagesForDisplay(
-  a: MessageWithOptimistic,
-  b: MessageWithOptimistic,
-): number {
-  if (a.createdAt !== b.createdAt) {
-    return a.createdAt - b.createdAt;
-  }
+function stabilizeServerOrder(
+  serverMessages: ServerMessage[],
+): ServerMessage[] {
+  const withOrder = serverMessages.map((message, index) => ({
+    message,
+    index,
+    parentId: getPrimaryParentId(message),
+  }));
 
-  const aId = String(a._id);
-  const bId = String(b._id);
-  const aParents = getParentIds(a);
-  const bParents = getParentIds(b);
+  withOrder.sort((a, b) => {
+    const aId = String(a.message._id);
+    const bId = String(b.message._id);
 
-  if (aParents.includes(bId)) return 1;
-  if (bParents.includes(aId)) return -1;
+    if (a.parentId === bId) return 1;
+    if (b.parentId === aId) return -1;
 
-  if (a.role !== b.role) {
-    if (a.role === "user" && b.role === "assistant") return -1;
-    if (a.role === "assistant" && b.role === "user") return 1;
-  }
+    if (a.parentId === b.parentId && a.message.role !== b.message.role) {
+      if (a.message.role === "user" && b.message.role === "assistant") {
+        return -1;
+      }
+      if (a.message.role === "assistant" && b.message.role === "user") {
+        return 1;
+      }
+    }
 
-  const aSiblingIndex =
-    "siblingIndex" in a && typeof a.siblingIndex === "number"
-      ? a.siblingIndex
-      : undefined;
-  const bSiblingIndex =
-    "siblingIndex" in b && typeof b.siblingIndex === "number"
-      ? b.siblingIndex
-      : undefined;
-  if (
-    aSiblingIndex !== undefined &&
-    bSiblingIndex !== undefined &&
-    aSiblingIndex !== bSiblingIndex
-  ) {
-    return aSiblingIndex - bSiblingIndex;
-  }
+    const aSiblingIndex =
+      typeof a.message.siblingIndex === "number" ? a.message.siblingIndex : 0;
+    const bSiblingIndex =
+      typeof b.message.siblingIndex === "number" ? b.message.siblingIndex : 0;
 
-  if (a._creationTime !== b._creationTime) {
-    return a._creationTime - b._creationTime;
-  }
+    if (a.parentId === b.parentId && aSiblingIndex !== bSiblingIndex) {
+      return aSiblingIndex - bSiblingIndex;
+    }
 
-  return aId.localeCompare(bId);
+    return a.index - b.index;
+  });
+
+  return withOrder.map((entry) => entry.message);
 }
 
-function mergeWithOptimisticMessages(
-  serverMessages: MessageWithOptimistic[],
+function findBestOptimisticMatchIndex(
+  serverMessage: ServerMessage,
   optimisticMessages: OptimisticMessage[],
-): MessageWithOptimistic[] {
-  if (optimisticMessages.length === 0) {
-    return [...serverMessages].sort(compareMessagesForDisplay);
+): number {
+  const clientMessageId = getClientMessageId(serverMessage);
+  if (clientMessageId) {
+    const exactClientMatch = optimisticMessages.findIndex(
+      (opt) =>
+        opt.role === "user" &&
+        typeof opt.clientMessageId === "string" &&
+        opt.clientMessageId === clientMessageId,
+    );
+    if (exactClientMatch !== -1) {
+      return exactClientMatch;
+    }
   }
 
-  // Group server messages by role for matching (only user messages are optimistic)
-  const serverByRole: Record<"user" | "assistant", MessageWithOptimistic[]> = {
-    user: serverMessages.filter((m) => m.role === "user"),
-    assistant: [], // Not used - assistant messages come from server only
-  };
+  let bestMatchIndex = -1;
+  let bestAbsDiff = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < optimisticMessages.length; i++) {
+    const optimistic = optimisticMessages[i];
+    if (optimistic.role !== "user") continue;
 
-  // Sort for deterministic matching
-  serverByRole.user.sort(compareMessagesForDisplay);
-
-  const remainingOptimistic: OptimisticMessage[] = [];
-  const sortedOptimistic = [...optimisticMessages].sort(
-    (a, b) => a.createdAt - b.createdAt,
-  );
-
-  for (const opt of sortedOptimistic) {
-    // Only user messages are optimistic (server creates assistant messages)
-    const candidates = serverByRole[opt.role] || [];
-    const matchIndex = candidates.findIndex((serverMsg) => {
-      // Time window check - match if server message arrived within window
-      const timeDiff = serverMsg.createdAt - opt.createdAt;
-      return (
-        timeDiff >= -MATCH_PAST_WINDOW_MS && timeDiff <= MATCH_FUTURE_WINDOW_MS
-      );
-    });
-
-    if (matchIndex === -1) {
-      remainingOptimistic.push(opt);
+    const timeDiff = serverMessage.createdAt - optimistic.createdAt;
+    if (timeDiff < -MATCH_PAST_WINDOW_MS || timeDiff > MATCH_FUTURE_WINDOW_MS) {
       continue;
     }
 
-    // Consume matched server message so it can't be reused for another optimistic entry
-    candidates.splice(matchIndex, 1);
+    const absDiff = Math.abs(timeDiff);
+    if (absDiff < bestAbsDiff) {
+      bestAbsDiff = absDiff;
+      bestMatchIndex = i;
+    }
   }
 
-  return [...serverMessages, ...remainingOptimistic].sort(
-    compareMessagesForDisplay,
-  );
+  return bestMatchIndex;
+}
+
+function mergeWithOptimisticMessages(
+  serverMessages: ServerMessage[],
+  optimisticMessages: OptimisticMessage[],
+): MessageWithOptimistic[] {
+  const orderedServerMessages = stabilizeServerOrder(serverMessages);
+
+  if (optimisticMessages.length === 0) {
+    return orderedServerMessages;
+  }
+
+  const remainingOptimistic = [...optimisticMessages];
+  for (const serverMessage of orderedServerMessages) {
+    if (serverMessage.role !== "user") {
+      continue;
+    }
+
+    const matchIndex = findBestOptimisticMatchIndex(
+      serverMessage,
+      remainingOptimistic,
+    );
+    if (matchIndex !== -1) {
+      remainingOptimistic.splice(matchIndex, 1);
+    }
+  }
+
+  return [...orderedServerMessages, ...remainingOptimistic];
 }
 
 /**
@@ -198,7 +229,7 @@ export function useOptimisticMessages({
     }
 
     const merged = mergeWithOptimisticMessages(
-      serverMessages as MessageWithOptimistic[],
+      serverMessages,
       optimisticMessages,
     );
     prevMessagesRef.current = merged;

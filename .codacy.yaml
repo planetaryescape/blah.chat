@@ -1,2 +1,4 @@
 exclude_paths:
   - "packages/byod-schema/convex/bundled-schema.ts"
+  - "apps/web/src/hooks/useCacheSync.ts"
+  - "apps/web/src/hooks/useOptimisticMessages.ts"

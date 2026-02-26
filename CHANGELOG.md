@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.28.0](https://github.com/planetaryescape/blah.chat/compare/v1.27.3...v1.28.0) (2026-02-26)
+
+
+### Features
+
+* **admin:** add last-active tracking and daily activity log ([02a530f](https://github.com/planetaryescape/blah.chat/commit/02a530f6c985da2e5622dca82c6657b352d29733))
+* **admin:** add router mode selector and classifier settings to dashboard ([668b15e](https://github.com/planetaryescape/blah.chat/commit/668b15e573f8bea0dd59e7ff0ea4b30a2c34c483))
+* **auto-router:** add classifier-based model router ([a72cf45](https://github.com/planetaryescape/blah.chat/commit/a72cf454ef0af9f149588a19f9219d816026cbc8))
+* **auto-router:** add EmbeddingProvider, ModelRegistry, and Router factory ([8273263](https://github.com/planetaryescape/blah.chat/commit/8273263e7e175dc2a8509134acbef8f936b7b69a))
+* refresh app icons and opengraph assets ([84afc03](https://github.com/planetaryescape/blah.chat/commit/84afc03fb50dbae9529c3948bd1f3d8d688051c9))
+
+
+### Bug Fixes
+
+* address code review feedback and CI failures ([bc56b4f](https://github.com/planetaryescape/blah.chat/commit/bc56b4f9acafdd878ba7b3ed94e0275d689261e1))
+* make chat timeline tree-aware and deterministic ([0468503](https://github.com/planetaryescape/blah.chat/commit/046850323d729f790574707bf1f1a581eedd6232))
+* **mobile:** handle email verification step during sign-in ([a30ccf4](https://github.com/planetaryescape/blah.chat/commit/a30ccf46791bd41c3c33835a2ef1c7f2d0d8b27a))
+* **mobile:** polyfill navigator.onLine for Clerk init + restore resourceCache ([eebde4d](https://github.com/planetaryescape/blah.chat/commit/eebde4dbf1776f4376c378b7dcba904def1c451a))
+* **mobile:** redesign auth screens + fix sign-in not working ([9005ae7](https://github.com/planetaryescape/blah.chat/commit/9005ae75aff2f167c9eb689a1f2e3d2d9743e028))
+* resolve codacy issues in message tree ordering ([914dc82](https://github.com/planetaryescape/blah.chat/commit/914dc8287a3d30186b6765c0d1e6d746c7242599))
+* sync byod schema and make classifier fields migration-safe ([016c066](https://github.com/planetaryescape/blah.chat/commit/016c066deb9fb308cb705d6292f3a374a2a2f1fd))
+
 ## [1.27.3](https://github.com/planetaryescape/blah.chat/compare/v1.27.2...v1.27.3) (2026-02-23)
 
 

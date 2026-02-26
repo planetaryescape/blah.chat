@@ -5,7 +5,7 @@
  */
 
 import { v } from "convex/values";
-import { internalQuery, mutation, query } from "../_generated/server";
+import { internalQuery, query } from "../_generated/server";
 
 /**
  * Get routing examples by label.
@@ -60,37 +60,5 @@ export const getExampleCounts = query({
     }
 
     return counts;
-  },
-});
-
-/**
- * Update router mode (admin only).
- */
-export const updateRouterMode = mutation({
-  args: {
-    routerMode: v.union(
-      v.literal("legacy_scoring"),
-      v.literal("classifier_v1"),
-      v.literal("shadow_compare"),
-    ),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .first();
-    if (!user?.isAdmin) throw new Error("Admin access required");
-
-    const config = await ctx.db.query("autoRouterConfig").first();
-    if (!config) throw new Error("Router config not found");
-
-    await ctx.db.patch(config._id, {
-      routerMode: args.routerMode,
-      updatedAt: Date.now(),
-      updatedBy: user._id,
-    });
   },
 });

@@ -8,7 +8,6 @@ import {
   Save,
   Settings2,
   Sliders,
-  Zap,
 } from "lucide-react";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -21,33 +20,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-} from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { useModels, useRouterConfig } from "@/lib/models";
-
-// Safe JSON parse with fallback for malformed data
-function safeJsonParse<T>(json: string | undefined, fallback: T): T {
-  if (!json) return fallback;
-  try {
-    return JSON.parse(json) as T;
-  } catch {
-    console.error("Failed to parse JSON, using fallback:", json);
-    return fallback;
-  }
-}
+import { useRouterConfig } from "@/lib/models";
 
 // Lazy load API to avoid type depth issues
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -61,44 +40,7 @@ function getModelsApi() {
   return _modelsApi;
 }
 
-type TierWeights = {
-  simple: { cheap: number; mid: number; premium: number };
-  moderate: { cheap: number; mid: number; premium: number };
-  complex: { cheap: number; mid: number; premium: number };
-};
-
-type SpeedBonuses = Record<string, number>;
-
-type RouterMode = "legacy_scoring" | "classifier_v1" | "shadow_compare";
-
 const DEFAULT_CONFIG = {
-  routerMode: "legacy_scoring" as RouterMode,
-  stickinessBonus: 25,
-  reasoningBonus: 15,
-  researchBonus: 25,
-  simplePenalty: 0.7,
-  complexBoostThreshold: 85,
-  complexBoostMultiplier: 1.2,
-  cheapThreshold: 1.0,
-  midThreshold: 5.0,
-  tierWeights: {
-    simple: { cheap: 0.6, mid: 0.25, premium: 0.15 },
-    moderate: { cheap: 0.5, mid: 0.3, premium: 0.2 },
-    complex: { cheap: 0.3, mid: 0.4, premium: 0.3 },
-  } as TierWeights,
-  speedBonuses: {
-    cerebras: 12,
-    groq: 10,
-    flash: 8,
-    fast: 8,
-    nano: 10,
-    lite: 10,
-    lightning: 12,
-    thinking: -5,
-    "extended-thinking": -8,
-  } as SpeedBonuses,
-  routerModelId: "openai:gpt-oss-120b",
-  maxRetries: 3,
   contextBuffer: 1.2,
   longContextThreshold: 128000,
   classifierConfidenceThreshold: 0.82,
@@ -111,7 +53,7 @@ function AutoRouterSkeleton() {
     <div className="p-6 space-y-4">
       <Skeleton className="h-8 w-64" />
       <div className="grid gap-4 md:grid-cols-2">
-        {[...Array(4)].map((_, i) => (
+        {[...Array(2)].map((_, i) => (
           <Skeleton key={i} className="h-48 w-full" />
         ))}
       </div>
@@ -121,18 +63,12 @@ function AutoRouterSkeleton() {
 
 function _AutoRouterPageContent() {
   const config = useRouterConfig();
-  const models = useModels({ includeInternalOnly: true });
   // @ts-ignore - Type depth exceeded
   const updateConfigMutation = useMutation(
     getModelsApi().mutations.updateRouterConfig,
   );
 
   const [formData, setFormData] = useState(DEFAULT_CONFIG);
-
-  // Get sorted model list for the select
-  const modelOptions = Object.entries(models ?? {})
-    .filter(([id]) => id !== "auto") // Exclude auto from router model options
-    .sort(([, a], [, b]) => a.name.localeCompare(b.name));
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -140,30 +76,6 @@ function _AutoRouterPageContent() {
   useEffect(() => {
     if (config) {
       setFormData({
-        routerMode:
-          (config.routerMode as RouterMode) ?? DEFAULT_CONFIG.routerMode,
-        stickinessBonus:
-          config.stickinessBonus ?? DEFAULT_CONFIG.stickinessBonus,
-        reasoningBonus: config.reasoningBonus ?? DEFAULT_CONFIG.reasoningBonus,
-        researchBonus: config.researchBonus ?? DEFAULT_CONFIG.researchBonus,
-        simplePenalty: config.simplePenalty ?? DEFAULT_CONFIG.simplePenalty,
-        complexBoostThreshold:
-          config.complexBoostThreshold ?? DEFAULT_CONFIG.complexBoostThreshold,
-        complexBoostMultiplier:
-          config.complexBoostMultiplier ??
-          DEFAULT_CONFIG.complexBoostMultiplier,
-        cheapThreshold: config.cheapThreshold ?? DEFAULT_CONFIG.cheapThreshold,
-        midThreshold: config.midThreshold ?? DEFAULT_CONFIG.midThreshold,
-        tierWeights: safeJsonParse(
-          config.tierWeights,
-          DEFAULT_CONFIG.tierWeights,
-        ),
-        speedBonuses: safeJsonParse(
-          config.speedBonuses,
-          DEFAULT_CONFIG.speedBonuses,
-        ),
-        routerModelId: config.routerModelId ?? DEFAULT_CONFIG.routerModelId,
-        maxRetries: config.maxRetries ?? DEFAULT_CONFIG.maxRetries,
         contextBuffer: config.contextBuffer ?? DEFAULT_CONFIG.contextBuffer,
         longContextThreshold:
           config.longContextThreshold ?? DEFAULT_CONFIG.longContextThreshold,
@@ -186,55 +98,10 @@ function _AutoRouterPageContent() {
     [],
   );
 
-  const updateTierWeight = useCallback(
-    (
-      complexity: keyof TierWeights,
-      tier: keyof TierWeights["simple"],
-      value: number,
-    ) => {
-      setFormData((prev) => ({
-        ...prev,
-        tierWeights: {
-          ...prev.tierWeights,
-          [complexity]: {
-            ...prev.tierWeights[complexity],
-            [tier]: value,
-          },
-        },
-      }));
-      setIsDirty(true);
-    },
-    [],
-  );
-
-  const updateSpeedBonus = useCallback((pattern: string, value: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      speedBonuses: {
-        ...prev.speedBonuses,
-        [pattern]: value,
-      },
-    }));
-    setIsDirty(true);
-  }, []);
-
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
       await updateConfigMutation({
-        routerMode: formData.routerMode,
-        stickinessBonus: formData.stickinessBonus,
-        reasoningBonus: formData.reasoningBonus,
-        researchBonus: formData.researchBonus,
-        simplePenalty: formData.simplePenalty,
-        complexBoostThreshold: formData.complexBoostThreshold,
-        complexBoostMultiplier: formData.complexBoostMultiplier,
-        cheapThreshold: formData.cheapThreshold,
-        midThreshold: formData.midThreshold,
-        tierWeights: JSON.stringify(formData.tierWeights),
-        speedBonuses: JSON.stringify(formData.speedBonuses),
-        routerModelId: formData.routerModelId,
-        maxRetries: formData.maxRetries,
         contextBuffer: formData.contextBuffer,
         longContextThreshold: formData.longContextThreshold,
         classifierConfidenceThreshold: formData.classifierConfidenceThreshold,
@@ -272,24 +139,10 @@ function _AutoRouterPageContent() {
                   <h1 className="text-2xl font-semibold">
                     Auto-Router Configuration
                   </h1>
-                  <Badge
-                    variant={
-                      formData.routerMode === "classifier_v1"
-                        ? "default"
-                        : formData.routerMode === "shadow_compare"
-                          ? "secondary"
-                          : "outline"
-                    }
-                  >
-                    {formData.routerMode === "classifier_v1"
-                      ? "Classifier v1"
-                      : formData.routerMode === "shadow_compare"
-                        ? "Shadow Compare"
-                        : "Legacy"}
-                  </Badge>
+                  <Badge variant="default">Classifier</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Tune model selection scoring and behavior
+                  Embedding similarity + hard rules model selection
                 </p>
               </div>
             </div>
@@ -316,482 +169,91 @@ function _AutoRouterPageContent() {
       <div className="flex-1 min-h-0 overflow-hidden">
         <ScrollArea className="h-full">
           <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
-            {/* Router Mode */}
+            {/* Classifier Settings */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Settings2 className="h-5 w-5" />
-                  Router Mode
+                  Classifier Settings
                 </CardTitle>
                 <CardDescription>
-                  Switch between legacy scoring and classifier-based routing
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label>Active Mode</Label>
-                  <select
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    value={formData.routerMode}
-                    onChange={(e) =>
-                      updateField("routerMode", e.target.value as RouterMode)
-                    }
-                  >
-                    <option value="legacy_scoring">
-                      Legacy Scoring (original weighted formula)
-                    </option>
-                    <option value="classifier_v1">
-                      Classifier v1 (embedding similarity + hard rules)
-                    </option>
-                    <option value="shadow_compare">
-                      Shadow Compare (both run, legacy used, classifier logged)
-                    </option>
-                  </select>
-                  <p className="text-xs text-muted-foreground">
-                    {formData.routerMode === "legacy_scoring" &&
-                      "Using the original LLM classification + weighted scoring formula."}
-                    {formData.routerMode === "classifier_v1" &&
-                      "Using embedding similarity to labeled examples with deterministic model bins."}
-                    {formData.routerMode === "shadow_compare" &&
-                      "Both systems run in parallel. Legacy results are used, classifier results are logged for comparison."}
-                  </p>
-                </div>
-
-                {formData.routerMode !== "legacy_scoring" && (
-                  <>
-                    <Separator />
-                    <div className="space-y-4">
-                      <Label className="text-base">Classifier Settings</Label>
-                      <div className="grid grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <Label>Confidence Threshold</Label>
-                            <span className="text-sm font-mono">
-                              {(
-                                formData.classifierConfidenceThreshold * 100
-                              ).toFixed(0)}
-                              %
-                            </span>
-                          </div>
-                          <Slider
-                            value={[
-                              formData.classifierConfidenceThreshold * 100,
-                            ]}
-                            onValueChange={([v]) =>
-                              updateField(
-                                "classifierConfidenceThreshold",
-                                v / 100,
-                              )
-                            }
-                            min={50}
-                            max={99}
-                            step={1}
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Minimum similarity confidence to skip LLM fallback
-                          </p>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="classifierTopK">Top-K Examples</Label>
-                          <Input
-                            id="classifierTopK"
-                            type="number"
-                            value={formData.classifierTopK}
-                            onChange={(e) =>
-                              updateField(
-                                "classifierTopK",
-                                Number.parseInt(e.target.value, 10) || 3,
-                              )
-                            }
-                            min={1}
-                            max={20}
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Number of similar examples to consider for voting
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label>LLM Fallback</Label>
-                          <p className="text-xs text-muted-foreground">
-                            Use LLM to disambiguate when classifier confidence
-                            is low
-                          </p>
-                        </div>
-                        <Switch
-                          checked={formData.classifierFallbackEnabled}
-                          onCheckedChange={(checked) =>
-                            updateField("classifierFallbackEnabled", checked)
-                          }
-                        />
-                      </div>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Scoring Bonuses */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5" />
-                  Scoring Bonuses
-                </CardTitle>
-                <CardDescription>
-                  Points added to model scores based on context
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label>Stickiness Bonus</Label>
-                      <span className="text-sm font-mono">
-                        +{formData.stickinessBonus}
-                      </span>
-                    </div>
-                    <Slider
-                      value={[formData.stickinessBonus]}
-                      onValueChange={([v]) => updateField("stickinessBonus", v)}
-                      min={0}
-                      max={50}
-                      step={1}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Bonus for keeping the same model within a conversation
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label>Reasoning Bonus</Label>
-                      <span className="text-sm font-mono">
-                        +{formData.reasoningBonus}
-                      </span>
-                    </div>
-                    <Slider
-                      value={[formData.reasoningBonus]}
-                      onValueChange={([v]) => updateField("reasoningBonus", v)}
-                      min={0}
-                      max={50}
-                      step={1}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Bonus for models with thinking capability on complex tasks
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label>Research Bonus</Label>
-                      <span className="text-sm font-mono">
-                        +{formData.researchBonus}
-                      </span>
-                    </div>
-                    <Slider
-                      value={[formData.researchBonus]}
-                      onValueChange={([v]) => updateField("researchBonus", v)}
-                      min={0}
-                      max={50}
-                      step={1}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Bonus for Perplexity on research-type tasks
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Complexity Tuning */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings2 className="h-5 w-5" />
-                  Complexity Tuning
-                </CardTitle>
-                <CardDescription>
-                  How task complexity affects model selection
+                  Controls for embedding-based route classification
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label>Simple Task Penalty</Label>
+                      <Label>Confidence Threshold</Label>
                       <span className="text-sm font-mono">
-                        ×{formData.simplePenalty.toFixed(2)}
+                        {(formData.classifierConfidenceThreshold * 100).toFixed(
+                          0,
+                        )}
+                        %
                       </span>
                     </div>
                     <Slider
-                      value={[formData.simplePenalty * 100]}
+                      value={[formData.classifierConfidenceThreshold * 100]}
                       onValueChange={([v]) =>
-                        updateField("simplePenalty", v / 100)
+                        updateField("classifierConfidenceThreshold", v / 100)
                       }
                       min={50}
-                      max={100}
-                      step={5}
+                      max={99}
+                      step={1}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Multiplier applied to expensive models for simple tasks
+                      Minimum similarity confidence to skip LLM fallback
                     </p>
                   </div>
-
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label>Complex Boost Multiplier</Label>
-                      <span className="text-sm font-mono">
-                        ×{formData.complexBoostMultiplier.toFixed(2)}
-                      </span>
-                    </div>
-                    <Slider
-                      value={[formData.complexBoostMultiplier * 100]}
-                      onValueChange={([v]) =>
-                        updateField("complexBoostMultiplier", v / 100)
-                      }
-                      min={100}
-                      max={200}
-                      step={5}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Boost applied to high-quality models for complex tasks
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="complexBoostThreshold">
-                      Complex Boost Threshold
-                    </Label>
+                    <Label htmlFor="classifierTopK">Top-K Examples</Label>
                     <Input
-                      id="complexBoostThreshold"
+                      id="classifierTopK"
                       type="number"
-                      value={formData.complexBoostThreshold}
+                      value={formData.classifierTopK}
                       onChange={(e) =>
                         updateField(
-                          "complexBoostThreshold",
-                          parseInt(e.target.value, 10) || 0,
-                        )
-                      }
-                      min={0}
-                      max={100}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Quality score threshold to receive complex boost (0-100)
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Cost Tier Configuration */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Cost Tier Configuration</CardTitle>
-                <CardDescription>
-                  Define cost boundaries and weights per task complexity
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="cheapThreshold">
-                      Cheap Threshold ($/1M)
-                    </Label>
-                    <Input
-                      id="cheapThreshold"
-                      type="number"
-                      step="0.1"
-                      value={formData.cheapThreshold}
-                      onChange={(e) =>
-                        updateField(
-                          "cheapThreshold",
-                          parseFloat(e.target.value) || 0,
-                        )
-                      }
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Models below this cost are "cheap" tier
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="midThreshold">Mid Threshold ($/1M)</Label>
-                    <Input
-                      id="midThreshold"
-                      type="number"
-                      step="0.1"
-                      value={formData.midThreshold}
-                      onChange={(e) =>
-                        updateField(
-                          "midThreshold",
-                          parseFloat(e.target.value) || 0,
-                        )
-                      }
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Models below this (but above cheap) are "mid" tier
-                    </p>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <Label className="text-base">
-                    Tier Weights by Complexity
-                  </Label>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Probability weights for each cost tier based on task
-                    complexity
-                  </p>
-
-                  <div className="space-y-4">
-                    {(["simple", "moderate", "complex"] as const).map(
-                      (complexity) => (
-                        <div key={complexity} className="space-y-2">
-                          <Label className="capitalize">
-                            {complexity} Tasks
-                          </Label>
-                          <div className="grid grid-cols-3 gap-4">
-                            {(["cheap", "mid", "premium"] as const).map(
-                              (tier) => (
-                                <div key={tier} className="space-y-1">
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-xs capitalize text-muted-foreground">
-                                      {tier}
-                                    </span>
-                                    <span className="text-xs font-mono">
-                                      {(
-                                        formData.tierWeights[complexity][tier] *
-                                        100
-                                      ).toFixed(0)}
-                                      %
-                                    </span>
-                                  </div>
-                                  <Slider
-                                    value={[
-                                      formData.tierWeights[complexity][tier] *
-                                        100,
-                                    ]}
-                                    onValueChange={([v]) =>
-                                      updateTierWeight(
-                                        complexity,
-                                        tier,
-                                        v / 100,
-                                      )
-                                    }
-                                    min={0}
-                                    max={100}
-                                    step={5}
-                                  />
-                                </div>
-                              ),
-                            )}
-                          </div>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Speed Bonuses */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Speed Bonuses</CardTitle>
-                <CardDescription>
-                  Score adjustments based on model speed characteristics
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {Object.entries(formData.speedBonuses).map(
-                    ([pattern, bonus]) => (
-                      <div key={pattern} className="space-y-2">
-                        <Label
-                          htmlFor={`speed-${pattern}`}
-                          className="font-mono"
-                        >
-                          {pattern}
-                        </Label>
-                        <Input
-                          id={`speed-${pattern}`}
-                          type="number"
-                          value={bonus}
-                          onChange={(e) =>
-                            updateSpeedBonus(
-                              pattern,
-                              parseInt(e.target.value, 10) || 0,
-                            )
-                          }
-                        />
-                      </div>
-                    ),
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mt-4">
-                  Positive values boost fast models, negative values penalize
-                  slow models
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Router Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Router Settings</CardTitle>
-                <CardDescription>
-                  Core router behavior and limits
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="routerModelId">Router Model</Label>
-                    <Combobox
-                      value={formData.routerModelId}
-                      onValueChange={(v) =>
-                        v && updateField("routerModelId", v as string)
-                      }
-                    >
-                      <ComboboxInput placeholder="Search models..." />
-                      <ComboboxContent>
-                        <ComboboxEmpty>No models found.</ComboboxEmpty>
-                        <ComboboxList>
-                          {modelOptions.map(([id, model]) => (
-                            <ComboboxItem key={id} value={id}>
-                              {model.name}
-                            </ComboboxItem>
-                          ))}
-                        </ComboboxList>
-                      </ComboboxContent>
-                    </Combobox>
-                    <p className="text-xs text-muted-foreground">
-                      Model used for task classification
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="maxRetries">Max Retries</Label>
-                    <Input
-                      id="maxRetries"
-                      type="number"
-                      value={formData.maxRetries}
-                      onChange={(e) =>
-                        updateField(
-                          "maxRetries",
-                          parseInt(e.target.value, 10) || 0,
+                          "classifierTopK",
+                          Number.parseInt(e.target.value, 10) || 3,
                         )
                       }
                       min={1}
-                      max={10}
+                      max={20}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Auto-retry attempts on model failure
+                      Number of similar examples to consider for voting
                     </p>
                   </div>
                 </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>LLM Fallback</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Use LLM to disambiguate when classifier confidence is low
+                    </p>
+                  </div>
+                  <Switch
+                    checked={formData.classifierFallbackEnabled}
+                    onCheckedChange={(checked) =>
+                      updateField("classifierFallbackEnabled", checked)
+                    }
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Context Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings2 className="h-5 w-5" />
+                  Context Settings
+                </CardTitle>
+                <CardDescription>
+                  Context window safety margins and thresholds
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="contextBuffer">Context Buffer</Label>

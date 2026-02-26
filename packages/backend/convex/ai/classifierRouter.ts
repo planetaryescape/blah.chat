@@ -304,7 +304,7 @@ export const routeMessageV2 = internalAction({
 
       // 8. Build decision trace
       const trace: DecisionTrace = {
-        routerMode: "classifier_v1",
+        routerMode: "classifier",
         hardRuleMatched: classifierResult.hardRuleMatched,
         topSimilarityScore: classifierResult.topSimilarityScore,
         topRouteLabel: classifierResult.routeLabel,

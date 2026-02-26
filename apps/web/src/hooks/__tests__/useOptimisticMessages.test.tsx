@@ -108,4 +108,59 @@ describe("useOptimisticMessages", () => {
       result.current.messages?.some((m) => String(m._id).startsWith("temp-")),
     ).toBe(false);
   });
+
+  it("deduplicates optimistic user message by clientMessageId", () => {
+    const timestamp = 1_700_000_200_000;
+    const optimisticUserMessage: OptimisticMessage = {
+      _id: "temp-user-client-id",
+      conversationId: "conv-1" as Id<"conversations">,
+      userId: "user-1" as Id<"users">,
+      role: "user",
+      content: "Client id test",
+      clientMessageId: "client-123",
+      status: "optimistic",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      _creationTime: timestamp,
+      _optimistic: true,
+    };
+
+    const { result, rerender } = renderHook(
+      ({ serverMessages }) => useOptimisticMessages({ serverMessages }),
+      { initialProps: { serverMessages: [] as Doc<"messages">[] } },
+    );
+
+    act(() => {
+      result.current.addOptimisticMessages([optimisticUserMessage]);
+    });
+
+    const serverUserMessage = createServerMessage({
+      _id: "msg-server-client-id" as Id<"messages">,
+      role: "user",
+      content: "Client id test",
+      clientMessageId: "client-123",
+      createdAt: timestamp + 60_000,
+    });
+    const serverAssistantMessage = createServerMessage({
+      _id: "msg-server-assistant-client-id" as Id<"messages">,
+      role: "assistant",
+      status: "pending",
+      content: "",
+      parentMessageIds: [serverUserMessage._id],
+      model: "openai:gpt-5",
+      createdAt: timestamp + 60_000,
+    });
+
+    rerender({
+      serverMessages: [serverAssistantMessage, serverUserMessage],
+    });
+
+    expect(result.current.messages?.map((m) => m._id)).toEqual([
+      "msg-server-client-id",
+      "msg-server-assistant-client-id",
+    ]);
+    expect(
+      result.current.messages?.some((m) => String(m._id).startsWith("temp-")),
+    ).toBe(false);
+  });
 });

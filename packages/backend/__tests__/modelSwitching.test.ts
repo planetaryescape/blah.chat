@@ -177,6 +177,75 @@ describe("model switching", () => {
       expect(messages).toHaveLength(1);
       expect(messages[0].model).toBe("openai:gpt-oss-20b"); // Default fallback
     });
+
+    it("anchors new user message to active leaf and persists clientMessageId", async () => {
+      const t = convexTest(schema);
+      const identity = createMockIdentity();
+
+      const { convId, activeLeafId } = await t.run(async (ctx) => {
+        const userId = await ctx.db.insert(
+          "users",
+          createTestUserData({ clerkId: identity.subject }),
+        );
+        const cId = await ctx.db.insert(
+          "conversations",
+          createTestConversationData(userId),
+        );
+
+        const activeMessageId = await ctx.db.insert("messages", {
+          ...createTestMessageData(cId, userId, {
+            content: "Active leaf",
+            role: "assistant",
+            model: "openai:gpt-4o-mini",
+            isActiveBranch: true,
+            createdAt: 1_000,
+            updatedAt: 1_000,
+          }),
+        });
+
+        await ctx.db.insert("messages", {
+          ...createTestMessageData(cId, userId, {
+            content: "Inactive newer message",
+            role: "assistant",
+            model: "openai:gpt-4o-mini",
+            isActiveBranch: false,
+            createdAt: 2_000,
+            updatedAt: 2_000,
+          }),
+        });
+
+        await ctx.db.patch(cId, {
+          activeLeafMessageId: activeMessageId,
+        });
+
+        return { convId: cId, activeLeafId: activeMessageId };
+      });
+
+      const asUser = t.withIdentity(identity);
+      await asUser.mutation(api.chat.sendMessage, {
+        conversationId: convId,
+        content: "Follow up on active path",
+        clientMessageId: "client-test-123",
+      });
+
+      const createdUserMessage = await t.run(async (ctx) => {
+        const messages = await ctx.db
+          .query("messages")
+          .withIndex("by_conversation", (q) => q.eq("conversationId", convId))
+          .filter((q) =>
+            q.and(
+              q.eq(q.field("role"), "user"),
+              q.eq(q.field("clientMessageId"), "client-test-123"),
+            ),
+          )
+          .collect();
+        return messages[0];
+      });
+
+      expect(createdUserMessage).toBeTruthy();
+      expect(createdUserMessage.parentMessageIds?.[0]).toBe(activeLeafId);
+      expect(createdUserMessage.clientMessageId).toBe("client-test-123");
+    });
   });
 
   describe("mid-conversation model switch", () => {

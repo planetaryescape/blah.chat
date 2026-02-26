@@ -224,6 +224,7 @@ export default defineSchema({
       v.literal("error"),
     ),
     model: v.optional(v.string()), // Required for assistant messages, validated in mutation
+    clientMessageId: v.optional(v.string()), // Client-generated ID for optimistic reconciliation
     inputTokens: v.optional(v.number()),
     outputTokens: v.optional(v.number()),
     cost: v.optional(v.number()),

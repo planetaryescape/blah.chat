@@ -174,6 +174,7 @@ describe("/api/v1/conversations/[id]/messages", () => {
         body: {
           content: "Test message",
           modelId: "gpt-4o",
+          clientMessageId: "client-abc123",
           thinkingEffort: "medium",
         },
       });
@@ -185,6 +186,7 @@ describe("/api/v1/conversations/[id]/messages", () => {
         {
           content: "Test message",
           modelId: "gpt-4o",
+          clientMessageId: "client-abc123",
           thinkingEffort: "medium",
         },
         "test-session-token",

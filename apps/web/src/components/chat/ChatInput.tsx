@@ -205,11 +205,15 @@ export const ChatInput = memo(function ChatInput({
     const messageContent = originalQuote
       ? `> ${originalQuote}\n\n${originalInput}`
       : originalInput;
+    const clientMessageId = `client-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 10)}`;
 
     sendMessage(
       {
         conversationId,
         content: messageContent,
+        clientMessageId,
         ...(isComparisonMode
           ? { models: selectedModels }
           : { modelId: selectedModel }),

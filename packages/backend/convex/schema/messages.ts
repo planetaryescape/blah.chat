@@ -19,6 +19,7 @@ export const messagesTable = defineTable({
     v.literal("error"),
   ),
   model: v.optional(v.string()),
+  clientMessageId: v.optional(v.string()),
   inputTokens: v.optional(v.number()),
   outputTokens: v.optional(v.number()),
   cost: v.optional(v.number()),

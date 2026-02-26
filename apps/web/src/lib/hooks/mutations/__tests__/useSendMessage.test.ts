@@ -128,6 +128,7 @@ describe("useSendMessage", () => {
       _optimistic: true,
     });
     expect(messages[0]._id).toMatch(/^temp-user-/);
+    expect(messages[0].clientMessageId).toMatch(/^client-/);
   });
 
   it("creates only user message for model comparison (server creates assistants)", async () => {
@@ -156,6 +157,7 @@ describe("useSendMessage", () => {
       conversationId,
       content: "Test message",
       modelId: "openai:gpt-4o",
+      clientMessageId: "client-fixed-id",
     };
 
     await mutationConfig?.mutationFn?.(args);

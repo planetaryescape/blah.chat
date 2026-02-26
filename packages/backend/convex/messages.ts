@@ -2,7 +2,12 @@ import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { internalMutation, internalQuery, query } from "./_generated/server";
+import {
+  internalMutation,
+  internalQuery,
+  type QueryCtx,
+  query,
+} from "./_generated/server";
 import { getCurrentUser } from "./lib/userSync";
 
 export * as attachments from "./messages/attachments";
@@ -11,6 +16,30 @@ export * as embeddings from "./messages/embeddings";
 export * as recovery from "./messages/recovery";
 export * as thinking from "./messages/thinking";
 export * as toolCalls from "./messages/toolCalls";
+
+function emptyPaginatedResult() {
+  return { page: [], isDone: true, continueCursor: "" };
+}
+
+async function hasConversationAccess(
+  ctx: QueryCtx,
+  conversationId: Id<"conversations">,
+  userId: Id<"users">,
+): Promise<boolean> {
+  const conversation = await ctx.db.get(conversationId);
+  if (!conversation) return false;
+
+  if (conversation.userId === userId) return true;
+  if (!conversation.isCollaborative) return false;
+
+  const participant = await ctx.db
+    .query("conversationParticipants")
+    .withIndex("by_user_conversation", (q) =>
+      q.eq("userId", userId).eq("conversationId", conversationId),
+    )
+    .first();
+  return participant !== null;
+}
 
 // ===== Core CRUD =====
 
@@ -414,28 +443,9 @@ export const listPaginated = query({
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
-    if (!user) {
-      return { page: [], isDone: true, continueCursor: "" };
-    }
-
-    const conversation = await ctx.db.get(args.conversationId);
-    if (!conversation) {
-      return { page: [], isDone: true, continueCursor: "" };
-    }
-
-    let hasAccess = conversation.userId === user._id;
-    if (!hasAccess && conversation.isCollaborative) {
-      const participant = await ctx.db
-        .query("conversationParticipants")
-        .withIndex("by_user_conversation", (q) =>
-          q.eq("userId", user._id).eq("conversationId", args.conversationId),
-        )
-        .first();
-      hasAccess = participant !== null;
-    }
-
-    if (!hasAccess) {
-      return { page: [], isDone: true, continueCursor: "" };
+    if (!user) return emptyPaginatedResult();
+    if (!(await hasConversationAccess(ctx, args.conversationId, user._id))) {
+      return emptyPaginatedResult();
     }
 
     return await ctx.db
@@ -457,28 +467,9 @@ export const listActivePathPaginated = query({
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
-    if (!user) {
-      return { page: [], isDone: true, continueCursor: "" };
-    }
-
-    const conversation = await ctx.db.get(args.conversationId);
-    if (!conversation) {
-      return { page: [], isDone: true, continueCursor: "" };
-    }
-
-    let hasAccess = conversation.userId === user._id;
-    if (!hasAccess && conversation.isCollaborative) {
-      const participant = await ctx.db
-        .query("conversationParticipants")
-        .withIndex("by_user_conversation", (q) =>
-          q.eq("userId", user._id).eq("conversationId", args.conversationId),
-        )
-        .first();
-      hasAccess = participant !== null;
-    }
-
-    if (!hasAccess) {
-      return { page: [], isDone: true, continueCursor: "" };
+    if (!user) return emptyPaginatedResult();
+    if (!(await hasConversationAccess(ctx, args.conversationId, user._id))) {
+      return emptyPaginatedResult();
     }
 
     const hasActiveBranchMessages = await ctx.db

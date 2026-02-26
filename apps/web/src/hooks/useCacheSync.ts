@@ -36,32 +36,35 @@ function compareTreeOrder(a: CachedMessage, b: CachedMessage): number {
   return String(a._id).localeCompare(String(b._id));
 }
 
-export function orderMessagesByActivePath(
+function buildMessageMap(
   messages: CachedMessage[],
-  activeLeafMessageId?: Id<"messages"> | string,
+): Map<string, CachedMessage> {
+  return new Map(messages.map((message) => [String(message._id), message]));
+}
+
+function collectPathFromActiveLeaf(
+  byId: Map<string, CachedMessage>,
+  activeLeafMessageId: Id<"messages"> | string | undefined,
+  visited: Set<string>,
 ): CachedMessage[] {
-  if (messages.length <= 1) return messages;
+  if (!activeLeafMessageId) return [];
 
-  const byId = new Map<string, CachedMessage>(
-    messages.map((message) => [String(message._id), message]),
-  );
-  const ordered: CachedMessage[] = [];
-  const visited = new Set<string>();
-
-  if (activeLeafMessageId) {
-    const path: CachedMessage[] = [];
-    let current = byId.get(String(activeLeafMessageId));
-    while (current) {
-      const currentId = String(current._id);
-      if (visited.has(currentId)) break;
-      visited.add(currentId);
-      path.push(current);
-      const parentId = getPrimaryParentId(current);
-      current = parentId ? byId.get(parentId) : undefined;
-    }
-    ordered.push(...path.reverse());
+  const path: CachedMessage[] = [];
+  let current = byId.get(String(activeLeafMessageId));
+  while (current) {
+    const currentId = String(current._id);
+    if (visited.has(currentId)) break;
+    visited.add(currentId);
+    path.push(current);
+    const parentId = getPrimaryParentId(current);
+    current = parentId ? byId.get(parentId) : undefined;
   }
+  return path.reverse();
+}
 
+function buildChildrenByParent(
+  messages: CachedMessage[],
+): Map<string, CachedMessage[]> {
   const childrenByParent = new Map<string, CachedMessage[]>();
   for (const message of messages) {
     const parentId = getPrimaryParentId(message);
@@ -73,34 +76,69 @@ export function orderMessagesByActivePath(
   for (const siblings of childrenByParent.values()) {
     siblings.sort(compareTreeOrder);
   }
+  return childrenByParent;
+}
 
-  const roots = messages
+function getRootMessages(
+  messages: CachedMessage[],
+  byId: Map<string, CachedMessage>,
+): CachedMessage[] {
+  return messages
     .filter((message) => {
       const parentId = getPrimaryParentId(message);
       return !parentId || !byId.has(parentId);
     })
     .sort(compareTreeOrder);
+}
 
-  const pushDepthFirst = (message: CachedMessage) => {
-    const messageId = String(message._id);
-    if (visited.has(messageId)) return;
-    visited.add(messageId);
-    ordered.push(message);
-    for (const child of childrenByParent.get(messageId) ?? []) {
-      pushDepthFirst(child);
-    }
-  };
+function pushDepthFirstMessages(
+  message: CachedMessage,
+  childrenByParent: Map<string, CachedMessage[]>,
+  visited: Set<string>,
+  ordered: CachedMessage[],
+): void {
+  const messageId = String(message._id);
+  if (visited.has(messageId)) return;
+  visited.add(messageId);
+  ordered.push(message);
+  for (const child of childrenByParent.get(messageId) ?? []) {
+    pushDepthFirstMessages(child, childrenByParent, visited, ordered);
+  }
+}
+
+function appendRemainingMessages(
+  messages: CachedMessage[],
+  visited: Set<string>,
+  ordered: CachedMessage[],
+): void {
+  if (ordered.length === messages.length) return;
+  const remaining = messages
+    .filter((message) => !visited.has(String(message._id)))
+    .sort(compareTreeOrder);
+  ordered.push(...remaining);
+}
+
+export function orderMessagesByActivePath(
+  messages: CachedMessage[],
+  activeLeafMessageId?: Id<"messages"> | string,
+): CachedMessage[] {
+  if (messages.length <= 1) return messages;
+
+  const byId = buildMessageMap(messages);
+  const ordered: CachedMessage[] = [];
+  const visited = new Set<string>();
+
+  ordered.push(
+    ...collectPathFromActiveLeaf(byId, activeLeafMessageId, visited),
+  );
+  const childrenByParent = buildChildrenByParent(messages);
+  const roots = getRootMessages(messages, byId);
 
   for (const root of roots) {
-    pushDepthFirst(root);
+    pushDepthFirstMessages(root, childrenByParent, visited, ordered);
   }
 
-  if (ordered.length !== messages.length) {
-    const remaining = messages
-      .filter((message) => !visited.has(String(message._id)))
-      .sort(compareTreeOrder);
-    ordered.push(...remaining);
-  }
+  appendRemainingMessages(messages, visited, ordered);
 
   return ordered;
 }

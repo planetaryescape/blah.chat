@@ -468,31 +468,12 @@ export const updateProfile = mutation({
 
 /**
  * Update auto-router configuration
- * Admin only
+ * Admin only — classifier settings + context params only
  */
 export const updateRouterConfig = mutation({
   args: {
-    stickinessBonus: v.optional(v.number()),
-    reasoningBonus: v.optional(v.number()),
-    researchBonus: v.optional(v.number()),
-    simplePenalty: v.optional(v.number()),
-    complexBoostThreshold: v.optional(v.number()),
-    complexBoostMultiplier: v.optional(v.number()),
-    cheapThreshold: v.optional(v.number()),
-    midThreshold: v.optional(v.number()),
-    tierWeights: v.optional(v.string()),
-    speedBonuses: v.optional(v.string()),
-    routerModelId: v.optional(v.string()),
-    maxRetries: v.optional(v.number()),
     contextBuffer: v.optional(v.number()),
     longContextThreshold: v.optional(v.number()),
-    routerMode: v.optional(
-      v.union(
-        v.literal("legacy_scoring"),
-        v.literal("classifier_v1"),
-        v.literal("shadow_compare"),
-      ),
-    ),
     classifierConfidenceThreshold: v.optional(v.number()),
     classifierTopK: v.optional(v.number()),
     classifierFallbackEnabled: v.optional(v.boolean()),
@@ -524,34 +505,11 @@ export const updateRouterConfig = mutation({
     } else {
       // Create with defaults + updates
       return await ctx.db.insert("autoRouterConfig", {
-        stickinessBonus: 25,
-        reasoningBonus: 15,
-        researchBonus: 25,
-        simplePenalty: 0.7,
-        complexBoostThreshold: 85,
-        complexBoostMultiplier: 1.2,
-        cheapThreshold: 1.0,
-        midThreshold: 5.0,
-        tierWeights: JSON.stringify({
-          simple: { cheap: 0.6, mid: 0.25, premium: 0.15 },
-          moderate: { cheap: 0.5, mid: 0.3, premium: 0.2 },
-          complex: { cheap: 0.3, mid: 0.4, premium: 0.3 },
-        }),
-        speedBonuses: JSON.stringify({
-          cerebras: 12,
-          groq: 10,
-          flash: 8,
-          fast: 8,
-          nano: 10,
-          lite: 10,
-          lightning: 12,
-          thinking: -5,
-          "extended-thinking": -8,
-        }),
-        routerModelId: "openai:gpt-oss-120b",
-        maxRetries: 3,
         contextBuffer: 1.2,
         longContextThreshold: 128000,
+        classifierConfidenceThreshold: 0.82,
+        classifierTopK: 5,
+        classifierFallbackEnabled: true,
         ...updates,
         updatedAt: now,
         updatedBy: user._id,

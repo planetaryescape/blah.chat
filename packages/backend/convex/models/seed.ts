@@ -1042,6 +1042,9 @@ const DEFAULT_ROUTER_CONFIG = {
   maxRetries: 3,
   contextBuffer: 1.2,
   longContextThreshold: 128000,
+  classifierConfidenceThreshold: 0.82,
+  classifierTopK: 5,
+  classifierFallbackEnabled: true,
 };
 
 /**

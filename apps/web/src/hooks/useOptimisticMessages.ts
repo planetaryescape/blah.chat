@@ -29,11 +29,74 @@ interface UseOptimisticMessagesReturn {
 const MATCH_FUTURE_WINDOW_MS = 10_000;
 const MATCH_PAST_WINDOW_MS = 1_000;
 
+function getParentIds(message: MessageWithOptimistic): string[] {
+  if (
+    "parentMessageIds" in message &&
+    Array.isArray(message.parentMessageIds)
+  ) {
+    return message.parentMessageIds.map((id) => String(id));
+  }
+  return [];
+}
+
+/**
+ * Deterministic chronological sort with tie-breakers:
+ * 1) parent before child
+ * 2) user before assistant
+ * 3) sibling index
+ * 4) creation time/id for stable ordering
+ */
+function compareMessagesForDisplay(
+  a: MessageWithOptimistic,
+  b: MessageWithOptimistic,
+): number {
+  if (a.createdAt !== b.createdAt) {
+    return a.createdAt - b.createdAt;
+  }
+
+  const aId = String(a._id);
+  const bId = String(b._id);
+  const aParents = getParentIds(a);
+  const bParents = getParentIds(b);
+
+  if (aParents.includes(bId)) return 1;
+  if (bParents.includes(aId)) return -1;
+
+  if (a.role !== b.role) {
+    if (a.role === "user" && b.role === "assistant") return -1;
+    if (a.role === "assistant" && b.role === "user") return 1;
+  }
+
+  const aSiblingIndex =
+    "siblingIndex" in a && typeof a.siblingIndex === "number"
+      ? a.siblingIndex
+      : undefined;
+  const bSiblingIndex =
+    "siblingIndex" in b && typeof b.siblingIndex === "number"
+      ? b.siblingIndex
+      : undefined;
+  if (
+    aSiblingIndex !== undefined &&
+    bSiblingIndex !== undefined &&
+    aSiblingIndex !== bSiblingIndex
+  ) {
+    return aSiblingIndex - bSiblingIndex;
+  }
+
+  if (a._creationTime !== b._creationTime) {
+    return a._creationTime - b._creationTime;
+  }
+
+  return aId.localeCompare(bId);
+}
+
 function mergeWithOptimisticMessages(
   serverMessages: MessageWithOptimistic[],
   optimisticMessages: OptimisticMessage[],
 ): MessageWithOptimistic[] {
-  if (optimisticMessages.length === 0) return serverMessages;
+  if (optimisticMessages.length === 0) {
+    return [...serverMessages].sort(compareMessagesForDisplay);
+  }
 
   // Group server messages by role for matching (only user messages are optimistic)
   const serverByRole: Record<"user" | "assistant", MessageWithOptimistic[]> = {
@@ -42,7 +105,7 @@ function mergeWithOptimisticMessages(
   };
 
   // Sort for deterministic matching
-  serverByRole.user.sort((a, b) => a.createdAt - b.createdAt);
+  serverByRole.user.sort(compareMessagesForDisplay);
 
   const remainingOptimistic: OptimisticMessage[] = [];
   const sortedOptimistic = [...optimisticMessages].sort(
@@ -70,7 +133,7 @@ function mergeWithOptimisticMessages(
   }
 
   return [...serverMessages, ...remainingOptimistic].sort(
-    (a, b) => a.createdAt - b.createdAt,
+    compareMessagesForDisplay,
   );
 }
 

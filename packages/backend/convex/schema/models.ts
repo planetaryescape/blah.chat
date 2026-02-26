@@ -178,39 +178,29 @@ export const modelHistoryTable = defineTable({
  * Single row - use getRouterConfig() to fetch.
  */
 export const autoRouterConfigTable = defineTable({
-  // Scoring bonuses
-  stickinessBonus: v.number(), // default: 25
-  reasoningBonus: v.number(), // default: 15
-  researchBonus: v.number(), // default: 25
+  // Legacy fields (kept optional for backward compatibility with existing data)
+  stickinessBonus: v.optional(v.number()),
+  reasoningBonus: v.optional(v.number()),
+  researchBonus: v.optional(v.number()),
+  simplePenalty: v.optional(v.number()),
+  complexBoostThreshold: v.optional(v.number()),
+  complexBoostMultiplier: v.optional(v.number()),
+  cheapThreshold: v.optional(v.number()),
+  midThreshold: v.optional(v.number()),
+  tierWeights: v.optional(v.string()),
+  speedBonuses: v.optional(v.string()),
+  routerModelId: v.optional(v.string()),
+  maxRetries: v.optional(v.number()),
+  routerMode: v.optional(v.string()),
 
-  // Complexity multipliers
-  simplePenalty: v.number(), // default: 0.7
-  complexBoostThreshold: v.number(), // default: 85
-  complexBoostMultiplier: v.number(), // default: 1.2
-
-  // Cost tier boundaries (avgCost thresholds)
-  cheapThreshold: v.number(), // default: 1.0
-  midThreshold: v.number(), // default: 5.0
-
-  // Tier weights by complexity (JSON string)
-  // { simple: { cheap: 0.6, mid: 0.25, premium: 0.15 }, ... }
-  tierWeights: v.string(),
-
-  // Speed bonuses (JSON string)
-  // { cerebras: 12, groq: 10, flash: 8, ... }
-  speedBonuses: v.string(),
-
-  // Router settings
-  routerModelId: v.string(), // default: "openai:gpt-oss-120b"
-  maxRetries: v.number(), // default: 3
+  // Active settings
   contextBuffer: v.number(), // default: 1.2 (20% margin)
   longContextThreshold: v.number(), // default: 128000
 
-  // Classifier-based router (v2) settings
-  routerMode: v.optional(v.string()), // "legacy_scoring" | "classifier_v1" | "shadow_compare"
-  classifierConfidenceThreshold: v.optional(v.number()), // default: 0.82
-  classifierTopK: v.optional(v.number()), // default: 5
-  classifierFallbackEnabled: v.optional(v.boolean()), // default: true
+  // Classifier settings
+  classifierConfidenceThreshold: v.number(), // default: 0.82
+  classifierTopK: v.number(), // default: 5
+  classifierFallbackEnabled: v.boolean(), // default: true
 
   // Audit
   updatedAt: v.number(),

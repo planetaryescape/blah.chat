@@ -1,0 +1,111 @@
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { act, renderHook } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import type { OptimisticMessage } from "@/types/optimistic";
+import { useOptimisticMessages } from "../useOptimisticMessages";
+
+function createServerMessage(
+  overrides: Partial<Doc<"messages">> = {},
+): Doc<"messages"> {
+  const now = Date.now();
+  return {
+    _id: `msg-${crypto.randomUUID()}` as Id<"messages">,
+    _creationTime: now,
+    conversationId: "conv-1" as Id<"conversations">,
+    userId: "user-1" as Id<"users">,
+    role: "user",
+    content: "Test message",
+    status: "complete",
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  };
+}
+
+describe("useOptimisticMessages", () => {
+  it("orders user before assistant when createdAt timestamps tie", () => {
+    const timestamp = 1_700_000_000_000;
+    const userMessage = createServerMessage({
+      _id: "msg-user" as Id<"messages">,
+      role: "user",
+      createdAt: timestamp,
+      content: "Hello",
+    });
+    const assistantMessage = createServerMessage({
+      _id: "msg-assistant" as Id<"messages">,
+      role: "assistant",
+      status: "pending",
+      createdAt: timestamp,
+      content: "",
+      parentMessageIds: [userMessage._id],
+      model: "openai:gpt-5",
+    });
+
+    // Simulate cache/index order ambiguity when timestamps are identical.
+    const serverMessages = [assistantMessage, userMessage];
+
+    const { result } = renderHook(() =>
+      useOptimisticMessages({ serverMessages }),
+    );
+
+    expect(result.current.messages?.map((m) => m.role)).toEqual([
+      "user",
+      "assistant",
+    ]);
+  });
+
+  it("deduplicates optimistic user message with small clock skew and keeps order", () => {
+    const timestamp = 1_700_000_100_000;
+    const optimisticUserMessage: OptimisticMessage = {
+      _id: "temp-user-1",
+      conversationId: "conv-1" as Id<"conversations">,
+      userId: "user-1" as Id<"users">,
+      role: "user",
+      content: "Skew test",
+      status: "optimistic",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      _creationTime: timestamp,
+      _optimistic: true,
+    };
+
+    const { result, rerender } = renderHook(
+      ({ serverMessages }) => useOptimisticMessages({ serverMessages }),
+      { initialProps: { serverMessages: [] as Doc<"messages">[] } },
+    );
+
+    act(() => {
+      result.current.addOptimisticMessages([optimisticUserMessage]);
+    });
+
+    const serverUserMessage = createServerMessage({
+      _id: "msg-server-user" as Id<"messages">,
+      role: "user",
+      content: "Skew test",
+      // Server slightly behind optimistic timestamp (clock skew)
+      createdAt: timestamp - 500,
+    });
+    const serverAssistantMessage = createServerMessage({
+      _id: "msg-server-assistant" as Id<"messages">,
+      role: "assistant",
+      status: "pending",
+      content: "",
+      createdAt: timestamp - 500,
+      parentMessageIds: [serverUserMessage._id],
+      model: "openai:gpt-5",
+    });
+
+    // Intentionally wrong incoming order from cache/query layer
+    rerender({
+      serverMessages: [serverAssistantMessage, serverUserMessage],
+    });
+
+    expect(result.current.messages?.map((m) => m._id)).toEqual([
+      "msg-server-user",
+      "msg-server-assistant",
+    ]);
+    expect(
+      result.current.messages?.some((m) => String(m._id).startsWith("temp-")),
+    ).toBe(false);
+  });
+});

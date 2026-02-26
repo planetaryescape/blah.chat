@@ -55,6 +55,76 @@ function getClientMessageId(
     : undefined;
 }
 
+interface ServerMessageWithOrder {
+  message: ServerMessage;
+  index: number;
+  parentId: string | undefined;
+}
+
+function toServerMessageWithOrder(
+  message: ServerMessage,
+  index: number,
+): ServerMessageWithOrder {
+  return {
+    message,
+    index,
+    parentId: getPrimaryParentId(message),
+  };
+}
+
+function getSiblingIndex(message: ServerMessage): number {
+  return typeof message.siblingIndex === "number" ? message.siblingIndex : 0;
+}
+
+function compareDirectParentRelationship(
+  a: ServerMessageWithOrder,
+  b: ServerMessageWithOrder,
+): number {
+  const aId = String(a.message._id);
+  const bId = String(b.message._id);
+  if (a.parentId === bId) return 1;
+  if (b.parentId === aId) return -1;
+  return 0;
+}
+
+function compareRolesWithinParent(
+  a: ServerMessageWithOrder,
+  b: ServerMessageWithOrder,
+): number {
+  if (a.parentId !== b.parentId) return 0;
+  if (a.message.role === b.message.role) return 0;
+  if (a.message.role === "user" && b.message.role === "assistant") return -1;
+  if (a.message.role === "assistant" && b.message.role === "user") return 1;
+  return 0;
+}
+
+function compareSiblingIndexWithinParent(
+  a: ServerMessageWithOrder,
+  b: ServerMessageWithOrder,
+): number {
+  if (a.parentId !== b.parentId) return 0;
+  const aSiblingIndex = getSiblingIndex(a.message);
+  const bSiblingIndex = getSiblingIndex(b.message);
+  if (aSiblingIndex === bSiblingIndex) return 0;
+  return aSiblingIndex - bSiblingIndex;
+}
+
+function compareServerEntries(
+  a: ServerMessageWithOrder,
+  b: ServerMessageWithOrder,
+): number {
+  const parentOrder = compareDirectParentRelationship(a, b);
+  if (parentOrder !== 0) return parentOrder;
+
+  const roleOrder = compareRolesWithinParent(a, b);
+  if (roleOrder !== 0) return roleOrder;
+
+  const siblingOrder = compareSiblingIndexWithinParent(a, b);
+  if (siblingOrder !== 0) return siblingOrder;
+
+  return a.index - b.index;
+}
+
 /**
  * Preserve server ordering as source of truth while enforcing tree constraints:
  * 1) parent before child
@@ -65,39 +135,8 @@ function getClientMessageId(
 function stabilizeServerOrder(
   serverMessages: ServerMessage[],
 ): ServerMessage[] {
-  const withOrder = serverMessages.map((message, index) => ({
-    message,
-    index,
-    parentId: getPrimaryParentId(message),
-  }));
-
-  withOrder.sort((a, b) => {
-    const aId = String(a.message._id);
-    const bId = String(b.message._id);
-
-    if (a.parentId === bId) return 1;
-    if (b.parentId === aId) return -1;
-
-    if (a.parentId === b.parentId && a.message.role !== b.message.role) {
-      if (a.message.role === "user" && b.message.role === "assistant") {
-        return -1;
-      }
-      if (a.message.role === "assistant" && b.message.role === "user") {
-        return 1;
-      }
-    }
-
-    const aSiblingIndex =
-      typeof a.message.siblingIndex === "number" ? a.message.siblingIndex : 0;
-    const bSiblingIndex =
-      typeof b.message.siblingIndex === "number" ? b.message.siblingIndex : 0;
-
-    if (a.parentId === b.parentId && aSiblingIndex !== bSiblingIndex) {
-      return aSiblingIndex - bSiblingIndex;
-    }
-
-    return a.index - b.index;
-  });
+  const withOrder = serverMessages.map(toServerMessageWithOrder);
+  withOrder.sort(compareServerEntries);
 
   return withOrder.map((entry) => entry.message);
 }

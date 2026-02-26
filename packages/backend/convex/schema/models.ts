@@ -198,9 +198,10 @@ export const autoRouterConfigTable = defineTable({
   longContextThreshold: v.number(), // default: 128000
 
   // Classifier settings
-  classifierConfidenceThreshold: v.number(), // default: 0.82
-  classifierTopK: v.number(), // default: 5
-  classifierFallbackEnabled: v.boolean(), // default: true
+  // Optional for migration safety: existing deployed singleton docs may not have these yet.
+  classifierConfidenceThreshold: v.optional(v.number()), // default: 0.82
+  classifierTopK: v.optional(v.number()), // default: 5
+  classifierFallbackEnabled: v.optional(v.boolean()), // default: true
 
   // Audit
   updatedAt: v.number(),

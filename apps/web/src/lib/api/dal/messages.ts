@@ -143,13 +143,28 @@ export const messagesDAL = {
       throw new Error("Access denied");
     }
 
-    const messages = (await (convex.query as any)(
-      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      api.messages.list,
-      {
-        conversationId: conversationId as Id<"conversations">,
-      },
-    )) as Array<any>;
+    const messages: Array<any> = [];
+    let cursor: string | null = null;
+
+    while (true) {
+      const pageResult = (await (convex.query as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        api.messages.listActivePathPaginated,
+        {
+          conversationId: conversationId as Id<"conversations">,
+          paginationOpts: {
+            numItems: 256,
+            cursor,
+          },
+        },
+      )) as { page: Array<any>; isDone: boolean; continueCursor: string };
+
+      messages.push(...pageResult.page);
+
+      if (pageResult.isDone) break;
+      if (!pageResult.continueCursor) break;
+      cursor = pageResult.continueCursor;
+    }
 
     return messages.map((message) =>
       formatEntity(message, "message", message._id),

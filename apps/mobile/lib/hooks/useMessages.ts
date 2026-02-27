@@ -5,7 +5,7 @@ import {
 } from "@tanstack/react-query";
 import {
   useMutation as useConvexMutation,
-  useQuery as useConvexQuery,
+  usePaginatedQuery,
 } from "convex/react";
 import { useMemo } from "react";
 import { queryClient } from "@/lib/cache/queryClient";
@@ -20,10 +20,11 @@ export function useMessages(conversationId: Id<"conversations"> | null) {
   const useConvexMode = shouldUseConvexTransport();
   const { getToken } = useAuth();
 
-  const convexMessages = useConvexQuery(
-    api.messages.list,
+  const convexMessagesPaginated = usePaginatedQuery(
+    api.messages.listActivePathPaginated,
     useConvexMode && conversationId ? { conversationId } : "skip",
-  ) as Message[] | undefined;
+    { initialNumItems: 500 },
+  );
 
   const httpQuery = useTanstackQuery({
     queryKey: ["mobile", "messages", conversationId],
@@ -42,13 +43,14 @@ export function useMessages(conversationId: Id<"conversations"> | null) {
   });
 
   const allMessages = useConvexMode
-    ? convexMessages
+    ? (convexMessagesPaginated.results as Message[] | undefined)
     : (httpQuery.data as Message[] | undefined);
 
   return useMemo(() => {
     if (!allMessages) return allMessages;
+    if (useConvexMode) return allMessages;
     return allMessages.filter((m: Message) => m.isActiveBranch !== false);
-  }, [allMessages]);
+  }, [allMessages, useConvexMode]);
 }
 
 export function useSendMessage() {
@@ -62,6 +64,7 @@ export function useSendMessage() {
       content: string;
       modelId?: string;
       models?: string[];
+      clientMessageId?: string;
       thinkingEffort?: "none" | "low" | "medium" | "high";
       attachments?: Array<{
         type: "file" | "image" | "audio";
@@ -76,6 +79,7 @@ export function useSendMessage() {
         content: args.content,
         modelId: args.modelId,
         models: args.models,
+        clientMessageId: args.clientMessageId,
         thinkingEffort: args.thinkingEffort,
         attachments: args.attachments,
       });
@@ -96,6 +100,7 @@ export function useSendMessage() {
     content: string;
     modelId?: string;
     models?: string[];
+    clientMessageId?: string;
     thinkingEffort?: "none" | "low" | "medium" | "high";
     attachments?: Array<{
       type: "file" | "image" | "audio";

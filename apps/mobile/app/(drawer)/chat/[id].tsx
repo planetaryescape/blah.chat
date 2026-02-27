@@ -42,6 +42,15 @@ type Message = Doc<"messages">;
 
 const DEDUP_WINDOW_MS = 30000;
 
+function getClientMessageId(message: Message): string | undefined {
+  if (!("clientMessageId" in message)) return undefined;
+  const clientMessageId = (message as Message & { clientMessageId?: unknown })
+    .clientMessageId;
+  return typeof clientMessageId === "string" && clientMessageId.length > 0
+    ? clientMessageId
+    : undefined;
+}
+
 export default function ChatScreen() {
   const router = useRouter();
   const { id, messageId } = useLocalSearchParams<{
@@ -133,6 +142,7 @@ export default function ChatScreen() {
       haptic.medium();
 
       const now = Date.now();
+      const clientMessageId = `client-${now}-${Math.random().toString(36).slice(2, 10)}`;
 
       try {
         const optimisticUserMessage: Message = {
@@ -147,6 +157,7 @@ export default function ChatScreen() {
           updatedAt: now,
           siblingIndex: 0,
           isActiveBranch: true,
+          clientMessageId,
         };
 
         const optimisticAssistantMessage: Message = {
@@ -162,6 +173,7 @@ export default function ChatScreen() {
           updatedAt: now + 1,
           siblingIndex: 0,
           isActiveBranch: true,
+          parentMessageIds: [optimisticUserMessage._id],
         };
 
         setOptimisticMessages([
@@ -173,6 +185,7 @@ export default function ChatScreen() {
           conversationId,
           content,
           modelId: selectedModel,
+          clientMessageId,
           attachments,
         });
 
@@ -328,6 +341,17 @@ export default function ChatScreen() {
 
   const currentMessages = (messages ?? []) as Message[];
 
+  const userMessageIdsByClientId = useMemo(() => {
+    const idsByClientId = new Map<string, Id<"messages">>();
+    for (const message of currentMessages) {
+      if (message.role !== "user") continue;
+      const clientMessageId = getClientMessageId(message);
+      if (!clientMessageId) continue;
+      idsByClientId.set(clientMessageId, message._id);
+    }
+    return idsByClientId;
+  }, [currentMessages]);
+
   const messageKeys = useMemo(() => {
     if (currentMessages.length === 0) return new Set<string>();
     return new Set(
@@ -344,6 +368,45 @@ export default function ChatScreen() {
   const filteredOptimistic = useMemo(
     () =>
       optimisticMessages.filter((opt) => {
+        if (opt.role === "user") {
+          const clientMessageId = getClientMessageId(opt);
+          if (
+            clientMessageId &&
+            userMessageIdsByClientId.has(clientMessageId)
+          ) {
+            return false;
+          }
+        }
+
+        if (opt.role === "assistant") {
+          const parentId = opt.parentMessageIds?.[0] ?? opt.parentMessageId;
+          if (parentId) {
+            const optimisticParent = optimisticMessages.find(
+              (message) => message._id === parentId && message.role === "user",
+            );
+            const parentClientMessageId = optimisticParent
+              ? getClientMessageId(optimisticParent)
+              : undefined;
+
+            if (parentClientMessageId) {
+              const serverParentId = userMessageIdsByClientId.get(
+                parentClientMessageId,
+              );
+              if (serverParentId) {
+                const hasServerAssistantForParent = currentMessages.some(
+                  (message) => {
+                    if (message.role !== "assistant") return false;
+                    const messageParentId =
+                      message.parentMessageIds?.[0] ?? message.parentMessageId;
+                    return messageParentId === serverParentId;
+                  },
+                );
+                if (hasServerAssistantForParent) return false;
+              }
+            }
+          }
+        }
+
         const timeBucket = Math.floor(opt.createdAt / DEDUP_WINDOW_MS);
         if (opt.role === "user") {
           const key = `user:${opt.content?.slice(0, 50)}:${timeBucket}`;
@@ -352,7 +415,12 @@ export default function ChatScreen() {
         const key = `assistant:${timeBucket}`;
         return !messageKeys.has(key);
       }),
-    [optimisticMessages, messageKeys],
+    [
+      optimisticMessages,
+      messageKeys,
+      userMessageIdsByClientId,
+      currentMessages,
+    ],
   );
 
   const newChatButton = (

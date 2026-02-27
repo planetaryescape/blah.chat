@@ -92,6 +92,7 @@ export default function NewChatScreen() {
       haptic.medium();
 
       const now = Date.now();
+      const clientMessageId = `client-${now}-${Math.random().toString(36).slice(2, 10)}`;
 
       try {
         const optimisticUserMessage: Message = {
@@ -106,6 +107,7 @@ export default function NewChatScreen() {
           updatedAt: now,
           siblingIndex: 0,
           isActiveBranch: true,
+          clientMessageId,
         };
 
         const optimisticAssistantMessage: Message = {
@@ -136,6 +138,7 @@ export default function NewChatScreen() {
           conversationId,
           content,
           modelId: selectedModel,
+          clientMessageId,
           attachments,
         });
 

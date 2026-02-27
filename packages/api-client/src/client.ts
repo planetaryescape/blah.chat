@@ -28,6 +28,7 @@ export interface SendMessagePayload {
   content: string;
   modelId?: string;
   models?: string[];
+  clientMessageId?: string;
   thinkingEffort?: ThinkingEffort;
   attachments?: Array<{
     type: "file" | "image" | "audio";

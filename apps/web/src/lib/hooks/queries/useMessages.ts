@@ -25,7 +25,7 @@ export function useMessages(options: UseMessagesOptions) {
   // Convex WebSocket subscription (web desktop)
   const convexData = usePaginatedQuery(
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-    api.messages.listPaginated,
+    api.messages.listActivePathPaginated,
     useConvexMode ? { conversationId } : "skip",
     { initialNumItems: pageSize },
   );

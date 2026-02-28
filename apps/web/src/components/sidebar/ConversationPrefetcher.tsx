@@ -26,7 +26,7 @@ export function ConversationPrefetcher({
 
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const { results } = usePaginatedQuery(
-    api.messages.listPaginated,
+    api.messages.listActivePathPaginated,
     { conversationId },
     { initialNumItems: 50 },
   );

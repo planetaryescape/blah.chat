@@ -25,7 +25,7 @@ export function useStableMessages({
 }: UseStableMessagesOptions) {
   const paginatedQuery = usePaginatedQuery(
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-    api.messages.listPaginated,
+    api.messages.listActivePathPaginated,
     conversationId ? { conversationId } : "skip",
     { initialNumItems },
   );

@@ -139,7 +139,7 @@ jobs:
           set -euo pipefail
           xcrun stapler staple -v "$DMG"
           xcrun stapler validate "$DMG"
-          spctl -a -vv "$DMG"
+          spctl -a -vv -t open --context context:primary-signature "$DMG"
 
       - name: Re-upload stapled DMG + publish release
         if: steps.status.outputs.value == 'Accepted'

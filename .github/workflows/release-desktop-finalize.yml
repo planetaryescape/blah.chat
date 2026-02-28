@@ -46,14 +46,12 @@ jobs:
           set -euo pipefail
 
           BODY="$(gh release view "$TAG" --repo "$REPO" --json body --jq '.body // ""')"
-          SUBMISSION_ID="$(BODY="$BODY" python3 -c '
-import os
-import re
-
-body = os.environ.get("BODY", "")
-m = re.search(r"Notarization submission id:\s*([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})", body)
-print(m.group(1) if m else "")
-')"
+          SUBMISSION_ID="$(
+            printf '%s' "$BODY" \
+              | grep -Eo 'Notarization submission id:[[:space:]]*[0-9a-fA-F-]{36}' \
+              | head -n 1 \
+              | sed -E 's/.*id:[[:space:]]*//'
+          )"
 
           if [ -z "${SUBMISSION_ID:-}" ]; then
             echo "::error::No notarization submission id found in release notes."
@@ -98,32 +96,11 @@ print(m.group(1) if m else "")
             --no-progress \
             -f json)"
 
-          STATUS="$(INFO_JSON="$INFO_JSON" python3 -c '
-import json
-import os
-
-j = json.loads(os.environ.get("INFO_JSON", "{}"))
-status = None
-
-def walk(x):
-    global status
-    if isinstance(x, dict):
-        for k, v in x.items():
-            if k.lower() == "status" and isinstance(v, str):
-                status = v
-                return
-            walk(v)
-            if status:
-                return
-    elif isinstance(x, list):
-        for v in x:
-            walk(v)
-            if status:
-                return
-
-walk(j)
-print(status or "")
-')"
+          STATUS="$(
+            printf '%s' "$INFO_JSON" \
+              | jq -r '.. | objects | .status? | select(type=="string")' \
+              | head -n 1
+          )"
 
           if [ -z "${STATUS:-}" ]; then
             echo "::error::Failed to parse notarization status."

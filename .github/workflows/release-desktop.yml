@@ -236,39 +236,15 @@ jobs:
             --no-progress \
             -f json)"
 
-          SUBMISSION_ID="$(SUBMISSION_JSON="$SUBMISSION_JSON" python3 -c '
-import json
-import os
-import re
+          SUBMISSION_ID="$(
+            printf '%s' "$SUBMISSION_JSON" \
+              | jq -r '.. | objects | .id? // .uuid? // .submissionId? // .submission_id? | select(type=="string")' \
+              | head -n 1
+          )"
 
-s = os.environ.get("SUBMISSION_JSON", "").strip()
-try:
-    j = json.loads(s)
-except Exception:
-    j = s
-
-def walk(x):
-    if isinstance(x, dict):
-        for k, v in x.items():
-            yield k, v
-            yield from walk(v)
-    elif isinstance(x, list):
-        for v in x:
-            yield from walk(v)
-
-cand = None
-if isinstance(j, dict):
-    for k, v in walk(j):
-        if k.lower() in ("id", "uuid", "submissionid", "submission_id") and isinstance(v, str):
-            cand = v
-            break
-
-if not cand:
-    m = re.search(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", s)
-    cand = m.group(0) if m else ""
-
-print(cand)
-')"
+          if [ -z "${SUBMISSION_ID:-}" ]; then
+            SUBMISSION_ID="$(printf '%s' "$SUBMISSION_JSON" | grep -Eo '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}' | head -n1 || true)"
+          fi
 
           if [ -z "${SUBMISSION_ID:-}" ]; then
             echo "::error::Failed to parse notarization submission ID."

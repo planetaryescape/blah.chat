@@ -11,6 +11,7 @@ use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_store::StoreExt;
+use tauri_plugin_updater::{Update, UpdaterExt};
 use url::Url;
 
 const DEFAULT_WEB_ORIGIN: &str = "https://blah.chat";
@@ -60,6 +61,29 @@ struct DesktopState {
   settings: Mutex<DesktopSettings>,
 }
 
+#[derive(Default)]
+struct DesktopUpdaterState {
+  pending_update: Mutex<Option<Update>>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopUpdateInfo {
+  version: String,
+  current_version: String,
+  body: Option<String>,
+  published_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopUpdateStatus {
+  enabled: bool,
+  available: bool,
+  update: Option<DesktopUpdateInfo>,
+  error: Option<String>,
+}
+
 fn web_origin() -> String {
   std::env::var("DESKTOP_WEB_URL")
     .unwrap_or_else(|_| DEFAULT_WEB_ORIGIN.to_string())
@@ -79,6 +103,113 @@ fn build_app_url(route: &str) -> String {
 
 fn parse_url(raw: &str) -> Result<Url, String> {
   Url::parse(raw).map_err(|err| format!("invalid url {raw}: {err}"))
+}
+
+fn is_updater_disabled_error(message: &str) -> bool {
+  message.contains("Updater does not have any endpoints set")
+    || message.contains("state not managed")
+    || message.contains("missing field `pubkey`")
+}
+
+fn map_update_info(update: &Update) -> DesktopUpdateInfo {
+  DesktopUpdateInfo {
+    version: update.version.clone(),
+    current_version: update.current_version.clone(),
+    body: update.body.clone(),
+    published_at: update.date.map(|date| date.to_string()),
+  }
+}
+
+fn cached_update(app: &AppHandle) -> Result<Option<Update>, String> {
+  let state = app.state::<DesktopUpdaterState>();
+  state
+    .pending_update
+    .lock()
+    .map(|update| update.clone())
+    .map_err(|err| err.to_string())
+}
+
+fn set_cached_update(app: &AppHandle, update: Option<Update>) -> Result<(), String> {
+  let state = app.state::<DesktopUpdaterState>();
+  let mut locked = state.pending_update.lock().map_err(|err| err.to_string())?;
+  *locked = update;
+  Ok(())
+}
+
+async fn perform_update_check(app: &AppHandle, force: bool) -> DesktopUpdateStatus {
+  if !force {
+    if let Ok(Some(update)) = cached_update(app) {
+      return DesktopUpdateStatus {
+        enabled: true,
+        available: true,
+        update: Some(map_update_info(&update)),
+        error: None,
+      };
+    }
+  }
+
+  let updater = match app.updater() {
+    Ok(updater) => updater,
+    Err(err) => {
+      let message = err.to_string();
+      if is_updater_disabled_error(&message) {
+        let _ = set_cached_update(app, None);
+        return DesktopUpdateStatus {
+          enabled: false,
+          available: false,
+          update: None,
+          error: None,
+        };
+      }
+      return DesktopUpdateStatus {
+        enabled: true,
+        available: false,
+        update: None,
+        error: Some(message),
+      };
+    }
+  };
+
+  match updater.check().await {
+    Ok(Some(update)) => {
+      let info = map_update_info(&update);
+      let _ = set_cached_update(app, Some(update));
+      DesktopUpdateStatus {
+        enabled: true,
+        available: true,
+        update: Some(info),
+        error: None,
+      }
+    }
+    Ok(None) => {
+      let _ = set_cached_update(app, None);
+      DesktopUpdateStatus {
+        enabled: true,
+        available: false,
+        update: None,
+        error: None,
+      }
+    }
+    Err(err) => {
+      let message = err.to_string();
+      if is_updater_disabled_error(&message) {
+        let _ = set_cached_update(app, None);
+        return DesktopUpdateStatus {
+          enabled: false,
+          available: false,
+          update: None,
+          error: None,
+        };
+      }
+
+      DesktopUpdateStatus {
+        enabled: true,
+        available: false,
+        update: None,
+        error: Some(message),
+      }
+    }
+  }
 }
 
 fn navigate_window(window: &WebviewWindow, url: &str) -> Result<(), String> {
@@ -535,6 +666,33 @@ fn register_shortcut(
   Ok(())
 }
 
+#[tauri::command]
+async fn check_desktop_update(app: AppHandle, force: Option<bool>) -> DesktopUpdateStatus {
+  perform_update_check(&app, force.unwrap_or(false)).await
+}
+
+#[tauri::command]
+async fn install_desktop_update(app: AppHandle) -> Result<bool, String> {
+  let update = if let Some(update) = cached_update(&app)? {
+    update
+  } else {
+    let updater = app.updater().map_err(|err| err.to_string())?;
+    match updater.check().await.map_err(|err| err.to_string())? {
+      Some(update) => update,
+      None => return Ok(false),
+    }
+  };
+
+  update
+    .download_and_install(|_, _| {}, || {})
+    .await
+    .map_err(|err| err.to_string())?;
+
+  let _ = set_cached_update(&app, None);
+  app.request_restart();
+  Ok(true)
+}
+
 fn main() {
   let default_shortcut: Shortcut = DEFAULT_SHORTCUT.parse().expect("valid default shortcut");
 
@@ -557,6 +715,7 @@ fn main() {
       shortcut: Mutex::new(DEFAULT_SHORTCUT.to_string()),
       settings: Mutex::new(DesktopSettings::default()),
     })
+    .manage(DesktopUpdaterState::default())
     .plugin(tauri_plugin_deep_link::init())
     .plugin(tauri_plugin_notification::init())
     .plugin(tauri_plugin_store::Builder::default().build())
@@ -588,6 +747,30 @@ fn main() {
         }
       });
 
+      let handle = app.handle().clone();
+      tauri::async_runtime::spawn(async move {
+        let status = perform_update_check(&handle, false).await;
+        if !status.available {
+          return;
+        }
+
+        let Some(update) = status.update else {
+          return;
+        };
+
+        let body = format!(
+          "Version {} is available. Open Settings > Desktop to update.",
+          update.version
+        );
+        let _ = handle
+          .notification()
+          .builder()
+          .title("blah.chat update available")
+          .body(body)
+          .show();
+        let _ = handle.emit("desktop://update-available", update);
+      });
+
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
@@ -596,7 +779,9 @@ fn main() {
       show_notification,
       get_desktop_settings,
       set_desktop_settings,
-      register_shortcut
+      register_shortcut,
+      check_desktop_update,
+      install_desktop_update
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri app");

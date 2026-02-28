@@ -1,3 +1,4 @@
+import { DesktopUpdateNotifier } from "@/components/desktop/DesktopUpdateNotifier";
 import { AnalyticsProvider } from "@/components/providers/AnalyticsProvider";
 import { ConvexClerkProvider } from "@/components/providers/convex-clerk-provider";
 import { MotionProvider } from "@/components/providers/motion-provider";
@@ -183,6 +184,7 @@ export default function RootLayout({
               <MotionProvider>
                 <TooltipProvider>
                   <AnalyticsProvider>
+                    <DesktopUpdateNotifier />
                     <NuqsAdapter>{children}</NuqsAdapter>
                     <Toaster />
                   </AnalyticsProvider>

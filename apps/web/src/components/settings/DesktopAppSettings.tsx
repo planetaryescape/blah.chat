@@ -12,10 +12,14 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import {
+  checkDesktopUpdate,
+  type DesktopUpdateStatus,
   getDesktopSettings,
   getDesktopSettingsDefaults,
+  installDesktopUpdate,
   isDesktopShell,
   setDesktopSettings,
 } from "@/lib/desktop/ipc";
@@ -24,6 +28,21 @@ export function DesktopAppSettings() {
   const defaults = useMemo(() => getDesktopSettingsDefaults(), []);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [isInstallingUpdate, setIsInstallingUpdate] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<DesktopUpdateStatus | null>(
+    null,
+  );
+  const updateStatusDescription = useMemo(() => {
+    if (updateStatus?.error) return updateStatus.error;
+    if (updateStatus?.enabled === false) {
+      return "Updater not configured for this build";
+    }
+    if (updateStatus?.available && updateStatus.update) {
+      return `Version ${updateStatus.update.version} is available`;
+    }
+    return "No updates currently available";
+  }, [updateStatus]);
 
   const [companionEnabled, setCompanionEnabled] = useState(
     defaults.companionEnabled,
@@ -59,6 +78,50 @@ export function DesktopAppSettings() {
     void load();
   }, [load]);
 
+  const refreshUpdateStatus = useCallback(
+    async (force: boolean, notify: boolean) => {
+      if (!isDesktopShell()) return;
+
+      setIsCheckingUpdate(true);
+      try {
+        const status = await checkDesktopUpdate(force);
+        setUpdateStatus(status);
+
+        if (status.error) {
+          toast.error(status.error);
+          return;
+        }
+
+        if (!notify) return;
+
+        if (!status.enabled) {
+          toast.info("Desktop updates are not configured for this build");
+          return;
+        }
+
+        if (status.available && status.update) {
+          toast.success(`Update available: v${status.update.version}`);
+          return;
+        }
+
+        toast.success("Desktop app is up to date");
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to check for updates";
+        toast.error(message);
+      } finally {
+        setIsCheckingUpdate(false);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    void refreshUpdateStatus(false, false);
+  }, [refreshUpdateStatus]);
+
   const onReset = useCallback(async () => {
     setCompanionEnabled(defaults.companionEnabled);
     setCompanionShortcut(defaults.companionShortcut);
@@ -90,6 +153,26 @@ export function DesktopAppSettings() {
       setIsSaving(false);
     }
   }, [companionAlwaysOnTop, companionEnabled, companionShortcut]);
+
+  const onInstallUpdate = useCallback(async () => {
+    if (!isDesktopShell()) return;
+    setIsInstallingUpdate(true);
+    try {
+      const started = await installDesktopUpdate();
+      if (!started) {
+        toast.info("No update available");
+        await refreshUpdateStatus(true, false);
+        return;
+      }
+      toast.success("Installing update and restarting...");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to install update";
+      toast.error(message);
+    } finally {
+      setIsInstallingUpdate(false);
+    }
+  }, [refreshUpdateStatus]);
 
   return (
     <Card>
@@ -157,6 +240,43 @@ export function DesktopAppSettings() {
           >
             Reset to defaults
           </Button>
+        </div>
+
+        <Separator />
+
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label>App updates</Label>
+            <p className="text-sm text-muted-foreground">
+              {updateStatusDescription}
+            </p>
+          </div>
+          {updateStatus?.available && updateStatus.update?.body ? (
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap rounded-md border border-border/60 bg-muted/20 px-3 py-2 max-h-32 overflow-y-auto">
+              {updateStatus.update.body}
+            </p>
+          ) : null}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => void refreshUpdateStatus(true, true)}
+              disabled={isLoading || isCheckingUpdate || isInstallingUpdate}
+            >
+              Check for updates
+            </Button>
+            <Button
+              onClick={() => void onInstallUpdate()}
+              disabled={
+                isLoading ||
+                isSaving ||
+                isCheckingUpdate ||
+                isInstallingUpdate ||
+                !updateStatus?.available
+              }
+            >
+              Install update & restart
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

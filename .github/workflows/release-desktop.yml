@@ -236,7 +236,39 @@ jobs:
             --no-progress \
             -f json)"
 
-          SUBMISSION_ID="$(python3 - <<'PY'\nimport json, re, sys\ns=sys.stdin.read().strip()\ntry:\n  j=json.loads(s)\nexcept Exception:\n  j=s\n\ndef walk(x):\n  if isinstance(x, dict):\n    for k,v in x.items():\n      yield k, v\n      yield from walk(v)\n  elif isinstance(x, list):\n    for v in x:\n      yield from walk(v)\n\ncand=None\nif isinstance(j, dict):\n  for k,v in walk(j):\n    if k.lower() in (\"id\",\"uuid\",\"submissionid\",\"submission_id\") and isinstance(v,str):\n      cand=v\n      break\nif not cand:\n  m=re.search(r\"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\", s)\n  cand=m.group(0) if m else \"\"\nprint(cand)\nPY\n<<<\"$SUBMISSION_JSON\")"
+          SUBMISSION_ID="$(SUBMISSION_JSON="$SUBMISSION_JSON" python3 -c '
+import json
+import os
+import re
+
+s = os.environ.get("SUBMISSION_JSON", "").strip()
+try:
+    j = json.loads(s)
+except Exception:
+    j = s
+
+def walk(x):
+    if isinstance(x, dict):
+        for k, v in x.items():
+            yield k, v
+            yield from walk(v)
+    elif isinstance(x, list):
+        for v in x:
+            yield from walk(v)
+
+cand = None
+if isinstance(j, dict):
+    for k, v in walk(j):
+        if k.lower() in ("id", "uuid", "submissionid", "submission_id") and isinstance(v, str):
+            cand = v
+            break
+
+if not cand:
+    m = re.search(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", s)
+    cand = m.group(0) if m else ""
+
+print(cand)
+')"
 
           if [ -z "${SUBMISSION_ID:-}" ]; then
             echo "::error::Failed to parse notarization submission ID."

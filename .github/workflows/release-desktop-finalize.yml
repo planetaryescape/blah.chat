@@ -46,7 +46,14 @@ jobs:
           set -euo pipefail
 
           BODY="$(gh release view "$TAG" --repo "$REPO" --json body --jq '.body // ""')"
-          SUBMISSION_ID="$(python3 - <<'PY'\nimport os,re\nbody=os.environ.get('BODY','')\nm=re.search(r\"Notarization submission id:\\s*([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\", body)\nprint(m.group(1) if m else \"\")\nPY\n<<<\"$BODY\")"
+          SUBMISSION_ID="$(BODY="$BODY" python3 -c '
+import os
+import re
+
+body = os.environ.get("BODY", "")
+m = re.search(r"Notarization submission id:\s*([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})", body)
+print(m.group(1) if m else "")
+')"
 
           if [ -z "${SUBMISSION_ID:-}" ]; then
             echo "::error::No notarization submission id found in release notes."
@@ -91,7 +98,32 @@ jobs:
             --no-progress \
             -f json)"
 
-          STATUS="$(python3 - <<'PY'\nimport json,sys\nj=json.loads(sys.stdin.read())\nstatus=None\n\ndef walk(x):\n  global status\n  if isinstance(x, dict):\n    for k,v in x.items():\n      if k.lower()==\"status\" and isinstance(v,str):\n        status=v\n        return\n      walk(v)\n      if status:\n        return\n  elif isinstance(x, list):\n    for v in x:\n      walk(v)\n      if status:\n        return\n\nwalk(j)\nprint(status or \"\")\nPY\n<<<\"$INFO_JSON\")"
+          STATUS="$(INFO_JSON="$INFO_JSON" python3 -c '
+import json
+import os
+
+j = json.loads(os.environ.get("INFO_JSON", "{}"))
+status = None
+
+def walk(x):
+    global status
+    if isinstance(x, dict):
+        for k, v in x.items():
+            if k.lower() == "status" and isinstance(v, str):
+                status = v
+                return
+            walk(v)
+            if status:
+                return
+    elif isinstance(x, list):
+        for v in x:
+            walk(v)
+            if status:
+                return
+
+walk(j)
+print(status or "")
+')"
 
           if [ -z "${STATUS:-}" ]; then
             echo "::error::Failed to parse notarization status."
@@ -142,4 +174,3 @@ jobs:
           set -euo pipefail
           gh release upload "$TAG" "$DMG" --repo "$REPO" --clobber
           gh release edit "$TAG" --repo "$REPO" --draft=false
-

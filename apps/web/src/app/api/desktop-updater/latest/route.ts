@@ -14,6 +14,7 @@ interface GitHubRelease {
   draft: boolean;
   prerelease: boolean;
   published_at: string | null;
+  body: string | null;
   assets: GitHubAsset[];
 }
 
@@ -49,6 +50,15 @@ const pickManifestAsset = (release: GitHubRelease): GitHubAsset | null => {
   return fallback ?? null;
 };
 
+const pickUpdaterTarballAsset = (release: GitHubRelease): GitHubAsset | null =>
+  release.assets.find((asset) => asset.name.endsWith(".app.tar.gz")) ?? null;
+
+const pickUpdaterSignatureAsset = (
+  release: GitHubRelease,
+): GitHubAsset | null =>
+  release.assets.find((asset) => asset.name.endsWith(".app.tar.gz.sig")) ??
+  null;
+
 export const revalidate = 300;
 
 export async function GET(): Promise<NextResponse | Response> {
@@ -78,34 +88,72 @@ export async function GET(): Promise<NextResponse | Response> {
   }
 
   const manifestAsset = pickManifestAsset(latestDesktopRelease);
-  if (!manifestAsset) {
+  if (manifestAsset) {
+    const manifestResponse = await fetch(manifestAsset.browser_download_url, {
+      next: { revalidate },
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "blah-chat-desktop-updater",
+      },
+    });
+
+    if (!manifestResponse.ok) {
+      return NextResponse.json(
+        { error: "Failed to fetch desktop updater manifest" },
+        { status: 502 },
+      );
+    }
+
+    const manifestBody = await manifestResponse.text();
+
+    return new Response(manifestBody, {
+      status: 200,
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+        "cache-control": "public, max-age=300, s-maxage=300",
+      },
+    });
+  }
+
+  const updaterTarball = pickUpdaterTarballAsset(latestDesktopRelease);
+  const updaterSignature = pickUpdaterSignatureAsset(latestDesktopRelease);
+  if (!updaterTarball || !updaterSignature) {
     return NextResponse.json(
-      { error: "No desktop updater manifest found on release" },
+      { error: "No desktop updater artifacts found on release" },
       { status: 404 },
     );
   }
 
-  const manifestResponse = await fetch(manifestAsset.browser_download_url, {
+  const signatureResponse = await fetch(updaterSignature.browser_download_url, {
     next: { revalidate },
     headers: {
-      Accept: "application/json",
+      Accept: "text/plain",
       "User-Agent": "blah-chat-desktop-updater",
     },
   });
 
-  if (!manifestResponse.ok) {
+  if (!signatureResponse.ok) {
     return NextResponse.json(
-      { error: "Failed to fetch desktop updater manifest" },
+      { error: "Failed to fetch desktop updater signature" },
       { status: 502 },
     );
   }
 
-  const manifestBody = await manifestResponse.text();
+  const version = latestDesktopRelease.tag_name.startsWith(DESKTOP_TAG_PREFIX)
+    ? latestDesktopRelease.tag_name.slice(DESKTOP_TAG_PREFIX.length)
+    : latestDesktopRelease.tag_name;
+  const signature = (await signatureResponse.text()).trim();
 
-  return new Response(manifestBody, {
-    status: 200,
+  const synthesizedManifest = {
+    version,
+    notes: latestDesktopRelease.body ?? "",
+    pub_date: latestDesktopRelease.published_at,
+    url: updaterTarball.browser_download_url,
+    signature,
+  };
+
+  return NextResponse.json(synthesizedManifest, {
     headers: {
-      "content-type": "application/json; charset=utf-8",
       "cache-control": "public, max-age=300, s-maxage=300",
     },
   });

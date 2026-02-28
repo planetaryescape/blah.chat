@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.29.0](https://github.com/planetaryescape/blah.chat/compare/v1.28.0...v1.29.0) (2026-02-28)
+
+
+### Features
+
+* **desktop:** add update check and one-click install flow ([28d0842](https://github.com/planetaryescape/blah.chat/commit/28d0842935d344eaef93e957f3fd3da7cbac113d))
+* **web:** add desktop updater manifest endpoint ([7f5fe3c](https://github.com/planetaryescape/blah.chat/commit/7f5fe3ccfe09dac62ed8ee03f854eb5f77b1db6c))
+
+
+### Bug Fixes
+
+* **ci:** repair desktop notarization parsing scripts ([aa58459](https://github.com/planetaryescape/blah.chat/commit/aa58459fa60fff1cf643dd02fd506ed06013c321))
+* **ci:** restore valid desktop release workflow yaml ([6f6ca79](https://github.com/planetaryescape/blah.chat/commit/6f6ca79dc682765b8ef7db08c9c1f2b7afcbda9d))
+
 ## [1.28.0](https://github.com/planetaryescape/blah.chat/compare/v1.27.3...v1.28.0) (2026-02-26)
 
 

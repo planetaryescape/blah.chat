@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.20.0](https://github.com/planetaryescape/blah.chat/compare/desktop-v0.19.0...desktop-v0.20.0) (2026-02-28)
+
+
+### Features
+
+* **desktop:** add update check and one-click install flow ([28d0842](https://github.com/planetaryescape/blah.chat/commit/28d0842935d344eaef93e957f3fd3da7cbac113d))
+
 ## [0.19.0](https://github.com/planetaryescape/blah.chat/compare/desktop-v0.18.0...desktop-v0.19.0) (2026-02-26)
 
 

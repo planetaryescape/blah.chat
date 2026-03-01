@@ -24,11 +24,8 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build Convex package dependencies
-        run: bunx turbo build --filter=@blah-chat/ai --filter=@blah-chat/shared --filter=@blah-chat/auto-router
-
       - name: Deploy to Convex (production)
-        run: bunx convex deploy
+        run: bun run deploy
         working-directory: packages/backend
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}

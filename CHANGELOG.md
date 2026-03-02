@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.32.0](https://github.com/planetaryescape/blah.chat/compare/v1.31.0...v1.32.0) (2026-03-02)
+
+
+### Features
+
+* desktop remaining review items — offline fallback, cross-platform CI, companion polish, badge API ([21de474](https://github.com/planetaryescape/blah.chat/commit/21de474e7d81d16113e6667b00934b89a1b4a3f4))
+
+
+### Bug Fixes
+
+* desktop app security, UX, and code quality overhaul ([12a9c46](https://github.com/planetaryescape/blah.chat/commit/12a9c4655ad8cb01497282cbd126d54a7398f283))
+
 ## [1.31.0](https://github.com/planetaryescape/blah.chat/compare/v1.30.0...v1.31.0) (2026-03-02)
 
 

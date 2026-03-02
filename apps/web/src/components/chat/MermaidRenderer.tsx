@@ -8,6 +8,7 @@ import { fixMermaidSyntax } from "@/lib/utils/mermaidFixer";
 
 interface MermaidRendererProps {
   code: string;
+  isStreaming?: boolean;
   config?: {
     theme?: "base" | "default" | "dark" | "forest" | "neutral";
     themeVariables?: Record<string, string>;
@@ -38,7 +39,11 @@ async function getMermaid() {
  *
  * Performance: Mermaid is dynamically imported to avoid 400KB+ initial bundle cost
  */
-export function MermaidRenderer({ code, config }: MermaidRendererProps) {
+export function MermaidRenderer({
+  code,
+  isStreaming,
+  config,
+}: MermaidRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [svg, setSvg] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -224,13 +229,27 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
-  // Show placeholder while waiting for code to stabilize (during streaming)
+  // While streaming, show static code preview — no render attempt, no debounce, no spinner
+  if (isStreaming) {
+    return (
+      <div className="my-4 rounded border border-border bg-card">
+        <div className="flex items-center gap-2 px-4 py-2 text-muted-foreground text-xs border-b border-border bg-muted/50">
+          Generating diagram...
+        </div>
+        <pre className="p-4 text-xs text-muted-foreground overflow-x-auto bg-muted/30 max-h-[200px]">
+          {code}
+        </pre>
+      </div>
+    );
+  }
+
+  // Show placeholder while waiting for code to stabilize (debounce after streaming completes)
   if (isWaitingForStable || !stableCode) {
     return (
       <div className="my-4 rounded border border-border bg-card">
         <div className="flex items-center gap-2 p-4 text-muted-foreground text-sm">
           <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-          Generating diagram...
+          Rendering diagram...
         </div>
         <pre className="p-4 text-xs text-muted-foreground overflow-x-auto bg-muted/30 max-h-[200px]">
           {code}

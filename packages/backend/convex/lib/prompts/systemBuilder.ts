@@ -77,14 +77,15 @@ export async function buildSystemPrompts(
 
   // === 1. BASE IDENTITY (foundation) ===
   // Comes first to establish baseline behavior, which user preferences can override
-  const currentDate = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+  const currentDatetime = new Date().toISOString();
   const basePromptOptions = {
     modelConfig: args.modelConfig,
     hasFunctionCalling: args.hasFunctionCalling,
     prefetchedMemories: args.prefetchedMemories,
-    currentDate,
+    currentDate: currentDatetime,
     customInstructions: customInstructions, // Pass to conditionally modify tone section
     memoryExtractionLevel: args.memoryExtractionLevel,
+    conversationStartedAt: conversation?.createdAt,
   };
   const basePrompt = getBasePrompt(basePromptOptions);
 

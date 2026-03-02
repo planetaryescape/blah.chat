@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>blah.chat - Offline</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0b;
+    color: #e4e4e7;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .container {
+    text-align: center;
+    max-width: 400px;
+    padding: 2rem;
+  }
+  .icon {
+    font-size: 3rem;
+    margin-bottom: 1.5rem;
+    opacity: 0.6;
+  }
+  h1 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #fafafa;
+  }
+  p {
+    font-size: 0.875rem;
+    color: #a1a1aa;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+  }
+  button {
+    background: #18181b;
+    color: #fafafa;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  button:hover { background: #27272a; border-color: #3f3f46; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .status {
+    margin-top: 1rem;
+    font-size: 0.75rem;
+    color: #71717a;
+  }
+  .spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #3f3f46;
+    border-top-color: #a1a1aa;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  .hidden { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="icon">&#x1F310;</div>
+  <h1>Can't reach blah.chat</h1>
+  <p>Check your internet connection and try again. The app will reconnect automatically when the server is available.</p>
+  <button id="retry" onclick="retryNow()">Retry</button>
+  <div class="status">
+    <span class="spinner hidden" id="spinner"></span>
+    <span id="status-text">Checking connection...</span>
+  </div>
+</div>
+<script>
+  var WEB_ORIGIN = 'https://blah.chat';
+  var _retryInterval = null;
+  var retrying = false;
+
+  function setStatus(msg, showSpinner) {
+    document.getElementById('status-text').textContent = msg;
+    var spinner = document.getElementById('spinner');
+    spinner.classList.toggle('hidden', !showSpinner);
+  }
+
+  function retryNow() {
+    if (retrying) return;
+    retrying = true;
+    document.getElementById('retry').disabled = true;
+    setStatus('Connecting...', true);
+
+    fetch(`${WEB_ORIGIN}/app`, { method: 'HEAD', mode: 'no-cors', cache: 'no-store' })
+      .then(() => {
+        window.location.replace(`${WEB_ORIGIN}/app`);
+      })
+      .catch(() => {
+        retrying = false;
+        document.getElementById('retry').disabled = false;
+        setStatus('Still offline. Retrying in 5s...', false);
+      });
+  }
+
+  _retryInterval = setInterval(retryNow, 5000);
+  window.addEventListener('online', retryNow);
+  setTimeout(retryNow, 1000);
+</script>
+</body>
+</html>

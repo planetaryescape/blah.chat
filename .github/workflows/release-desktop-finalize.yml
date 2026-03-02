@@ -35,8 +35,8 @@ jobs:
             exit 0
           fi
 
-          # Find draft releases matching desktop-vX.Y.Z pattern
-          DRAFTS="$(gh release list --repo "$REPO" --json tagName,isDraft \
+          # Find draft releases matching desktop-vX.Y.Z pattern (--limit 200 to avoid default 30 cutoff)
+          DRAFTS="$(gh release list --repo "$REPO" --limit 200 --json tagName,isDraft \
             --jq '[.[] | select(.isDraft == true) | .tagName | select(test("^desktop-v[0-9]+\\.[0-9]+\\.[0-9]+$"))]')"
 
           if [ "$DRAFTS" = "[]" ] || [ -z "$DRAFTS" ]; then

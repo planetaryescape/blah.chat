@@ -12,6 +12,7 @@
   "urls": [
     "https://blah.chat/*",
     "https://*.blah.chat/*",
-    "http://localhost:3000/*"
+    "http://localhost:3000/*",
+    "blah-offline://*"
   ]
 }

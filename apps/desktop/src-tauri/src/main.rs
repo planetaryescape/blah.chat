@@ -17,6 +17,7 @@ use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_global_shortcut::{Shortcut, ShortcutState};
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_updater::UpdaterExt;
+use tracing::{info, warn};
 
 use crate::error::AppError;
 use crate::settings::{DesktopSettings, DesktopState, PartialDesktopSettings};
@@ -135,6 +136,21 @@ fn register_shortcut(
 }
 
 #[tauri::command]
+fn set_badge_count(app: AppHandle, count: Option<u32>) -> Result<(), AppError> {
+    if let Some(window) = app.get_webview_window(windows::MAIN_LABEL) {
+        window
+            .set_badge_count(count.map(|c| c as i64))
+            .map_err(|err| AppError::Window(err.to_string()))?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn check_connectivity() -> bool {
+    windows::is_origin_reachable()
+}
+
+#[tauri::command]
 async fn check_desktop_update(app: AppHandle, force: Option<bool>) -> DesktopUpdateStatus {
     updater::perform_update_check(&app, force.unwrap_or(false)).await
 }
@@ -170,12 +186,23 @@ async fn install_desktop_update(app: AppHandle) -> Result<bool, AppError> {
 // --- App Setup ---
 
 fn main() {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+        )
+        .init();
+
+    info!("starting blah.chat desktop");
+
     let default_shortcut: Shortcut = DEFAULT_SHORTCUT.parse().expect("valid default shortcut");
 
     let shortcut_plugin = tauri_plugin_global_shortcut::Builder::new()
         .with_handler(|app, _shortcut, event| {
             if event.state() == ShortcutState::Pressed {
-                let _ = windows::toggle_companion_window(app);
+                if let Err(err) = windows::toggle_companion_window(app) {
+                    warn!(error = %err, "failed to toggle companion window");
+                }
             }
         })
         .with_shortcuts([default_shortcut]);
@@ -184,14 +211,17 @@ fn main() {
     let shortcut_plugin = match shortcut_plugin {
         Ok(builder) => builder.build(),
         Err(err) => {
-            eprintln!(
-                "warning: failed to register default shortcut {}: {}. Starting without shortcut.",
-                DEFAULT_SHORTCUT, err
+            warn!(
+                shortcut = DEFAULT_SHORTCUT,
+                error = %err,
+                "failed to register default shortcut, starting without it"
             );
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, _shortcut, event| {
                     if event.state() == ShortcutState::Pressed {
-                        let _ = windows::toggle_companion_window(app);
+                        if let Err(err) = windows::toggle_companion_window(app) {
+                            warn!(error = %err, "failed to toggle companion window");
+                        }
                     }
                 })
                 .build()
@@ -199,6 +229,13 @@ fn main() {
     };
 
     tauri::Builder::default()
+        .register_uri_scheme_protocol(windows::OFFLINE_SCHEME, |_ctx, _request| {
+            let html = include_bytes!("../offline.html");
+            tauri::http::Response::builder()
+                .header("content-type", "text/html")
+                .body(html.to_vec())
+                .unwrap()
+        })
         .menu(tray::build_menu)
         .on_menu_event(|app, event| {
             let _ = tray::handle_menu_action(app, event.id().as_ref());
@@ -232,32 +269,48 @@ fn main() {
 
             let handle = app.handle().clone();
             let state = handle.state::<DesktopState>();
-            if let Ok(loaded) = settings::load_settings(&handle) {
-                if let Ok(mut locked) = state.settings.write() {
-                    *locked = loaded.clone();
+            match settings::load_settings(&handle) {
+                Ok(loaded) => {
+                    if let Ok(mut locked) = state.settings.write() {
+                        *locked = loaded.clone();
+                    }
+                    if let Err(err) = shortcuts::apply_settings(&handle, &loaded, state.inner()) {
+                        warn!(error = %err, "failed to apply loaded settings");
+                    }
                 }
-                let _ = shortcuts::apply_settings(&handle, &loaded, state.inner());
+                Err(err) => {
+                    warn!(error = %err, "failed to load settings, using defaults");
+                }
             }
 
             let handle = app.handle().clone();
             app.listen("deep-link://new-url", move |event| {
                 let payload = event.payload();
+                info!(payload, "received deep link");
                 if let Some(route) = deep_link::deep_link_to_route(payload) {
-                    let _ = windows::ensure_main_window(&handle, Some(route));
-                    let _ = handle.emit("desktop://deep-link", payload);
+                    if let Err(err) = windows::ensure_main_window(&handle, Some(route)) {
+                        warn!(error = %err, "failed to open main window from deep link");
+                    }
+                    if let Err(err) = handle.emit("desktop://deep-link", payload) {
+                        warn!(error = %err, "failed to emit deep link event");
+                    }
                 }
             });
 
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
+                info!("checking for updates");
                 let status = updater::perform_update_check(&handle, false).await;
                 if !status.available {
+                    info!("no updates available");
                     return;
                 }
 
                 let Some(update) = status.update else {
                     return;
                 };
+
+                info!(version = %update.version, "update available");
 
                 // Gate notification on user preference
                 let notifications_enabled = handle
@@ -272,14 +325,19 @@ fn main() {
                         "Version {} is available. Open Settings > Desktop to update.",
                         update.version
                     );
-                    let _ = handle
+                    if let Err(err) = handle
                         .notification()
                         .builder()
                         .title("blah.chat update available")
                         .body(body)
-                        .show();
+                        .show()
+                    {
+                        warn!(error = %err, "failed to show update notification");
+                    }
                 }
-                let _ = handle.emit("desktop://update-available", update);
+                if let Err(err) = handle.emit("desktop://update-available", update) {
+                    warn!(error = %err, "failed to emit update-available event");
+                }
             });
 
             Ok(())
@@ -291,6 +349,8 @@ fn main() {
             get_desktop_settings,
             set_desktop_settings,
             register_shortcut,
+            set_badge_count,
+            check_connectivity,
             check_desktop_update,
             install_desktop_update
         ])

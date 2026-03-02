@@ -1,6 +1,8 @@
 use tauri::AppHandle;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 
+use tracing::{info, warn};
+
 use crate::error::AppError;
 use crate::settings::DesktopState;
 use crate::validation::validate_shortcut;
@@ -61,11 +63,14 @@ pub fn apply_settings(
     if !settings.companion_enabled {
         unregister_current_shortcut(app, state)?;
         if let Some(window) = app.get_webview_window(crate::windows::COMPANION_LABEL) {
-            let _ = window.close();
+            if let Err(err) = window.close() {
+                warn!(error = %err, "failed to close companion window");
+            }
         }
         return Ok(());
     }
 
+    info!(shortcut = %settings.companion_shortcut, "registering companion shortcut");
     register_shortcut_impl(app, settings.companion_shortcut.as_str(), state)?;
     if let Some(window) = app.get_webview_window(crate::windows::COMPANION_LABEL) {
         window

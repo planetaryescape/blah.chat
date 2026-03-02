@@ -88,6 +88,19 @@ export async function showDesktopNotification(
   return true;
 }
 
+export async function setDesktopBadgeCount(count?: number): Promise<boolean> {
+  const core = getTauriCore();
+  if (!core) return false;
+  await core.invoke("set_badge_count", { count: count ?? null });
+  return true;
+}
+
+export async function checkDesktopConnectivity(): Promise<boolean> {
+  const core = getTauriCore();
+  if (!core) return true;
+  return await core.invoke<boolean>("check_connectivity");
+}
+
 export async function registerDesktopShortcut(
   shortcut: string,
 ): Promise<boolean> {

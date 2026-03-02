@@ -39,16 +39,30 @@ jobs:
           fi
 
   release:
-    name: Build + publish desktop artifacts
+    name: Build desktop (${{ matrix.platform.name }})
     needs: prepare
     if: needs.prepare.outputs.should_release == 'true'
-    runs-on: macos-14
+    runs-on: ${{ matrix.platform.runner }}
     environment: production
     permissions:
       contents: write
     concurrency:
-      group: desktop-release-${{ needs.prepare.outputs.tag }}
+      group: desktop-release-${{ needs.prepare.outputs.tag }}-${{ matrix.platform.name }}
       cancel-in-progress: false
+
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: macos
+            runner: macos-14
+            bundles: app,dmg
+          - name: windows
+            runner: windows-latest
+            bundles: msi,nsis
+          - name: linux
+            runner: ubuntu-22.04
+            bundles: deb,appimage
 
     steps:
       - name: Checkout code
@@ -64,10 +78,17 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install Linux dependencies
+        if: matrix.platform.name == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Validate desktop release secrets
+      - name: Validate Apple signing secrets (macOS only)
+        if: matrix.platform.name == 'macos'
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -116,9 +137,17 @@ jobs:
             ' >/dev/null
           fi
 
-      - name: Validate Apple notarization credentials
+      - name: Validate updater signing key (non-macOS)
+        if: matrix.platform.name != 'macos'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        shell: bash
         run: |
-          echo "::notice::Skipping preflight notarization auth check; notarization is submitted async later and finalized in a separate workflow."
+          if [ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
+            echo "::error::Missing TAURI_SIGNING_PRIVATE_KEY"
+            exit 1
+          fi
 
       - name: Sync desktop versions + updater config from release metadata
         shell: bash
@@ -146,7 +175,8 @@ jobs:
 
           perl -0pi -e "s/^version = \"[^\"]+\"/version = \"$VERSION\"/m" apps/desktop/src-tauri/Cargo.toml
 
-      - name: Build signed desktop artifacts
+      - name: Build signed desktop artifacts (macOS)
+        if: matrix.platform.name == 'macos'
         working-directory: apps/desktop
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -154,7 +184,16 @@ jobs:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: bun run build:bundle -- --skip-stapling --bundles app,dmg
+        run: bun run build:bundle -- --skip-stapling --bundles ${{ matrix.platform.bundles }}
+
+      - name: Build desktop artifacts (non-macOS)
+        if: matrix.platform.name != 'macos'
+        working-directory: apps/desktop
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        shell: bash
+        run: bun run build:bundle -- --bundles ${{ matrix.platform.bundles }}
 
       - name: Ensure GitHub release exists
         id: release
@@ -162,6 +201,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.prepare.outputs.tag }}
           REPO: ${{ github.repository }}
+        shell: bash
         run: |
           set -euo pipefail
 
@@ -187,6 +227,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.prepare.outputs.tag }}
           REPO: ${{ github.repository }}
+        shell: bash
         run: |
           set -euo pipefail
 
@@ -198,6 +239,15 @@ jobs:
             -name "*.dmg" -o \
             -name "*.app.tar.gz" -o \
             -name "*.app.tar.gz.sig" -o \
+            -name "*.msi" -o \
+            -name "*.msi.zip" -o \
+            -name "*.msi.zip.sig" -o \
+            -name "*.nsis.zip" -o \
+            -name "*.nsis.zip.sig" -o \
+            -name "*.deb" -o \
+            -name "*.AppImage" -o \
+            -name "*.AppImage.tar.gz" -o \
+            -name "*.AppImage.tar.gz.sig" -o \
             -name "latest*.json" \
           \) -print0)
 
@@ -209,7 +259,7 @@ jobs:
           gh release upload "$TAG" "${ASSETS[@]}" --repo "$REPO" --clobber
 
       - name: Notarize desktop dmg (notarytool)
-        if: steps.release.outputs.skip_upload != 'true'
+        if: matrix.platform.name == 'macos' && steps.release.outputs.skip_upload != 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}

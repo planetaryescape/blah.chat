@@ -346,7 +346,7 @@
     },
     "packages/ai": {
       "name": "@blah-chat/ai",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@ai-sdk/anthropic": "^3.0.1",
         "@ai-sdk/cerebras": "^2.0.2",
@@ -398,7 +398,7 @@
     },
     "packages/auto-router": {
       "name": "@blah-chat/auto-router",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "devDependencies": {
         "tsup": "^8.5.0",
         "typescript": "^5.9.3",
@@ -645,7 +645,7 @@
     },
     "packages/shared": {
       "name": "@blah-chat/shared",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "dependencies": {
         "date-fns": "^4.1.0",
         "diff": "^8.0.2",
@@ -4897,6 +4897,8 @@
     "@blah-chat/cli/marked": ["marked@12.0.2", "", { "bin": { "marked": "bin/marked.js" } }, "sha512-qXUm7e/YKFoqFPYPa3Ukg9xlI5cyAtGmyEIzMfW//m6kXwCy2Ps9DYf5ioijFKQ8qyuscrHoY04iJGctu2Kg0Q=="],
 
     "@blah-chat/cognitive-memory/@types/node": ["@types/node@22.19.11", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-BH7YwL6rA93ReqeQS1c4bsPpcfOmJasG+Fkr6Y59q83f9M1WcBRHR2vM+P9eOisYRcN3ujQoiZY8uk5W+1WL8w=="],
+
+    "@blah-chat/mobile/@blah-chat/shared": ["@blah-chat/shared@0.2.0", "", { "dependencies": { "date-fns": "^4.1.0", "diff": "^8.0.2" } }, "sha512-Xd0IlgbZKJ3/+5nuBIGPGuH8P/fSacXI5zPYHlxCw3fyYeqMlqobfHNcTcEgexoDcXAQ2OQGtVSWJGjTwiviPw=="],
 
     "@blah-chat/mobile/react": ["react@19.1.0", "", {}, "sha512-FS+XFBNvn3GTAWq26joslQgWNoFu08F4kl0J4CgdNKADkdSGXQyTCnKteIAJy96Br6YbpEU1LSzV5dYtjMkMDg=="],
 

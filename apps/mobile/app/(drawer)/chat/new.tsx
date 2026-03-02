@@ -45,7 +45,7 @@ export default function NewChatScreen() {
   const router = useRouter();
   const createConversation = useCreateConversation();
   const sendMessage = useSendMessage();
-  const { suggestions: starterSuggestions } = useStarterSuggestions();
+  const { visibleSuggestions: starterSuggestions } = useStarterSuggestions();
   const prefs = usePreferences();
 
   const initialModel = useMemo(() => {

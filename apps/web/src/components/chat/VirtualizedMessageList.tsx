@@ -24,6 +24,7 @@ import type { ChatWidth } from "@/lib/utils/chatWidth";
 import type { OptimisticMessage } from "@/types/optimistic";
 import { ChatMessage } from "./ChatMessage";
 import { ComparisonView } from "./ComparisonView";
+import { DateSeparator } from "./DateSeparator";
 
 const VIRTUALIZATION_THRESHOLD = 500;
 
@@ -193,6 +194,7 @@ export function VirtualizedMessageList({
     if (!highlightMessageId || grouped.length === 0) return;
 
     const index = grouped.findIndex((item) => {
+      if (item.type === "date-separator") return false;
       if (item.type === "message") {
         return String(item.data._id) === highlightMessageId;
       }
@@ -257,7 +259,13 @@ export function VirtualizedMessageList({
         >
           {grouped.map((item, index) => (
             <MessageItemContent
-              key={item.type === "comparison" ? item.id : String(item.data._id)}
+              key={
+                item.type === "comparison"
+                  ? item.id
+                  : item.type === "date-separator"
+                    ? `date-${item.timestamp}`
+                    : String(item.data._id)
+              }
               item={item}
               index={index}
               grouped={grouped}
@@ -300,8 +308,12 @@ export function VirtualizedMessageList({
           scrollerRef.current = el instanceof HTMLElement ? el : null;
         }}
         data={grouped}
-        computeItemKey={(index, item) =>
-          item.type === "comparison" ? item.id : item.data._id
+        computeItemKey={(_index, item) =>
+          item.type === "comparison"
+            ? item.id
+            : item.type === "date-separator"
+              ? `date-${item.timestamp}`
+              : item.data._id
         }
         defaultItemHeight={190}
         increaseViewportBy={{ top: 300, bottom: 300 }}
@@ -320,7 +332,13 @@ export function VirtualizedMessageList({
         aria-label="Chat message history"
         itemContent={(index, item) => (
           <MessageItemContent
-            key={item.type === "comparison" ? item.id : String(item.data._id)}
+            key={
+              item.type === "comparison"
+                ? item.id
+                : item.type === "date-separator"
+                  ? `date-${item.timestamp}`
+                  : String(item.data._id)
+            }
             item={item}
             index={index}
             grouped={grouped}
@@ -382,13 +400,31 @@ const MessageItemContent = memo(function MessageItemContent({
   onToggleModelNames,
   conversation,
 }: MessageItemContentProps) {
-  const isMessage = item.type === "message";
-
   const getNextMessage = useCallback(() => {
     if (index + 1 >= grouped.length) return undefined;
     const nextItem = grouped[index + 1];
     return nextItem.type === "message" ? nextItem.data : undefined;
   }, [index, grouped]);
+
+  if (item.type === "date-separator") {
+    return (
+      <div
+        id={`message-group-${index}`}
+        className={cn(
+          "grid px-4",
+          chatWidth === "narrow" && "grid-cols-[1fr_min(42rem,100%)_1fr]",
+          chatWidth === "standard" && "grid-cols-[1fr_min(56rem,100%)_1fr]",
+          chatWidth === "wide" && "grid-cols-[1fr_min(72rem,100%)_1fr]",
+          chatWidth === "full" && "grid-cols-[1fr_min(92%,100%)_1fr]",
+          !chatWidth && "grid-cols-[1fr_min(56rem,100%)_1fr]",
+        )}
+      >
+        <div className="col-start-2">
+          <DateSeparator timestamp={item.timestamp} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -402,7 +438,7 @@ const MessageItemContent = memo(function MessageItemContent({
         !chatWidth && "grid-cols-[1fr_min(56rem,100%)_1fr]",
       )}
     >
-      {isMessage ? (
+      {item.type === "message" ? (
         <div className="col-start-2">
           <ChatMessage
             message={item.data}

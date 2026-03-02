@@ -16,7 +16,8 @@ export type GroupedItem =
       userMessage: MessageWithUser;
       assistantMessages: MessageWithUser[];
       timestamp: number;
-    };
+    }
+  | { type: "date-separator"; timestamp: number };
 
 /** Groups messages by comparisonGroupId, filtering out consolidated ones */
 export function useMessageGrouping(
@@ -43,8 +44,25 @@ export function useMessageGrouping(
 
     const items: GroupedItem[] = [];
     const processedGroups = new Set<string>();
+    let lastDay: string | null = null;
 
     for (const msg of visibleMessages) {
+      // Determine the timestamp for this item
+      const itemTimestamp = msg.comparisonGroupId
+        ? Math.min(
+            ...(comparisonGroups[msg.comparisonGroupId]?.map(
+              (m) => m.createdAt,
+            ) ?? [msg.createdAt]),
+          )
+        : msg.createdAt;
+
+      // Insert date separator when calendar day changes
+      const day = new Date(itemTimestamp).toDateString();
+      if (day !== lastDay) {
+        items.push({ type: "date-separator", timestamp: itemTimestamp });
+        lastDay = day;
+      }
+
       if (msg.comparisonGroupId) {
         if (!processedGroups.has(msg.comparisonGroupId)) {
           const groupMsgs = comparisonGroups[msg.comparisonGroupId];

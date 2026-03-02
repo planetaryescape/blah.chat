@@ -4,6 +4,8 @@ use serde::Serialize;
 use tauri::AppHandle;
 use tauri_plugin_updater::{Update, UpdaterExt};
 
+use tracing::warn;
+
 use crate::error::AppError;
 
 #[derive(Default)]
@@ -74,7 +76,9 @@ pub async fn perform_update_check(app: &AppHandle, force: bool) -> DesktopUpdate
         Err(err) => {
             let message = err.to_string();
             if is_updater_disabled_error(&message) {
-                let _ = set_cached_update(app, None);
+                if let Err(err) = set_cached_update(app, None) {
+                warn!(error = %err, "failed to clear cached update");
+            }
                 return DesktopUpdateStatus {
                     enabled: false,
                     available: false,
@@ -94,7 +98,9 @@ pub async fn perform_update_check(app: &AppHandle, force: bool) -> DesktopUpdate
     match updater.check().await {
         Ok(Some(update)) => {
             let info = map_update_info(&update);
-            let _ = set_cached_update(app, Some(update));
+            if let Err(err) = set_cached_update(app, Some(update)) {
+                warn!(error = %err, "failed to cache update");
+            }
             DesktopUpdateStatus {
                 enabled: true,
                 available: true,
@@ -103,7 +109,9 @@ pub async fn perform_update_check(app: &AppHandle, force: bool) -> DesktopUpdate
             }
         }
         Ok(None) => {
-            let _ = set_cached_update(app, None);
+            if let Err(err) = set_cached_update(app, None) {
+                warn!(error = %err, "failed to clear cached update");
+            }
             DesktopUpdateStatus {
                 enabled: true,
                 available: false,
@@ -114,7 +122,9 @@ pub async fn perform_update_check(app: &AppHandle, force: bool) -> DesktopUpdate
         Err(err) => {
             let message = err.to_string();
             if is_updater_disabled_error(&message) {
-                let _ = set_cached_update(app, None);
+                if let Err(err) = set_cached_update(app, None) {
+                warn!(error = %err, "failed to clear cached update");
+            }
                 return DesktopUpdateStatus {
                     enabled: false,
                     available: false,

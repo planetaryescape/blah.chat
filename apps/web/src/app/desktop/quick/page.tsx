@@ -1,9 +1,16 @@
 "use client";
 
 import type { Conversation } from "@blah-chat/api-client";
-import { Loader2, MessageSquare, Search, Sparkles } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  MessageSquare,
+  Search,
+  Sparkles,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,6 +20,7 @@ import { useSDKClient } from "@/lib/api/sdkClient";
 import { openMainWindow } from "@/lib/desktop/ipc";
 
 const FALLBACK_MODEL = "openai:gpt-5-mini";
+const PAGE_SIZE = 8;
 
 export default function DesktopQuickPage() {
   const router = useRouter();
@@ -24,13 +32,20 @@ export default function DesktopQuickPage() {
   const [recent, setRecent] = useState<Conversation[]>([]);
   const [isLoadingRecent, setIsLoadingRecent] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [page, setPage] = useState(0);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+  const listRef = useRef<HTMLDivElement>(null);
 
-  const recentItems = useMemo(() => recent.slice(0, 8), [recent]);
+  const totalPages = Math.max(1, Math.ceil(recent.length / PAGE_SIZE));
+  const recentItems = useMemo(
+    () => recent.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
+    [recent, page],
+  );
 
   const loadRecent = useCallback(async () => {
     setIsLoadingRecent(true);
     try {
-      const data = await sdk.listConversations({ limit: 12, archived: false });
+      const data = await sdk.listConversations({ limit: 50, archived: false });
       setRecent(data.items);
     } catch (error) {
       const message =
@@ -81,6 +96,54 @@ export default function DesktopQuickPage() {
       setIsSubmitting(false);
     }
   }, [isSubmitting, model, openInMain, prompt, sdk]);
+
+  // Global keyboard handler for Escape and arrow navigation
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        window.close();
+        return;
+      }
+
+      // Arrow key navigation in recent list
+      if (event.key === "ArrowDown" && recentItems.length > 0) {
+        event.preventDefault();
+        setFocusedIndex((prev) =>
+          prev < recentItems.length - 1 ? prev + 1 : 0,
+        );
+      }
+      if (event.key === "ArrowUp" && recentItems.length > 0) {
+        event.preventDefault();
+        setFocusedIndex((prev) =>
+          prev > 0 ? prev - 1 : recentItems.length - 1,
+        );
+      }
+      if (
+        event.key === "Enter" &&
+        focusedIndex >= 0 &&
+        focusedIndex < recentItems.length
+      ) {
+        const conversation = recentItems[focusedIndex];
+        if (conversation) {
+          void openInMain(`/chat/${conversation._id}`);
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [recentItems, focusedIndex, openInMain]);
+
+  // Scroll focused item into view
+  useEffect(() => {
+    if (focusedIndex < 0 || !listRef.current) return;
+    const buttons = listRef.current.querySelectorAll("[data-conversation]");
+    buttons[focusedIndex]?.scrollIntoView({ block: "nearest" });
+  }, [focusedIndex]);
+
+  // Reset focus when page changes
+  useEffect(() => {
+    setFocusedIndex(-1);
+  }, [page]);
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-6">
@@ -152,13 +215,18 @@ export default function DesktopQuickPage() {
               No conversations yet.
             </p>
           ) : (
-            <div className="space-y-2">
-              {recentItems.map((conversation) => (
+            <div ref={listRef} className="space-y-2">
+              {recentItems.map((conversation, index) => (
                 <button
                   type="button"
                   key={conversation._id}
+                  data-conversation
                   onClick={() => void openInMain(`/chat/${conversation._id}`)}
-                  className="w-full text-left rounded-md border border-border/60 px-3 py-2 hover:bg-accent transition-colors"
+                  className={`w-full text-left rounded-md border px-3 py-2 transition-colors ${
+                    index === focusedIndex
+                      ? "border-primary/60 bg-accent"
+                      : "border-border/60 hover:bg-accent"
+                  }`}
                 >
                   <div className="text-sm font-medium truncate">
                     {conversation.title || "Untitled conversation"}
@@ -168,6 +236,34 @@ export default function DesktopQuickPage() {
                   </div>
                 </button>
               ))}
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/40">
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={page === 0}
+                onClick={() => setPage((p) => p - 1)}
+                className="gap-1"
+              >
+                <ChevronLeft className="h-3 w-3" />
+                Prev
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                {page + 1} / {totalPages}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={page >= totalPages - 1}
+                onClick={() => setPage((p) => p + 1)}
+                className="gap-1"
+              >
+                Next
+                <ChevronRight className="h-3 w-3" />
+              </Button>
             </div>
           )}
         </Card>

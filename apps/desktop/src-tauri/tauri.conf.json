@@ -30,7 +30,7 @@
   "bundle": {
     "active": true,
     "createUpdaterArtifacts": true,
-    "targets": ["dmg"],
+    "targets": "all",
     "icon": ["../../raycast/assets/icon.png"]
   },
   "plugins": {

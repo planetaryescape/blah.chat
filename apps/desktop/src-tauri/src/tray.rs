@@ -3,6 +3,8 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::AppHandle;
 use tauri_plugin_notification::NotificationExt;
 
+use tracing::warn;
+
 use crate::error::AppError;
 use crate::settings::DesktopState;
 use crate::windows::{ensure_main_window, toggle_companion_window};
@@ -128,7 +130,9 @@ pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
 
     tray_builder
         .on_menu_event(|app: &AppHandle, event: tauri::menu::MenuEvent| {
-            let _ = handle_menu_action(app, event.id().as_ref());
+            if let Err(err) = handle_menu_action(app, event.id().as_ref()) {
+                warn!(error = %err, menu_id = event.id().as_ref(), "menu action failed");
+            }
         })
         .on_tray_icon_event(
             |tray: &tauri::tray::TrayIcon<tauri::Wry>, event: TrayIconEvent| {
@@ -147,10 +151,14 @@ pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
                             .map(|settings| settings.companion_enabled)
                             .unwrap_or(true);
                         if !enabled {
-                            let _ = ensure_main_window(app, Some("/app".to_string()));
+                            if let Err(err) = ensure_main_window(app, Some("/app".to_string())) {
+                                warn!(error = %err, "failed to open main window from tray");
+                            }
                             return;
                         }
-                        let _ = toggle_companion_window(app);
+                        if let Err(err) = toggle_companion_window(app) {
+                            warn!(error = %err, "failed to toggle companion from tray");
+                        }
                     }
                 }
             },

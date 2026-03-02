@@ -16,4 +16,6 @@ tauri-plugin-notification = "2.3.1"
 tauri-plugin-store = "2"
 tauri-plugin-updater = "2.9.0"
 thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
 url = "2"

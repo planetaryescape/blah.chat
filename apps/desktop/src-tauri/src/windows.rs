@@ -1,3 +1,6 @@
+use std::net::ToSocketAddrs;
+use std::time::Duration;
+
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindow};
 
 use crate::error::AppError;
@@ -6,6 +9,18 @@ use crate::validation::validate_route;
 
 pub const MAIN_LABEL: &str = "main";
 pub const COMPANION_LABEL: &str = "companion";
+pub const OFFLINE_SCHEME: &str = "blah-offline";
+
+/// Quick TCP connectivity check to the web origin (non-blocking with timeout).
+pub fn is_origin_reachable() -> bool {
+    let host = "blah.chat:443";
+    if let Ok(mut addrs) = host.to_socket_addrs() {
+        if let Some(addr) = addrs.next() {
+            return std::net::TcpStream::connect_timeout(&addr, Duration::from_secs(3)).is_ok();
+        }
+    }
+    false
+}
 
 pub fn web_origin() -> String {
     std::env::var("DESKTOP_WEB_URL")
@@ -30,8 +45,17 @@ pub fn navigate_window(window: &WebviewWindow, url: &str) -> Result<(), AppError
         .map_err(|err| AppError::Window(err.to_string()))
 }
 
+fn resolve_target_or_offline(route: &str) -> Result<String, AppError> {
+    let target = build_app_url(route)?;
+    if is_origin_reachable() {
+        Ok(target)
+    } else {
+        Ok(format!("{OFFLINE_SCHEME}://index.html"))
+    }
+}
+
 pub fn ensure_main_window(app: &AppHandle, route: Option<String>) -> Result<(), AppError> {
-    let target = build_app_url(route.as_deref().unwrap_or("/app"))?;
+    let target = resolve_target_or_offline(route.as_deref().unwrap_or("/app"))?;
 
     if let Some(window) = app.get_webview_window(MAIN_LABEL) {
         navigate_window(&window, &target)?;

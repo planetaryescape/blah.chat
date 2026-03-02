@@ -1,6 +1,9 @@
 name: Finalize Desktop Notarization
 
 on:
+  # Poll every 30 minutes for pending notarization submissions
+  schedule:
+    - cron: "*/30 * * * *"
   workflow_dispatch:
     inputs:
       tag:
@@ -9,18 +12,59 @@ on:
         type: string
 
 jobs:
+  discover:
+    name: Find draft desktop releases
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      tags: ${{ steps.find.outputs.tags }}
+    steps:
+      - name: Find pending draft releases
+        id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          MANUAL_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${MANUAL_TAG:-}" ]; then
+            echo "tags=[\"$MANUAL_TAG\"]" >> "$GITHUB_OUTPUT"
+            echo "::notice::Manual trigger for tag: $MANUAL_TAG"
+            exit 0
+          fi
+
+          # Find draft releases matching desktop-vX.Y.Z pattern
+          DRAFTS="$(gh release list --repo "$REPO" --json tagName,isDraft \
+            --jq '[.[] | select(.isDraft == true) | .tagName | select(test("^desktop-v[0-9]+\\.[0-9]+\\.[0-9]+$"))]')"
+
+          if [ "$DRAFTS" = "[]" ] || [ -z "$DRAFTS" ]; then
+            echo "tags=[]" >> "$GITHUB_OUTPUT"
+            echo "::notice::No draft desktop releases found."
+          else
+            echo "tags=$DRAFTS" >> "$GITHUB_OUTPUT"
+            echo "::notice::Found draft releases: $DRAFTS"
+          fi
+
   finalize:
-    name: Staple + publish desktop release
+    name: Staple + publish desktop release (${{ matrix.tag }})
+    needs: discover
+    if: needs.discover.outputs.tags != '[]'
     runs-on: macos-14
     environment: production
     permissions:
       contents: write
+    strategy:
+      matrix:
+        tag: ${{ fromJson(needs.discover.outputs.tags) }}
+      fail-fast: false
 
     steps:
       - name: Validate release is draft
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ matrix.tag }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
@@ -40,7 +84,7 @@ jobs:
         id: submission
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ matrix.tag }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
@@ -64,7 +108,7 @@ jobs:
       - name: Download DMG from draft release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ matrix.tag }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
@@ -114,7 +158,7 @@ jobs:
       - name: Stop if still in progress
         if: steps.status.outputs.value == 'In Progress'
         run: |
-          echo "::notice::Notarization still in progress. Re-run this workflow later."
+          echo "::notice::Notarization still in progress. Will retry on next scheduled run."
 
       - name: Fetch notarization log (on failure)
         if: steps.status.outputs.value != 'Accepted' && steps.status.outputs.value != 'In Progress'
@@ -123,6 +167,7 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           SUBMISSION_ID: ${{ steps.submission.outputs.id }}
+          STATUS_VALUE: ${{ steps.status.outputs.value }}
         run: |
           set -euo pipefail
           xcrun notarytool log "$SUBMISSION_ID" \
@@ -130,7 +175,8 @@ jobs:
             --password "$APPLE_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
             /tmp/notary-log.json || true
-          echo "::error::Notarization not accepted (status=${{ steps.status.outputs.value }}). See log above."
+          cat /tmp/notary-log.json 2>/dev/null || true
+          echo "::error::Notarization not accepted (status=${STATUS_VALUE}). See log above."
           exit 1
 
       - name: Staple DMG + verify
@@ -145,7 +191,7 @@ jobs:
         if: steps.status.outputs.value == 'Accepted'
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ matrix.tag }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail

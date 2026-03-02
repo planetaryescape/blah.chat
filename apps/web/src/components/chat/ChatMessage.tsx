@@ -4,6 +4,7 @@ import { getModelConfig } from "@blah-chat/ai/utils";
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
+import { format } from "date-fns";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -564,6 +565,17 @@ export const ChatMessage = memo(
                       )}
                   </div>
                 )}
+
+                {/* Message timestamp */}
+                <time
+                  dateTime={new Date(message.createdAt).toISOString()}
+                  className={cn(
+                    "block text-[10px] text-muted-foreground/50 mt-1",
+                    isUser ? "text-right" : "text-left",
+                  )}
+                >
+                  {format(new Date(message.createdAt), "h:mm a")}
+                </time>
               </>
             )}
           </article>
@@ -596,6 +608,7 @@ export const ChatMessage = memo(
   (prev, next) => {
     return (
       prev.message._id === next.message._id &&
+      prev.message.createdAt === next.message.createdAt &&
       prev.message.content === next.message.content &&
       prev.message.partialContent === next.message.partialContent &&
       prev.message.status === next.message.status &&

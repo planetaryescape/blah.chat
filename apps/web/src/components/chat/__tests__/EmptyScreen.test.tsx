@@ -8,8 +8,11 @@ vi.mock("@/hooks/useStarterSuggestions", () => ({
       { id: "s1", text: "Prompt from hook one", icon: "sparkles" },
       { id: "s2", text: "Prompt from hook two", icon: "brain" },
       { id: "s3", text: "Prompt from hook three", icon: "zap" },
-      { id: "s4", text: "Prompt from hook four", icon: "penLine" },
-      { id: "s5", text: "Prompt from hook five", icon: "sparkles" },
+    ],
+    visibleSuggestions: [
+      { id: "s1", text: "Prompt from hook one", icon: "sparkles" },
+      { id: "s2", text: "Prompt from hook two", icon: "brain" },
+      { id: "s3", text: "Prompt from hook three", icon: "zap" },
     ],
     generatedAt: Date.now(),
     source: "cache",
@@ -24,7 +27,7 @@ describe("EmptyScreen", () => {
     render(<EmptyScreen onClick={vi.fn()} />);
 
     expect(screen.getByText("Prompt from hook one")).toBeInTheDocument();
-    expect(screen.getByText("Prompt from hook five")).toBeInTheDocument();
+    expect(screen.getByText("Prompt from hook three")).toBeInTheDocument();
   });
 
   it("calls onClick with the selected suggestion", async () => {

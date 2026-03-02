@@ -1,9 +1,8 @@
 "use client";
 
-import { ArrowRight, Brain, PenLine, Sparkles, Zap } from "lucide-react";
+import { Brain, PenLine, Sparkles, Zap } from "lucide-react";
 import { useMemo } from "react";
 import { useStarterSuggestions } from "@/hooks/useStarterSuggestions";
-import { MarkdownContent } from "./MarkdownContent";
 
 function getTimeOfDay(): "morning" | "afternoon" | "evening" {
   const hour = new Date().getHours();
@@ -38,7 +37,7 @@ export function EmptyScreen({
   conversationCount,
   nickname,
 }: EmptyScreenProps) {
-  const { suggestions } = useStarterSuggestions();
+  const { visibleSuggestions } = useStarterSuggestions();
 
   const greeting = useMemo(() => {
     const timeOfDay = getTimeOfDay();
@@ -55,12 +54,12 @@ export function EmptyScreen({
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[50vh] px-4 text-center animate-message-enter w-full">
-      <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 sm:mb-8 bg-linear-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
+      <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-8 sm:mb-10 bg-linear-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
         {title}
       </h1>
 
-      <div className="grid gap-1.5 sm:gap-2 w-full max-w-full sm:max-w-md text-left mb-6 sm:mb-8 px-2 sm:px-0">
-        {suggestions.slice(0, 5).map((suggestion, i) => {
+      <div className="flex flex-col sm:flex-row gap-3 w-full max-w-2xl mb-8 sm:mb-10 px-2 sm:px-0">
+        {visibleSuggestions.map((suggestion, i) => {
           const Icon = ICON_MAP[suggestion.icon];
 
           return (
@@ -75,18 +74,17 @@ export function EmptyScreen({
                   onClick(suggestion.text);
                 }
               }}
-              className="group flex h-16 items-center justify-between p-2 sm:p-3 rounded-lg sm:rounded-xl hover:bg-white/5 transition-all duration-200 border border-transparent hover:border-white/5 text-xs sm:text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+              className="group flex-1 flex flex-col gap-3 p-4 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-200 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
               style={{
                 animationDelay: `${i * 100}ms`,
               }}
             >
-              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 opacity-70" />
-                <div className="line-clamp-2 text-left">
-                  <MarkdownContent content={suggestion.text} />
-                </div>
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/[0.06] group-hover:bg-white/[0.1] transition-colors">
+                <Icon className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-opacity" />
               </div>
-              <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 opacity-0 -translate-x-2 group-hover:translate-x-0 group-hover:opacity-50 transition-all duration-300 shrink-0 ml-1.5 sm:ml-3" />
+              <span className="text-left line-clamp-2 leading-snug">
+                {suggestion.text}
+              </span>
             </div>
           );
         })}

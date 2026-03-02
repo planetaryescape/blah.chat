@@ -20,7 +20,7 @@ import {
 } from "./_generated/server";
 import { logger } from "./lib/logger";
 
-const SUGGESTION_COUNT = 5;
+const SUGGESTION_COUNT = 6;
 const SUGGESTION_TTL_MS = 6 * 60 * 60 * 1000;
 const REFRESH_DEBOUNCE_MS = 30 * 1000;
 
@@ -214,9 +214,9 @@ export const refreshForCurrentUser = action({
           ["starter-suggestions"],
         ),
         prompt: [
-          "Generate exactly 5 short, useful chat starter prompts for this user.",
+          "Generate exactly 6 short, useful chat starter prompts for this user.",
           "Use memory context for relevance but avoid exposing sensitive specifics (names, account numbers, exact private facts).",
-          "Cover varied intent types: planning, writing, debugging, analysis, follow-up.",
+          "Cover varied intent types: planning, writing, debugging, analysis, brainstorming, follow-up.",
           "Output must be practical and user-ready. No numbering.",
           "",
           "Memory context:",
@@ -542,6 +542,11 @@ function fallbackSuggestions(): StarterSuggestion[] {
       id: "starter-follow-up",
       text: "Draft a short follow-up message for this conversation",
       icon: "sparkles",
+    },
+    {
+      id: "starter-brainstorm",
+      text: "Brainstorm creative ideas for this project and pick the strongest three",
+      icon: "brain",
     },
   ];
 }

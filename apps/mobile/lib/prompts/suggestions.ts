@@ -32,6 +32,11 @@ export const EMERGENCY_SUGGESTED_PROMPTS: SuggestedPrompt[] = [
     text: "Draft a short follow-up message for this conversation",
     icon: "sparkles",
   },
+  {
+    id: "starter-brainstorm",
+    text: "Brainstorm creative ideas for this project and pick the strongest three",
+    icon: "brain",
+  },
 ];
 
 export function getTimeGreeting(date = new Date()): string {

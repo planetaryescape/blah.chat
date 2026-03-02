@@ -111,7 +111,7 @@ interface MarkdownContentProps {
  *
  * Note: This is now created inside MarkdownContent component to access theme
  */
-const createMarkdownComponents = () => ({
+const createMarkdownComponents = (isStreaming?: boolean) => ({
   // Custom code component - routes mermaid to MermaidRenderer, everything else to CodeBlock
   code: ({ className, children, ...props }: any) => {
     const match = /language-(\w+)/.exec(className || "");
@@ -124,6 +124,7 @@ const createMarkdownComponents = () => ({
       return (
         <MermaidRenderer
           code={code}
+          isStreaming={isStreaming}
           config={{
             flowchart: { nodeSpacing: 50, rankSpacing: 50, curve: "basis" },
             sequence: {
@@ -323,7 +324,7 @@ export function MarkdownContent({
   const prefersReducedMotion = usePrefersReducedMotion();
 
   // Create markdown components (including theme-aware Mermaid)
-  const markdownComponents = createMarkdownComponents();
+  const markdownComponents = createMarkdownComponents(isStreaming);
 
   // MEMOIZED: Expensive O(n) regex processing - only recompute when content changes
   // This prevents redundant processing during RAF-based streaming (~60 renders/sec)

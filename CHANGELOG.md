@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.31.0](https://github.com/planetaryescape/blah.chat/compare/v1.30.0...v1.31.0) (2026-03-02)
+
+
+### Features
+
+* refine starter suggestions with cycling pool and card layout ([b6fae0a](https://github.com/planetaryescape/blah.chat/commit/b6fae0aeeb8e5dd054967b0dcfe26aeca9057675))
+
+
+### Bug Fixes
+
+* **web:** defer mermaid rendering until streaming completes ([19faeb9](https://github.com/planetaryescape/blah.chat/commit/19faeb9dabb325e6e49490ec217563412b4c0afd))
+
 ## [1.30.0](https://github.com/planetaryescape/blah.chat/compare/v1.29.0...v1.30.0) (2026-03-02)
 
 

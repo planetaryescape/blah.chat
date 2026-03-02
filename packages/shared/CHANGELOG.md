@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/planetaryescape/blah.chat/compare/shared-v0.2.0...shared-v0.3.0) (2026-03-02)
+
+
+### Features
+
+* refine starter suggestions with cycling pool and card layout ([b6fae0a](https://github.com/planetaryescape/blah.chat/commit/b6fae0aeeb8e5dd054967b0dcfe26aeca9057675))
+
 ## [0.2.0](https://github.com/planetaryescape/blah.chat/compare/shared-v0.1.0...shared-v0.2.0) (2026-02-09)
 
 

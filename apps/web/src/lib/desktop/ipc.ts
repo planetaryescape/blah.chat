@@ -4,7 +4,7 @@ import {
 } from "@blah-chat/shared/desktop";
 
 export const DESKTOP_CLIENT_HEADER = "X-Blah-Desktop-Client";
-export const DESKTOP_CLIENT_VALUE = "tauri-v1";
+export const DESKTOP_CLIENT_VALUE = "tauri-v2";
 
 type TauriCore = {
   invoke: <T>(cmd: string, args?: Record<string, unknown>) => Promise<T>;

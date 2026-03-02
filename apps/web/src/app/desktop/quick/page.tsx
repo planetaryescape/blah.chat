@@ -8,14 +8,17 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useNewChatModel } from "@/hooks/useNewChatModel";
 import { useSDKClient } from "@/lib/api/sdkClient";
 import { openMainWindow } from "@/lib/desktop/ipc";
 
-const DEFAULT_MODEL = "openai:gpt-5-mini";
+const FALLBACK_MODEL = "openai:gpt-5-mini";
 
 export default function DesktopQuickPage() {
   const router = useRouter();
   const sdk = useSDKClient();
+  const { newChatModel } = useNewChatModel();
+  const model = newChatModel || FALLBACK_MODEL;
 
   const [prompt, setPrompt] = useState("");
   const [recent, setRecent] = useState<Conversation[]>([]);
@@ -59,13 +62,13 @@ export default function DesktopQuickPage() {
     setIsSubmitting(true);
     try {
       const conversation = await sdk.createConversation({
-        model: DEFAULT_MODEL,
+        model: model,
         title: "New Chat",
       });
 
       await sdk.sendMessage(conversation._id, {
         content,
-        modelId: DEFAULT_MODEL,
+        modelId: model,
       });
 
       setPrompt("");
@@ -77,7 +80,7 @@ export default function DesktopQuickPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [isSubmitting, openInMain, prompt, sdk]);
+  }, [isSubmitting, model, openInMain, prompt, sdk]);
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-6">
@@ -161,7 +164,7 @@ export default function DesktopQuickPage() {
                     {conversation.title || "Untitled conversation"}
                   </div>
                   <div className="text-xs text-muted-foreground truncate">
-                    {conversation.model || DEFAULT_MODEL}
+                    {conversation.model || model}
                   </div>
                 </button>
               ))}

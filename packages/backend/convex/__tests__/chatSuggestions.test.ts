@@ -42,6 +42,11 @@ function seedSuggestions(prefix: string) {
       text: "Draft a short follow-up message",
       icon: "sparkles" as const,
     },
+    {
+      id: `${prefix}-6`,
+      text: "Brainstorm fresh ideas for this project",
+      icon: "brain" as const,
+    },
   ];
 }
 
@@ -71,10 +76,10 @@ describe("chatSuggestions", () => {
 
     expect(result.needsRefresh).toBe(true);
     expect(result.source).toBe("fallback");
-    expect(result.suggestions).toHaveLength(5);
+    expect(result.suggestions).toHaveLength(6);
   });
 
-  it("refreshForCurrentUser stores exactly 5 sanitized suggestions", async () => {
+  it("refreshForCurrentUser stores exactly 6 sanitized suggestions", async () => {
     const t = convexTest(schema);
     const identity = createMockIdentity();
 
@@ -116,6 +121,14 @@ describe("chatSuggestions", () => {
             text: "Compare these pricing options and recommend one",
             icon: "zap",
           },
+          {
+            text: "Brainstorm creative angles for the product launch",
+            icon: "sparkles",
+          },
+          {
+            text: "Draft a concise follow-up email for the team meeting",
+            icon: "penLine",
+          },
         ],
       },
     } as any);
@@ -129,7 +142,7 @@ describe("chatSuggestions", () => {
       },
     );
 
-    expect(result.suggestions).toHaveLength(5);
+    expect(result.suggestions).toHaveLength(6);
 
     const cache = await t.run(async (ctx) =>
       ctx.db
@@ -139,8 +152,8 @@ describe("chatSuggestions", () => {
     );
 
     expect(cache).not.toBeNull();
-    expect(cache?.suggestions).toHaveLength(5);
-    expect(new Set(cache?.suggestions.map((s) => s.text)).size).toBe(5);
+    expect(cache?.suggestions).toHaveLength(6);
+    expect(new Set(cache?.suggestions.map((s) => s.text)).size).toBe(6);
   });
 
   it("getForCurrentUser returns needsRefresh=true when TTL expired", async () => {

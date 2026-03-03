@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.32.1](https://github.com/planetaryescape/blah.chat/compare/v1.32.0...v1.32.1) (2026-03-03)
+
+
+### Bug Fixes
+
+* trigger desktop release on tag push instead of release event ([c5a946e](https://github.com/planetaryescape/blah.chat/commit/c5a946ee15a1c026d6b4d424b6c20b6837099bd8))
+
 ## [1.32.0](https://github.com/planetaryescape/blah.chat/compare/v1.31.0...v1.32.0) (2026-03-02)
 
 

@@ -1,5 +1,5 @@
 {
-  ".": "1.32.0",
+  ".": "1.32.1",
   "packages/api-client": "0.3.1",
   "packages/ai": "0.1.2",
   "packages/shared": "0.4.0",
@@ -28,5 +28,5 @@
   "packages/cognitive-memory": "0.2.0",
   "packages/integrations-composio": "0.1.0",
   "apps/cli": "0.3.0",
-  "apps/desktop": "0.26.0"
+  "apps/desktop": "0.27.0"
 }

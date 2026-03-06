@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.32.2](https://github.com/planetaryescape/blah.chat/compare/v1.32.1...v1.32.2) (2026-03-06)
+
+
+### Bug Fixes
+
+* keep temporal prefixes in prompt history only ([#402](https://github.com/planetaryescape/blah.chat/issues/402)) ([d804f2e](https://github.com/planetaryescape/blah.chat/commit/d804f2eba050a99771f51791530e6141c64e5878))
+
 ## [1.32.1](https://github.com/planetaryescape/blah.chat/compare/v1.32.0...v1.32.1) (2026-03-03)
 
 

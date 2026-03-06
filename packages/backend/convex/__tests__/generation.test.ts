@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { convexTest } from "../../__tests__/testSetup";
 import { api, internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
+import {
+  formatHistoryTimestamp,
+  serializeConversationHistory,
+  serializeHistoryMessage,
+} from "../generation/history";
 import {
   createMockIdentity,
   createTestConversationData,
@@ -22,6 +28,132 @@ import schema from "../schema";
  */
 
 describe("convex/generation support", () => {
+  describe("history serialization", () => {
+    it("prefixes plain text messages from createdAt for model history", async () => {
+      const history = await serializeConversationHistory({
+        messages: [
+          {
+            _id: "message-1" as Id<"messages">,
+            role: "user",
+            content: "Hello there",
+            createdAt: new Date("2026-03-06T01:59:00Z").getTime(),
+            providerMetadata: undefined,
+          },
+        ],
+        attachmentsByMessage: new Map(),
+        hasVision: false,
+        downloadAttachment: async () => {
+          throw new Error("downloadAttachment should not be called");
+        },
+      });
+
+      expect(history).toEqual([
+        {
+          role: "user",
+          content: `${formatHistoryTimestamp(new Date("2026-03-06T01:59:00Z").getTime())}Hello there`,
+          providerMetadata: undefined,
+        },
+      ]);
+    });
+
+    it("keeps attachment metadata formatting and timestamp prefix for non-vision history", async () => {
+      const message = {
+        _id: "message-2" as Id<"messages">,
+        role: "user" as const,
+        content: "Check this file",
+        createdAt: new Date("2026-03-06T01:59:00Z").getTime(),
+        providerMetadata: undefined,
+      };
+
+      const serialized = await serializeHistoryMessage({
+        message,
+        attachments: [
+          {
+            type: "file",
+            name: "brief.pdf",
+            mimeType: "application/pdf",
+            size: 2048,
+            storageId: "storage-1" as Id<"_storage">,
+          },
+        ],
+        hasVision: false,
+        downloadAttachment: async () => {
+          throw new Error("downloadAttachment should not be called");
+        },
+      });
+
+      expect(serialized).toEqual({
+        role: "user",
+        content:
+          `${formatHistoryTimestamp(message.createdAt)}Check this file\n\n` +
+          "[Attached file 0: brief.pdf (application/pdf, 2KB)]",
+        providerMetadata: undefined,
+      });
+      expect(message.content).toBe("Check this file");
+    });
+
+    it("keeps vision attachment parts while deriving the timestamp prefix", async () => {
+      const message = {
+        _id: "message-3" as Id<"messages">,
+        role: "user" as const,
+        content: "What is in these files?",
+        createdAt: new Date("2026-03-06T01:59:00Z").getTime(),
+        providerMetadata: undefined,
+      };
+      const downloadedStorageIds: string[] = [];
+
+      const serialized = await serializeHistoryMessage({
+        message,
+        attachments: [
+          {
+            type: "image",
+            name: "photo.png",
+            mimeType: "image/png",
+            size: 1024,
+            storageId: "storage-image" as Id<"_storage">,
+          },
+          {
+            type: "file",
+            name: "brief.docx",
+            mimeType:
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            size: 3072,
+            storageId: "storage-docx" as Id<"_storage">,
+          },
+        ],
+        hasVision: true,
+        downloadAttachment: async (storageId) => {
+          downloadedStorageIds.push(storageId);
+          return `base64:${storageId}`;
+        },
+      });
+
+      expect(serialized).toEqual({
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text:
+              `${formatHistoryTimestamp(message.createdAt)}What is in these files?\n\n` +
+              "[Attached file 0: photo.png (image/png, 1KB)]\n" +
+              "[Attached file 1: brief.docx (application/vnd.openxmlformats-officedocument.wordprocessingml.document, 3KB)]",
+          },
+          {
+            type: "image",
+            image: "base64:storage-image",
+          },
+          {
+            type: "text",
+            text: "\n[Reference: brief.docx (application/vnd.openxmlformats-officedocument.wordprocessingml.document)]",
+          },
+        ],
+        providerMetadata: undefined,
+      });
+      expect(message.content).toBe("What is in these files?");
+      expect(downloadedStorageIds).toEqual(["storage-image"]);
+    });
+  });
+
   describe("message status transitions", () => {
     it("tracks message from pending to generating to complete", async () => {
       const t = convexTest(schema);

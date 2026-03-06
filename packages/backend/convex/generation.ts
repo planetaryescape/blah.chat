@@ -11,11 +11,11 @@ import {
 } from "@blah-chat/ai/utils";
 import { generateText, stepCountIs, streamText } from "ai";
 import { v } from "convex/values";
-import { format } from "date-fns";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { action, internalAction } from "./_generated/server";
 import { downloadAttachment } from "./generation/attachments";
+import { serializeConversationHistory } from "./generation/history";
 import { extractSources, extractWebSearchSources } from "./generation/sources";
 import { createOnStepFinish } from "./generation/tools";
 import { trackServerEvent } from "./lib/analytics";
@@ -586,94 +586,12 @@ export const generateResponse = internalAction({
         return base64;
       }
 
-      const history = await Promise.all(
-        filteredMessages.map(async (m: Doc<"messages">) => {
-          // Prepend temporal stamp for LLM context (not stored in DB or shown in UI)
-          const timeStamp = `[${format(new Date(m.createdAt), "MMM d, h:mm a")}] `;
-
-          // Get attachments from pre-fetched map (O(1) lookup)
-          const attachments = attachmentsByMessage.get(m._id as string) || [];
-
-          // Text-only messages (no attachments)
-          if (attachments.length === 0) {
-            return {
-              role: m.role as "user" | "assistant" | "system",
-              content: timeStamp + (m.content || ""),
-              providerMetadata: m.providerMetadata,
-            };
-          }
-
-          // Build attachment metadata info for ALL models (so they know to use fileDocument tool)
-          const attachmentInfo = attachments
-            .map(
-              (a: Doc<"attachments">, i: number) =>
-                `[Attached file ${i}: ${a.name} (${a.mimeType}, ${Math.round(a.size / 1024)}KB)]`,
-            )
-            .join("\n");
-
-          // Messages with attachments - non-vision models get text + metadata info
-          if (!hasVision) {
-            // Non-vision models: append attachment metadata so AI knows to call fileDocument
-            const content = `${timeStamp}${m.content || ""}\n\n${attachmentInfo}`;
-            return {
-              role: m.role as "user" | "assistant" | "system",
-              content,
-              providerMetadata: m.providerMetadata,
-            };
-          }
-
-          // Vision models: build content array with text + metadata + actual file data
-          const contentParts: any[] = [
-            {
-              type: "text",
-              text: `${timeStamp}${m.content || ""}\n\n${attachmentInfo}`,
-            },
-          ];
-
-          // PARALLEL: Download all attachments concurrently (with caching)
-          const downloadResults = await Promise.all(
-            attachments.map(async (attachment: Doc<"attachments">) => ({
-              attachment,
-              base64: await getCachedDownload(attachment.storageId),
-            })),
-          );
-
-          for (const { attachment, base64 } of downloadResults) {
-            if (attachment.type === "image") {
-              contentParts.push({
-                type: "image",
-                image: base64,
-              });
-            } else if (attachment.type === "file") {
-              // PDFs are the only document type supported as inline blobs by Gemini
-              if (attachment.mimeType === "application/pdf") {
-                contentParts.push({
-                  type: "file",
-                  data: base64,
-                  mediaType: attachment.mimeType,
-                  filename: attachment.name,
-                });
-              } else {
-                // For other file types (PPTX, DOCX, etc.), we rely on the fileDocument tool
-                // to extract text. We do NOT send the raw blob to the model as it causes 400 errors.
-                // The text content is already in the message or will be extracted.
-                // We add a text hint to the content parts.
-                contentParts.push({
-                  type: "text",
-                  text: `\n[Reference: ${attachment.name} (${attachment.mimeType})]`,
-                });
-              }
-            }
-            // Future: audio support
-          }
-
-          return {
-            role: m.role as "user" | "assistant" | "system",
-            content: contentParts,
-            providerMetadata: m.providerMetadata,
-          };
-        }),
-      );
+      const history = await serializeConversationHistory({
+        messages: filteredMessages,
+        attachmentsByMessage,
+        hasVision,
+        downloadAttachment: getCachedDownload,
+      });
 
       // 7. Combine: system prompts FIRST, then history
       // Filter out empty messages (Gemini requires non-empty content parts)

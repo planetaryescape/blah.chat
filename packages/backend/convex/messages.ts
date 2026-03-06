@@ -21,6 +21,24 @@ function emptyPaginatedResult() {
   return { page: [], isDone: true, continueCursor: "" };
 }
 
+const TEMPORAL_PREFIX_PATTERN =
+  /^\[(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},\s+\d{1,2}:\d{2}\s(?:AM|PM)\]\s*/;
+const TEMPORAL_PREFIX_PARTIAL_PATTERN =
+  /^\[(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{0,2}(?:,\s*\d{0,2}(?::\d{0,2})?\s*(?:AM|PM)?)?$/;
+
+export function sanitizeAssistantDisplayContent(content: string): string {
+  const withoutFullPrefix = content.replace(TEMPORAL_PREFIX_PATTERN, "");
+  if (withoutFullPrefix !== content) {
+    return withoutFullPrefix;
+  }
+
+  if (TEMPORAL_PREFIX_PARTIAL_PATTERN.test(content)) {
+    return "";
+  }
+
+  return content;
+}
+
 async function hasConversationAccess(
   ctx: QueryCtx,
   conversationId: Id<"conversations">,
@@ -575,8 +593,13 @@ export const updatePartialContent = internalMutation({
       return { updated: false, reason: `terminal:${message.status}` };
     }
 
+    const partialContent =
+      message.role === "assistant"
+        ? sanitizeAssistantDisplayContent(args.partialContent)
+        : args.partialContent;
+
     await ctx.db.patch(args.messageId, {
-      partialContent: args.partialContent,
+      partialContent,
       status: "generating",
       updatedAt: Date.now(),
     });
@@ -652,6 +675,11 @@ export const completeMessage = internalMutation({
     const message = await ctx.db.get(args.messageId);
     if (!message) throw new Error("Message not found");
 
+    const content =
+      message.role === "assistant"
+        ? sanitizeAssistantDisplayContent(args.content)
+        : args.content;
+
     // Respect terminal states - update metrics but don't change status
     if (message.status === "stopped" || message.status === "error") {
       await ctx.db.patch(args.messageId, {
@@ -668,7 +696,7 @@ export const completeMessage = internalMutation({
     }
 
     await ctx.db.patch(args.messageId, {
-      content: args.content,
+      content,
       reasoning: args.reasoning,
       partialContent: undefined,
       partialReasoning: undefined,
@@ -712,13 +740,13 @@ export const completeMessage = internalMutation({
       );
     }
 
-    if (args.content && args.content.trim().length > 0) {
+    if (content.trim().length > 0) {
       await ctx.scheduler.runAfter(
         0,
         internal.messages.embeddings.generateEmbedding,
         {
           messageId: args.messageId,
-          content: args.content,
+          content,
         },
       );
     }

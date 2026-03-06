@@ -1,15 +1,44 @@
 import { describe, expect, it } from "vitest";
 import { convexTest } from "../../__tests__/testSetup";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import {
   createMockIdentity,
   createTestConversationData,
   createTestMessageData,
   createTestUserData,
 } from "../lib/test/factories";
+import { sanitizeAssistantDisplayContent } from "../messages";
 import schema from "../schema";
 
 describe("convex/messages", () => {
+  describe("assistant display sanitization", () => {
+    it("strips a leading temporal prefix from assistant output", () => {
+      expect(
+        sanitizeAssistantDisplayContent(
+          "[Mar 6, 1:59 AM] Going well-chilling in the digital ether.",
+        ),
+      ).toBe("Going well-chilling in the digital ether.");
+    });
+
+    it("hides partial temporal prefixes while streaming", () => {
+      expect(sanitizeAssistantDisplayContent("[Mar 6, 1:59")).toBe("");
+    });
+
+    it("does not change normal content", () => {
+      expect(sanitizeAssistantDisplayContent("How about you? Up late?")).toBe(
+        "How about you? Up late?",
+      );
+    });
+
+    it("does not hide legitimate content starting with a month name", () => {
+      expect(
+        sanitizeAssistantDisplayContent(
+          "[May I suggest a greedy algorithm here",
+        ),
+      ).toBe("[May I suggest a greedy algorithm here");
+    });
+  });
+
   describe("list query", () => {
     it("returns messages for conversation owner", async () => {
       const t = convexTest(schema);
@@ -226,6 +255,44 @@ describe("convex/messages", () => {
 
       expect(result[0].status).toBe("generating");
       expect(result[0].partialContent).toBe("Partial response...");
+    });
+
+    it("sanitizes temporal prefixes for assistant partial content", async () => {
+      const t = convexTest(schema);
+      const identity = createMockIdentity();
+
+      const msgId = await t.run(async (ctx) => {
+        const userId = await ctx.db.insert(
+          "users",
+          createTestUserData({ clerkId: identity.subject }),
+        );
+        const convId = await ctx.db.insert(
+          "conversations",
+          createTestConversationData(userId),
+        );
+        return await ctx.db.insert(
+          "messages",
+          createTestMessageData(convId, userId, {
+            status: "generating",
+            content: "",
+            role: "assistant",
+            model: "gpt-4o",
+          }),
+        );
+      });
+
+      await t.run(async (ctx) => {
+        await ctx.runMutation(internal.messages.updatePartialContent, {
+          messageId: msgId,
+          partialContent:
+            "[Mar 6, 1:59 AM] Going well-chilling in the digital ether.",
+        });
+      });
+
+      const msg = await t.run(async (ctx) => ctx.db.get(msgId));
+      expect(msg?.partialContent).toBe(
+        "Going well-chilling in the digital ether.",
+      );
     });
   });
 

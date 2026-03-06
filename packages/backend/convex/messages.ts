@@ -24,7 +24,7 @@ function emptyPaginatedResult() {
 const TEMPORAL_PREFIX_PATTERN =
   /^\[(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},\s+\d{1,2}:\d{2}\s(?:AM|PM)\]\s*/;
 const TEMPORAL_PREFIX_PARTIAL_PATTERN =
-  /^\[(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[^\]]*$/;
+  /^\[(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{0,2}(?:,\s*\d{0,2}(?::\d{0,2})?\s*(?:AM|PM)?)?$/;
 
 export function sanitizeAssistantDisplayContent(content: string): string {
   const withoutFullPrefix = content.replace(TEMPORAL_PREFIX_PATTERN, "");

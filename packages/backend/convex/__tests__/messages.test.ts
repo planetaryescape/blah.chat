@@ -29,6 +29,14 @@ describe("convex/messages", () => {
         "How about you? Up late?",
       );
     });
+
+    it("does not hide legitimate content starting with a month name", () => {
+      expect(
+        sanitizeAssistantDisplayContent(
+          "[May I suggest a greedy algorithm here",
+        ),
+      ).toBe("[May I suggest a greedy algorithm here");
+    });
   });
 
   describe("list query", () => {

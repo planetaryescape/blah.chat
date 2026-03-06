@@ -81,8 +81,14 @@ export async function serializeHistoryMessage({
     },
   ];
 
+  const inlineAttachments = attachments.filter(
+    (attachment) =>
+      attachment.type === "image" ||
+      (attachment.type === "file" && attachment.mimeType === "application/pdf"),
+  );
+
   const downloadResults = await Promise.all(
-    attachments.map(async (attachment) => ({
+    inlineAttachments.map(async (attachment) => ({
       attachment,
       base64: await downloadAttachment(attachment.storageId),
     })),
@@ -108,6 +114,24 @@ export async function serializeHistoryMessage({
         mediaType: attachment.mimeType,
         filename: attachment.name,
       });
+      continue;
+    }
+
+    if (attachment.type !== "file") {
+      continue;
+    }
+
+    contentParts.push({
+      type: "text",
+      text: `\n[Reference: ${attachment.name} (${attachment.mimeType})]`,
+    });
+  }
+
+  for (const attachment of attachments) {
+    if (
+      attachment.type !== "file" ||
+      attachment.mimeType === "application/pdf"
+    ) {
       continue;
     }
 

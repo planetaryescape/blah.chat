@@ -100,6 +100,7 @@ describe("convex/generation support", () => {
         createdAt: new Date("2026-03-06T01:59:00Z").getTime(),
         providerMetadata: undefined,
       };
+      const downloadedStorageIds: string[] = [];
 
       const serialized = await serializeHistoryMessage({
         message,
@@ -121,7 +122,10 @@ describe("convex/generation support", () => {
           },
         ],
         hasVision: true,
-        downloadAttachment: async (storageId) => `base64:${storageId}`,
+        downloadAttachment: async (storageId) => {
+          downloadedStorageIds.push(storageId);
+          return `base64:${storageId}`;
+        },
       });
 
       expect(serialized).toEqual({
@@ -146,6 +150,7 @@ describe("convex/generation support", () => {
         providerMetadata: undefined,
       });
       expect(message.content).toBe("What is in these files?");
+      expect(downloadedStorageIds).toEqual(["storage-image"]);
     });
   });
 

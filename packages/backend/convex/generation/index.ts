@@ -5,5 +5,6 @@
  */
 
 export * from "./attachments";
+export * from "./history";
 export * as image from "./image";
 export * from "./sources";

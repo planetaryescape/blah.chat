@@ -32,6 +32,10 @@ export default defineConfig({
   resolve: {
     alias: {
       // Order matters: more specific aliases first
+      "@blah-chat/chat-ui-core": path.resolve(
+        __dirname,
+        "../../packages/chat-ui-core/src/index.ts",
+      ),
       "@blah-chat/backend": path.resolve(__dirname, "../../packages/backend"),
       "@": path.resolve(__dirname, "./src"),
     },

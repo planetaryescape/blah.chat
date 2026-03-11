@@ -27,6 +27,7 @@ import { ComparisonView } from "./ComparisonView";
 import { DateSeparator } from "./DateSeparator";
 
 const VIRTUALIZATION_THRESHOLD = 500;
+const NEAR_BOTTOM_THRESHOLD = 64;
 
 type MessageWithUser = (Doc<"messages"> | OptimisticMessage) & {
   senderUser?: { name?: string; imageUrl?: string } | null;
@@ -236,6 +237,17 @@ export function VirtualizedMessageList({
     }
   }, [grouped.length, useVirtualization, _reducedMotion]);
 
+  useEffect(() => {
+    const handleComposerResize = () => {
+      if (!autoScrollEnabled) return;
+      scrollToBottom();
+    };
+
+    window.addEventListener("chat-composer-resize", handleComposerResize);
+    return () =>
+      window.removeEventListener("chat-composer-resize", handleComposerResize);
+  }, [autoScrollEnabled, scrollToBottom]);
+
   // Empty state handled by parent
   if (!messages || messages.length === 0) {
     return null;
@@ -291,7 +303,7 @@ export function VirtualizedMessageList({
             }}
             aria-label="Scroll to bottom"
           >
-            Scrolled up
+            Jump to latest
             <ArrowDown className="w-3 h-3" aria-hidden="true" />
           </Button>
         )}
@@ -320,10 +332,18 @@ export function VirtualizedMessageList({
         initialTopMostItemIndex={grouped.length - 1}
         alignToBottom
         followOutput={(isAtBottom) =>
-          autoScrollEnabled && isAtBottom ? "smooth" : false
+          autoScrollEnabled &&
+          (isAtBottom ||
+            (scrollerRef.current instanceof HTMLElement &&
+              scrollerRef.current.scrollHeight -
+                scrollerRef.current.clientHeight -
+                scrollerRef.current.scrollTop <=
+                NEAR_BOTTOM_THRESHOLD))
+            ? "smooth"
+            : false
         }
         atBottomStateChange={setAtBottom}
-        atBottomThreshold={100}
+        atBottomThreshold={NEAR_BOTTOM_THRESHOLD}
         id="chat-messages"
         className="flex-1 w-full min-w-0 min-h-0"
         role="log"
@@ -364,7 +384,7 @@ export function VirtualizedMessageList({
           }}
           aria-label="Scroll to bottom"
         >
-          Scrolled up
+          Jump to latest
           <ArrowDown className="w-3 h-3" aria-hidden="true" />
         </Button>
       )}

@@ -1,3 +1,9 @@
+import {
+  type ChatComposerCommandDefinition,
+  getChatComposerCommandsForSurface,
+  getLineStartSlashMatch,
+  replaceTextRange,
+} from "@blah-chat/chat-ui-core";
 import { toast } from "burnt";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
@@ -29,6 +35,7 @@ import {
   View,
 } from "react-native";
 import { ChatAttachmentSheet } from "@/components/chat/ChatAttachmentSheet";
+import { SlashCommandMenu } from "@/components/chat/SlashCommandMenu";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
 import type { Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
@@ -57,8 +64,14 @@ export type ChatInputSendPayload = {
 
 interface ChatInputProps {
   onSend: (payload: ChatInputSendPayload) => void | Promise<void>;
-  onDraftChange?: (text: string) => void;
+  value: string;
+  onChangeText: (text: string) => void;
+  attachments: AttachmentInput[];
+  onAttachmentsChange: (attachments: AttachmentInput[]) => void;
   onModelPress?: () => void;
+  onThinkingPress?: () => void;
+  onTemplatePress?: () => void;
+  onComparePress?: () => void;
   modelName?: string;
   conversationId?: Id<"conversations">;
   disabled?: boolean;
@@ -82,8 +95,14 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
   function ChatInput(
     {
       onSend,
-      onDraftChange,
+      value,
+      onChangeText,
+      attachments,
+      onAttachmentsChange,
       onModelPress,
+      onThinkingPress,
+      onTemplatePress,
+      onComparePress,
       modelName = "GPT-5 Mini",
       conversationId,
       disabled = false,
@@ -106,19 +125,19 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
       stopRecording,
     } = useChatSTT(sttEnabled);
 
-    const [text, setText] = useState("");
-    const [attachments, setAttachments] = useState<AttachmentInput[]>([]);
     const [isAttachmentSheetOpen, setIsAttachmentSheetOpen] = useState(false);
     const [inputHeight, setInputHeight] = useState(MIN_HEIGHT_SINGLE_LINE);
     const [contentHeight, setContentHeight] = useState(MIN_HEIGHT_SINGLE_LINE);
     const [isExpanded, setIsExpanded] = useState(false);
+    const [cursorPosition, setCursorPosition] = useState(0);
+    const [slashIndex, setSlashIndex] = useState(0);
 
     useImperativeHandle(ref, () => ({
       focus: () => inputRef.current?.focus(),
       blur: () => inputRef.current?.blur(),
     }));
 
-    const hasText = text.trim().length > 0;
+    const hasText = value.trim().length > 0;
     const isRecording = sttState === "recording";
     const isTranscribing = sttState === "transcribing";
     const isBusy = disabled || isSending || isUploading || isTranscribing;
@@ -133,6 +152,13 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
           Math.floor(windowHeight * EXPANDED_MAX_HEIGHT_RATIO),
         )
       : COLLAPSED_MAX_HEIGHT;
+    const slashMatch = getLineStartSlashMatch(value, cursorPosition);
+    const slashCommands = slashMatch
+      ? getChatComposerCommandsForSurface("mobile").filter((command) =>
+          command.aliases.some((alias) => alias.startsWith(slashMatch.query)),
+        )
+      : [];
+    const slashMenuVisible = slashCommands.length > 0 && !isRecording;
 
     const calculateNextHeight = useCallback(
       (nextContentHeight: number, nextText: string, expanded: boolean) => {
@@ -150,34 +176,85 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
     );
 
     useEffect(() => {
-      setInputHeight(calculateNextHeight(contentHeight, text, isExpanded));
-    }, [calculateNextHeight, contentHeight, isExpanded, text]);
+      setInputHeight(calculateNextHeight(contentHeight, value, isExpanded));
+    }, [calculateNextHeight, contentHeight, isExpanded, value]);
 
-    const removeAttachment = useCallback((index: number) => {
-      setAttachments((prev) => prev.filter((_, i) => i !== index));
-    }, []);
+    useEffect(() => {
+      setSlashIndex(0);
+    }, [slashMatch?.query, slashCommands.length]);
+
+    const applySlashCommand = useCallback(
+      (command: ChatComposerCommandDefinition) => {
+        if (!slashMatch) return;
+
+        const next = replaceTextRange(
+          value,
+          slashMatch.rangeStart,
+          slashMatch.rangeEnd,
+          "",
+        );
+        onChangeText(next.text);
+        setCursorPosition(next.cursor);
+
+        requestAnimationFrame(() => {
+          inputRef.current?.focus();
+          inputRef.current?.setNativeProps({
+            selection: { start: next.cursor, end: next.cursor },
+          });
+        });
+
+        if (command.id === "model") {
+          onModelPress?.();
+          return;
+        }
+        if (command.id === "think") {
+          onThinkingPress?.();
+          return;
+        }
+        if (command.id === "template") {
+          onTemplatePress?.();
+          return;
+        }
+        onComparePress?.();
+      },
+      [
+        onChangeText,
+        onComparePress,
+        onModelPress,
+        onTemplatePress,
+        onThinkingPress,
+        slashMatch,
+        value,
+      ],
+    );
+
+    const removeAttachment = useCallback(
+      (index: number) => {
+        onAttachmentsChange(attachments.filter((_, i) => i !== index));
+      },
+      [attachments, onAttachmentsChange],
+    );
 
     const handleChangeText = useCallback(
       (value: string) => {
-        setText(value);
-        onDraftChange?.(value);
+        onChangeText(value);
 
         if (value.length === 0) {
           setContentHeight(MIN_HEIGHT_SINGLE_LINE);
         }
       },
-      [onDraftChange],
+      [onChangeText],
     );
 
     const resetInputAfterSend = useCallback(() => {
-      setText("");
-      onDraftChange?.("");
-      setAttachments([]);
+      onChangeText("");
+      onAttachmentsChange([]);
       setContentHeight(MIN_HEIGHT_SINGLE_LINE);
       setIsExpanded(false);
       setInputHeight(MIN_HEIGHT_SINGLE_LINE);
+      setCursorPosition(0);
       inputRef.current?.focus();
-    }, [onDraftChange]);
+    }, [onAttachmentsChange, onChangeText]);
 
     const sendPayload = useCallback(
       async (content: string) => {
@@ -201,18 +278,17 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
 
         if (mode === "insert") {
           const nextText =
-            text.trim().length > 0
-              ? `${text.trim()} ${transcript}`
+            value.trim().length > 0
+              ? `${value.trim()} ${transcript}`
               : transcript;
-          setText(nextText);
-          onDraftChange?.(nextText);
+          onChangeText(nextText);
           inputRef.current?.focus();
           return;
         }
 
         await sendPayload(transcript);
       },
-      [onDraftChange, sendPayload, stopRecording, text],
+      [onChangeText, sendPayload, stopRecording, value],
     );
 
     const handleRightActionPress = useCallback(async () => {
@@ -230,7 +306,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
       }
 
       if (showSend && hasText) {
-        await sendPayload(text);
+        await sendPayload(value);
       }
     }, [
       handleStopRecording,
@@ -241,7 +317,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
       showMic,
       showSend,
       startRecording,
-      text,
+      value,
     ]);
 
     const handleUploadFromPicker = useCallback(
@@ -253,9 +329,9 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
       }) => {
         const uploaded = await uploadAsset(asset);
         if (!uploaded) return;
-        setAttachments((prev) => [...prev, uploaded]);
+        onAttachmentsChange([...attachments, uploaded]);
       },
-      [uploadAsset],
+      [attachments, onAttachmentsChange, uploadAsset],
     );
 
     const handleTakePhoto = useCallback(async () => {
@@ -361,12 +437,12 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
         setContentHeight(nextContentHeight);
         const newHeight = calculateNextHeight(
           nextContentHeight,
-          text,
+          value,
           isExpanded,
         );
         setInputHeight(newHeight);
       },
-      [calculateNextHeight, isExpanded, text],
+      [calculateNextHeight, isExpanded, value],
     );
 
     const handleToggleExpand = useCallback(() => {
@@ -395,6 +471,13 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
             backgroundColor: palette.void,
           }}
         >
+          <SlashCommandMenu
+            commands={slashCommands}
+            selectedIndex={slashIndex}
+            visible={slashMenuVisible}
+            onSelect={applySlashCommand}
+          />
+
           {onModelPress && (
             <AnimatedPressable
               onPress={onModelPress}
@@ -537,8 +620,11 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
               >
                 <TextInput
                   ref={inputRef}
-                  value={text}
+                  value={value}
                   onChangeText={handleChangeText}
+                  onSelectionChange={(event) => {
+                    setCursorPosition(event.nativeEvent.selection.start);
+                  }}
                   onContentSizeChange={handleContentSizeChange}
                   placeholder={placeholder}
                   placeholderTextColor={palette.starlightDim}
@@ -584,6 +670,25 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
                   )}
                 </AnimatedPressable>
               </View>
+
+              {!hasText && (
+                <View
+                  style={{
+                    paddingHorizontal: spacing.md,
+                    paddingBottom: spacing.sm,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: typography.body,
+                      fontSize: 11,
+                      color: palette.starlightDim,
+                    }}
+                  >
+                    Type / for model, reasoning, template, or compare.
+                  </Text>
+                </View>
+              )}
             </View>
 
             {showRightAction && (

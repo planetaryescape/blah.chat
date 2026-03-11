@@ -15,6 +15,8 @@ interface ThinkingEffortSelectorProps {
   value: ThinkingEffort;
   onChange: (effort: ThinkingEffort) => void;
   className?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const efforts = [
@@ -28,6 +30,8 @@ export function ThinkingEffortSelector({
   value,
   onChange,
   className,
+  open,
+  onOpenChange,
 }: ThinkingEffortSelectorProps) {
   const handleChange = (effort: ThinkingEffort) => {
     onChange(effort);
@@ -41,6 +45,8 @@ export function ThinkingEffortSelector({
 
   return (
     <Select
+      open={open}
+      onOpenChange={onOpenChange}
       value={value}
       onValueChange={(v) => handleChange(v as ThinkingEffort)}
     >

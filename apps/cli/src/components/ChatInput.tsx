@@ -1,17 +1,20 @@
 import { useKeyboard } from "@opentui/solid";
-import { createSignal, Show } from "solid-js";
+import { Show } from "solid-js";
 import { Spinner } from "./Spinner.js";
 
 interface ChatInputProps {
   onSubmit: (content: string) => void;
+  value: string;
+  onChange: (content: string) => void;
   onCancel?: () => void;
+  onModelCommand?: () => void;
+  onHelpCommand?: () => void;
   isDisabled?: boolean;
   isSending?: boolean;
   placeholder?: string;
 }
 
 export function ChatInput(props: ChatInputProps) {
-  const [value, setValue] = createSignal("");
   let inputRef: any;
 
   useKeyboard((evt) => {
@@ -24,14 +27,24 @@ export function ChatInput(props: ChatInputProps) {
   });
 
   const handleInput = (text: string) => {
-    setValue(text);
+    props.onChange(text);
   };
 
   const handleSubmit = () => {
-    const trimmed = value().trim();
+    const trimmed = props.value.trim();
+    if (trimmed === "/model") {
+      props.onChange("");
+      props.onModelCommand?.();
+      return;
+    }
+    if (trimmed === "/help") {
+      props.onChange("");
+      props.onHelpCommand?.();
+      return;
+    }
     if (trimmed && !props.isSending) {
       props.onSubmit(trimmed);
-      setValue("");
+      props.onChange("");
     }
   };
 
@@ -69,7 +82,7 @@ export function ChatInput(props: ChatInputProps) {
                 if (inputRef && !inputRef.isDestroyed) inputRef.focus();
               }, 1);
             }}
-            value={value()}
+            value={props.value}
             onInput={handleInput}
             onSubmit={handleSubmit}
             placeholder={props.placeholder ?? "Type a message..."}

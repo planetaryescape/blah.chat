@@ -54,4 +54,5 @@ export { usePreferences } from "./usePreferences";
 export { useProjects } from "./useProjects";
 export { useSiblings } from "./useSiblings";
 export { useStarterSuggestions } from "./useStarterSuggestions";
+export { useTemplates } from "./useTemplates";
 export { useUpdatePreference } from "./useUpdatePreference";

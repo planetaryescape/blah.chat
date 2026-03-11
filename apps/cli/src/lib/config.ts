@@ -9,6 +9,7 @@
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { CLI_DRAFT_STORAGE_KEY } from "@blah-chat/chat-ui-core";
 import Conf from "conf";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -44,6 +45,20 @@ const configStore = new Conf<Partial<CLIConfig>>({
   projectVersion: "1.0.0",
   configName: "config", // Uses ~/.config/blah-chat/config.json
   defaults: {},
+});
+
+interface PersistedChatDraft {
+  text: string;
+  selectedModel: string | null;
+}
+
+const draftStore = new Conf<{ drafts: Record<string, PersistedChatDraft> }>({
+  projectName: "blah-chat",
+  projectVersion: "1.0.0",
+  configName: "chat-drafts",
+  defaults: {
+    drafts: {},
+  },
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -167,4 +182,33 @@ export function getStoredConfig(): Partial<CLIConfig> {
   }
 
   return filtered;
+}
+
+export function getChatDraft(
+  conversationId: string,
+): PersistedChatDraft | null {
+  return draftStore.get(`drafts.${conversationId}`) ?? null;
+}
+
+export function setChatDraft(
+  conversationId: string,
+  draft: PersistedChatDraft,
+): void {
+  if (draft.text.trim().length === 0 && !draft.selectedModel) {
+    draftStore.delete(`drafts.${conversationId}`);
+    return;
+  }
+
+  draftStore.set(`drafts.${conversationId}`, {
+    text: draft.text,
+    selectedModel: draft.selectedModel,
+  });
+}
+
+export function clearChatDraft(conversationId: string): void {
+  draftStore.delete(`drafts.${conversationId}`);
+}
+
+export function getChatDraftStorageKey(): string {
+  return CLI_DRAFT_STORAGE_KEY;
 }

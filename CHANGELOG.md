@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.33.0](https://github.com/planetaryescape/blah.chat/compare/v1.32.2...v1.33.0) (2026-03-11)
+
+
+### Features
+
+* add chat-ui-core shared package for slash commands and draft persistence ([b47b0d6](https://github.com/planetaryescape/blah.chat/commit/b47b0d69705238389405dbfc575e43b4922d31f8))
+* add slash commands, draft persistence, and scroll improvements ([5f6e852](https://github.com/planetaryescape/blah.chat/commit/5f6e852c676cceb2eea2b883b756b35ed49a0cd6))
+
+
+### Bug Fixes
+
+* add trailing newlines to iOS asset JSON files ([6ae578f](https://github.com/planetaryescape/blah.chat/commit/6ae578f7a3210e6b1bd67ed1901355f2176a847f))
+* address second round of PR review feedback ([7413a87](https://github.com/planetaryescape/blah.chat/commit/7413a87b9d0b03aa281a28acaaa2b483183f2439))
+
 ## [1.32.2](https://github.com/planetaryescape/blah.chat/compare/v1.32.1...v1.32.2) (2026-03-06)
 
 

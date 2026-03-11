@@ -166,6 +166,8 @@ export const ChatInput = memo(function ChatInput({
   onStartComparisonRef.current = onStartComparison;
   const onExitComparisonRef = useRef(onExitComparison);
   onExitComparisonRef.current = onExitComparison;
+  const isComparisonModeRef = useRef(isComparisonMode);
+  isComparisonModeRef.current = isComparisonMode;
   const { isMobile, isTouchDevice } = useMobileDetect();
   const { haptic } = useHaptic();
   const hasSpeechRecognition = useBrowserFeature("webkitSpeechRecognition");
@@ -539,7 +541,7 @@ export const ChatInput = memo(function ChatInput({
 
     if (draft?.comparisonMode && draft.selectedModels.length >= 2) {
       onStartComparisonRef.current?.(draft.selectedModels);
-    } else {
+    } else if (isComparisonModeRef.current) {
       onExitComparisonRef.current?.();
     }
 

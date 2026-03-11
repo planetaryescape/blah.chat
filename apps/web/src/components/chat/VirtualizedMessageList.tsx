@@ -382,7 +382,7 @@ export function VirtualizedMessageList({
             enableAutoScroll();
             scrollToBottom();
           }}
-          aria-label="Scroll to bottom"
+          aria-label="Jump to latest"
         >
           Jump to latest
           <ArrowDown className="w-3 h-3" aria-hidden="true" />

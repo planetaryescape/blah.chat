@@ -40,12 +40,10 @@ export function ThinkingEffortPicker({
     [onClose],
   );
 
-  if (!isOpen) return null;
-
   return (
     <BottomSheet
       ref={bottomSheetRef}
-      index={0}
+      index={isOpen ? 0 : -1}
       snapPoints={snapPoints}
       onChange={handleSheetChange}
       enablePanDownToClose

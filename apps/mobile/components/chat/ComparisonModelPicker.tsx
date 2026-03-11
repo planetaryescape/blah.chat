@@ -1,7 +1,7 @@
 import { getMobileModels } from "@blah-chat/ai";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Check } from "lucide-react-native";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Text, View } from "react-native";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
@@ -25,6 +25,10 @@ export function ComparisonModelPicker({
     useState<string[]>(selectedModels);
   const snapPoints = useMemo(() => ["70%", "88%"], []);
   const models = useMemo(() => getMobileModels(), []);
+
+  useEffect(() => {
+    if (isOpen) setInternalSelected(selectedModels);
+  }, [isOpen, selectedModels]);
 
   const handleSheetChange = useCallback(
     (index: number) => {

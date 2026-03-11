@@ -118,6 +118,7 @@ export function ChatView(props: ChatViewProps) {
   });
 
   createEffect(() => {
+    if (state() === "loading") return;
     setChatDraft(props.conversationId, {
       text: draftValue(),
       selectedModel: draftModel(),
@@ -137,6 +138,7 @@ export function ChatView(props: ChatViewProps) {
       });
       clearChatDraft(props.conversationId);
       setDraftValue("");
+      setDraftModel(conversation()?.model ?? null);
       setState("ready");
     } catch (err) {
       setError(formatError(err));

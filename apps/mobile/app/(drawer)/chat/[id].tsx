@@ -242,7 +242,7 @@ export default function ChatScreen() {
         await sendMessage({
           conversationId,
           content,
-          ...(isComparisonMode
+          ...(isComparisonMode && selectedModels.length >= 2
             ? { models: selectedModels }
             : { modelId: selectedModel }),
           thinkingEffort,
@@ -255,11 +255,10 @@ export default function ChatScreen() {
 
         // Keep input focused after send
         chatInputRef.current?.focus();
-      } catch (error) {
+      } catch (_error) {
         haptic.error();
         toast({ preset: "error", title: "Failed to send message" });
         setOptimisticMessages([]);
-        throw error;
       } finally {
         setIsSending(false);
       }

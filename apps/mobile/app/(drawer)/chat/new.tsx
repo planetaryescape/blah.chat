@@ -95,6 +95,15 @@ export default function NewChatScreen() {
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
   const chatInputRef = useRef<ChatInputRef>(null);
   const [scrollToBottomKey, setScrollToBottomKey] = useState(0);
+  const hasMountedRef = useRef(false);
+  const latestDraftRef = useRef({
+    text: "",
+    attachments: [] as AttachmentInput[],
+    selectedModel: FALLBACK_MODEL,
+    thinkingEffort: "none" as "none" | "low" | "medium" | "high",
+    comparisonMode: false,
+    selectedModels: [] as string[],
+  });
 
   const models = useMemo(() => getMobileModels(), []);
   const selectedModelConfig = useMemo(
@@ -105,24 +114,41 @@ export default function NewChatScreen() {
 
   useEffect(() => {
     const draft = readChatDraft(draftKey);
-    if (!draft) return;
-    setDraftText(draft.text);
-    setDraftAttachments(draft.attachments);
-    setSelectedModel(draft.selectedModel ?? initialModel);
-    setThinkingEffort(draft.thinkingEffort);
-    setIsComparisonMode(draft.comparisonMode);
-    setSelectedModels(draft.selectedModels);
+    if (draft) {
+      setDraftText(draft.text);
+      setDraftAttachments(draft.attachments);
+      setSelectedModel(draft.selectedModel ?? initialModel);
+      setThinkingEffort(draft.thinkingEffort);
+      setIsComparisonMode(draft.comparisonMode);
+      setSelectedModels(draft.selectedModels);
+    }
+    hasMountedRef.current = true;
   }, [draftKey, initialModel]);
 
   useEffect(() => {
+    latestDraftRef.current = {
+      text: draftText,
+      attachments: draftAttachments,
+      selectedModel,
+      thinkingEffort,
+      comparisonMode: isComparisonMode,
+      selectedModels,
+    };
+  }, [
+    draftAttachments,
+    draftText,
+    isComparisonMode,
+    selectedModel,
+    selectedModels,
+    thinkingEffort,
+  ]);
+
+  useEffect(() => {
+    if (!hasMountedRef.current) return;
+
     const timeoutId = setTimeout(() => {
       writeChatDraft(draftKey, {
-        text: draftText,
-        attachments: draftAttachments,
-        selectedModel,
-        thinkingEffort,
-        comparisonMode: isComparisonMode,
-        selectedModels,
+        ...latestDraftRef.current,
         quote: null,
       });
     }, 500);
@@ -137,6 +163,16 @@ export default function NewChatScreen() {
     selectedModels,
     thinkingEffort,
   ]);
+
+  useEffect(() => {
+    return () => {
+      writeChatDraft(draftKey, {
+        ...latestDraftRef.current,
+        quote: null,
+      });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Auto-focus input on mount
   useEffect(() => {
@@ -208,10 +244,9 @@ export default function NewChatScreen() {
         setDraftAttachments([]);
 
         router.replace(`/(drawer)/chat/${conversationId}`);
-      } catch (error) {
+      } catch (_error) {
         haptic.error();
         setOptimisticMessages([]);
-        throw error;
       } finally {
         setIsSending(false);
       }

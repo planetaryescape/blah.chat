@@ -13,10 +13,22 @@ import { KeyboardAvoidingView, Platform, Text, View } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import Reanimated, { FadeIn } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import type { ChatInputSendPayload } from "@/components/chat";
-import { ChatInput, type ChatInputRef, MessageList } from "@/components/chat";
+import type { AttachmentInput, ChatInputSendPayload } from "@/components/chat";
+import {
+  ChatInput,
+  type ChatInputRef,
+  ComparisonModelPicker,
+  MessageList,
+  TemplatePicker,
+  ThinkingEffortPicker,
+} from "@/components/chat";
 import { ModelPicker } from "@/components/chat/ModelPicker";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import {
+  clearChatDraft,
+  readChatDraft,
+  writeChatDraft,
+} from "@/lib/chat/drafts";
 import type { Doc, Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import {
@@ -67,16 +79,60 @@ export default function NewChatScreen() {
     }
   }, [initialModel]);
   const [isModelPickerOpen, setIsModelPickerOpen] = useState(false);
+  const [isThinkingPickerOpen, setIsThinkingPickerOpen] = useState(false);
+  const [isTemplatePickerOpen, setIsTemplatePickerOpen] = useState(false);
+  const [isComparePickerOpen, setIsComparePickerOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [draftText, setDraftText] = useState("");
+  const [draftAttachments, setDraftAttachments] = useState<AttachmentInput[]>(
+    [],
+  );
+  const [thinkingEffort, setThinkingEffort] = useState<
+    "none" | "low" | "medium" | "high"
+  >("none");
+  const [isComparisonMode, setIsComparisonMode] = useState(false);
+  const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
   const chatInputRef = useRef<ChatInputRef>(null);
+  const [scrollToBottomKey, setScrollToBottomKey] = useState(0);
 
   const models = useMemo(() => getMobileModels(), []);
   const selectedModelConfig = useMemo(
     () => models.find((m) => m.id === selectedModel),
     [models, selectedModel],
   );
+  const draftKey = "new";
+
+  useEffect(() => {
+    const draft = readChatDraft(draftKey);
+    if (!draft) return;
+    setDraftText(draft.text);
+    setDraftAttachments(draft.attachments);
+    setSelectedModel(draft.selectedModel ?? initialModel);
+    setThinkingEffort(draft.thinkingEffort);
+    setIsComparisonMode(draft.comparisonMode);
+    setSelectedModels(draft.selectedModels);
+  }, [draftKey, initialModel]);
+
+  useEffect(() => {
+    writeChatDraft(draftKey, {
+      text: draftText,
+      attachments: draftAttachments,
+      selectedModel,
+      thinkingEffort,
+      comparisonMode: isComparisonMode,
+      selectedModels,
+      quote: null,
+    });
+  }, [
+    draftAttachments,
+    draftKey,
+    draftText,
+    isComparisonMode,
+    selectedModel,
+    selectedModels,
+    thinkingEffort,
+  ]);
 
   // Auto-focus input on mount
   useEffect(() => {
@@ -88,6 +144,7 @@ export default function NewChatScreen() {
     async ({ content, attachments }: ChatInputSendPayload) => {
       if (isSending) return;
       setIsSending(true);
+      setScrollToBottomKey((current) => current + 1);
 
       haptic.medium();
 
@@ -135,19 +192,37 @@ export default function NewChatScreen() {
         await sendMessage({
           conversationId,
           content,
-          modelId: selectedModel,
+          ...(isComparisonMode
+            ? { models: selectedModels }
+            : { modelId: selectedModel }),
+          thinkingEffort,
           attachments,
         });
 
+        clearChatDraft(draftKey);
+        setDraftText("");
+        setDraftAttachments([]);
+
         router.replace(`/(drawer)/chat/${conversationId}`);
-      } catch {
+      } catch (error) {
         haptic.error();
         setOptimisticMessages([]);
+        throw error;
       } finally {
         setIsSending(false);
       }
     },
-    [createConversation, sendMessage, selectedModel, router, isSending],
+    [
+      createConversation,
+      draftKey,
+      isComparisonMode,
+      isSending,
+      router,
+      selectedModel,
+      selectedModels,
+      sendMessage,
+      thinkingEffort,
+    ],
   );
 
   const handleModelSelect = useCallback((modelId: string) => {
@@ -272,6 +347,7 @@ export default function NewChatScreen() {
             messages={[]}
             conversationId={"new" as Id<"conversations">}
             optimisticMessages={optimisticMessages}
+            scrollToBottomKey={scrollToBottomKey}
           />
         )}
 
@@ -279,8 +355,15 @@ export default function NewChatScreen() {
         <ChatInput
           ref={chatInputRef}
           onSend={handleSend}
-          onDraftChange={setDraftText}
+          value={draftText}
+          onChangeText={setDraftText}
+          attachments={draftAttachments}
+          onAttachmentsChange={setDraftAttachments}
           modelName={selectedModelConfig?.name || selectedModel}
+          onModelPress={() => setIsModelPickerOpen(true)}
+          onThinkingPress={() => setIsThinkingPickerOpen(true)}
+          onTemplatePress={() => setIsTemplatePickerOpen(true)}
+          onComparePress={() => setIsComparePickerOpen(true)}
           disabled={isSending}
           isSending={isSending}
           placeholder="Start a new conversation..."
@@ -292,6 +375,35 @@ export default function NewChatScreen() {
           onClose={() => setIsModelPickerOpen(false)}
           selectedModel={selectedModel}
           onSelectModel={handleModelSelect}
+        />
+        <ThinkingEffortPicker
+          isOpen={isThinkingPickerOpen}
+          value={thinkingEffort}
+          onClose={() => setIsThinkingPickerOpen(false)}
+          onSelect={(value) => {
+            setThinkingEffort(value);
+            setIsThinkingPickerOpen(false);
+          }}
+        />
+        <TemplatePicker
+          isOpen={isTemplatePickerOpen}
+          onClose={() => setIsTemplatePickerOpen(false)}
+          onSelectTemplate={(prompt) => {
+            setDraftText((current) =>
+              current.trim().length > 0 ? `${current}\n${prompt}` : prompt,
+            );
+            setIsTemplatePickerOpen(false);
+          }}
+        />
+        <ComparisonModelPicker
+          isOpen={isComparePickerOpen}
+          selectedModels={selectedModels}
+          onClose={() => setIsComparePickerOpen(false)}
+          onConfirm={(models) => {
+            setSelectedModels(models);
+            setIsComparisonMode(models.length >= 2);
+            setIsComparePickerOpen(false);
+          }}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>

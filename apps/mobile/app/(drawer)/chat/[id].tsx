@@ -14,16 +14,25 @@ import {
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
+  type AttachmentInput,
   ChatInput,
   type ChatInputRef,
   type ChatInputSendPayload,
+  ComparisonModelPicker,
   EditMessageModal,
   MessageActionSheet,
   MessageList,
   MessageListSkeleton,
+  TemplatePicker,
+  ThinkingEffortPicker,
 } from "@/components/chat";
 import { ModelPicker } from "@/components/chat/ModelPicker";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import {
+  clearChatDraft,
+  readChatDraft,
+  writeChatDraft,
+} from "@/lib/chat/drafts";
 import type { Doc, Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import {
@@ -67,8 +76,22 @@ export default function ChatScreen() {
   const branchMessage = useBranchMessage();
 
   const [isModelPickerOpen, setIsModelPickerOpen] = useState(false);
+  const [isThinkingPickerOpen, setIsThinkingPickerOpen] = useState(false);
+  const [isTemplatePickerOpen, setIsTemplatePickerOpen] = useState(false);
+  const [isComparePickerOpen, setIsComparePickerOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
+  const [draftText, setDraftText] = useState("");
+  const [draftAttachments, setDraftAttachments] = useState<AttachmentInput[]>(
+    [],
+  );
+  const [thinkingEffort, setThinkingEffort] = useState<
+    "none" | "low" | "medium" | "high"
+  >("none");
+  const [isComparisonMode, setIsComparisonMode] = useState(false);
+  const [selectedModels, setSelectedModels] = useState<string[]>([]);
+  const [composerModel, setComposerModel] = useState("openai:gpt-5-mini");
+  const [scrollToBottomKey, setScrollToBottomKey] = useState(0);
   const [actionSheetMessage, setActionSheetMessage] = useState<Message | null>(
     null,
   );
@@ -79,11 +102,53 @@ export default function ChatScreen() {
   const chatInputRef = useRef<ChatInputRef>(null);
 
   const models = useMemo(() => getMobileModels(), []);
-  const selectedModel = conversation?.model || "openai:gpt-5-mini";
+  const selectedModel = composerModel;
   const selectedModelConfig = useMemo(
     () => models.find((m) => m.id === selectedModel),
     [models, selectedModel],
   );
+
+  useEffect(() => {
+    const draft = readChatDraft(String(conversationId));
+    if (draft) {
+      setDraftText(draft.text);
+      setDraftAttachments(draft.attachments);
+      setComposerModel(
+        draft.selectedModel ?? conversation?.model ?? "openai:gpt-5-mini",
+      );
+      setThinkingEffort(draft.thinkingEffort);
+      setIsComparisonMode(draft.comparisonMode);
+      setSelectedModels(draft.selectedModels);
+      return;
+    }
+
+    setDraftText("");
+    setDraftAttachments([]);
+    setComposerModel(conversation?.model ?? "openai:gpt-5-mini");
+    setThinkingEffort("none");
+    setIsComparisonMode(false);
+    setSelectedModels([]);
+  }, [conversation?.model, conversationId]);
+
+  useEffect(() => {
+    writeChatDraft(String(conversationId), {
+      text: draftText,
+      attachments: draftAttachments,
+      selectedModel: composerModel,
+      thinkingEffort,
+      comparisonMode: isComparisonMode,
+      selectedModels,
+      quote: null,
+    });
+  }, [
+    composerModel,
+    conversationId,
+    draftAttachments,
+    draftText,
+    isComparisonMode,
+    selectedModels,
+    thinkingEffort,
+  ]);
 
   const isLoading = conversation === undefined || messages === undefined;
   const hasError = conversation === null;
@@ -129,6 +194,7 @@ export default function ChatScreen() {
     async ({ content, attachments }: ChatInputSendPayload) => {
       if (isSending || !conversationId) return;
       setIsSending(true);
+      setScrollToBottomKey((current) => current + 1);
 
       haptic.medium();
 
@@ -172,21 +238,37 @@ export default function ChatScreen() {
         await sendMessage({
           conversationId,
           content,
-          modelId: selectedModel,
+          ...(isComparisonMode
+            ? { models: selectedModels }
+            : { modelId: selectedModel }),
+          thinkingEffort,
           attachments,
         });
 
+        clearChatDraft(String(conversationId));
+        setDraftText("");
+        setDraftAttachments([]);
+
         // Keep input focused after send
         chatInputRef.current?.focus();
-      } catch {
+      } catch (error) {
         haptic.error();
         toast({ preset: "error", title: "Failed to send message" });
         setOptimisticMessages([]);
+        throw error;
       } finally {
         setIsSending(false);
       }
     },
-    [conversationId, sendMessage, selectedModel, isSending],
+    [
+      conversationId,
+      isComparisonMode,
+      isSending,
+      selectedModel,
+      selectedModels,
+      sendMessage,
+      thinkingEffort,
+    ],
   );
 
   const handleModelSelect = useCallback(
@@ -212,6 +294,7 @@ export default function ChatScreen() {
 
       if (conversationId && modelId !== selectedModel) {
         try {
+          setComposerModel(modelId);
           await updateModel({ conversationId, model: modelId });
         } catch {
           haptic.error();
@@ -496,13 +579,22 @@ export default function ChatScreen() {
           onEdit={handleEdit}
           onRegenerate={handleRegenerate}
           onBranch={handleBranch}
+          scrollToBottomKey={scrollToBottomKey}
         />
 
         {/* Input */}
         <ChatInput
           ref={chatInputRef}
           onSend={handleSend}
+          value={draftText}
+          onChangeText={setDraftText}
+          attachments={draftAttachments}
+          onAttachmentsChange={setDraftAttachments}
           modelName={selectedModelConfig?.name || selectedModel}
+          onModelPress={() => setIsModelPickerOpen(true)}
+          onThinkingPress={() => setIsThinkingPickerOpen(true)}
+          onTemplatePress={() => setIsTemplatePickerOpen(true)}
+          onComparePress={() => setIsComparePickerOpen(true)}
           conversationId={conversationId}
           disabled={isSending}
           isSending={isSending}
@@ -520,6 +612,35 @@ export default function ChatScreen() {
           }}
           selectedModel={selectedModel}
           onSelectModel={handleModelSelect}
+        />
+        <ThinkingEffortPicker
+          isOpen={isThinkingPickerOpen}
+          value={thinkingEffort}
+          onClose={() => setIsThinkingPickerOpen(false)}
+          onSelect={(value) => {
+            setThinkingEffort(value);
+            setIsThinkingPickerOpen(false);
+          }}
+        />
+        <TemplatePicker
+          isOpen={isTemplatePickerOpen}
+          onClose={() => setIsTemplatePickerOpen(false)}
+          onSelectTemplate={(prompt) => {
+            setDraftText((current) =>
+              current.trim().length > 0 ? `${current}\n${prompt}` : prompt,
+            );
+            setIsTemplatePickerOpen(false);
+          }}
+        />
+        <ComparisonModelPicker
+          isOpen={isComparePickerOpen}
+          selectedModels={selectedModels}
+          onClose={() => setIsComparePickerOpen(false)}
+          onConfirm={(models) => {
+            setSelectedModels(models);
+            setIsComparisonMode(models.length >= 2);
+            setIsComparePickerOpen(false);
+          }}
         />
 
         {/* Message Action Sheet */}

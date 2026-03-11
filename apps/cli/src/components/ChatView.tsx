@@ -3,6 +3,7 @@ import clipboard from "clipboardy";
 import { createEffect, createSignal, onCleanup, Show } from "solid-js";
 import { useMessages } from "../hooks/useMessages.js";
 import { formatError, requireApiKey, requireClient } from "../lib/client.js";
+import { clearChatDraft, getChatDraft, setChatDraft } from "../lib/config.js";
 import {
   createBookmark,
   sendMessage,
@@ -47,6 +48,8 @@ export function ChatView(props: ChatViewProps) {
   const [selectedIndex, setSelectedIndex] = createSignal<number | null>(null);
   const [toast, setToast] = createSignal<string | null>(null);
   const [httpMessages, setHttpMessages] = createSignal<Message[] | null>(null);
+  const [draftValue, setDraftValue] = createSignal("");
+  const [draftModel, setDraftModel] = createSignal<string | null>(null);
 
   // Subscribe to messages (WebSocket, for real-time updates)
   const { data: wsMessages, error: messagesError } = useMessages(
@@ -76,6 +79,9 @@ export function ChatView(props: ChatViewProps) {
         return;
       }
       setConversation(conv);
+      const persistedDraft = getChatDraft(conv._id);
+      setDraftValue(persistedDraft?.text ?? "");
+      setDraftModel(persistedDraft?.selectedModel ?? conv.model ?? null);
       if (msgs) setHttpMessages(msgs);
       setState("ready");
     } catch (err) {
@@ -111,6 +117,13 @@ export function ChatView(props: ChatViewProps) {
     if (inputMode() === "typing") setSelectedIndex(null);
   });
 
+  createEffect(() => {
+    setChatDraft(props.conversationId, {
+      text: draftValue(),
+      selectedModel: draftModel(),
+    });
+  });
+
   const handleSend = async (content: string) => {
     setState("sending");
     setError(null);
@@ -120,7 +133,10 @@ export function ChatView(props: ChatViewProps) {
       await sendMessage(client, apiKey, {
         conversationId: props.conversationId,
         content,
+        modelId: draftModel() ?? conversation()?.model ?? undefined,
       });
+      clearChatDraft(props.conversationId);
+      setDraftValue("");
       setState("ready");
     } catch (err) {
       setError(formatError(err));
@@ -138,6 +154,7 @@ export function ChatView(props: ChatViewProps) {
         props.conversationId,
         modelId,
       );
+      setDraftModel(modelId);
       const conv = await getConversation(client, apiKey, props.conversationId);
       if (conv) setConversation(conv);
       setState("ready");
@@ -366,7 +383,11 @@ export function ChatView(props: ChatViewProps) {
 
           <ChatInput
             onSubmit={handleSend}
+            value={draftValue()}
+            onChange={setDraftValue}
             onCancel={() => setInputMode("command")}
+            onModelCommand={() => setState("model-picker")}
+            onHelpCommand={() => setState("help")}
             isSending={state() === "sending"}
             isDisabled={isGenerating() || inputMode() === "command"}
             placeholder={
@@ -396,7 +417,9 @@ export function ChatView(props: ChatViewProps) {
           </Show>
           <Show when={conversation()?.model}>
             <box flexGrow={1} />
-            <text fg="#a1a1aa">{conversation()?.model ?? ""}</text>
+            <text fg="#a1a1aa">
+              {draftModel() ?? conversation()?.model ?? ""}
+            </text>
           </Show>
         </box>
       </Show>

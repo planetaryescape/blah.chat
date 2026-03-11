@@ -12,7 +12,9 @@
     "noEmit": true,
     "types": ["node", "nativewind/types"],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@blah-chat/chat-ui-core": ["../../packages/chat-ui-core/src/index.ts"],
+      "@blah-chat/chat-ui-core/*": ["../../packages/chat-ui-core/src/*"]
     }
   },
   "include": [

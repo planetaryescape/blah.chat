@@ -20,6 +20,8 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
+      "@blah-chat/chat-ui-core": ["../../packages/chat-ui-core/src/index.ts"],
+      "@blah-chat/chat-ui-core/*": ["../../packages/chat-ui-core/src/*"],
       "@blah-chat/backend/*": ["../../packages/backend/*"]
     }
   },

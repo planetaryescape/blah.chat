@@ -1,7 +1,8 @@
 import type { FlashListRef } from "@shopify/flash-list";
 import { FlashList } from "@shopify/flash-list";
-import { memo, useCallback, useEffect, useMemo, useRef } from "react";
-import { View } from "react-native";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Text, View } from "react-native";
+import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
 import type { Doc, Id } from "@/lib/convex";
 import { palette, spacing } from "@/lib/theme/designSystem";
 import { MessageBubble } from "./MessageBubble";
@@ -17,6 +18,7 @@ interface MessageListProps {
   onEdit?: (message: Message) => void;
   onRegenerate?: (message: Message) => void;
   onBranch?: (message: Message) => void;
+  scrollToBottomKey?: number;
 }
 
 function MessageListComponent({
@@ -28,10 +30,13 @@ function MessageListComponent({
   onEdit,
   onRegenerate,
   onBranch,
+  scrollToBottomKey = 0,
 }: MessageListProps) {
   const listRef = useRef<FlashListRef<Message> | null>(null);
   const prevLengthRef = useRef(0);
   const focusedMessageRef = useRef<string | null>(null);
+  const prevScrollToBottomKeyRef = useRef(scrollToBottomKey);
+  const [isNearBottom, setIsNearBottom] = useState(true);
 
   // Combine real messages with optimistic ones
   // Messages from Convex already sorted; optimistic always newer, append at end
@@ -71,11 +76,22 @@ function MessageListComponent({
       return;
     }
 
-    if (allMessages.length > prevLengthRef.current && listRef.current) {
+    const shouldForceScroll =
+      scrollToBottomKey !== prevScrollToBottomKeyRef.current;
+
+    if ((isNearBottom || shouldForceScroll) && listRef.current) {
       listRef.current.scrollToEnd({ animated: true });
     }
+    prevScrollToBottomKeyRef.current = scrollToBottomKey;
     prevLengthRef.current = allMessages.length;
-  }, [allMessages.length, focusIndex, focusMessage, focusMessageId]);
+  }, [
+    allMessages.length,
+    focusIndex,
+    focusMessage,
+    focusMessageId,
+    isNearBottom,
+    scrollToBottomKey,
+  ]);
 
   // Attempt focus scroll as soon as focus target is available
   useEffect(() => {
@@ -126,8 +142,44 @@ function MessageListComponent({
           paddingBottom: spacing.md,
           backgroundColor: palette.void,
         }}
+        onScroll={(event) => {
+          const { contentOffset, contentSize, layoutMeasurement } =
+            event.nativeEvent;
+          const distanceFromBottom =
+            contentSize.height - layoutMeasurement.height - contentOffset.y;
+          setIsNearBottom(distanceFromBottom <= 64);
+        }}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       />
+      {!isNearBottom && (
+        <AnimatedPressable
+          onPress={() => {
+            listRef.current?.scrollToEnd({ animated: true });
+            setIsNearBottom(true);
+          }}
+          style={{
+            position: "absolute",
+            bottom: spacing.md,
+            alignSelf: "center",
+            borderRadius: 999,
+            backgroundColor: palette.glassMedium,
+            borderWidth: 1,
+            borderColor: palette.glassBorder,
+            paddingHorizontal: spacing.md,
+            paddingVertical: spacing.xs,
+          }}
+        >
+          <Text
+            style={{
+              color: palette.starlight,
+              fontSize: 12,
+            }}
+          >
+            Jump to latest
+          </Text>
+        </AnimatedPressable>
+      )}
     </View>
   );
 }

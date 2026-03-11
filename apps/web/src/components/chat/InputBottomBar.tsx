@@ -37,6 +37,8 @@ interface InputBottomBarProps {
   supportsThinking: boolean;
   thinkingEffort?: ThinkingEffort;
   onThinkingEffortChange?: (effort: ThinkingEffort) => void;
+  thinkingOpen?: boolean;
+  onThinkingOpenChange?: (open: boolean) => void;
 
   // Keyboard hints
   isEmpty: boolean;
@@ -61,6 +63,8 @@ export function InputBottomBar({
   supportsThinking,
   thinkingEffort,
   onThinkingEffortChange,
+  thinkingOpen,
+  onThinkingOpenChange,
   isEmpty,
   hasContent,
 }: InputBottomBarProps) {
@@ -104,6 +108,8 @@ export function InputBottomBar({
             <ThinkingEffortSelector
               value={thinkingEffort}
               onChange={onThinkingEffortChange}
+              open={thinkingOpen}
+              onOpenChange={onThinkingOpenChange}
             />
           )}
       </div>

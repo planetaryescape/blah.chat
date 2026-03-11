@@ -17,6 +17,7 @@ export function useScrollAnchor(
   enabled = true,
 ) {
   const anchorRef = useRef<AnchorState>({ element: null, offsetTop: 0 });
+  const interactionAnchorRef = useRef<AnchorState | null>(null);
   const observedElementsRef = useRef<Set<Element>>(new Set());
 
   useEffect(() => {
@@ -60,7 +61,8 @@ export function useScrollAnchor(
     };
 
     const restoreAnchor = () => {
-      const { element, offsetTop } = anchorRef.current;
+      const activeAnchor = interactionAnchorRef.current ?? anchorRef.current;
+      const { element, offsetTop } = activeAnchor;
       if (!element || !container.contains(element)) return;
 
       const newOffsetTop =
@@ -70,6 +72,10 @@ export function useScrollAnchor(
 
       if (Math.abs(diff) > 5) {
         container.scrollTop += diff;
+      }
+
+      if (interactionAnchorRef.current) {
+        interactionAnchorRef.current = null;
       }
     };
 
@@ -111,13 +117,30 @@ export function useScrollAnchor(
       requestAnimationFrame(restoreAnchor);
     });
 
+    const handleClickCapture = (event: Event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const element = target.closest("[data-message-id]") as HTMLElement | null;
+      if (!element) return;
+      interactionAnchorRef.current = {
+        element,
+        offsetTop:
+          element.getBoundingClientRect().top -
+          container.getBoundingClientRect().top,
+      };
+    };
+
     mutationObserver.observe(container, { childList: true, subtree: true });
     container.addEventListener("scroll", saveAnchor, { passive: true });
+    container.addEventListener("click", handleClickCapture, { capture: true });
 
     return () => {
       resizeObserver.disconnect();
       mutationObserver.disconnect();
       container.removeEventListener("scroll", saveAnchor);
+      container.removeEventListener("click", handleClickCapture, {
+        capture: true,
+      });
       observedElementsRef.current.clear();
     };
   }, [containerRef, enabled]);

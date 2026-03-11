@@ -3,6 +3,16 @@
 import { getModelConfig } from "@blah-chat/ai/utils";
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import {
+  deserializeDraftRecord,
+  emptyDraft,
+  getChatComposerCommandsForSurface,
+  getLineStartSlashMatch,
+  isEmptyDraft,
+  replaceTextRange,
+  serializeDraftRecord,
+  WEB_MOBILE_DRAFT_STORAGE_KEY,
+} from "@blah-chat/chat-ui-core";
 import { useMutation, useQuery } from "convex/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Expand, Loader2, Send, Square, Upload } from "lucide-react";
@@ -28,6 +38,7 @@ import { type ChatWidth, getChatWidthClass } from "@/lib/utils/chatWidth";
 import type { OptimisticMessage } from "@/types/optimistic";
 import { AttachmentPreview } from "./AttachmentPreview";
 import { AudioWaveform } from "./AudioWaveform";
+import { ChatInputSlashMenu } from "./ChatInputSlashMenu";
 import { ExpandedInputDialog } from "./ExpandedInputDialog";
 import { FileUpload } from "./FileUpload";
 import { InputBottomBar } from "./InputBottomBar";
@@ -90,6 +101,8 @@ interface ChatInputProps {
   onModelSelectorOpenChange?: (open: boolean) => void;
   comparisonDialogOpen?: boolean;
   onComparisonDialogOpenChange?: (open: boolean) => void;
+  templateSelectorOpen?: boolean;
+  onTemplateSelectorOpenChange?: (open: boolean) => void;
   chatWidth?: ChatWidth;
   onOptimisticUpdate?: (messages: OptimisticMessage[]) => void;
 }
@@ -113,6 +126,7 @@ export const ChatInput = memo(function ChatInput({
   onModelSelectorOpenChange,
   comparisonDialogOpen,
   onComparisonDialogOpenChange,
+  onTemplateSelectorOpenChange,
   onOptimisticUpdate,
 }: ChatInputProps) {
   const [input, setInput] = useState("");
@@ -132,11 +146,16 @@ export const ChatInput = memo(function ChatInput({
   >(null);
   const [quote, setQuote] = useState<string | null>(null);
   const [isComposing, setIsComposing] = useState(false);
+  const [thinkingSelectorOpen, setThinkingSelectorOpen] = useState(false);
+  const [cursorPosition, setCursorPosition] = useState(0);
+  const [slashIndex, setSlashIndex] = useState(0);
+  const [slashMenuSuppressed, setSlashMenuSuppressed] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const voiceInputRef = useRef<VoiceInputRef>(null);
   const dragCounterRef = useRef(0);
+  const restoringDraftRef = useRef(false);
   const { isMobile, isTouchDevice } = useMobileDetect();
   const { haptic } = useHaptic();
   const hasSpeechRecognition = useBrowserFeature("webkitSpeechRecognition");
@@ -160,6 +179,88 @@ export const ChatInput = memo(function ChatInput({
   const _supportsVision =
     modelConfig?.capabilities?.includes("vision") ?? false;
   const supportsThinking = !!modelConfig?.reasoning;
+  const slashMatch = getLineStartSlashMatch(input, cursorPosition);
+  const slashCommands = slashMatch
+    ? getChatComposerCommandsForSurface("web").filter((command) =>
+        command.aliases.some((alias) =>
+          alias.startsWith(slashMatch.query.trim().toLowerCase()),
+        ),
+      )
+    : [];
+  const slashMenuOpen =
+    !slashMenuSuppressed &&
+    !!slashMatch &&
+    slashCommands.length > 0 &&
+    !isRecording;
+
+  const persistDraft = useCallback(
+    (draftInput?: ReturnType<typeof emptyDraft>) => {
+      if (typeof window === "undefined" || !conversationId) return;
+
+      const draft =
+        draftInput ??
+        (() => {
+          const nextDraft = emptyDraft({
+            surfaceId: "web",
+            conversationId: String(conversationId),
+          });
+          nextDraft.text = input;
+          nextDraft.attachments = attachments;
+          nextDraft.selectedModel = selectedModel;
+          nextDraft.thinkingEffort = thinkingEffort ?? "none";
+          nextDraft.quote = quote;
+          nextDraft.comparisonMode = isComparisonMode;
+          nextDraft.selectedModels = selectedModels;
+          nextDraft.updatedAt = Date.now();
+          return nextDraft;
+        })();
+
+      const record = deserializeDraftRecord(
+        sessionStorage.getItem(WEB_MOBILE_DRAFT_STORAGE_KEY),
+      );
+
+      if (isEmptyDraft(draft)) {
+        delete record[String(conversationId)];
+      } else {
+        record[String(conversationId)] = draft;
+      }
+
+      if (Object.keys(record).length === 0) {
+        sessionStorage.removeItem(WEB_MOBILE_DRAFT_STORAGE_KEY);
+      } else {
+        sessionStorage.setItem(
+          WEB_MOBILE_DRAFT_STORAGE_KEY,
+          serializeDraftRecord(record),
+        );
+      }
+    },
+    [
+      attachments,
+      conversationId,
+      input,
+      isComparisonMode,
+      quote,
+      selectedModel,
+      selectedModels,
+      thinkingEffort,
+    ],
+  );
+
+  const clearPersistedDraft = useCallback(() => {
+    if (typeof window === "undefined" || !conversationId) return;
+    const record = deserializeDraftRecord(
+      sessionStorage.getItem(WEB_MOBILE_DRAFT_STORAGE_KEY),
+    );
+    delete record[String(conversationId)];
+    if (Object.keys(record).length === 0) {
+      sessionStorage.removeItem(WEB_MOBILE_DRAFT_STORAGE_KEY);
+      return;
+    }
+    sessionStorage.setItem(
+      WEB_MOBILE_DRAFT_STORAGE_KEY,
+      serializeDraftRecord(record),
+    );
+  }, [conversationId]);
 
   // Drag and drop handlers
   const handleDragEnter = (e: React.DragEvent) => {
@@ -191,6 +292,58 @@ export const ChatInput = memo(function ChatInput({
     dragCounterRef.current = 0;
     setIsDraggingOver(false);
   };
+
+  const applySlashCommand = useCallback(
+    (commandId: "model" | "think" | "template" | "compare") => {
+      if (!slashMatch) return;
+
+      const next = replaceTextRange(
+        input,
+        slashMatch.rangeStart,
+        slashMatch.rangeEnd,
+        "",
+      );
+
+      setInput(next.text);
+      setCursorPosition(next.cursor);
+      setSlashMenuSuppressed(true);
+
+      requestAnimationFrame(() => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+        textarea.focus();
+        textarea.selectionStart = next.cursor;
+        textarea.selectionEnd = next.cursor;
+      });
+
+      if (commandId === "model") {
+        onModelSelectorOpenChange?.(true);
+        return;
+      }
+      if (commandId === "think") {
+        setThinkingSelectorOpen(true);
+        return;
+      }
+      if (commandId === "template") {
+        onTemplateSelectorOpenChange?.(true);
+        return;
+      }
+      onComparisonDialogOpenChange?.(true);
+    },
+    [
+      input,
+      onComparisonDialogOpenChange,
+      onModelSelectorOpenChange,
+      onTemplateSelectorOpenChange,
+      slashMatch,
+    ],
+  );
+
+  const syncCursorPosition = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    setCursorPosition(textarea.selectionStart ?? textarea.value.length);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent | React.KeyboardEvent) => {
     e.preventDefault();
@@ -236,13 +389,16 @@ export const ChatInput = memo(function ChatInput({
             setShowRateLimitDialog(true);
           }
         },
+        onSuccess: () => {
+          clearPersistedDraft();
+        },
       },
     );
 
     setInput("");
     setQuote(null);
     onAttachmentsChange([]);
-    sessionStorage.removeItem(`draft-${conversationId}`);
+    setCursorPosition(0);
     setIsSending(false);
     haptic("MEDIUM");
 
@@ -258,6 +414,49 @@ export const ChatInput = memo(function ChatInput({
     onSubmit: handleSubmit,
     isComposing,
   });
+
+  const handleTextareaKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (slashMenuOpen) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setSlashIndex((current) => (current + 1) % slashCommands.length);
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setSlashIndex((current) =>
+            current === 0 ? slashCommands.length - 1 : current - 1,
+          );
+          return;
+        }
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          const command = slashCommands[slashIndex];
+          if (command) {
+            applySlashCommand(command.id);
+          }
+          return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setSlashMenuSuppressed(true);
+          return;
+        }
+      }
+
+      handleKeyDown(e);
+      requestAnimationFrame(syncCursorPosition);
+    },
+    [
+      applySlashCommand,
+      handleKeyDown,
+      slashCommands,
+      slashIndex,
+      slashMenuOpen,
+      syncCursorPosition,
+    ],
+  );
 
   useChatInputEvents({
     textareaRef,
@@ -293,30 +492,81 @@ export const ChatInput = memo(function ChatInput({
     if (!textarea) return;
     textarea.style.height = "auto";
     textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+    window.dispatchEvent(new CustomEvent("chat-composer-resize"));
   }, [input]);
 
-  // Draft persistence: debounced save
   useEffect(() => {
     if (!conversationId) return;
+    if (restoringDraftRef.current) return;
 
     const timeoutId = setTimeout(() => {
-      if (input.trim()) {
-        sessionStorage.setItem(`draft-${conversationId}`, input);
-      } else {
-        sessionStorage.removeItem(`draft-${conversationId}`);
-      }
+      persistDraft();
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [input, conversationId]);
+  }, [conversationId, persistDraft]);
 
-  // Draft persistence: restore on mount/conversation switch
   useEffect(() => {
     if (!conversationId) return;
+    restoringDraftRef.current = true;
+    const record = deserializeDraftRecord(
+      sessionStorage.getItem(WEB_MOBILE_DRAFT_STORAGE_KEY),
+    );
+    const draft = record[String(conversationId)];
 
-    const savedDraft = sessionStorage.getItem(`draft-${conversationId}`);
-    setInput(savedDraft || "");
-  }, [conversationId]);
+    setInput(draft?.text ?? "");
+    setQuote(draft?.quote ?? null);
+    setCursorPosition(draft?.text.length ?? 0);
+    onAttachmentsChange(draft?.attachments ?? []);
+
+    if (draft?.selectedModel && draft.selectedModel !== selectedModel) {
+      onModelChange(draft.selectedModel);
+    }
+
+    if (
+      onThinkingEffortChange &&
+      (draft?.thinkingEffort ?? "none") !== (thinkingEffort ?? "none")
+    ) {
+      onThinkingEffortChange(draft?.thinkingEffort ?? "none");
+    }
+
+    if (draft?.comparisonMode && draft.selectedModels.length >= 2) {
+      onStartComparison?.(draft.selectedModels);
+    } else if (isComparisonMode) {
+      onExitComparison?.();
+    }
+
+    setSlashMenuSuppressed(false);
+    requestAnimationFrame(() => {
+      restoringDraftRef.current = false;
+      syncCursorPosition();
+    });
+  }, [
+    conversationId,
+    isComparisonMode,
+    onAttachmentsChange,
+    onExitComparison,
+    onModelChange,
+    onStartComparison,
+    onThinkingEffortChange,
+    selectedModel,
+    syncCursorPosition,
+    thinkingEffort,
+  ]);
+
+  useEffect(() => {
+    if (!slashMatch) {
+      setSlashMenuSuppressed(false);
+    }
+  }, [slashMatch]);
+
+  useEffect(() => {
+    setSlashIndex(0);
+  }, [slashMatch?.query, slashCommands.length]);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("chat-composer-resize"));
+  }, [attachments.length, quote]);
 
   // Paste handling helpers
   const insertTextAtCursor = useCallback((text: string) => {
@@ -621,6 +871,12 @@ export const ChatInput = memo(function ChatInput({
 
           {/* Textarea container - grows upward, takes remaining space */}
           <div className="relative flex-1 min-w-0">
+            <ChatInputSlashMenu
+              open={slashMenuOpen}
+              commands={slashCommands}
+              selectedCommandId={slashCommands[slashIndex]?.id ?? null}
+              onSelect={(command) => applySlashCommand(command.id)}
+            />
             {isRecording ? (
               <div className="relative min-h-[50px] flex items-center justify-center rounded-xl overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 animate-pulse" />
@@ -637,12 +893,24 @@ export const ChatInput = memo(function ChatInput({
                   ref={textareaRef}
                   data-testid="chat-input"
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    setCursorPosition(
+                      e.target.selectionStart ?? e.target.value.length,
+                    );
+                    setSlashMenuSuppressed(false);
+                  }}
+                  onKeyDown={handleTextareaKeyDown}
+                  onSelect={syncCursorPosition}
+                  onClick={syncCursorPosition}
+                  onKeyUp={syncCursorPosition}
                   onPaste={handlePaste}
                   onCompositionStart={() => setIsComposing(true)}
                   onCompositionEnd={() => setIsComposing(false)}
-                  onFocus={() => setIsFocused(true)}
+                  onFocus={() => {
+                    setIsFocused(true);
+                    syncCursorPosition();
+                  }}
                   onBlur={() => setIsFocused(false)}
                   placeholder={getPlaceholder()}
                   aria-label="Message input"
@@ -838,9 +1106,17 @@ export const ChatInput = memo(function ChatInput({
           supportsThinking={supportsThinking}
           thinkingEffort={thinkingEffort}
           onThinkingEffortChange={onThinkingEffortChange}
+          thinkingOpen={thinkingSelectorOpen}
+          onThinkingOpenChange={setThinkingSelectorOpen}
           isEmpty={isEmpty}
           hasContent={input.length > 0}
         />
+        {isEmpty && !input.trim() && !quote && (
+          <div className="px-1 text-[11px] text-muted-foreground/70">
+            Type <span className="font-medium text-foreground">/</span> for
+            model, reasoning, template, or compare actions.
+          </div>
+        )}
       </form>
 
       <RateLimitDialog

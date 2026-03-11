@@ -41,6 +41,12 @@ Avoid generic AI aesthetic. Distinctive, creative, surprising.
 - Unique fonts (NOT Inter/Roboto). Dark theme. Layered backgrounds, high-impact motion.
 - Inspiration: code editor themes (Rose Pine, Tokyo Night, Vesper).
 
+## Development Principles
+
+- **Don't ship features just because you can.** Every feature has maintenance cost. Question whether it's needed before building.
+- **Leave the code better than you found it.** Small improvements while you're in the area — cleaner types, better names, removed dead paths.
+- **Fix features and process before creating new features.** Existing broken/incomplete things take priority over shiny new things.
+
 ## Anti-Patterns
 
 - No lazy `any` — check existing/library types first

@@ -131,15 +131,19 @@ export default function ChatScreen() {
   }, [conversation?.model, conversationId]);
 
   useEffect(() => {
-    writeChatDraft(String(conversationId), {
-      text: draftText,
-      attachments: draftAttachments,
-      selectedModel: composerModel,
-      thinkingEffort,
-      comparisonMode: isComparisonMode,
-      selectedModels,
-      quote: null,
-    });
+    const timeoutId = setTimeout(() => {
+      writeChatDraft(String(conversationId), {
+        text: draftText,
+        attachments: draftAttachments,
+        selectedModel: composerModel,
+        thinkingEffort,
+        comparisonMode: isComparisonMode,
+        selectedModels,
+        quote: null,
+      });
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
   }, [
     composerModel,
     conversationId,
@@ -293,10 +297,12 @@ export default function ChatScreen() {
       }
 
       if (conversationId && modelId !== selectedModel) {
+        const previousModel = selectedModel;
         try {
           setComposerModel(modelId);
           await updateModel({ conversationId, model: modelId });
         } catch {
+          setComposerModel(previousModel);
           haptic.error();
           toast({ preset: "error", title: "Failed to switch model" });
         }

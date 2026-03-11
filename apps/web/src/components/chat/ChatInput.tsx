@@ -101,7 +101,6 @@ interface ChatInputProps {
   onModelSelectorOpenChange?: (open: boolean) => void;
   comparisonDialogOpen?: boolean;
   onComparisonDialogOpenChange?: (open: boolean) => void;
-  templateSelectorOpen?: boolean;
   onTemplateSelectorOpenChange?: (open: boolean) => void;
   chatWidth?: ChatWidth;
   onOptimisticUpdate?: (messages: OptimisticMessage[]) => void;
@@ -156,6 +155,17 @@ export const ChatInput = memo(function ChatInput({
   const voiceInputRef = useRef<VoiceInputRef>(null);
   const dragCounterRef = useRef(0);
   const restoringDraftRef = useRef(false);
+
+  const onModelChangeRef = useRef(onModelChange);
+  onModelChangeRef.current = onModelChange;
+  const onThinkingEffortChangeRef = useRef(onThinkingEffortChange);
+  onThinkingEffortChangeRef.current = onThinkingEffortChange;
+  const onAttachmentsChangeRef = useRef(onAttachmentsChange);
+  onAttachmentsChangeRef.current = onAttachmentsChange;
+  const onStartComparisonRef = useRef(onStartComparison);
+  onStartComparisonRef.current = onStartComparison;
+  const onExitComparisonRef = useRef(onExitComparison);
+  onExitComparisonRef.current = onExitComparison;
   const { isMobile, isTouchDevice } = useMobileDetect();
   const { haptic } = useHaptic();
   const hasSpeechRecognition = useBrowserFeature("webkitSpeechRecognition");
@@ -517,23 +527,20 @@ export const ChatInput = memo(function ChatInput({
     setInput(draft?.text ?? "");
     setQuote(draft?.quote ?? null);
     setCursorPosition(draft?.text.length ?? 0);
-    onAttachmentsChange(draft?.attachments ?? []);
+    onAttachmentsChangeRef.current(draft?.attachments ?? []);
 
-    if (draft?.selectedModel && draft.selectedModel !== selectedModel) {
-      onModelChange(draft.selectedModel);
+    if (draft?.selectedModel) {
+      onModelChangeRef.current(draft.selectedModel);
     }
 
-    if (
-      onThinkingEffortChange &&
-      (draft?.thinkingEffort ?? "none") !== (thinkingEffort ?? "none")
-    ) {
-      onThinkingEffortChange(draft?.thinkingEffort ?? "none");
+    if (onThinkingEffortChangeRef.current) {
+      onThinkingEffortChangeRef.current(draft?.thinkingEffort ?? "none");
     }
 
     if (draft?.comparisonMode && draft.selectedModels.length >= 2) {
-      onStartComparison?.(draft.selectedModels);
-    } else if (isComparisonMode) {
-      onExitComparison?.();
+      onStartComparisonRef.current?.(draft.selectedModels);
+    } else {
+      onExitComparisonRef.current?.();
     }
 
     setSlashMenuSuppressed(false);
@@ -541,18 +548,8 @@ export const ChatInput = memo(function ChatInput({
       restoringDraftRef.current = false;
       syncCursorPosition();
     });
-  }, [
-    conversationId,
-    isComparisonMode,
-    onAttachmentsChange,
-    onExitComparison,
-    onModelChange,
-    onStartComparison,
-    onThinkingEffortChange,
-    selectedModel,
-    syncCursorPosition,
-    thinkingEffort,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId, syncCursorPosition]);
 
   useEffect(() => {
     if (!slashMatch) {

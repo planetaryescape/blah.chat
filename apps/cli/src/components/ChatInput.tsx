@@ -32,14 +32,14 @@ export function ChatInput(props: ChatInputProps) {
 
   const handleSubmit = () => {
     const trimmed = props.value.trim();
-    if (trimmed === "/model") {
+    if (trimmed === "/model" && props.onModelCommand) {
       props.onChange("");
-      props.onModelCommand?.();
+      props.onModelCommand();
       return;
     }
-    if (trimmed === "/help") {
+    if (trimmed === "/help" && props.onHelpCommand) {
       props.onChange("");
-      props.onHelpCommand?.();
+      props.onHelpCommand();
       return;
     }
     if (trimmed && !props.isSending) {

@@ -115,15 +115,19 @@ export default function NewChatScreen() {
   }, [draftKey, initialModel]);
 
   useEffect(() => {
-    writeChatDraft(draftKey, {
-      text: draftText,
-      attachments: draftAttachments,
-      selectedModel,
-      thinkingEffort,
-      comparisonMode: isComparisonMode,
-      selectedModels,
-      quote: null,
-    });
+    const timeoutId = setTimeout(() => {
+      writeChatDraft(draftKey, {
+        text: draftText,
+        attachments: draftAttachments,
+        selectedModel,
+        thinkingEffort,
+        comparisonMode: isComparisonMode,
+        selectedModels,
+        quote: null,
+      });
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
   }, [
     draftAttachments,
     draftKey,

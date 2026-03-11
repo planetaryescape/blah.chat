@@ -2,7 +2,6 @@ import type { ChatComposerSurfaceId } from "./commands";
 
 export const WEB_MOBILE_DRAFT_STORAGE_KEY = "blahchat:composer-drafts:v1";
 export const CLI_DRAFT_STORAGE_KEY = "blahchat-cli:composer-drafts:v1";
-export const RAYCAST_DRAFT_STORAGE_KEY = "blahchat-raycast:composer-drafts:v1";
 
 export type ChatComposerThinkingEffort = "none" | "low" | "medium" | "high";
 
@@ -80,10 +79,7 @@ function normalizeDraft(
   const updatedAt = value.updatedAt;
 
   if (
-    (surfaceId !== "web" &&
-      surfaceId !== "mobile" &&
-      surfaceId !== "cli" &&
-      surfaceId !== "raycast") ||
+    (surfaceId !== "web" && surfaceId !== "mobile" && surfaceId !== "cli") ||
     typeof text !== "string" ||
     !Array.isArray(attachments) ||
     (selectedModel !== null && typeof selectedModel !== "string") ||
@@ -119,7 +115,8 @@ function normalizeDraft(
     selectedModel,
     thinkingEffort,
     quote,
-    comparisonMode,
+    comparisonMode:
+      normalizedSelectedModels.length < 2 ? false : comparisonMode,
     selectedModels: normalizedSelectedModels,
     updatedAt,
   };

@@ -9,7 +9,6 @@
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { CLI_DRAFT_STORAGE_KEY } from "@blah-chat/chat-ui-core";
 import Conf from "conf";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -207,8 +206,4 @@ export function setChatDraft(
 
 export function clearChatDraft(conversationId: string): void {
   draftStore.delete(`drafts.${conversationId}`);
-}
-
-export function getChatDraftStorageKey(): string {
-  return CLI_DRAFT_STORAGE_KEY;
 }

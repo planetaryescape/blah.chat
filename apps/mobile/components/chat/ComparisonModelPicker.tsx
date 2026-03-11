@@ -131,13 +131,17 @@ export function ComparisonModelPicker({
         })}
 
         <AnimatedPressable
-          onPress={() => onConfirm(internalSelected)}
+          onPress={() => {
+            if (internalSelected.length >= 2) onConfirm(internalSelected);
+          }}
+          disabled={internalSelected.length < 2}
           style={{
             marginTop: spacing.md,
             borderRadius: layout.radius.full,
             backgroundColor: palette.roseQuartz,
             paddingVertical: spacing.md,
             alignItems: "center",
+            opacity: internalSelected.length < 2 ? 0.4 : 1,
           }}
         >
           <Text

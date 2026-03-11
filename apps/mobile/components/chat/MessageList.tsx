@@ -93,6 +93,12 @@ function MessageListComponent({
     scrollToBottomKey,
   ]);
 
+  useEffect(() => {
+    if (scrollToBottomKey === prevScrollToBottomKeyRef.current) return;
+    prevScrollToBottomKeyRef.current = scrollToBottomKey;
+    listRef.current?.scrollToEnd({ animated: true });
+  }, [scrollToBottomKey]);
+
   // Attempt focus scroll as soon as focus target is available
   useEffect(() => {
     const hasPendingFocus =

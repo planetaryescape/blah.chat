@@ -699,7 +699,6 @@ function ChatPageContent({
                   onModelSelectorOpenChange={setModelSelectorOpen}
                   comparisonDialogOpen={comparisonDialogOpen}
                   onComparisonDialogOpenChange={setComparisonDialogOpen}
-                  templateSelectorOpen={templateSelectorOpen}
                   onTemplateSelectorOpenChange={setTemplateSelectorOpen}
                   onOptimisticUpdate={addOptimisticMessages}
                 />

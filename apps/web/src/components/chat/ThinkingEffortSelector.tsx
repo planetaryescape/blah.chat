@@ -66,7 +66,7 @@ export function ThinkingEffortSelector({
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        {efforts.map((effort: any) => (
+        {efforts.map((effort) => (
           <SelectItem
             key={effort.value}
             value={effort.value}

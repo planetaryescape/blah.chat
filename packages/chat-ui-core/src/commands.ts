@@ -1,4 +1,4 @@
-export type ChatComposerSurfaceId = "web" | "mobile" | "cli" | "raycast";
+export type ChatComposerSurfaceId = "web" | "mobile" | "cli";
 
 export type ChatComposerCommandId = "model" | "think" | "template" | "compare";
 
@@ -21,7 +21,7 @@ export const CHAT_COMPOSER_COMMANDS: readonly ChatComposerCommandDefinition[] =
       id: "model",
       label: "Choose model",
       aliases: ["model"],
-      surfaces: ["web", "mobile", "cli", "raycast"],
+      surfaces: ["web", "mobile", "cli"],
     },
     {
       id: "think",

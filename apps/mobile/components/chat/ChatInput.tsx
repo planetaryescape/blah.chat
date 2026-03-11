@@ -158,7 +158,8 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
           command.aliases.some((alias) => alias.startsWith(slashMatch.query)),
         )
       : [];
-    const slashMenuVisible = slashCommands.length > 0 && !isRecording;
+    const slashMenuVisible =
+      slashCommands.length > 0 && !isRecording && !disabled && !isBusy;
 
     const calculateNextHeight = useCallback(
       (nextContentHeight: number, nextText: string, expanded: boolean) => {
@@ -185,7 +186,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
 
     const applySlashCommand = useCallback(
       (command: ChatComposerCommandDefinition) => {
-        if (!slashMatch) return;
+        if (!slashMatch || disabled || isBusy) return;
 
         const next = replaceTextRange(
           value,
@@ -218,6 +219,8 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
         onComparePress?.();
       },
       [
+        disabled,
+        isBusy,
         onChangeText,
         onComparePress,
         onModelPress,

@@ -1,6 +1,6 @@
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { FileText, Search, Sparkles } from "lucide-react-native";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Text, TextInput, View } from "react-native";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
 import { useTemplates } from "@/lib/hooks/useTemplates";
@@ -23,6 +23,10 @@ export function TemplatePicker({
   const templates = useTemplates();
   const snapPoints = useMemo(() => ["70%", "88%"], []);
 
+  useEffect(() => {
+    if (isOpen) setQuery("");
+  }, [isOpen]);
+
   const filteredTemplates = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     if (!normalized) return templates;
@@ -41,12 +45,10 @@ export function TemplatePicker({
     [onClose],
   );
 
-  if (!isOpen) return null;
-
   return (
     <BottomSheet
       ref={bottomSheetRef}
-      index={0}
+      index={isOpen ? 0 : -1}
       snapPoints={snapPoints}
       onChange={handleSheetChange}
       enablePanDownToClose
@@ -113,7 +115,10 @@ export function TemplatePicker({
           return (
             <AnimatedPressable
               key={template._id}
-              onPress={() => onSelectTemplate(template.prompt)}
+              onPress={() => {
+                onSelectTemplate(template.prompt);
+                onClose();
+              }}
               style={{
                 flexDirection: "row",
                 alignItems: "flex-start",

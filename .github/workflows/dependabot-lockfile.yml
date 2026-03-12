@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          token: ${{ secrets.MERGE_BOT_TOKEN }}
+          token: ${{ secrets.MERGE_BOT_TOKEN || secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
       - name: Setup Git for push

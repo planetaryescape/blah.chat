@@ -79,7 +79,7 @@ jobs:
         run: bun run apps/cli/scripts/compile.ts --single
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.platform }}
           path: apps/cli/dist/release/${{ matrix.archive }}

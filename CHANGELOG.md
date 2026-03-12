@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.33.1](https://github.com/planetaryescape/blah.chat/compare/v1.33.0...v1.33.1) (2026-03-12)
+
+
+### Bug Fixes
+
+* fix dependabot auto-merge pipeline ([21cde5f](https://github.com/planetaryescape/blah.chat/commit/21cde5f869a8405e5e4451aebd8033dbb0b5689b))
+* use PR author instead of actor for dependabot checks ([46357a2](https://github.com/planetaryescape/blah.chat/commit/46357a2ebc8382c62cbfd7120c1a013eb3314167))
+
 ## [1.33.0](https://github.com/planetaryescape/blah.chat/compare/v1.32.2...v1.33.0) (2026-03-11)
 
 

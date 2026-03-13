@@ -19,6 +19,6 @@ export const embedFileTask = task({
       success: boolean;
       chunkCount: number;
       duration: number;
-    }>("embed-file", { fileId: payload.fileId });
+    }>("embed-file", { fileId: payload.fileId, jobId: payload.jobId });
   },
 });

@@ -20,6 +20,8 @@
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean",
+    "dev": "bunx trigger.dev@latest dev",
+    "deploy:trigger": "bunx trigger.dev@latest deploy",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "bun run build"
   },
@@ -27,5 +29,8 @@
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
     "@blah-chat/config": "workspace:*"
+  },
+  "dependencies": {
+    "@trigger.dev/sdk": "^4.4.3"
   }
 }

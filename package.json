@@ -18,6 +18,7 @@
     "test:run": "turbo test:run",
     "test:e2e": "turbo test:e2e",
     "package-docs:check": "bun run scripts/check-package-docs.ts",
+    "trigger:dev": "bun --filter=@blah-chat/jobs run dev",
     "convex": "bun --filter=@blah-chat/backend run dev",
     "convex:deploy": "bun --filter=@blah-chat/backend run deploy",
     "prepare": "lefthook install",

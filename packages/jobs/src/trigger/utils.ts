@@ -30,6 +30,7 @@ export async function callConvexTriggerEndpoint<T = unknown>(
       Authorization: `Bearer ${secret}`,
     },
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(300_000),
   });
 
   if (!response.ok) {

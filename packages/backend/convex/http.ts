@@ -212,4 +212,582 @@ http.route({
   }),
 });
 
+/**
+ * Trigger.dev webhook: embed file
+ * Authenticated via shared secret (TRIGGER_CONVEX_SECRET)
+ */
+http.route({
+  path: "/trigger/embed-file",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const authHeader = request.headers.get("Authorization");
+    const expectedSecret = process.env.TRIGGER_CONVEX_SECRET;
+
+    if (!expectedSecret || authHeader !== `Bearer ${expectedSecret}`) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    try {
+      const { fileId } = (await request.json()) as { fileId: string };
+
+      if (!fileId) {
+        return new Response(JSON.stringify({ error: "fileId is required" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      const result = await (ctx.runAction as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.files.embeddings.generateFileEmbeddings,
+        { fileId },
+      );
+
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      logger.error("Trigger embed-file failed", {
+        tag: "TriggerEmbedFile",
+        error: String(error),
+      });
+      return new Response(
+        JSON.stringify({
+          error: error instanceof Error ? error.message : "Embedding failed",
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
+  }),
+});
+
+/**
+ * Trigger.dev webhook: transcribe audio
+ * Authenticated via shared secret (TRIGGER_CONVEX_SECRET)
+ */
+http.route({
+  path: "/trigger/transcribe",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const authHeader = request.headers.get("Authorization");
+    const expectedSecret = process.env.TRIGGER_CONVEX_SECRET;
+
+    if (!expectedSecret || authHeader !== `Bearer ${expectedSecret}`) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    try {
+      const { storageId, mimeType } = (await request.json()) as {
+        storageId: string;
+        mimeType: string;
+      };
+
+      if (!storageId) {
+        return new Response(
+          JSON.stringify({ error: "storageId is required" }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      const result = await (ctx.runAction as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.transcription.transcribeAudioInternal,
+        { storageId, mimeType: mimeType || "audio/webm" },
+      );
+
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      logger.error("Trigger transcribe failed", {
+        tag: "TriggerTranscribe",
+        error: String(error),
+      });
+      return new Response(
+        JSON.stringify({
+          error:
+            error instanceof Error ? error.message : "Transcription failed",
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
+  }),
+});
+
+/**
+ * Trigger.dev webhook: generate title
+ */
+http.route({
+  path: "/trigger/generate-title",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const authHeader = request.headers.get("Authorization");
+    const expectedSecret = process.env.TRIGGER_CONVEX_SECRET;
+
+    if (!expectedSecret || authHeader !== `Bearer ${expectedSecret}`) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    try {
+      const { conversationId } = (await request.json()) as {
+        conversationId: string;
+      };
+
+      if (!conversationId) {
+        return new Response(
+          JSON.stringify({ error: "conversationId is required" }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      await (ctx.runAction as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.ai.generateTitle.generateTitle,
+        { conversationId },
+      );
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      logger.error("Trigger generate-title failed", {
+        tag: "TriggerGenerateTitle",
+        error: String(error),
+      });
+      return new Response(
+        JSON.stringify({
+          error:
+            error instanceof Error ? error.message : "Title generation failed",
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
+  }),
+});
+
+/**
+ * Trigger.dev webhook: analyze model fit
+ */
+http.route({
+  path: "/trigger/analyze-model-fit",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const authHeader = request.headers.get("Authorization");
+    const expectedSecret = process.env.TRIGGER_CONVEX_SECRET;
+
+    if (!expectedSecret || authHeader !== `Bearer ${expectedSecret}`) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    try {
+      const payload = (await request.json()) as {
+        conversationId: string;
+        userMessage: string;
+        currentModelId: string;
+        wasAutoSelected?: boolean;
+      };
+
+      if (!payload.conversationId) {
+        return new Response(
+          JSON.stringify({ error: "conversationId is required" }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      await (ctx.runAction as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.ai.modelTriage.analyzeModelFit,
+        payload,
+      );
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      logger.error("Trigger analyze-model-fit failed", {
+        tag: "TriggerAnalyzeModelFit",
+        error: String(error),
+      });
+      return new Response(
+        JSON.stringify({
+          error:
+            error instanceof Error
+              ? error.message
+              : "Model fit analysis failed",
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
+  }),
+});
+
+/**
+ * Trigger.dev webhook: auto-triage feedback
+ */
+http.route({
+  path: "/trigger/auto-triage-feedback",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const authHeader = request.headers.get("Authorization");
+    const expectedSecret = process.env.TRIGGER_CONVEX_SECRET;
+
+    if (!expectedSecret || authHeader !== `Bearer ${expectedSecret}`) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    try {
+      const { feedbackId } = (await request.json()) as {
+        feedbackId: string;
+      };
+
+      if (!feedbackId) {
+        return new Response(
+          JSON.stringify({ error: "feedbackId is required" }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      await (ctx.runAction as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.feedback.triage.autoTriageFeedback,
+        { feedbackId },
+      );
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      logger.error("Trigger auto-triage-feedback failed", {
+        tag: "TriggerAutoTriageFeedback",
+        error: String(error),
+      });
+      return new Response(
+        JSON.stringify({
+          error:
+            error instanceof Error ? error.message : "Feedback triage failed",
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
+  }),
+});
+
+/**
+ * Trigger.dev webhook: enrich source metadata
+ */
+http.route({
+  path: "/trigger/enrich-source-metadata",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const authHeader = request.headers.get("Authorization");
+    const expectedSecret = process.env.TRIGGER_CONVEX_SECRET;
+
+    if (!expectedSecret || authHeader !== `Bearer ${expectedSecret}`) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    try {
+      const { messageId, sourceUrls } = (await request.json()) as {
+        messageId: string;
+        sourceUrls: string[];
+      };
+
+      if (!messageId || !sourceUrls) {
+        return new Response(
+          JSON.stringify({
+            error: "messageId and sourceUrls are required",
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      await (ctx.runAction as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.sources.enrichment_actions.enrichSourceMetadata,
+        { messageId, sourceUrls },
+      );
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      logger.error("Trigger enrich-source-metadata failed", {
+        tag: "TriggerEnrichSourceMetadata",
+        error: String(error),
+      });
+      return new Response(
+        JSON.stringify({
+          error:
+            error instanceof Error ? error.message : "Source enrichment failed",
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
+  }),
+});
+
+/**
+ * Trigger.dev webhook: extract memories
+ */
+http.route({
+  path: "/trigger/extract-memories",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const authHeader = request.headers.get("Authorization");
+    const expectedSecret = process.env.TRIGGER_CONVEX_SECRET;
+
+    if (!expectedSecret || authHeader !== `Bearer ${expectedSecret}`) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    try {
+      const { conversationId } = (await request.json()) as {
+        conversationId: string;
+      };
+
+      if (!conversationId) {
+        return new Response(
+          JSON.stringify({ error: "conversationId is required" }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      const result = await (ctx.runAction as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.memories.extract.extractMemories,
+        { conversationId },
+      );
+
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      logger.error("Trigger extract-memories failed", {
+        tag: "TriggerExtractMemories",
+        error: String(error),
+      });
+      return new Response(
+        JSON.stringify({
+          error:
+            error instanceof Error ? error.message : "Memory extraction failed",
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
+  }),
+});
+
+/**
+ * Trigger.dev webhook: process knowledge source
+ */
+http.route({
+  path: "/trigger/process-source",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const authHeader = request.headers.get("Authorization");
+    const expectedSecret = process.env.TRIGGER_CONVEX_SECRET;
+
+    if (!expectedSecret || authHeader !== `Bearer ${expectedSecret}`) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    try {
+      const { sourceId } = (await request.json()) as {
+        sourceId: string;
+      };
+
+      if (!sourceId) {
+        return new Response(JSON.stringify({ error: "sourceId is required" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      await (ctx.runAction as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.knowledgeBank.process.processSource,
+        { sourceId },
+      );
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      logger.error("Trigger process-source failed", {
+        tag: "TriggerProcessSource",
+        error: String(error),
+      });
+      return new Response(
+        JSON.stringify({
+          error:
+            error instanceof Error ? error.message : "Source processing failed",
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
+  }),
+});
+
+/**
+ * Trigger.dev webhook: extract text from attachment
+ */
+http.route({
+  path: "/trigger/extract-text",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const authHeader = request.headers.get("Authorization");
+    const expectedSecret = process.env.TRIGGER_CONVEX_SECRET;
+
+    if (!expectedSecret || authHeader !== `Bearer ${expectedSecret}`) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    try {
+      const payload = (await request.json()) as {
+        attachmentId: string;
+        storageId: string;
+        fileName: string;
+        mimeType: string;
+      };
+
+      if (!payload.attachmentId) {
+        return new Response(
+          JSON.stringify({ error: "attachmentId is required" }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      await (ctx.runAction as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.messages.attachments.extractText,
+        payload,
+      );
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      logger.error("Trigger extract-text failed", {
+        tag: "TriggerExtractText",
+        error: String(error),
+      });
+      return new Response(
+        JSON.stringify({
+          error:
+            error instanceof Error ? error.message : "Text extraction failed",
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
+  }),
+});
+
+/**
+ * Trigger.dev webhook: check all BYOD health
+ */
+http.route({
+  path: "/trigger/check-health",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const authHeader = request.headers.get("Authorization");
+    const expectedSecret = process.env.TRIGGER_CONVEX_SECRET;
+
+    if (!expectedSecret || authHeader !== `Bearer ${expectedSecret}`) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    try {
+      await (ctx.runAction as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.byod.healthCheck.checkAllHealth,
+        {},
+      );
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      logger.error("Trigger check-health failed", {
+        tag: "TriggerCheckHealth",
+        error: String(error),
+      });
+      return new Response(
+        JSON.stringify({
+          error: error instanceof Error ? error.message : "Health check failed",
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
+  }),
+});
+
+/**
+ * Trigger.dev webhook: generate image
+ */
+http.route({
+  path: "/trigger/generate-image",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const authHeader = request.headers.get("Authorization");
+    const expectedSecret = process.env.TRIGGER_CONVEX_SECRET;
+
+    if (!expectedSecret || authHeader !== `Bearer ${expectedSecret}`) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    try {
+      const payload = (await request.json()) as {
+        conversationId: string;
+        messageId: string;
+        prompt: string;
+        model?: string;
+        referenceImageStorageId?: string;
+        thinkingEffort?: string;
+      };
+
+      if (!payload.conversationId || !payload.messageId || !payload.prompt) {
+        return new Response(
+          JSON.stringify({
+            error: "conversationId, messageId, and prompt are required",
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      await (ctx.runAction as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.generation.image.generateImage,
+        payload,
+      );
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      logger.error("Trigger generate-image failed", {
+        tag: "TriggerGenerateImage",
+        error: String(error),
+      });
+      return new Response(
+        JSON.stringify({
+          error:
+            error instanceof Error ? error.message : "Image generation failed",
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
+  }),
+});
+
 export default http;

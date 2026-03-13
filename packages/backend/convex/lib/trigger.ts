@@ -26,6 +26,7 @@ export const enqueueTask = internalAction({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ payload }),
+        signal: AbortSignal.timeout(30_000),
       },
     );
 
@@ -42,7 +43,7 @@ export const enqueueTask = internalAction({
       );
     }
 
-    const result = await response.json();
+    const result = (await response.json()) as { id: string };
     logger.info("Trigger.dev task enqueued", {
       tag: "TriggerEnqueue",
       taskId,

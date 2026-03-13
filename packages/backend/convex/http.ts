@@ -764,10 +764,18 @@ http.route({
         );
       }
 
+      // Validate thinkingEffort at webhook boundary
+      const validEfforts = ["none", "low", "medium", "high"] as const;
+      const thinkingEffort = validEfforts.includes(
+        payload.thinkingEffort as (typeof validEfforts)[number],
+      )
+        ? payload.thinkingEffort
+        : undefined;
+
       await (ctx.runAction as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
         internal.generation.image.generateImage,
-        payload,
+        { ...payload, thinkingEffort },
       );
 
       return new Response(JSON.stringify({ success: true }), {

@@ -1,4 +1,5 @@
 import { task } from "@trigger.dev/sdk";
+import { callConvexTriggerEndpoint } from "./utils";
 
 export const enrichSourceMetadataTask = task({
   id: "enrich-source-metadata",
@@ -10,30 +11,9 @@ export const enrichSourceMetadataTask = task({
     factor: 2,
   },
   run: async (payload: { messageId: string; sourceUrls: string[] }) => {
-    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-    if (!convexUrl) throw new Error("NEXT_PUBLIC_CONVEX_URL is not set");
-
-    const secret = process.env.TRIGGER_CONVEX_SECRET;
-    if (!secret) throw new Error("TRIGGER_CONVEX_SECRET is not set");
-
-    const siteUrl = convexUrl.replace(".convex.cloud", ".convex.site");
-
-    const response = await fetch(`${siteUrl}/trigger/enrich-source-metadata`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${secret}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(
-        `Convex enrich-source-metadata failed (${response.status}): ${body}`,
-      );
-    }
-
-    return (await response.json()) as { success: boolean };
+    return callConvexTriggerEndpoint<{ success: boolean }>(
+      "enrich-source-metadata",
+      payload,
+    );
   },
 });

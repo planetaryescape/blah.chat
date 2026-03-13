@@ -73,19 +73,24 @@ export const addSources = internalAction({
       unenrichedUrls: string[];
     };
 
-    // Schedule enrichment for unenriched URLs
+    // Schedule enrichment for unenriched URLs (non-blocking — failure here
+    // should not break message completion in the parent generation action)
     if (result.unenrichedUrls.length > 0) {
-      await (ctx.runAction as any)(
-        // @ts-ignore - TypeScript recursion limit
-        internal.lib.trigger.enqueueTask,
-        {
-          taskId: "enrich-source-metadata",
-          payload: {
-            messageId: args.messageId,
-            sourceUrls: result.unenrichedUrls,
+      try {
+        await (ctx.runAction as any)(
+          // @ts-ignore - TypeScript recursion limit
+          internal.lib.trigger.enqueueTask,
+          {
+            taskId: "enrich-source-metadata",
+            payload: {
+              messageId: args.messageId,
+              sourceUrls: result.unenrichedUrls,
+            },
           },
-        },
-      );
+        );
+      } catch {
+        // Swallow — enrichment is non-critical
+      }
     }
 
     return result;

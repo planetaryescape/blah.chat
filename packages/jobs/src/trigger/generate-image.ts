@@ -1,8 +1,9 @@
 import { task } from "@trigger.dev/sdk";
+import { callConvexTriggerEndpoint } from "./utils";
 
 export const generateImageTask = task({
   id: "generate-image",
-  maxDuration: 120,
+  maxDuration: 300,
   retry: {
     maxAttempts: 2,
     minTimeoutInMs: 3000,
@@ -17,30 +18,9 @@ export const generateImageTask = task({
     referenceImageStorageId?: string;
     thinkingEffort?: string;
   }) => {
-    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-    if (!convexUrl) throw new Error("NEXT_PUBLIC_CONVEX_URL is not set");
-
-    const secret = process.env.TRIGGER_CONVEX_SECRET;
-    if (!secret) throw new Error("TRIGGER_CONVEX_SECRET is not set");
-
-    const siteUrl = convexUrl.replace(".convex.cloud", ".convex.site");
-
-    const response = await fetch(`${siteUrl}/trigger/generate-image`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${secret}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(
-        `Convex generate-image failed (${response.status}): ${body}`,
-      );
-    }
-
-    return (await response.json()) as { success: boolean };
+    return callConvexTriggerEndpoint<{ success: boolean }>(
+      "generate-image",
+      payload,
+    );
   },
 });

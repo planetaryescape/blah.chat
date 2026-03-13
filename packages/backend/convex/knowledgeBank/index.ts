@@ -257,13 +257,10 @@ export const createTextSource = mutation({
 
     // Schedule processing
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-    await ctx.scheduler.runAfter(
-      0,
-      internal.knowledgeBank.process.processSource,
-      {
-        sourceId,
-      },
-    );
+    await ctx.scheduler.runAfter(0, internal.lib.trigger.enqueueTask, {
+      taskId: "process-source",
+      payload: { sourceId },
+    });
 
     return sourceId;
   },
@@ -347,13 +344,10 @@ export const createFileSource = mutation({
 
     // Schedule processing
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-    await ctx.scheduler.runAfter(
-      0,
-      internal.knowledgeBank.process.processSource,
-      {
-        sourceId,
-      },
-    );
+    await ctx.scheduler.runAfter(0, internal.lib.trigger.enqueueTask, {
+      taskId: "process-source",
+      payload: { sourceId },
+    });
 
     return sourceId;
   },
@@ -413,13 +407,10 @@ export const createWebSource = mutation({
 
     // Schedule processing
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-    await ctx.scheduler.runAfter(
-      0,
-      internal.knowledgeBank.process.processSource,
-      {
-        sourceId,
-      },
-    );
+    await ctx.scheduler.runAfter(0, internal.lib.trigger.enqueueTask, {
+      taskId: "process-source",
+      payload: { sourceId },
+    });
 
     return sourceId;
   },
@@ -481,13 +472,10 @@ export const createYouTubeSource = mutation({
 
     // Schedule processing
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-    await ctx.scheduler.runAfter(
-      0,
-      internal.knowledgeBank.process.processSource,
-      {
-        sourceId,
-      },
-    );
+    await ctx.scheduler.runAfter(0, internal.lib.trigger.enqueueTask, {
+      taskId: "process-source",
+      payload: { sourceId },
+    });
 
     return sourceId;
   },
@@ -608,13 +596,10 @@ export const reprocess = mutation({
 
     // Schedule reprocessing
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-    await ctx.scheduler.runAfter(
-      0,
-      internal.knowledgeBank.process.processSource,
-      {
-        sourceId: args.sourceId,
-      },
-    );
+    await ctx.scheduler.runAfter(0, internal.lib.trigger.enqueueTask, {
+      taskId: "process-source",
+      payload: { sourceId: args.sourceId },
+    });
   },
 });
 
@@ -652,13 +637,10 @@ export const reprocessInternal = internalMutation({
 
     // Schedule reprocessing
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-    await ctx.scheduler.runAfter(
-      0,
-      internal.knowledgeBank.process.processSource,
-      {
-        sourceId: args.sourceId,
-      },
-    );
+    await ctx.scheduler.runAfter(0, internal.lib.trigger.enqueueTask, {
+      taskId: "process-source",
+      payload: { sourceId: args.sourceId },
+    });
   },
 });
 

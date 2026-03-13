@@ -131,8 +131,14 @@ export const triggerAutoRename = action({
 
     if (!conv || conv.userId !== user._id) return;
 
-    await ctx.scheduler.runAfter(0, internal.ai.generateTitle.generateTitle, {
-      conversationId: args.conversationId,
-    });
+    await ctx.scheduler.runAfter(
+      0,
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.lib.trigger.enqueueTask,
+      {
+        taskId: "generate-title",
+        payload: { conversationId: args.conversationId },
+      },
+    );
   },
 });

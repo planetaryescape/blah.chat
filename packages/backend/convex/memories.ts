@@ -278,9 +278,10 @@ export const triggerExtraction = mutation({
     await ctx.scheduler.runAfter(
       0,
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      internal.memories.extract.extractMemories,
+      internal.lib.trigger.enqueueTask,
       {
-        conversationId: args.conversationId,
+        taskId: "extract-memories",
+        payload: { conversationId: args.conversationId },
       },
     );
   },
@@ -318,9 +319,10 @@ export const scanRecentConversations = mutation({
         await ctx.scheduler.runAfter(
           0,
           // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-          internal.memories.extract.extractMemories,
+          internal.lib.trigger.enqueueTask,
           {
-            conversationId: conversation._id,
+            taskId: "extract-memories",
+            payload: { conversationId: conversation._id },
           },
         );
         triggeredCount++;

@@ -58,13 +58,16 @@ export const addAttachment = internalMutation({
     if (isExtractable(args.attachment.mimeType)) {
       await ctx.scheduler.runAfter(
         0,
-        // @ts-ignore - Type depth exceeded with complex Convex action
-        internal.messages.attachments.extractText,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.lib.trigger.enqueueTask,
         {
-          attachmentId,
-          storageId: args.attachment.storageId,
-          fileName: args.attachment.name,
-          mimeType: args.attachment.mimeType,
+          taskId: "extract-text",
+          payload: {
+            attachmentId,
+            storageId: args.attachment.storageId,
+            fileName: args.attachment.name,
+            mimeType: args.attachment.mimeType,
+          },
         },
       );
     }

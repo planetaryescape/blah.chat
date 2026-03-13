@@ -143,9 +143,10 @@ export const createFeedback = mutation({
     await (ctx.scheduler.runAfter as any)(
       0,
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      internal.feedback.triage.autoTriageFeedback,
+      internal.lib.trigger.enqueueTask,
       {
-        feedbackId,
+        taskId: "auto-triage-feedback",
+        payload: { feedbackId },
       },
     );
 

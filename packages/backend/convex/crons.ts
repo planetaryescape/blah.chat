@@ -51,12 +51,13 @@ crons.hourly(
   internal.incognito.cleanupStale as any,
 );
 
-// BYOD health check - every 6 hours
+// BYOD health check - every 6 hours (via trigger.dev for retries + observability)
 crons.interval(
   "byod-health-check",
   { hours: 6 },
   // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-  internal.byod.healthCheck.checkAllHealth as any,
+  internal.lib.trigger.enqueueTask as any,
+  { taskId: "check-health", payload: {} },
 );
 
 // Calculate user percentile rankings daily at 1 AM UTC

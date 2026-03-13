@@ -77,10 +77,13 @@ export const addSources = internalAction({
     if (result.unenrichedUrls.length > 0) {
       await (ctx.runAction as any)(
         // @ts-ignore - TypeScript recursion limit
-        internal.sources.enrichment_actions.enrichSourceMetadata,
+        internal.lib.trigger.enqueueTask,
         {
-          messageId: args.messageId,
-          sourceUrls: result.unenrichedUrls,
+          taskId: "enrich-source-metadata",
+          payload: {
+            messageId: args.messageId,
+            sourceUrls: result.unenrichedUrls,
+          },
         },
       );
     }

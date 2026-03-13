@@ -71,7 +71,7 @@ export function ImageGenerateButton({
   const sendMessage = useMutation(api.chat.sendMessage as any);
 
   const generateImage = useAction(
-    (api as any)["generation/image"].generateImage,
+    (api as any)["generation/image"].generateImageAction,
   );
 
   const handleGenerate = async () => {

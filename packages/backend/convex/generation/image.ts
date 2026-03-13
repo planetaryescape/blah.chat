@@ -9,7 +9,7 @@ import {
 import { streamText } from "ai";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalAction } from "../_generated/server";
+import { action, internalAction } from "../_generated/server";
 import { logger } from "../lib/logger";
 import { IMAGE_GENERATION_SYSTEM_PROMPT } from "../lib/prompts/operational/imageGeneration";
 
@@ -296,5 +296,37 @@ export const generateImage = internalAction({
 
       throw error;
     }
+  },
+});
+
+/**
+ * Public wrapper for frontend useAction() — delegates to trigger.dev.
+ * Streaming updates still work via Convex mutations inside generateImage.
+ */
+export const generateImageAction = action({
+  args: {
+    conversationId: v.id("conversations"),
+    messageId: v.id("messages"),
+    prompt: v.string(),
+    model: v.optional(v.string()),
+    referenceImageStorageId: v.optional(v.string()),
+    thinkingEffort: v.optional(
+      v.union(
+        v.literal("none"),
+        v.literal("low"),
+        v.literal("medium"),
+        v.literal("high"),
+      ),
+    ),
+  },
+  handler: async (ctx, args) => {
+    await (ctx.runAction as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.lib.trigger.enqueueTask,
+      {
+        taskId: "generate-image",
+        payload: args,
+      },
+    );
   },
 });

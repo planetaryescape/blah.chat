@@ -368,12 +368,15 @@ export const sendMessage = mutation({
       ) {
         await ctx.scheduler.runAfter(
           0, // Immediate, non-blocking
-          // @ts-ignore
-          internal.ai.modelTriage.analyzeModelFit,
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.lib.trigger.enqueueTask,
           {
-            conversationId,
-            userMessage: args.content,
-            currentModelId: modelsToUse[0],
+            taskId: "analyze-model-fit",
+            payload: {
+              conversationId,
+              userMessage: args.content,
+              currentModelId: modelsToUse[0],
+            },
           },
         );
       }
@@ -466,9 +469,11 @@ export const runHousekeeping = internalMutation({
       if (estimatedUserMessages > 0 && estimatedUserMessages % interval === 0) {
         await ctx.scheduler.runAfter(
           30 * 1000, // 30 seconds debounce
-          internal.memories.extract.extractMemories,
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.lib.trigger.enqueueTask,
           {
-            conversationId: args.conversationId,
+            taskId: "extract-memories",
+            payload: { conversationId: args.conversationId },
           },
         );
       }

@@ -1526,18 +1526,32 @@ export const generateResponse = internalAction({
 
         // Auto-name if conversation still has default title
         conversationForTitle?.title === "New Chat"
-          ? ctx.scheduler.runAfter(0, internal.ai.generateTitle.generateTitle, {
-              conversationId: args.conversationId,
-            })
+          ? ctx.scheduler.runAfter(
+              0,
+              // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+              internal.lib.trigger.enqueueTask,
+              {
+                taskId: "generate-title",
+                payload: { conversationId: args.conversationId },
+              },
+            )
           : Promise.resolve(),
 
         // Model triage analysis (skip if auto-selected - system already optimized)
         lastUserMsgForTriage && !_wasAutoSelected
-          ? ctx.scheduler.runAfter(0, internal.ai.modelTriage.analyzeModelFit, {
-              conversationId: args.conversationId,
-              userMessage: lastUserMsgForTriage.content,
-              currentModelId: modelId,
-            })
+          ? ctx.scheduler.runAfter(
+              0,
+              // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+              internal.lib.trigger.enqueueTask,
+              {
+                taskId: "analyze-model-fit",
+                payload: {
+                  conversationId: args.conversationId,
+                  userMessage: lastUserMsgForTriage.content,
+                  currentModelId: modelId,
+                },
+              },
+            )
           : Promise.resolve(),
       ]);
     } catch (error) {

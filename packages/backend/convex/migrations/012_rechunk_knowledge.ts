@@ -76,8 +76,12 @@ export const backfillBatch = internalMutation({
       // Schedule re-processing
       await ctx.scheduler.runAfter(
         0,
-        internal.knowledgeBank.process.processSource,
-        { sourceId: source._id },
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.lib.trigger.enqueueTask,
+        {
+          taskId: "process-source",
+          payload: { sourceId: source._id },
+        },
       );
       sourcesQueued++;
     }

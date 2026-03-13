@@ -337,9 +337,11 @@ export const processInactiveConversations = internalAction({
     for (const conv of candidates) {
       await ctx.scheduler.runAfter(
         0,
-        internal.memories.extract.extractMemories,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.lib.trigger.enqueueTask,
         {
-          conversationId: conv._id,
+          taskId: "extract-memories",
+          payload: { conversationId: conv._id },
         },
       );
       scheduled++;

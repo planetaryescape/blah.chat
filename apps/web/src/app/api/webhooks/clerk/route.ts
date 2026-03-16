@@ -1,10 +1,9 @@
-import { api } from "@blah-chat/backend/convex/_generated/api";
+import { createUserRepository } from "@blah-chat/persistence-postgres";
 import type { WebhookEvent } from "@clerk/nextjs/server";
-import type { ConvexHttpClient } from "convex/browser";
 import { headers } from "next/headers";
 import { Webhook } from "svix";
-import { getConvexClient } from "@/lib/api/convex";
 import logger from "@/lib/logger";
+import { getPersistenceDb } from "@/lib/persistence/server";
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
@@ -45,13 +44,7 @@ export async function POST(req: Request) {
   const eventType = evt.type;
 
   try {
-    let convex: ConvexHttpClient;
-    try {
-      convex = getConvexClient();
-    } catch (error) {
-      logger.error({ error }, "Missing NEXT_PUBLIC_CONVEX_URL");
-      return new Response("Internal Server Error", { status: 500 });
-    }
+    const users = createUserRepository(getPersistenceDb());
 
     if (eventType === "user.created") {
       const { id, email_addresses, first_name, last_name, image_url } =
@@ -66,7 +59,7 @@ export async function POST(req: Request) {
         return new Response("Bad Request", { status: 400 });
       }
 
-      await convex.mutation(api.users.createUser, {
+      await users.upsertFromClerk({
         clerkId: id,
         email: primaryEmail.email_address,
         name: `${first_name || ""} ${last_name || ""}`.trim() || "Anonymous",
@@ -85,9 +78,9 @@ export async function POST(req: Request) {
         (e) => e.id === evt.data.primary_email_address_id,
       );
 
-      await convex.mutation(api.users.updateUser, {
+      await users.upsertFromClerk({
         clerkId: id,
-        ...(primaryEmail && { email: primaryEmail.email_address }),
+        email: primaryEmail?.email_address ?? `${id}@clerk.local`,
         name: `${first_name || ""} ${last_name || ""}`.trim() || "Anonymous",
         imageUrl: image_url,
       });
@@ -101,9 +94,7 @@ export async function POST(req: Request) {
         return new Response("Bad Request", { status: 400 });
       }
 
-      await convex.mutation(api.users.deleteUser, {
-        clerkId: id,
-      });
+      await users.deleteByClerkId(id);
 
       logger.info({ clerkId: id }, "User deleted");
     }

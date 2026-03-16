@@ -19,7 +19,6 @@ vi.mock("@/lib/api/middleware/auth", () => ({
       return handler(req, {
         params: context?.params ?? Promise.resolve({}),
         userId: "user_123",
-        sessionToken: "token_123",
       });
     },
 }));

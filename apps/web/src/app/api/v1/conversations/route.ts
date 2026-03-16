@@ -15,15 +15,12 @@ const createSchema = z.object({
   systemPrompt: z.string().optional(),
 });
 
-async function postHandler(
-  req: NextRequest,
-  { userId, sessionToken }: { userId: string; sessionToken: string },
-) {
+async function postHandler(req: NextRequest, { userId }: { userId: string }) {
   const startTime = performance.now();
   logger.info({ userId }, "POST /api/v1/conversations");
 
   const body = await parseBody(req, createSchema);
-  const result = await conversationsDAL.create(userId, body, sessionToken);
+  const result = await conversationsDAL.create(userId, body);
 
   const duration = performance.now() - startTime;
 
@@ -39,10 +36,7 @@ async function postHandler(
   return NextResponse.json(result, { status: 201 });
 }
 
-async function getHandler(
-  req: NextRequest,
-  { userId, sessionToken }: { userId: string; sessionToken: string },
-) {
+async function getHandler(req: NextRequest, { userId }: { userId: string }) {
   const startTime = performance.now();
   logger.info({ userId }, "GET /api/v1/conversations");
 
@@ -54,7 +48,7 @@ async function getHandler(
     userId,
     limit,
     archived,
-    sessionToken,
+    undefined,
     projectId,
   );
 

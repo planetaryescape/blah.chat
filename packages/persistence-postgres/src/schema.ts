@@ -2,6 +2,7 @@ import { relations, sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
+  jsonb,
   pgTable,
   primaryKey,
   text,
@@ -35,6 +36,28 @@ export const conversations = pgTable("conversations", {
   createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(now),
   updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(now),
 });
+
+export const userPreferences = pgTable(
+  "user_preferences",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    value: jsonb("value").$type<unknown>().notNull(),
+    createdAt: bigint("created_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+    updatedAt: bigint("updated_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+  },
+  (table) => ({
+    pk: primaryKey({
+      columns: [table.userId, table.key],
+    }),
+  }),
+);
 
 export const messages = pgTable("messages", {
   id: text("id").primaryKey().$defaultFn(id),
@@ -160,6 +183,7 @@ export const generationCheckpoints = pgTable("generation_checkpoints", {
 export const usersRelations = relations(users, ({ many }) => ({
   conversations: many(conversations),
   messages: many(messages),
+  preferences: many(userPreferences),
 }));
 
 export const conversationsRelations = relations(
@@ -218,6 +242,16 @@ export const attachmentsRelations = relations(attachments, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+export const userPreferencesRelations = relations(
+  userPreferences,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [userPreferences.userId],
+      references: [users.id],
+    }),
+  }),
+);
 
 export type User = typeof users.$inferSelect;
 export type Conversation = typeof conversations.$inferSelect;

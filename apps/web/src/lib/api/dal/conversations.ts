@@ -47,7 +47,6 @@ export const conversationsDAL = {
   create: async (
     userId: string,
     data: z.infer<typeof createConversationSchema>,
-    _sessionToken: string,
   ) => {
     const validated = createConversationSchema.parse(data);
     const db = getPersistenceDb();
@@ -100,7 +99,7 @@ export const conversationsDAL = {
     userId: string,
     limit = 50,
     archived = false,
-    _sessionToken: string,
+    _sessionToken?: string,
     _projectId?: string,
   ) => {
     const db = getPersistenceDb();
@@ -228,7 +227,7 @@ export const conversationsDAL = {
   delete: async (
     userId: string,
     conversationId: string,
-    _sessionToken: string,
+    _sessionToken?: string,
   ) => {
     const { db, conversation } = await getOwnedConversation(
       userId,

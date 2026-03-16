@@ -64,23 +64,18 @@ describe("messagesDAL attachments", () => {
     const { messagesDAL } = await import("../messages");
 
     await expect(
-      messagesDAL.send(
-        "user_123",
-        "conv_1",
-        {
-          content: "see attachment",
-          attachments: [
-            {
-              type: "file",
-              name: "report.pdf",
-              storageId: "users/other/conversations/conv_1/uuid-report.pdf",
-              mimeType: "application/pdf",
-              size: 1024,
-            },
-          ],
-        },
-        "session",
-      ),
+      messagesDAL.send("user_123", "conv_1", {
+        content: "see attachment",
+        attachments: [
+          {
+            type: "file",
+            name: "report.pdf",
+            storageId: "users/other/conversations/conv_1/uuid-report.pdf",
+            mimeType: "application/pdf",
+            size: 1024,
+          },
+        ],
+      }),
     ).rejects.toThrow("Invalid attachment");
 
     expect(start).not.toHaveBeenCalled();
@@ -90,24 +85,18 @@ describe("messagesDAL attachments", () => {
   it("persists owned attachments against the new user message", async () => {
     const { messagesDAL } = await import("../messages");
 
-    const result = await messagesDAL.send(
-      "user_123",
-      "conv_1",
-      {
-        content: "see attachment",
-        attachments: [
-          {
-            type: "image",
-            name: "photo.png",
-            storageId:
-              "users/pg_user_1/conversations/conv_1/uuid-1234-photo.png",
-            mimeType: "image/png",
-            size: 2048,
-          },
-        ],
-      },
-      "session",
-    );
+    const result = await messagesDAL.send("user_123", "conv_1", {
+      content: "see attachment",
+      attachments: [
+        {
+          type: "image",
+          name: "photo.png",
+          storageId: "users/pg_user_1/conversations/conv_1/uuid-1234-photo.png",
+          mimeType: "image/png",
+          size: 2048,
+        },
+      ],
+    });
 
     expect(start).toHaveBeenCalled();
     expect(insert).toHaveBeenCalledTimes(1);

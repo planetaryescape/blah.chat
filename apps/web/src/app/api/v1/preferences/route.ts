@@ -13,10 +13,7 @@ const updateSchema = z.object({
   value: z.any(),
 });
 
-async function getHandler(
-  req: NextRequest,
-  { userId, sessionToken }: { userId: string; sessionToken: string },
-) {
+async function getHandler(req: NextRequest, { userId }: { userId: string }) {
   const startTime = performance.now();
   logger.info({ userId }, "GET /api/v1/preferences");
 
@@ -24,8 +21,8 @@ async function getHandler(
 
   // Get single preference or all preferences
   const result = key
-    ? await preferencesDAL.get(userId, sessionToken, key)
-    : await preferencesDAL.getAll(userId, sessionToken);
+    ? await preferencesDAL.get(userId, key)
+    : await preferencesDAL.getAll(userId);
 
   const duration = performance.now() - startTime;
   trackAPIPerformance({
@@ -43,15 +40,12 @@ async function getHandler(
   });
 }
 
-async function patchHandler(
-  req: NextRequest,
-  { userId, sessionToken }: { userId: string; sessionToken: string },
-) {
+async function patchHandler(req: NextRequest, { userId }: { userId: string }) {
   const startTime = Date.now();
   logger.info({ userId }, "PATCH /api/v1/preferences");
 
   const body = await parseBody(req, updateSchema);
-  const result = await preferencesDAL.update(userId, sessionToken, body);
+  const result = await preferencesDAL.update(userId, body);
 
   const duration = Date.now() - startTime;
   logger.info({ userId, key: body.key, duration }, "Preference updated");

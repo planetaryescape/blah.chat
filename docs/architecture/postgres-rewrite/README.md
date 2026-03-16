@@ -31,8 +31,8 @@ Execution rules:
 
 Execution status:
 
-- Complete: 3 / 17 phases
-- In progress: 6 / 17 phases
+- Complete: 4 / 17 phases
+- In progress: 5 / 17 phases
 - Not started: 8 / 17 phases
 
 Phase status snapshot:
@@ -42,7 +42,7 @@ Phase status snapshot:
 | 01 | Complete | Architecture pack written and locked in `/docs/architecture/postgres-rewrite` |
 | 02 | Complete | Local infra, clients, env parsing, health checks implemented |
 | 03 | Complete | Postgres schema foundation implemented in `@blah-chat/persistence-postgres` |
-| 04 | In progress | Direct Clerk/Postgres path exists in migrated web APIs, broader Convex auth removal still pending |
+| 04 | Complete | Main `v1` API auth now uses direct Clerk + Postgres user sync/preferences; Convex token minting removed from normal API middleware |
 | 05 | In progress | Main chat CRUD, branch switch, regenerate moved to Postgres-backed APIs; broader surfaces still pending |
 | 06 | In progress | Chat attachment upload/read path moved to R2 + Postgres; other blob flows still pending |
 | 07 | In progress | Single-model generation runtime works on new stack for main web chat; broader surface cutover/perf hardening pending |

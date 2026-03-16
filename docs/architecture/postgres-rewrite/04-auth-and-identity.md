@@ -1,12 +1,13 @@
 # Phase 4: Auth And Identity
 
-Status: in progress as of March 16, 2026.
+Status: complete as of March 16, 2026.
 Completed work:
-- migrated Postgres-backed web APIs resolve current user through the new server-side persistence path
-- direct non-Convex request paths now exist for key chat flows
-Still pending for full phase closure:
-- remove the remaining Convex auth bridge assumptions across all app surfaces
-- complete Clerk/Postgres identity unification beyond the migrated chat path
+- normal `withAuth` middleware now uses direct Clerk auth without minting Convex session tokens
+- Postgres user lookup/upsert/delete now backs the Clerk webhook and user DAL
+- Postgres-backed preferences repository and REST routes replaced the old Convex-authenticated preference path
+- main `v1` API surface now authenticates with Clerk and resolves identity in Postgres
+Follow-on note:
+- one isolated legacy callback route still uses `withLegacyConvexAuth` until that feature is migrated off Convex
 
 ## Goal
 

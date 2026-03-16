@@ -23,6 +23,15 @@ CREATE TABLE conversations (
   updated_at bigint NOT NULL
 );
 
+CREATE TABLE user_preferences (
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  key text NOT NULL,
+  value jsonb NOT NULL,
+  created_at bigint NOT NULL,
+  updated_at bigint NOT NULL,
+  PRIMARY KEY (user_id, key)
+);
+
 CREATE TABLE messages (
   id text PRIMARY KEY,
   conversation_id text NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,

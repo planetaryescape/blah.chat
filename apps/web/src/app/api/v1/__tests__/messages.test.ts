@@ -24,7 +24,6 @@ vi.mock("@/lib/api/middleware/auth", () => ({
       return handler(req, {
         params: context?.params ?? Promise.resolve({}),
         userId: "test-user-id",
-        sessionToken: "test-session-token",
       });
     },
 }));
@@ -253,7 +252,7 @@ describe("/api/v1/conversations/[id]/messages", () => {
       expect(json.data.pollUrl).toBeDefined();
     });
 
-    it("calls DAL with content and sessionToken", async () => {
+    it("calls DAL with content", async () => {
       const mockResult = createSendEnvelope({
         assistantMessageId: "msg-2",
         assistantMessageIds: ["msg-2"],
@@ -282,7 +281,6 @@ describe("/api/v1/conversations/[id]/messages", () => {
           clientMessageId: "client-abc123",
           thinkingEffort: "medium",
         },
-        "test-session-token",
       );
     });
 

@@ -72,11 +72,9 @@ async function deleteHandler(
   {
     params,
     userId,
-    sessionToken,
   }: {
     params: Promise<Record<string, string | string[]>>;
     userId: string;
-    sessionToken: string;
   },
 ) {
   const { id } = (await params) as { id: string };
@@ -86,7 +84,7 @@ async function deleteHandler(
     "DELETE /api/v1/conversations/:id",
   );
 
-  await conversationsDAL.delete(userId, id, sessionToken);
+  await conversationsDAL.delete(userId, id);
 
   const duration = Date.now() - startTime;
   logger.info({ userId, conversationId: id, duration }, "Conversation deleted");

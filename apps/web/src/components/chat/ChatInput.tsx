@@ -1,7 +1,6 @@
 "use client";
 
 import { getModelConfig } from "@blah-chat/ai/utils";
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
   deserializeDraftRecord,
@@ -13,7 +12,7 @@ import {
   serializeDraftRecord,
   WEB_MOBILE_DRAFT_STORAGE_KEY,
 } from "@blah-chat/chat-ui-core";
-import { useQuery } from "convex/react";
+import { useLiveQuery } from "dexie-react-hooks";
 import { AnimatePresence, motion } from "framer-motion";
 import { Expand, Loader2, Send, Square, Upload } from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
@@ -33,6 +32,7 @@ import { useIOSKeyboard } from "@/hooks/useIOSKeyboard";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { analytics } from "@/lib/analytics";
 import { useApiClient } from "@/lib/api/client";
+import { cache } from "@/lib/cache";
 import { useSendMessage } from "@/lib/hooks/mutations";
 import { cn } from "@/lib/utils";
 import { type ChatWidth, getChatWidthClass } from "@/lib/utils/chatWidth";
@@ -179,9 +179,31 @@ export const ChatInput = memo(function ChatInput({
   useIOSKeyboard({ inputRef: textareaRef });
 
   const { mutate: sendMessage } = useSendMessage(onOptimisticUpdate);
-  const lastAssistantMessage = useQuery(api.messages.getLastAssistantMessage, {
-    conversationId,
-  });
+  const lastAssistantMessage = useLiveQuery(
+    async () => {
+      const messages = await cache.messages
+        .where("conversationId")
+        .equals(conversationId)
+        .toArray();
+
+      return (
+        [...messages]
+          .filter(
+            (
+              message,
+            ): message is (typeof messages)[number] & {
+              _id: string;
+              role: "assistant";
+              status?: string;
+              createdAt: number;
+            } => message.role === "assistant",
+          )
+          .sort((a, b) => b.createdAt - a.createdAt)[0] ?? null
+      );
+    },
+    [conversationId],
+    null,
+  );
 
   // Check model capabilities
   const modelConfig = getModelConfig(selectedModel);

@@ -3,7 +3,7 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { MIN_MESSAGES_FOR_COMPACTION } from "@blah-chat/shared/limits";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import {
   Archive,
   BarChart3,
@@ -49,6 +49,7 @@ import {
   useUserPreference,
 } from "@/hooks/useUserPreference";
 import { analytics } from "@/lib/analytics";
+import { useApiClient } from "@/lib/api/client";
 import { exportConversationToMarkdown } from "@/lib/export/markdown";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
 import { DeleteConversationDialog } from "../sidebar/DeleteConversationDialog";
@@ -68,11 +69,10 @@ export function ConversationHeaderMenu({
   const [isCompacting, setIsCompacting] = useState(false);
   const [copied, setCopied] = useState(false);
   const actions = useConversationActions(conversation._id, "header_menu");
+  const apiClient = useApiClient();
 
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const triggerExtraction = useMutation(api.memories.triggerExtraction);
-  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
-  const compactConversation = useAction(api.conversations.compact.compact);
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const messages = useQuery(api.messages.list, {
     conversationId: conversation._id,
@@ -101,8 +101,9 @@ export function ConversationHeaderMenu({
   const handleCompactConversation = async () => {
     setIsCompacting(true);
     try {
-      const { conversationId } = await compactConversation({
-        conversationId: conversation._id,
+      const { conversationId } = await apiClient.post<{
+        conversationId: string;
+      }>(`/api/v1/conversations/${conversation._id}/compact`, {
         targetModel: conversation.model,
       });
       toast.success("Conversation compacted!");

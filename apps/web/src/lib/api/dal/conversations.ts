@@ -4,6 +4,7 @@ import {
   messages,
 } from "@blah-chat/persistence-postgres";
 import { and, desc, eq, sql } from "drizzle-orm";
+import { compactConversation } from "@/lib/conversations/compaction";
 import { ensureCurrentPersistenceUser } from "@/lib/persistence/current-user";
 import { toApiConversation } from "@/lib/persistence/mappers";
 import { getPersistenceDb } from "@/lib/persistence/server";
@@ -239,6 +240,29 @@ export const conversationsDAL = {
       { deleted: true, conversationId },
       "conversation",
       conversationId,
+    );
+  },
+
+  compact: async (
+    userId: string,
+    conversationId: string,
+    targetModel?: string,
+  ) => {
+    const user = await ensureCurrentPersistenceUser(userId);
+    const result = await compactConversation({
+      db: getPersistenceDb(),
+      userId: user.id,
+      conversationId,
+      targetModel,
+    });
+
+    return formatEntity(
+      {
+        conversationId: result.conversationId,
+        messageId: result.messageId,
+      },
+      "conversation",
+      result.conversationId,
     );
   },
 };

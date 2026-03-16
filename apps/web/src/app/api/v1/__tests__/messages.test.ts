@@ -53,6 +53,92 @@ import {
   createMockRequest,
 } from "@/lib/test/api-helpers";
 
+function createMessageEnvelope(
+  overrides?: Partial<{
+    _id: string;
+    conversationId: string;
+    role: "user" | "assistant" | "system";
+    content: string;
+    partialContent: string | undefined;
+    status: "pending" | "generating" | "complete" | "stopped" | "error";
+    model: string | null;
+    comparisonGroupId: string | undefined;
+    rootMessageId: string | undefined;
+    siblingIndex: number;
+    forkReason: string | undefined;
+    parentMessageId: string | undefined;
+    parentMessageIds: string[] | undefined;
+    isActiveBranch: boolean;
+    createdAt: number;
+    updatedAt: number;
+    _creationTime: number;
+  }>,
+) {
+  const timestamp = Date.now();
+
+  return {
+    status: "success" as const,
+    sys: { entity: "message", id: overrides?._id ?? "msg-1" },
+    data: {
+      _id: overrides?._id ?? "msg-1",
+      conversationId: overrides?.conversationId ?? "conv-123",
+      role: overrides?.role ?? "user",
+      content: overrides?.content ?? "Hello",
+      partialContent: overrides?.partialContent,
+      status: overrides?.status ?? "complete",
+      model: overrides?.model ?? null,
+      comparisonGroupId: overrides?.comparisonGroupId,
+      rootMessageId: overrides?.rootMessageId,
+      siblingIndex: overrides?.siblingIndex ?? 0,
+      forkReason: overrides?.forkReason,
+      parentMessageId: overrides?.parentMessageId,
+      parentMessageIds: overrides?.parentMessageIds,
+      isActiveBranch: overrides?.isActiveBranch ?? true,
+      createdAt: overrides?.createdAt ?? timestamp,
+      updatedAt: overrides?.updatedAt ?? timestamp,
+      _creationTime: overrides?._creationTime ?? timestamp,
+    },
+  };
+}
+
+function createSendEnvelope(
+  overrides?: Partial<{
+    requestId: string;
+    conversationId: string;
+    messageId: string;
+    assistantMessageId: string;
+    assistantMessageIds: string[];
+    status: "pending";
+    pollUrl: string;
+    streamUrl: string;
+    stopUrl: string;
+  }>,
+) {
+  return {
+    status: "success" as const,
+    sys: { entity: "message", async: true },
+    data: {
+      requestId: overrides?.requestId ?? "req-1",
+      conversationId: overrides?.conversationId ?? "conv-123",
+      messageId: overrides?.messageId ?? "msg-user",
+      assistantMessageId: overrides?.assistantMessageId ?? "msg-assistant",
+      assistantMessageIds: overrides?.assistantMessageIds ?? [
+        overrides?.assistantMessageId ?? "msg-assistant",
+      ],
+      status: overrides?.status ?? "pending",
+      pollUrl:
+        overrides?.pollUrl ??
+        `/api/v1/messages/${overrides?.assistantMessageId ?? "msg-assistant"}`,
+      streamUrl:
+        overrides?.streamUrl ??
+        `/api/v1/generations/${overrides?.requestId ?? "req-1"}/stream`,
+      stopUrl:
+        overrides?.stopUrl ??
+        `/api/v1/generations/${overrides?.requestId ?? "req-1"}/stop`,
+    },
+  };
+}
+
 describe("/api/v1/conversations/[id]/messages", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -61,29 +147,13 @@ describe("/api/v1/conversations/[id]/messages", () => {
   describe("GET /api/v1/conversations/:id/messages", () => {
     it("returns messages with envelope structure", async () => {
       const mockMessages = [
-        {
-          status: "success" as const,
-          sys: { entity: "message", id: "msg1" },
-          data: {
-            _id: "msg1",
-            content: "Hello",
-            role: "user",
-            status: "complete",
-            _creationTime: Date.now(),
-          },
-        },
-        {
-          status: "success" as const,
-          sys: { entity: "message", id: "msg2" },
-          data: {
-            _id: "msg2",
-            content: "Hi there!",
-            role: "assistant",
-            status: "complete",
-            model: "gpt-4o",
-            _creationTime: Date.now(),
-          },
-        },
+        createMessageEnvelope({ _id: "msg1", content: "Hello" }),
+        createMessageEnvelope({
+          _id: "msg2",
+          role: "assistant",
+          content: "Hi there!",
+          model: "gpt-4o",
+        }),
       ];
       vi.mocked(messagesDAL.list).mockResolvedValue(mockMessages);
 
@@ -124,17 +194,7 @@ describe("/api/v1/conversations/[id]/messages", () => {
 
   describe("POST /api/v1/conversations/:id/messages", () => {
     it("sends message and returns 202 Accepted", async () => {
-      const mockResult = {
-        status: "success" as const,
-        sys: { entity: "message", async: true },
-        data: {
-          conversationId: "conv-123",
-          messageId: "msg-user" as any,
-          assistantMessageId: "msg-assistant" as any,
-          status: "pending",
-          pollUrl: "/api/v1/messages/msg-assistant",
-        },
-      };
+      const mockResult = createSendEnvelope();
       vi.mocked(messagesDAL.send).mockResolvedValue(mockResult);
 
       const { POST } = await import("../conversations/[id]/messages/route");
@@ -155,17 +215,11 @@ describe("/api/v1/conversations/[id]/messages", () => {
     });
 
     it("calls DAL with content and sessionToken", async () => {
-      const mockResult = {
-        status: "success" as const,
-        sys: { entity: "message", async: true },
-        data: {
-          conversationId: "conv-123",
-          messageId: "msg-1" as any,
-          assistantMessageId: "msg-2" as any,
-          status: "pending",
-          pollUrl: "/api/v1/messages/msg-2",
-        },
-      };
+      const mockResult = createSendEnvelope({
+        assistantMessageId: "msg-2",
+        assistantMessageIds: ["msg-2"],
+        messageId: "msg-1",
+      });
       vi.mocked(messagesDAL.send).mockResolvedValue(mockResult);
 
       const { POST } = await import("../conversations/[id]/messages/route");
@@ -224,17 +278,11 @@ describe("/api/v1/conversations/[id]/messages", () => {
     });
 
     it("accepts optional attachments", async () => {
-      const mockResult = {
-        status: "success" as const,
-        sys: { entity: "message", async: true },
-        data: {
-          conversationId: "conv-123",
-          messageId: "msg-1" as any,
-          assistantMessageId: "msg-2" as any,
-          status: "pending",
-          pollUrl: "/api/v1/messages/msg-2",
-        },
-      };
+      const mockResult = createSendEnvelope({
+        assistantMessageId: "msg-2",
+        assistantMessageIds: ["msg-2"],
+        messageId: "msg-1",
+      });
       vi.mocked(messagesDAL.send).mockResolvedValue(mockResult);
 
       const { POST } = await import("../conversations/[id]/messages/route");

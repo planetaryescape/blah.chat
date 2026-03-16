@@ -4,12 +4,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockRequest } from "@/lib/test/api-helpers";
 
-const queryMock = vi.fn();
+const listMock = vi.fn();
 
-vi.mock("@/lib/api/convex", () => ({
-  getAuthenticatedConvexClient: vi.fn(() => ({
-    query: queryMock,
-  })),
+vi.mock("@/lib/api/dal/messages", () => ({
+  messagesDAL: {
+    list: listMock,
+  },
 }));
 
 vi.mock("@/lib/api/middleware/auth", () => ({
@@ -60,24 +60,8 @@ describe("/api/v1/messages/stream/[conversationId]", () => {
     vi.clearAllMocks();
   });
 
-  it("returns 404 when conversation is not owned", async () => {
-    queryMock.mockResolvedValueOnce(null);
-
-    const { GET } = await import("../messages/stream/[conversationId]/route");
-    const req = createMockRequest("/api/v1/messages/stream/conv_1");
-
-    const response = await GET(req, {
-      params: Promise.resolve({ conversationId: "conv_1" }),
-    });
-
-    expect(response.status).toBe(404);
-  });
-
-  it("returns SSE stream when ownership validation passes", async () => {
-    queryMock
-      .mockResolvedValueOnce({ _id: "conv_1", userId: "user_123" })
-      .mockResolvedValueOnce([])
-      .mockResolvedValue([]);
+  it("returns SSE stream when conversation messages resolve", async () => {
+    listMock.mockResolvedValueOnce([]);
 
     const { GET } = await import("../messages/stream/[conversationId]/route");
     const req = createMockRequest("/api/v1/messages/stream/conv_1");

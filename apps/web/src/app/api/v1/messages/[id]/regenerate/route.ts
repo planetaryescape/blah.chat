@@ -1,15 +1,20 @@
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { type NextRequest, NextResponse } from "next/server";
-import { getConvexClient } from "@/lib/api/convex";
+import { after, type NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { messagesDAL } from "@/lib/api/dal/messages";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { trackAPIPerformance } from "@/lib/api/monitoring";
+import { getGenerationV2Service } from "@/lib/generation-v2/runtime";
 import logger from "@/lib/logger";
-import { formatEntity } from "@/lib/utils/formatEntity";
+
+const regenerateSchema = z
+  .object({
+    modelId: z.string().optional(),
+  })
+  .optional();
 
 async function postHandler(
-  _req: NextRequest,
+  req: NextRequest,
   {
     params,
     userId,
@@ -22,12 +27,30 @@ async function postHandler(
     "POST /api/v1/messages/[id]/regenerate",
   );
 
-  const convex = getConvexClient();
+  const rawBody = await req.text();
+  const body = regenerateSchema.parse(
+    rawBody.length > 0 ? JSON.parse(rawBody) : undefined,
+  );
+  const result = await messagesDAL.regenerate(userId, id, body?.modelId);
 
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
-  const newMessageId = await convex.mutation(api.chat.regenerate, {
-    messageId: id as Id<"messages">,
-  });
+  const requestId =
+    typeof result.data === "object" && result.data && "requestId" in result.data
+      ? (result.data.requestId as string | undefined)
+      : undefined;
+
+  if (requestId) {
+    const service = getGenerationV2Service();
+    after(async () => {
+      try {
+        await service.process(requestId);
+      } catch (error) {
+        logger.error(
+          { error, requestId },
+          "regenerate route background generation failed",
+        );
+      }
+    });
+  }
 
   const duration = performance.now() - startTime;
   trackAPIPerformance({
@@ -38,14 +61,11 @@ async function postHandler(
     userId,
   });
   logger.info(
-    { userId, messageId: id, newMessageId, duration },
+    { userId, messageId: id, requestId, duration },
     "Message regenerated",
   );
 
-  return NextResponse.json(
-    formatEntity({ messageId: id, newMessageId }, "message"),
-    { status: 202 },
-  );
+  return NextResponse.json(result, { status: 202 });
 }
 
 export const POST = withErrorHandling(withAuth(postHandler));

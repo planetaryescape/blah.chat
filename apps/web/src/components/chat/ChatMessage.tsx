@@ -14,6 +14,7 @@ import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useHoverIntent } from "@/hooks/useHoverIntent";
 import { useMessageKeyboardShortcuts } from "@/hooks/useMessageKeyboardShortcuts";
 import { useUserPreference } from "@/hooks/useUserPreference";
+import { useRegenerateMessage } from "@/lib/hooks/mutations/useRegenerateMessage";
 import { cn } from "@/lib/utils";
 import { formatTTFT, isCachedResponse } from "@/lib/utils/formatMetrics";
 import type { OptimisticMessage } from "@/types/optimistic";
@@ -36,17 +37,18 @@ import { StatusTimeline } from "./StatusTimeline";
 function ErrorDisplay({
   error,
   messageId,
+  conversationId,
   hasFailedModels,
 }: {
   error?: string;
   messageId: Id<"messages">;
+  conversationId: Id<"conversations">;
   hasFailedModels?: boolean;
 }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const alertRef = useRef<HTMLDivElement>(null);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const regenerate = useMutation(api.chat.regenerate);
+  const regenerate = useRegenerateMessage();
 
   // Focus error on mount for screen reader announcement (WCAG 2.4.3)
   useEffect(() => {
@@ -56,10 +58,10 @@ function ErrorDisplay({
   const handleRetry = async () => {
     setIsRetrying(true);
     try {
-      await regenerate({
+      await regenerate.mutateAsync({
         messageId,
+        conversationId,
         modelId: "auto",
-        useFailedModelsFromMessage: hasFailedModels,
       });
     } catch (err) {
       console.error("[ErrorDisplay] Retry failed:", err);
@@ -362,6 +364,7 @@ export const ChatMessage = memo(
               <ErrorDisplay
                 error={message.error}
                 messageId={message._id as Id<"messages">}
+                conversationId={message.conversationId}
                 hasFailedModels={
                   "failedModels" in message &&
                   Array.isArray(message.failedModels) &&

@@ -3,8 +3,6 @@
 import { useLazyMathRenderer } from "@/hooks/useLazyMathRenderer";
 import { useMathAccessibility } from "@/hooks/useMathAccessibility";
 import { useMathCopyButtons } from "@/hooks/useMathCopyButtons";
-import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
-import { useStreamBuffer } from "@/hooks/useStreamBuffer";
 import { useWorkerMarkdown } from "@/hooks/useWorkerMarkdown";
 import { findAllVerses, parseVerseReference } from "@/lib/bible/parser";
 import { cn } from "@/lib/utils";
@@ -321,7 +319,6 @@ export function MarkdownContent({
   isStreaming = false,
 }: MarkdownContentProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const prefersReducedMotion = usePrefersReducedMotion();
 
   // Create markdown components (including theme-aware Mermaid)
   const markdownComponents = createMarkdownComponents(isStreaming);
@@ -341,15 +338,8 @@ export function MarkdownContent({
     return processBibleVerses(withCitations);
   }, [content]);
 
-  // Buffer hook smoothly reveals words from server chunks
-  // Bypass buffering if user prefers reduced motion (instant text display)
-  const { displayContent, hasBufferedContent } = useStreamBuffer(
-    processedContent,
-    isStreaming && !prefersReducedMotion,
-    {
-      wordsPerSecond: 30, // Smooth word-by-word reveal
-    },
-  );
+  const displayContent = processedContent;
+  const hasBufferedContent = false;
 
   // Web worker for large completed messages (≥5KB)
   // Offloads expensive markdown parsing to worker thread to keep UI at 60fps

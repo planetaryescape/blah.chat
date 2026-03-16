@@ -1,8 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronDown,
@@ -24,6 +22,7 @@ import {
   useCachedChildMessages,
   useCachedSiblings,
 } from "@/hooks/useCacheSync";
+import { useApiClient } from "@/lib/api/client";
 import { BranchComparisonSheet } from "./BranchComparisonSheet";
 
 interface MessageBranchIndicatorProps {
@@ -42,6 +41,7 @@ export function MessageBranchIndicator({
   conversationId,
 }: MessageBranchIndicatorProps) {
   const router = useRouter();
+  const apiClient = useApiClient();
   const [isExpanded, setIsExpanded] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
 
@@ -53,9 +53,6 @@ export function MessageBranchIndicator({
 
   // P7 Tree: sibling messages (for switching between branches)
   const siblings = useCachedSiblings(messageId);
-
-  // Mutation for branch switching
-  const switchBranch = useMutation(api.chat.switchBranch);
 
   // Combine both types of branches
   const hasLegacyBranches = childConversations && childConversations.length > 0;
@@ -73,7 +70,12 @@ export function MessageBranchIndicator({
 
   const handleSwitchToBranch = async (targetMessageId: Id<"messages">) => {
     try {
-      await switchBranch({ conversationId, targetMessageId });
+      await apiClient.post(
+        `/api/v1/conversations/${conversationId}/switch-branch`,
+        {
+          targetMessageId,
+        },
+      );
     } catch (error) {
       console.error("Failed to switch branch:", error);
     }

@@ -28,6 +28,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cache } from "@/lib/cache";
+import { useRegenerateMessage } from "@/lib/hooks/mutations/useRegenerateMessage";
 import type { OptimisticMessage } from "@/types/optimistic";
 import { QuickModelSwitcher } from "./QuickModelSwitcher";
 
@@ -50,8 +51,7 @@ export function MessageActionsMenuMobile({
 }: MessageActionsMenuMobileProps) {
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
   const router = useRouter();
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const regenerate = useMutation(api.chat.regenerate);
+  const regenerate = useRegenerateMessage();
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const deleteMsg = useMutation(api.chat.deleteMessage);
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
@@ -64,8 +64,9 @@ export function MessageActionsMenuMobile({
   const handleRegenerate = async (modelId?: string) => {
     if (isTempMessage) return;
     try {
-      await regenerate({
+      await regenerate.mutateAsync({
         messageId: message._id as Id<"messages">,
+        conversationId: message.conversationId,
         modelId,
       });
     } catch (error) {

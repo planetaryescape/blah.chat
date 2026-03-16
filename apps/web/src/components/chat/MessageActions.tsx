@@ -25,6 +25,8 @@ import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useHaptic } from "@/hooks/useHaptic";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { useUserPreference } from "@/hooks/useUserPreference";
+import { useApiClient } from "@/lib/api/client";
+import { useRegenerateMessage } from "@/lib/hooks/mutations/useRegenerateMessage";
 import { cn } from "@/lib/utils";
 import type { OptimisticMessage } from "@/types/optimistic";
 import { BookmarkButton } from "./BookmarkButton";
@@ -50,10 +52,10 @@ export function MessageActions({
   const [showCreateNote, setShowCreateNote] = useState(false);
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
   const router = useRouter();
+  const apiClient = useApiClient();
   const retryMessage = useMutation(api.chat.retryMessage);
-  const stop = useMutation(api.chat.stopGeneration);
-  const regenerate = useMutation(api.chat.regenerate);
   const branchFromMessage = useMutation(api.chat.branchFromMessage);
+  const regenerate = useRegenerateMessage();
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const recordAction = useMutation(api.usage.mutations.recordAction);
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
@@ -146,8 +148,9 @@ export function MessageActions({
 
   const handleRegenerate = async (modelId?: string) => {
     try {
-      await regenerate({
+      await regenerate.mutateAsync({
         messageId: message._id as Id<"messages">,
+        conversationId: message.conversationId,
         modelId,
       });
       recordAction({
@@ -285,7 +288,9 @@ export function MessageActions({
                     size="sm"
                     className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
                     onClick={() =>
-                      stop({ conversationId: message.conversationId })
+                      apiClient.post(
+                        `/api/v1/conversations/${message.conversationId}/stop`,
+                      )
                     }
                   >
                     <Square className="w-3.5 h-3.5" />

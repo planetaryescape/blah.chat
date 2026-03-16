@@ -1,4 +1,4 @@
-import { type NextRequest, NextResponse } from "next/server";
+import { after, type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { CachePresets, getCacheControl } from "@/lib/api/cache";
 import { messagesDAL } from "@/lib/api/dal/messages";
@@ -6,6 +6,7 @@ import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { trackAPIPerformance } from "@/lib/api/monitoring";
 import { parseBody } from "@/lib/api/utils";
+import { getGenerationV2Service } from "@/lib/generation-v2/runtime";
 import logger from "@/lib/logger";
 
 const sendSchema = z.object({
@@ -86,6 +87,24 @@ async function postHandler(
     body,
     sessionToken,
   );
+
+  const requestId =
+    typeof result.data === "object" && result.data && "requestId" in result.data
+      ? (result.data.requestId as string | undefined)
+      : undefined;
+  if (requestId) {
+    const service = getGenerationV2Service();
+    after(async () => {
+      try {
+        await service.process(requestId);
+      } catch (error) {
+        logger.error(
+          { error, requestId },
+          "message route background generation failed",
+        );
+      }
+    });
+  }
 
   const duration = Date.now() - startTime;
   logger.info(

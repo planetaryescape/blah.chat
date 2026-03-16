@@ -32,6 +32,7 @@ import { useHaptic } from "@/hooks/useHaptic";
 import { useIOSKeyboard } from "@/hooks/useIOSKeyboard";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { analytics } from "@/lib/analytics";
+import { useApiClient } from "@/lib/api/client";
 import { useSendMessage } from "@/lib/hooks/mutations";
 import { cn } from "@/lib/utils";
 import { type ChatWidth, getChatWidthClass } from "@/lib/utils/chatWidth";
@@ -171,13 +172,12 @@ export const ChatInput = memo(function ChatInput({
   const { isMobile, isTouchDevice } = useMobileDetect();
   const { haptic } = useHaptic();
   const hasSpeechRecognition = useBrowserFeature("webkitSpeechRecognition");
+  const apiClient = useApiClient();
 
   // iOS keyboard handling - scrolls input into view when virtual keyboard appears
   useIOSKeyboard({ inputRef: textareaRef });
 
   const { mutate: sendMessage } = useSendMessage(onOptimisticUpdate);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const stopGeneration = useMutation(api.chat.stopGeneration);
   const lastAssistantMessage = useQuery(api.messages.getLastAssistantMessage, {
     conversationId,
   });
@@ -487,7 +487,7 @@ export const ChatInput = memo(function ChatInput({
     e.preventDefault();
     e.stopPropagation();
     try {
-      await stopGeneration({ conversationId });
+      await apiClient.post(`/api/v1/conversations/${conversationId}/stop`);
       haptic("LIGHT");
       analytics.track("generation_stopped", {
         model: selectedModel,

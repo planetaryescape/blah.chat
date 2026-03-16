@@ -1,14 +1,13 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
 import { Loader2, Paperclip } from "lucide-react";
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { analytics } from "@/lib/analytics";
+import { useApiClient } from "@/lib/api/client";
 
 interface Attachment {
   type: "file" | "image" | "audio";
@@ -39,13 +38,15 @@ export function FileUpload({
   uploading: boolean;
   setUploading: (uploading: boolean) => void;
 }) {
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const saveFile = useMutation(api.files.saveFile);
+  const apiClient = useApiClient();
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
+      if (!conversationId) {
+        toast.error("Conversation not ready for uploads");
+        return;
+      }
+
       setUploading(true);
 
       try {
@@ -58,26 +59,24 @@ export function FileUpload({
             continue;
           }
 
-          // Get upload URL
-          const uploadUrl = await generateUploadUrl();
+          const { uploadUrl, storageId } = await apiClient.post<{
+            uploadUrl: string;
+            storageId: string;
+          }>("/api/v1/files/upload-url", {
+            conversationId,
+            fileName: file.name,
+            contentType: file.type || "application/octet-stream",
+          });
 
           // Upload file
           const result = await fetch(uploadUrl, {
-            method: "POST",
+            method: "PUT",
             headers: { "Content-Type": file.type },
             body: file,
           });
-
-          const { storageId } = await result.json();
-
-          // Save file metadata
-          await saveFile({
-            storageId,
-            name: file.name,
-            mimeType: file.type,
-            size: file.size,
-            conversationId,
-          });
+          if (!result.ok) {
+            throw new Error("Failed to upload file");
+          }
 
           // Determine type
           let type: "file" | "image" | "audio" = "file";
@@ -90,6 +89,9 @@ export function FileUpload({
             storageId,
             mimeType: file.type,
             size: file.size,
+            url: file.type.startsWith("image/")
+              ? URL.createObjectURL(file)
+              : undefined,
           });
 
           // Track each attachment upload
@@ -118,12 +120,11 @@ export function FileUpload({
     },
     [
       attachments,
+      apiClient,
       conversationId,
-      generateUploadUrl,
       maxSizeMB,
       onAttachmentsChange,
       onUploadComplete,
-      saveFile,
       setUploading,
     ],
   );

@@ -13,15 +13,26 @@ function sanitizeFileName(fileName: string): string {
     .replace(/^-|-$/g, "");
 }
 
+function buildObjectLeafName(fileName: string) {
+  const safeName = sanitizeFileName(fileName) || "upload.bin";
+  return `${crypto.randomUUID()}-${safeName}`;
+}
+
 export function buildAttachmentObjectKey(input: {
   userId: string;
   conversationId: string;
   messageId?: string;
   fileName: string;
 }) {
-  const safeName = sanitizeFileName(input.fileName) || "upload.bin";
   const messagePart = input.messageId ? `/messages/${input.messageId}` : "";
-  return `users/${input.userId}/conversations/${input.conversationId}${messagePart}/${safeName}`;
+  return `users/${input.userId}/conversations/${input.conversationId}${messagePart}/${buildObjectLeafName(input.fileName)}`;
+}
+
+export function buildDraftObjectKey(input: {
+  userId: string;
+  fileName: string;
+}) {
+  return `users/${input.userId}/drafts/${buildObjectLeafName(input.fileName)}`;
 }
 
 export async function createSignedUploadUrl(input: {

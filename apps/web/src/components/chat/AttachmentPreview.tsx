@@ -1,8 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   FileIcon,
@@ -21,6 +18,7 @@ interface Attachment {
   storageId: string;
   mimeType: string;
   size: number;
+  url?: string;
 }
 
 interface AttachmentPreviewProps {
@@ -117,16 +115,11 @@ function ImageAttachment({
   attachment: Attachment;
   onRemove: () => void;
 }) {
-  // @ts-ignore - Type depth exceeded
-  const url = useQuery(api.files.getFileUrl, {
-    storageId: attachment.storageId as Id<"_storage">,
-  });
-
   return (
     <div className="relative group overflow-hidden rounded-xl w-16 h-16 bg-muted/30 border border-border/30">
-      {url ? (
+      {attachment.url ? (
         <img
-          src={url}
+          src={attachment.url}
           alt={attachment.name}
           className="object-cover w-full h-full transition-transform duration-200 group-hover:scale-110"
         />

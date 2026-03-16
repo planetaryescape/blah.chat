@@ -15,9 +15,14 @@ export interface OptimisticMessage {
   model?: string;
   attachments?: Array<{
     id: string;
+    type: "file" | "image" | "audio";
+    name: string;
+    mimeType: string;
+    size: number;
     file?: File;
     preview?: string;
-    storageId?: Id<"_storage">;
+    url?: string;
+    storageId: string;
     uploadStatus?: "pending" | "uploading" | "complete" | "error";
     _optimistic?: boolean;
   }>;
@@ -67,7 +72,11 @@ export interface QueuedMessage {
   models?: string[];
   attachments?: Array<{
     id: string;
-    storageId: Id<"_storage">;
+    type: "file" | "image" | "audio";
+    name: string;
+    storageId: string;
+    mimeType: string;
+    size: number;
   }>;
   timestamp: number;
   retries: number;

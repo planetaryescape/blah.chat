@@ -1,18 +1,24 @@
 import {
+  attachments,
   conversations,
   createConversationRepository,
+  createSignedReadUrl,
   messageEdges,
   messages,
 } from "@blah-chat/persistence-postgres";
 import { eq, inArray } from "drizzle-orm";
+import { z } from "zod";
 import { createGenerationV2Repository } from "@/lib/generation-v2/repository";
 import { getGenerationV2Service } from "@/lib/generation-v2/runtime";
 import { ensureCurrentPersistenceUser } from "@/lib/persistence/current-user";
 import { toApiMessageWithMeta } from "@/lib/persistence/mappers";
 import { getPersistenceDb } from "@/lib/persistence/server";
+import {
+  getPersistenceEnv,
+  getPersistenceR2Client,
+} from "@/lib/persistence/storage";
 import { formatEntity } from "@/lib/utils/formatEntity";
 import "server-only";
-import { z } from "zod";
 
 const sendMessageSchema = z.object({
   content: z.string().min(1),
@@ -97,6 +103,73 @@ async function buildMessageTreeMeta(
   };
 }
 
+async function buildAttachmentMeta(messageIds: string[]) {
+  if (messageIds.length === 0) {
+    return new Map<
+      string,
+      Array<{
+        id: string;
+        type: "file" | "image" | "audio";
+        storageId: string;
+        name: string;
+        mimeType: string;
+        size: number;
+        url?: string;
+      }>
+    >();
+  }
+
+  const db = getPersistenceDb();
+  const rows = await db.query.attachments.findMany({
+    where: inArray(attachments.messageId, messageIds),
+    orderBy: (table, { asc }) => [asc(table.createdAt)],
+  });
+  const env = getPersistenceEnv();
+  const client = getPersistenceR2Client();
+  const signed = await Promise.all(
+    rows.map(async (attachment) => ({
+      messageId: attachment.messageId,
+      data: {
+        id: attachment.id,
+        type: attachment.type as "file" | "image" | "audio",
+        storageId: attachment.key,
+        name: attachment.name,
+        mimeType: attachment.mimeType,
+        size: attachment.size,
+        url: await createSignedReadUrl({
+          client,
+          bucket: env.r2.bucket,
+          key: attachment.key,
+        }),
+      },
+    })),
+  );
+
+  const byMessage = new Map<string, Array<(typeof signed)[number]["data"]>>();
+  for (const attachment of signed) {
+    const existing = byMessage.get(attachment.messageId) ?? [];
+    existing.push(attachment.data);
+    byMessage.set(attachment.messageId, existing);
+  }
+
+  return byMessage;
+}
+
+function assertOwnedAttachmentKeys(
+  userId: string,
+  conversationId: string,
+  uploadedAttachments: NonNullable<
+    z.infer<typeof sendMessageSchema>["attachments"]
+  >,
+) {
+  const prefix = `users/${userId}/conversations/${conversationId}/`;
+  for (const attachment of uploadedAttachments) {
+    if (!attachment.storageId.startsWith(prefix)) {
+      throw new Error("Invalid attachment");
+    }
+  }
+}
+
 export const messagesDAL = {
   send: async (
     userId: string,
@@ -106,6 +179,9 @@ export const messagesDAL = {
   ) => {
     const validated = sendMessageSchema.parse(data);
     const user = await ensureCurrentPersistenceUser(userId);
+    if (validated.attachments?.length) {
+      assertOwnedAttachmentKeys(user.id, conversationId, validated.attachments);
+    }
     const service = getGenerationV2Service();
     const started = await service.start({
       clerkUser: {
@@ -119,6 +195,24 @@ export const messagesDAL = {
       modelId: validated.modelId,
       models: validated.models,
     });
+    const db = getPersistenceDb();
+    const env = getPersistenceEnv();
+    if (validated.attachments && validated.attachments.length > 0) {
+      await db.insert(attachments).values(
+        validated.attachments.map((attachment) => ({
+          messageId: started.userMessageId,
+          conversationId,
+          userId: user.id,
+          type: attachment.type,
+          key: attachment.storageId,
+          bucket: env.r2.bucket,
+          name: attachment.name,
+          mimeType: attachment.mimeType,
+          size: attachment.size,
+          createdAt: Date.now(),
+        })),
+      );
+    }
 
     return {
       status: "success" as const,
@@ -142,6 +236,7 @@ export const messagesDAL = {
 
   get: async (userId: string, messageId: string) => {
     const { message } = await getOwnedRequestMessage(userId, messageId);
+    const attachmentMeta = await buildAttachmentMeta([message.id]);
     const meta = await buildMessageTreeMeta(userId, message.conversationId, [
       message.id,
     ]);
@@ -151,6 +246,7 @@ export const messagesDAL = {
         parentMessageId: parentMessageIds[0],
         parentMessageIds,
         isActiveBranch: meta.activePathIds.has(message.id),
+        attachments: attachmentMeta.get(message.id),
       }),
       "message",
       message.id,
@@ -162,6 +258,7 @@ export const messagesDAL = {
     const repo = createGenerationV2Repository(db);
     const messages = await repo.listMessages(conversationId);
     const messageIds = messages.map((message) => message.id);
+    const attachmentMeta = await buildAttachmentMeta(messageIds);
     const fullMeta = await buildMessageTreeMeta(
       userId,
       conversationId,
@@ -174,6 +271,7 @@ export const messagesDAL = {
           parentMessageId: fullMeta.parentIdsByChild.get(message.id)?.[0],
           parentMessageIds: fullMeta.parentIdsByChild.get(message.id) ?? [],
           isActiveBranch: fullMeta.activePathIds.has(message.id),
+          attachments: attachmentMeta.get(message.id),
         }),
         "message",
         message.id,

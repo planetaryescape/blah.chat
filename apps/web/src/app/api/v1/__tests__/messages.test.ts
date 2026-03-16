@@ -87,6 +87,17 @@ function createMessageEnvelope(
     rootMessageId: string | undefined;
     siblingIndex: number;
     forkReason: string | undefined;
+    attachments:
+      | Array<{
+          id: string;
+          type: "file" | "image" | "audio";
+          storageId: string;
+          name: string;
+          mimeType: string;
+          size: number;
+          url?: string;
+        }>
+      | undefined;
     parentMessageId: string | undefined;
     parentMessageIds: string[] | undefined;
     isActiveBranch: boolean;
@@ -114,6 +125,7 @@ function createMessageEnvelope(
       rootMessageId: overrides?.rootMessageId,
       siblingIndex: overrides?.siblingIndex ?? 0,
       forkReason: overrides?.forkReason,
+      attachments: overrides?.attachments,
       parentMessageId: overrides?.parentMessageId,
       parentMessageIds: overrides?.parentMessageIds,
       isActiveBranch: overrides?.isActiveBranch ?? true,

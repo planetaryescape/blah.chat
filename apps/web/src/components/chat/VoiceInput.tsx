@@ -44,8 +44,8 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
 
     // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
     const user = useQuery(api.users.getCurrentUser as any);
-    const transcribeAudio = useAction(api.transcription.transcribeAudio);
     const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+    const transcribeAudio = useAction(api.transcription.transcribeAudio);
 
     // Phase 4: Use new preference hooks
     const sttEnabled = useUserPreference("sttEnabled");
@@ -93,7 +93,6 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
           });
 
           try {
-            // Upload audio to Convex storage first
             const uploadUrl = await generateUploadUrl();
             const uploadResponse = await fetch(uploadUrl, {
               method: "POST",
@@ -104,7 +103,6 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
             if (!uploadResponse.ok) {
               throw new Error("Failed to upload audio file");
             }
-
             const { storageId } = await uploadResponse.json();
 
             // Client-side timeout (95s - slightly longer than backend 90s)
@@ -163,10 +161,10 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
       }
     }, [
       sttEnabled,
+      generateUploadUrl,
       transcribeAudio,
       onTranscript,
       onRecordingStateChange,
-      generateUploadUrl,
     ]);
 
     const stopRecording = useCallback(

@@ -28,6 +28,15 @@ export function toApiMessageWithMeta(
     parentMessageId?: string;
     parentMessageIds?: string[];
     isActiveBranch?: boolean;
+    attachments?: Array<{
+      id: string;
+      type: "file" | "image" | "audio";
+      storageId: string;
+      name: string;
+      mimeType: string;
+      size: number;
+      url?: string;
+    }>;
   },
 ) {
   const statusMap: Record<
@@ -60,6 +69,7 @@ export function toApiMessageWithMeta(
     rootMessageId: message.rootMessageId ?? undefined,
     siblingIndex: message.siblingIndex,
     forkReason: message.forkReason ?? undefined,
+    attachments: meta?.attachments,
     parentMessageId: meta?.parentMessageId,
     parentMessageIds: meta?.parentMessageIds,
     isActiveBranch: meta?.isActiveBranch ?? false,

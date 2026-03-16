@@ -1,7 +1,5 @@
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useQuery } from "convex/react";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { analytics } from "@/lib/analytics";
@@ -31,9 +29,6 @@ export function useSendMessage(
 ) {
   const apiClient = useApiClient();
   const queryClient = useQueryClient();
-
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const user = useQuery(api.users.getCurrentUser);
 
   // Auto-process offline queue when connection restored
   useEffect(() => {
@@ -83,7 +78,6 @@ export function useSendMessage(
       const optimisticUserMsg: OptimisticMessage = {
         _id: `temp-user-${Date.now()}` as `temp-${string}`,
         conversationId: variables.conversationId,
-        userId: user?._id,
         role: "user" as const,
         content: variables.content,
         clientMessageId,

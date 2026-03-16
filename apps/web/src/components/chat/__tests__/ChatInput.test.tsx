@@ -33,6 +33,29 @@ vi.mock("@/hooks/useChatInputEvents", () => ({
   useChatInputEvents: () => {},
 }));
 
+vi.mock("@/hooks/useUserPreference", () => ({
+  useUserPreference: vi.fn((key: string) => {
+    if (key === "sendOnEnter") return true;
+    if (key === "sttEnabled") return true;
+    if (key === "sttProvider") return "openai";
+    return undefined;
+  }),
+}));
+
+vi.mock("@/hooks/useFeatureToggles", () => ({
+  useFeatureToggles: () => ({
+    isLoading: false,
+    showNotes: true,
+    showTemplates: true,
+    showProjects: true,
+    showBookmarks: true,
+  }),
+}));
+
+vi.mock("dexie-react-hooks", () => ({
+  useLiveQuery: vi.fn(() => null),
+}));
+
 vi.mock("@/lib/analytics", () => ({
   analytics: { track: vi.fn() },
 }));

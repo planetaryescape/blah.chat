@@ -3,10 +3,9 @@
 import type { ModelConfig } from "@blah-chat/ai/models";
 import { DEFAULT_MODEL_ID } from "@blah-chat/ai/operational-models";
 import { getModelConfig, isValidModel } from "@blah-chat/ai/utils";
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
 import { useCallback, useMemo, useState } from "react";
+import { useApiClient } from "@/lib/api/client";
 import { DEFAULT_CONTEXT_WINDOW } from "@/lib/utils/formatMetrics";
 
 interface UseChatModelSelectionOptions {
@@ -49,8 +48,7 @@ export function useChatModelSelection({
   onModelBlocked,
   models,
 }: UseChatModelSelectionOptions): UseChatModelSelectionReturn {
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const updateModelMutation = useMutation(api.conversations.updateModel);
+  const apiClient = useApiClient();
 
   // Separate state for optimistic updates during model changes
   const [optimisticModel, setOptimisticModel] = useState<string | null>(null);
@@ -107,8 +105,7 @@ export function useChatModelSelection({
       // Persist to DB if conversation exists
       if (conversationId) {
         try {
-          await updateModelMutation({
-            conversationId,
+          await apiClient.patch(`/api/v1/conversations/${conversationId}`, {
             model: modelId,
           });
           // Clear optimistic state after successful persist
@@ -121,7 +118,7 @@ export function useChatModelSelection({
       }
       // New conversations: model saved when first message sent (chat.ts:75)
     },
-    [conversationId, updateModelMutation, tokenUsage, onModelBlocked, models],
+    [apiClient, conversationId, tokenUsage, onModelBlocked, models],
   );
 
   return {

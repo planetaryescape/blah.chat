@@ -2,9 +2,7 @@
 
 import { MODEL_CONFIG } from "@blah-chat/ai/models";
 import { getModelConfig } from "@blah-chat/ai/utils";
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useAction } from "convex/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { parseAsBoolean, useQueryState } from "nuqs";
@@ -49,6 +47,7 @@ import { useOptimisticMessages } from "@/hooks/useOptimisticMessages";
 import { useRestMessageSync } from "@/hooks/useRestMessageSync";
 import { useTemplateInsertion } from "@/hooks/useTemplateInsertion";
 import { useUserPreference } from "@/hooks/useUserPreference";
+import { useApiClient } from "@/lib/api/client";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
 
 function ChatPageContent({
@@ -59,6 +58,7 @@ function ChatPageContent({
   const unwrappedParams = use(params);
   const conversationId = unwrappedParams.conversationId;
   const router = useRouter();
+  const apiClient = useApiClient();
   const searchParams = useSearchParams();
   const highlightMessageId = searchParams.get("messageId") ?? undefined;
 
@@ -155,9 +155,6 @@ function ChatPageContent({
       modelId: displayModel,
     });
 
-  // Compact conversation action and state
-  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
-  const compactConversation = useAction(api.conversations.compact.compact);
   const [showCompactModal, setShowCompactModal] = useState(false);
   const [isCompacting, setIsCompacting] = useState(false);
   const compactModalShownRef = useRef(false);
@@ -187,8 +184,9 @@ function ChatPageContent({
 
     setIsCompacting(true);
     try {
-      const { conversationId: newConversationId } = await compactConversation({
-        conversationId: validConversationId,
+      const { conversationId: newConversationId } = await apiClient.post<{
+        conversationId: string;
+      }>(`/api/v1/conversations/${validConversationId}/compact`, {
         targetModel: conversationAny.model,
       });
       toast.success("Conversation compacted");
@@ -201,12 +199,7 @@ function ChatPageContent({
     } finally {
       setIsCompacting(false);
     }
-  }, [
-    validConversationId,
-    conversationAny?.model,
-    compactConversation,
-    router,
-  ]);
+  }, [apiClient, validConversationId, conversationAny?.model, router]);
 
   useEffect(() => {
     if (
@@ -233,8 +226,9 @@ function ChatPageContent({
     if (!validConversationId) return;
     setIsCompacting(true);
     try {
-      const { conversationId: newConversationId } = await compactConversation({
-        conversationId: validConversationId,
+      const { conversationId: newConversationId } = await apiClient.post<{
+        conversationId: string;
+      }>(`/api/v1/conversations/${validConversationId}/compact`, {
         targetModel: conversationAny?.model,
       });
       toast.success("Conversation compacted");
@@ -644,10 +638,14 @@ function ChatPageContent({
                       setIsCompacting(true);
                       try {
                         const { conversationId: newConversationId } =
-                          await compactConversation({
-                            conversationId: validConversationId,
-                            targetModel: blockedModel.modelId,
-                          });
+                          await apiClient.post<{
+                            conversationId: string;
+                          }>(
+                            `/api/v1/conversations/${validConversationId}/compact`,
+                            {
+                              targetModel: blockedModel.modelId,
+                            },
+                          );
                         toast.success("Conversation compacted");
                         setBlockedModel(null);
                         router.push(`/chat/${newConversationId}`);

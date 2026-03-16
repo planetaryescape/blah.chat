@@ -1,5 +1,7 @@
 # Phase 16: Dead Code Removal
 
+Status: not started as of March 16, 2026.
+
 ## Goal
 
 Delete the old Convex-specific runtime, transport, and compatibility layers once the new stack is fully live.
@@ -53,4 +55,3 @@ Remove code only after proving the new path is live and correct. But once that p
 ## What Comes Next
 
 With the codebase cleaned up, phase 17 focuses on hardening, observability, and production confidence.
-

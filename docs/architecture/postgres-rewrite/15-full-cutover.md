@@ -1,5 +1,7 @@
 # Phase 15: Full Cutover
 
+Status: not started as of March 16, 2026.
+
 ## Goal
 
 Switch every app surface from the old Convex-centered runtime to the new Postgres, Redis, R2, Trigger, and Clerk stack.
@@ -60,4 +62,3 @@ Cutover without validated schema, runtime, offline behavior, routing, retrieval,
 ## What Comes Next
 
 After cutover, phase 16 removes the dead code and legacy assumptions still left in the repo.
-

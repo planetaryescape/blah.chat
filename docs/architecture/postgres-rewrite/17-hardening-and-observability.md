@@ -1,5 +1,7 @@
 # Phase 17: Hardening And Observability
 
+Status: not started as of March 16, 2026.
+
 ## Goal
 
 Measure, stress, and harden the new runtime until performance and failure modes are well understood.
@@ -70,4 +72,3 @@ You cannot harden a moving target. This phase assumes the whole system is alread
 ## What Comes After
 
 This phase ends the rewrite program. Future work should be feature work or targeted improvements on the new stack, not migration work.
-

@@ -1,6 +1,6 @@
 # Phase 8: Comparison Mode
 
-Status: implemented backend slice on March 16, 2026.
+Status: in progress as of March 16, 2026.
 Implemented:
 - one request with multiple child sessions
 - sibling assistant placeholders under one user message
@@ -8,9 +8,10 @@ Implemented:
 - multiplexed event log carrying `requestId`, `sessionId`, `assistantMessageId`, and `modelId`
 - whole-request stop and per-model stop endpoints in the backend slice
 - targeted Vitest coverage for multi-model completion
+- main chat branch payloads and regenerate flows now align with Postgres-backed sibling message handling
 Still pending for full phase closure:
-- comparison UI wiring, voting, and consolidation on the new stack
-- router outcome hooks consuming comparison results
+- complete broader comparison UI parity, including any remaining vote/consolidation surfaces
+- connect comparison outcomes into the later router logging pipeline
 
 ## Goal
 

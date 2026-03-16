@@ -1,5 +1,14 @@
 # Phase 6: Blob Storage On R2
 
+Status: in progress as of March 16, 2026.
+Completed work:
+- signed upload/read path implemented for chat attachments
+- attachment metadata persisted in Postgres
+- main web chat send flow now stores new attachment bytes outside Convex storage
+Still pending for full phase closure:
+- migrate remaining blob flows such as other uploads and generated media
+- remove legacy Convex storage assumptions outside the migrated chat path
+
 ## Goal
 
 Move file, image, and audio storage from Convex storage to Cloudflare R2, using a clean metadata-in-Postgres pattern.
@@ -73,4 +82,3 @@ R2 stores the bytes only.
 ## What Comes Next
 
 With attachments migrated, phase 7 can build the new generation runtime without old storage assumptions.
-

@@ -1,5 +1,12 @@
 # Phase 2: Infrastructure Setup
 
+Status: complete as of March 16, 2026.
+Completed work:
+- local Docker Compose stack for Postgres, Redis, Redis HTTP shim, and MinIO
+- shared Postgres, Redis, and R2-compatible clients
+- env validation and health-check wiring
+- local verification for the new infra foundation
+
 ## Goal
 
 Provision the foundational services and wire them into the app with clean clients and health checks.
@@ -81,4 +88,3 @@ Feature work should not begin until:
 ## What Comes Next
 
 With the infrastructure in place, phase 3 can define the canonical Postgres schema safely.
-

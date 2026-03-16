@@ -1,5 +1,7 @@
 # Phase 10: Router V2
 
+Status: not started as of March 16, 2026.
+
 ## Goal
 
 Rebuild the LLM router as an outcome-driven policy system, not just a prompt classifier mapped to model bins.
@@ -111,4 +113,3 @@ Stage 2: candidate scoring
 ## What Comes Next
 
 With routing rebuilt, phase 11 can migrate search, embeddings, and memories onto Postgres and Trigger.
-

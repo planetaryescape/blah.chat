@@ -1,8 +1,5 @@
 "use client";
-
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
 import { MoreHorizontal, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +15,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useHaptic } from "@/hooks/useHaptic";
 import { analytics } from "@/lib/analytics";
+import { useApiClient } from "@/lib/api/client";
 import { cache } from "@/lib/cache";
 import type { OptimisticMessage } from "@/types/optimistic";
 
@@ -34,8 +32,7 @@ export function MessageActionsMenu({ message }: MessageActionsMenuProps) {
     typeof message._id === "string" && message._id.startsWith("temp-");
   if (isTempMessage) return null;
 
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const deleteMsg = useMutation(api.chat.deleteMessage);
+  const apiClient = useApiClient();
   const { haptic } = useHaptic();
 
   const handleDelete = async () => {
@@ -52,7 +49,7 @@ export function MessageActionsMenu({ message }: MessageActionsMenuProps) {
         currentGroup?.previousElementSibling as HTMLElement | null;
 
       haptic("HEAVY");
-      await deleteMsg({ messageId });
+      await apiClient.delete(`/api/v1/messages/${messageId}`);
 
       // Clear from local cache (prevents stale data)
       await Promise.all([

@@ -1,8 +1,5 @@
 "use client";
-
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
 import {
   Bookmark,
   Copy,
@@ -27,6 +24,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useApiClient } from "@/lib/api/client";
 import { cache } from "@/lib/cache";
 import { useRegenerateMessage } from "@/lib/hooks/mutations/useRegenerateMessage";
 import type { OptimisticMessage } from "@/types/optimistic";
@@ -51,11 +49,8 @@ export function MessageActionsMenuMobile({
 }: MessageActionsMenuMobileProps) {
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
   const router = useRouter();
+  const apiClient = useApiClient();
   const regenerate = useRegenerateMessage();
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const deleteMsg = useMutation(api.chat.deleteMessage);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const branchFromMessage = useMutation(api.chat.branchFromMessage);
 
   // Check if this is a temporary optimistic message (not yet persisted)
   const isTempMessage =
@@ -78,10 +73,13 @@ export function MessageActionsMenuMobile({
     if (isTempMessage) return;
 
     try {
-      const newConversationId = await branchFromMessage({
-        messageId: message._id as Id<"messages">,
-      });
-      router.push(`/chat/${newConversationId}`);
+      await apiClient.post(
+        `/api/v1/conversations/${message.conversationId}/switch-branch`,
+        {
+          targetMessageId: message._id,
+        },
+      );
+      router.push(`/chat/${message.conversationId}`);
     } catch (error) {
       console.error("Failed to branch:", error);
     }
@@ -102,7 +100,7 @@ export function MessageActionsMenuMobile({
       const prevGroup =
         currentGroup?.previousElementSibling as HTMLElement | null;
 
-      await deleteMsg({ messageId });
+      await apiClient.delete(`/api/v1/messages/${messageId}`);
 
       // Clear from local cache (prevents stale data)
       await Promise.all([
@@ -224,7 +222,7 @@ export function MessageActionsMenuMobile({
         onOpenChange={setModelSelectorOpen}
         currentModel={message.model || ""}
         onSelectModel={(modelId) => {
-          handleRegenerate(modelId);
+          void handleRegenerate(modelId);
         }}
         mode="single"
         showTrigger={false}

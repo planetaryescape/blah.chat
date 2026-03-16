@@ -26,6 +26,69 @@ function dedupeModels(modelId?: string, models?: string[]) {
   return [...new Set(resolved)];
 }
 
+async function getParentIds(db: PersistenceDb, messageId: string) {
+  const parentEdges = await db.query.messageEdges.findMany({
+    where: eq(messageEdges.childMessageId, messageId),
+    orderBy: (table, { asc: orderAsc }) => [orderAsc(table.position)],
+  });
+
+  return parentEdges.map((edge) => edge.parentMessageId);
+}
+
+async function getNextSiblingIndex(input: {
+  db: PersistenceDb;
+  conversationId: string;
+  parentIds: string[];
+}) {
+  const { db, conversationId, parentIds } = input;
+
+  if (parentIds.length > 0) {
+    const siblingRows = await db
+      .select({ siblingIndex: messages.siblingIndex })
+      .from(messages)
+      .innerJoin(messageEdges, eq(messageEdges.childMessageId, messages.id))
+      .where(
+        and(
+          eq(messages.conversationId, conversationId),
+          eq(messageEdges.parentMessageId, parentIds[0]!),
+        ),
+      );
+
+    return (
+      siblingRows.reduce(
+        (max, row) => Math.max(max, row.siblingIndex ?? 0),
+        -1,
+      ) + 1
+    );
+  }
+
+  const conversationMessages = await db.query.messages.findMany({
+    where: eq(messages.conversationId, conversationId),
+  });
+
+  if (conversationMessages.length === 0) {
+    return 0;
+  }
+
+  const edges = await db.query.messageEdges.findMany({
+    where: inArray(
+      messageEdges.childMessageId,
+      conversationMessages.map((message) => message.id),
+    ),
+  });
+  const childIds = new Set(edges.map((edge) => edge.childMessageId));
+  const rootSiblings = conversationMessages.filter(
+    (message) => !childIds.has(message.id),
+  );
+
+  return (
+    rootSiblings.reduce(
+      (max, message) => Math.max(max, message.siblingIndex ?? 0),
+      -1,
+    ) + 1
+  );
+}
+
 export function createGenerationV2Repository(db: PersistenceDb) {
   return {
     async upsertUser(clerkUser: ClerkUserProfile) {
@@ -348,6 +411,152 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         conversationId: assistantMessage.conversationId,
         userMessageId: userMessage.id,
         assistantMessageIds: [regeneratedAssistant.id],
+        modelIds: [resolvedModel],
+      };
+    },
+
+    async createEditRequest(input: {
+      messageId: string;
+      content: string;
+      modelId?: string;
+    }): Promise<StartedGeneration> {
+      const originalMessage = await db.query.messages.findFirst({
+        where: eq(messages.id, input.messageId),
+      });
+
+      if (!originalMessage || originalMessage.role !== "user") {
+        throw new Error("Can only edit user messages");
+      }
+
+      const conversation = await db.query.conversations.findFirst({
+        where: eq(conversations.id, originalMessage.conversationId),
+      });
+
+      if (!conversation) {
+        throw new Error("Conversation not found");
+      }
+
+      const parentIds = await getParentIds(db, originalMessage.id);
+      const siblingIndex = await getNextSiblingIndex({
+        db,
+        conversationId: originalMessage.conversationId,
+        parentIds,
+      });
+      const resolvedModel = input.modelId ?? conversation.model;
+      if (!resolvedModel) {
+        throw new Error("No model available for edited branch");
+      }
+
+      const editedMessageId = nanoid();
+      const [editedUserMessage] = await db
+        .insert(messages)
+        .values({
+          id: editedMessageId,
+          conversationId: originalMessage.conversationId,
+          userId: originalMessage.userId,
+          role: "user",
+          content: input.content,
+          status: "complete",
+          rootMessageId: originalMessage.rootMessageId ?? originalMessage.id,
+          siblingIndex,
+          forkReason: "edit",
+          createdAt: now(),
+          updatedAt: now(),
+        })
+        .returning();
+
+      if (!editedUserMessage) {
+        throw new Error("Failed to create edited user message");
+      }
+
+      if (parentIds.length > 0) {
+        await db.insert(messageEdges).values(
+          parentIds.map((parentMessageId, index) => ({
+            parentMessageId,
+            childMessageId: editedUserMessage.id,
+            position: index,
+            edgeType: "reply",
+            createdAt: now(),
+          })),
+        );
+      }
+
+      const [request] = await db
+        .insert(generationRequests)
+        .values({
+          conversationId: originalMessage.conversationId,
+          userMessageId: editedUserMessage.id,
+          requestedModels: [resolvedModel],
+          status: "pending",
+          createdAt: now(),
+          updatedAt: now(),
+        })
+        .returning();
+
+      if (!request) {
+        throw new Error("Failed to create edit request");
+      }
+
+      const assistantMessageId = nanoid();
+      const [assistantMessage] = await db
+        .insert(messages)
+        .values({
+          id: assistantMessageId,
+          conversationId: originalMessage.conversationId,
+          role: "assistant",
+          content: "",
+          status: "pending",
+          model: resolvedModel,
+          rootMessageId:
+            editedUserMessage.rootMessageId ?? editedUserMessage.id,
+          siblingIndex: 0,
+          createdAt: now(),
+          updatedAt: now(),
+        })
+        .returning();
+
+      if (!assistantMessage) {
+        throw new Error("Failed to create edited assistant message");
+      }
+
+      await db.insert(messageEdges).values({
+        parentMessageId: editedUserMessage.id,
+        childMessageId: assistantMessage.id,
+        position: 0,
+        edgeType: "reply",
+        createdAt: now(),
+      });
+
+      const [session] = await db
+        .insert(generationSessions)
+        .values({
+          requestId: request.id,
+          assistantMessageId: assistantMessage.id,
+          modelId: resolvedModel,
+          status: "pending",
+          provider: null,
+          createdAt: now(),
+          updatedAt: now(),
+        })
+        .returning();
+
+      if (!session) {
+        throw new Error("Failed to create edited generation session");
+      }
+
+      await db
+        .update(conversations)
+        .set({
+          activeLeafMessageId: assistantMessage.id,
+          updatedAt: now(),
+        })
+        .where(eq(conversations.id, originalMessage.conversationId));
+
+      return {
+        requestId: request.id,
+        conversationId: originalMessage.conversationId,
+        userMessageId: editedUserMessage.id,
+        assistantMessageIds: [assistantMessage.id],
         modelIds: [resolvedModel],
       };
     },

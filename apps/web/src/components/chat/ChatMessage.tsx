@@ -14,6 +14,7 @@ import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useHoverIntent } from "@/hooks/useHoverIntent";
 import { useMessageKeyboardShortcuts } from "@/hooks/useMessageKeyboardShortcuts";
 import { useUserPreference } from "@/hooks/useUserPreference";
+import { useApiClient } from "@/lib/api/client";
 import { useRegenerateMessage } from "@/lib/hooks/mutations/useRegenerateMessage";
 import { cn } from "@/lib/utils";
 import { formatTTFT, isCachedResponse } from "@/lib/utils/formatMetrics";
@@ -152,9 +153,7 @@ export const ChatMessage = memo(
     // Check if this is a temporary optimistic message (not yet persisted)
     const isTempMessage =
       typeof message._id === "string" && message._id.startsWith("temp-");
-
-    // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-    const editMessage = useMutation(api.chat.editMessage);
+    const apiClient = useApiClient();
 
     // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
     const _updateModel = useMutation(api.conversations.updateModel);
@@ -269,9 +268,9 @@ export const ChatMessage = memo(
 
     const handleSaveEdit = async () => {
       try {
-        await editMessage({
-          messageId: message._id as Id<"messages">,
+        await apiClient.patch(`/api/v1/messages/${message._id}`, {
           content: editedContent,
+          createBranch: true,
         });
         setIsEditing(false);
         toast.success("Message updated");

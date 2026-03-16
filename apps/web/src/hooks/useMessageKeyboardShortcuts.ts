@@ -5,6 +5,7 @@ import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation } from "convex/react";
 import { type RefObject, useEffect } from "react";
 import { toast } from "sonner";
+import { useApiClient } from "@/lib/api/client";
 
 interface UseMessageKeyboardShortcutsOptions {
   messageId: Id<"messages">;
@@ -37,8 +38,7 @@ export function useMessageKeyboardShortcuts({
   readOnly,
   messageRef,
 }: UseMessageKeyboardShortcutsOptions) {
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const deleteMsg = useMutation(api.chat.deleteMessage);
+  const apiClient = useApiClient();
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const createBookmark = useMutation(api.bookmarks.create);
 
@@ -121,7 +121,7 @@ export function useMessageKeyboardShortcuts({
               const prevGroup =
                 currentGroup?.previousElementSibling as HTMLElement | null;
 
-              await deleteMsg({ messageId });
+              await apiClient.delete(`/api/v1/messages/${messageId}`);
 
               // Focus next, or prev, or chat input as fallback
               requestAnimationFrame(() => {
@@ -164,8 +164,8 @@ export function useMessageKeyboardShortcuts({
     messageId,
     conversationId,
     content,
+    apiClient,
     createBookmark,
-    deleteMsg,
     messageRef,
   ]);
 }

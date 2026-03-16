@@ -1,7 +1,9 @@
 /**
  * @vitest-environment node
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const process = vi.fn();
 
 // 1. Mocks MUST be defined before imports
 vi.mock("@/lib/api/dal/messages", () => ({
@@ -44,6 +46,23 @@ vi.mock("@/lib/logger", () => ({
 vi.mock("@/lib/api/monitoring", () => ({
   trackAPIPerformance: vi.fn(),
 }));
+
+vi.mock("@/lib/generation-v2/runtime", () => ({
+  getGenerationV2Service: () => ({
+    process,
+  }),
+}));
+
+vi.mock("next/server", async () => {
+  const actual =
+    await vi.importActual<typeof import("next/server")>("next/server");
+  return {
+    ...actual,
+    after: (callback: () => Promise<void> | void) => {
+      void callback();
+    },
+  };
+});
 
 // 2. Imports AFTER mocks
 import { messagesDAL } from "@/lib/api/dal/messages";
@@ -142,6 +161,10 @@ function createSendEnvelope(
 describe("/api/v1/conversations/[id]/messages", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.resetModules();
   });
 
   describe("GET /api/v1/conversations/:id/messages", () => {

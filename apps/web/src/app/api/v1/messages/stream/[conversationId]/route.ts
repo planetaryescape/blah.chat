@@ -1,7 +1,5 @@
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import type { NextRequest } from "next/server";
-import { getAuthenticatedConvexClient } from "@/lib/api/convex";
+import { messagesDAL } from "@/lib/api/dal/messages";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import {
@@ -17,100 +15,63 @@ async function getHandler(
   {
     params,
     userId,
-    sessionToken,
   }: {
     params: Promise<Record<string, string | string[]>>;
     userId: string;
     sessionToken: string;
   },
 ) {
-  const startTime = Date.now();
   const { conversationId } = (await params) as { conversationId: string };
-
   logger.info(
     { userId, conversationId },
     "GET /api/v1/messages/stream/[conversationId] - SSE stream started",
   );
 
-  const convex = getAuthenticatedConvexClient(sessionToken);
-
-  // Verify user owns the conversation using server-side clerk verification
-  const conversation = (await (convex.query as any)(
-    // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-    api.conversations.getWithClerkVerification,
-    {
-      conversationId: conversationId as Id<"conversations">,
-      clerkId: userId,
-    },
-  )) as any;
-
-  if (!conversation) {
-    logger.warn(
-      { userId, conversationId },
-      "SSE denied: conversation not found",
-    );
+  const initialMessages = await messagesDAL.list(userId, conversationId);
+  if (!initialMessages) {
     return new Response("Not found", { status: 404 });
   }
 
-  // Create SSE connection
   const { response, send, sendError, close, isClosed } = createSSEResponse();
+  let lastHash = JSON.stringify(initialMessages);
 
   try {
-    // Send initial snapshot
-    const initialMessages = (await (convex.query as any)(
-      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      api.messages.list,
-      {
-        conversationId: conversationId as Id<"conversations">,
-      },
-    )) as any[];
-
     await send("snapshot", {
       messages: initialMessages,
       hasMore: false,
       cursor: null,
     });
 
-    logger.info(
-      { userId, conversationId, messageCount: initialMessages.length },
-      "SSE snapshot sent",
-    );
-
-    // Poll for updates every 3s
     const pollInterval = createPollingLoop(
       async () => {
         if (isClosed()) return null;
 
-        const messages = (await (convex.query as any)(
-          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-          api.messages.list,
-          {
-            conversationId: conversationId as Id<"conversations">,
-          },
-        )) as any[];
+        const messages = await messagesDAL.list(userId, conversationId);
+        const nextHash = JSON.stringify(messages);
+        if (nextHash === lastHash) {
+          return null;
+        }
 
-        return { messages };
+        lastHash = nextHash;
+        return {
+          messages,
+          hasMore: false,
+          cursor: null,
+        };
       },
       send,
-      3000, // 3s polling for active chat
+      250,
       "update",
     );
 
-    // Heartbeat every 2min to keep connection alive
     const heartbeat = createHeartbeatLoop(send, 120_000);
-
-    // Setup cleanup on disconnect
     setupSSECleanup(req.signal, close, [pollInterval, heartbeat]);
-
-    const duration = Date.now() - startTime;
-    logger.info({ userId, conversationId, duration }, "SSE stream established");
 
     return response;
   } catch (error) {
     logger.error({ error, userId, conversationId }, "SSE stream error");
     await sendError(error instanceof Error ? error : new Error(String(error)));
     await close();
-
     return new Response("Internal server error", { status: 500 });
   }
 }

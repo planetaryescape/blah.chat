@@ -21,11 +21,19 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean",
     "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run --coverage",
     "prepublishOnly": "bun run build"
   },
+  "dependencies": {
+    "zod": "^4.2.1"
+  },
   "devDependencies": {
+    "@types/node": "^25.0.10",
+    "@vitest/coverage-v8": "^4.0.18",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
+    "vitest": "^4.0.18",
     "@blah-chat/config": "workspace:*"
   }
 }

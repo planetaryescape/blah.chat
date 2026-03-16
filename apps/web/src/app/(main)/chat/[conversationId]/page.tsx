@@ -4,8 +4,7 @@ import { MODEL_CONFIG } from "@blah-chat/ai/models";
 import { getModelConfig } from "@blah-chat/ai/utils";
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useAction, useQuery as useConvexQuery } from "convex/react";
-import { useQuery } from "convex-helpers/react/cache";
+import { useAction } from "convex/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { parseAsBoolean, useQueryState } from "nuqs";
@@ -34,7 +33,6 @@ import {
 import { useCanvasContext } from "@/contexts/CanvasContext";
 import { useConversationContext } from "@/contexts/ConversationContext";
 import { TTSProvider } from "@/contexts/TTSContext";
-import { useMessageCacheSync } from "@/hooks/useCacheSync";
 import { useCanvasAutoSync } from "@/hooks/useCanvasAutoSync";
 import { useChatKeyboardShortcuts } from "@/hooks/useChatKeyboardShortcuts";
 import { useChatModelSelection } from "@/hooks/useChatModelSelection";
@@ -42,11 +40,13 @@ import { useComparisonHandlers } from "@/hooks/useComparisonHandlers";
 import { useComparisonMode } from "@/hooks/useComparisonMode";
 import { useContextLimitEnforcement } from "@/hooks/useContextLimitEnforcement";
 import { useConversationNavigation } from "@/hooks/useConversationNavigation";
+import { useConversationResource } from "@/hooks/useConversationResource";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMessageAnnouncer } from "@/hooks/useMessageAnnouncer";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { useModelRecommendation } from "@/hooks/useModelRecommendation";
 import { useOptimisticMessages } from "@/hooks/useOptimisticMessages";
+import { useRestMessageSync } from "@/hooks/useRestMessageSync";
 import { useTemplateInsertion } from "@/hooks/useTemplateInsertion";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
@@ -69,43 +69,31 @@ function ChatPageContent({
   const validConversationId =
     conversationId && conversationId !== "undefined" ? conversationId : null;
 
-  const activeCanvasDocument = useQuery(
-    // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-    api.canvas.documents.getByConversation,
-    validConversationId ? { conversationId: validConversationId } : "skip",
-  );
-
-  const conversation = useQuery(
-    // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-    api.conversations.get,
-    validConversationId ? { conversationId: validConversationId } : "skip",
-  );
-  // Local-first: Convex syncs to Dexie, reads from cache (instant)
+  const conversation = useConversationResource(validConversationId);
+  const conversationAny = conversation as any;
   const {
     results: serverMessages,
     status: paginationStatus,
     loadMore,
     isFirstLoad,
-  } = useMessageCacheSync({
+  } = useRestMessageSync({
     conversationId: validConversationId ?? undefined,
-    initialNumItems: 50,
   });
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const user = useQuery(api.users.getCurrentUser);
+  const user = null;
 
   // Canvas auto-sync with conversation mode and navigation
-  const isDocumentMode = conversation?.mode === "document";
+  const isDocumentMode = conversationAny?.mode === "document";
   const { handleClose: handleCanvasClose } = useCanvasAutoSync({
     conversationId: validConversationId ?? undefined,
     isDocumentMode,
     documentId,
-    activeCanvasDocumentId: activeCanvasDocument?._id,
+    activeCanvasDocumentId: undefined,
     setDocumentId,
   });
 
   // Optimistic UI: Overlay local optimistic messages on top of server state
   const { messages, addOptimisticMessages } = useOptimisticMessages({
-    serverMessages,
+    serverMessages: serverMessages as any,
   });
 
   // Announce new messages to screen readers
@@ -115,9 +103,7 @@ function ChatPageContent({
   // where it has access to grouped message count and Virtuoso scrollToIndex
 
   // Extract chat width preference
-  const rawChatWidth = useQuery(api.users.getUserPreference, {
-    key: "chatWidth",
-  });
+  const rawChatWidth = useUserPreference("chatWidth");
   const chatWidth = (rawChatWidth as ChatWidth | undefined) || "standard";
   const defaultModel = useUserPreference("defaultModel");
   const showModelNamesDuringComparison = useUserPreference(
@@ -136,10 +122,7 @@ function ChatPageContent({
 
   // Token usage query (needed before model selection for blocking)
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const tokenUsage = useConvexQuery(
-    api.conversations.getTokenUsage,
-    validConversationId ? { conversationId: validConversationId } : "skip",
-  );
+  const tokenUsage = undefined;
 
   // State for model switch blocking
   const [blockedModel, setBlockedModel] = useState<{
@@ -158,7 +141,7 @@ function ChatPageContent({
   const { selectedModel, displayModel, modelLoading, handleModelChange } =
     useChatModelSelection({
       conversationId: validConversationId ?? undefined,
-      conversation,
+      conversation: conversationAny,
       user,
       defaultModel,
       tokenUsage,
@@ -200,13 +183,13 @@ function ChatPageContent({
 
   // Auto-compress at 75% when setting is enabled
   const triggerAutoCompress = useCallback(async () => {
-    if (!validConversationId || !conversation?.model) return;
+    if (!validConversationId || !conversationAny?.model) return;
 
     setIsCompacting(true);
     try {
       const { conversationId: newConversationId } = await compactConversation({
         conversationId: validConversationId,
-        targetModel: conversation.model,
+        targetModel: conversationAny.model,
       });
       toast.success("Conversation compacted");
       router.push(`/chat/${newConversationId}`);
@@ -218,7 +201,12 @@ function ChatPageContent({
     } finally {
       setIsCompacting(false);
     }
-  }, [validConversationId, conversation?.model, compactConversation, router]);
+  }, [
+    validConversationId,
+    conversationAny?.model,
+    compactConversation,
+    router,
+  ]);
 
   useEffect(() => {
     if (
@@ -227,7 +215,7 @@ function ChatPageContent({
       !autoCompressTriggeredRef.current &&
       !isCompacting &&
       validConversationId &&
-      conversation?.model
+      conversationAny?.model
     ) {
       autoCompressTriggeredRef.current = true;
       triggerAutoCompress();
@@ -237,7 +225,7 @@ function ChatPageContent({
     shouldAutoCompress,
     isCompacting,
     validConversationId,
-    conversation?.model,
+    conversationAny?.model,
     triggerAutoCompress,
   ]);
 
@@ -247,7 +235,7 @@ function ChatPageContent({
     try {
       const { conversationId: newConversationId } = await compactConversation({
         conversationId: validConversationId,
-        targetModel: conversation?.model,
+        targetModel: conversationAny?.model,
       });
       toast.success("Conversation compacted");
       setShowCompactModal(false);
@@ -304,7 +292,7 @@ function ChatPageContent({
 
   // Model recommendation (extracted to hook)
   const modelRecommendation = useModelRecommendation({
-    conversation,
+    conversation: conversationAny,
     messages,
     onModelChange: handleModelChange,
   });
@@ -445,7 +433,7 @@ function ChatPageContent({
         <ResizablePanel defaultSize={documentId ? 45 : 100} minSize={30}>
           <div className="flex flex-col h-full">
             <ChatHeader
-              conversation={conversation}
+              conversation={conversationAny}
               conversationId={validConversationId!}
               selectedModel={displayModel}
               modelLoading={modelLoading}
@@ -542,7 +530,7 @@ function ChatPageContent({
                         }
                         showModelNames={showModelNames ?? false}
                         highlightMessageId={highlightMessageId}
-                        isCollaborative={conversation?.isCollaborative}
+                        isCollaborative={conversationAny?.isCollaborative}
                         onScrollReady={setIsScrollReady}
                         isGenerating={isGenerating}
                       />
@@ -551,11 +539,11 @@ function ChatPageContent({
 
                   {/* Model Recommendation Banner */}
                   {enableModelRecs !== false &&
-                    conversation?.modelRecommendation &&
-                    !conversation.modelRecommendation.dismissed &&
+                    conversationAny?.modelRecommendation &&
+                    !conversationAny.modelRecommendation.dismissed &&
                     validConversationId && (
                       <ModelRecommendationBanner
-                        recommendation={conversation.modelRecommendation}
+                        recommendation={conversationAny.modelRecommendation}
                         conversationId={validConversationId}
                         onSwitch={modelRecommendation.handleSwitchModel}
                         onPreview={modelRecommendation.handlePreviewModel}
@@ -581,13 +569,13 @@ function ChatPageContent({
                   {/* Preview Modal */}
                   {modelRecommendation.previewModalOpen &&
                     modelRecommendation.previewModelId &&
-                    conversation?.modelRecommendation &&
+                    conversationAny?.modelRecommendation &&
                     validConversationId && (
                       <ModelPreviewModal
                         open={modelRecommendation.previewModalOpen}
                         onOpenChange={modelRecommendation.setPreviewModalOpen}
                         currentModelId={
-                          conversation.modelRecommendation.currentModelId
+                          conversationAny.modelRecommendation.currentModelId
                         }
                         suggestedModelId={modelRecommendation.previewModelId}
                         currentResponse={

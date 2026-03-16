@@ -9,6 +9,11 @@ type AuthContext = {
   sessionToken: string;
 };
 
+type UserOnlyAuthContext = {
+  params: Promise<Record<string, string | string[]>>;
+  userId: string;
+};
+
 type AuthenticatedHandler = (
   req: NextRequest,
   context: AuthContext,
@@ -103,5 +108,43 @@ export function withOptionalAuth(
 
     if (authResult instanceof Response) return authResult;
     return await handler(req, { ...context, ...authResult });
+  };
+}
+
+export function withUserAuth(
+  handler: (
+    req: NextRequest,
+    context: UserOnlyAuthContext,
+  ) => Promise<Response>,
+) {
+  return async (
+    req: NextRequest,
+    context: { params: Promise<Record<string, string | string[]>> },
+  ) => {
+    try {
+      const result = await auth();
+      if (!result.userId) {
+        logger.warn({ url: req.url }, "Unauthorized request");
+        return NextResponse.json(formatErrorEntity("Authentication required"), {
+          status: 401,
+        });
+      }
+
+      return await handler(req, {
+        ...context,
+        userId: result.userId,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      logger.error(
+        { error: errorMessage, stack: errorStack, url: req.url },
+        "Auth middleware error",
+      );
+      return NextResponse.json(formatErrorEntity("Internal server error"), {
+        status: 500,
+      });
+    }
   };
 }

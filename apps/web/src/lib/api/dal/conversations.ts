@@ -1,9 +1,12 @@
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
-  getAuthenticatedConvexClient,
-  getConvexClient,
-} from "@/lib/api/convex";
+  conversations,
+  createConversationRepository,
+  messages,
+} from "@blah-chat/persistence-postgres";
+import { and, desc, eq, sql } from "drizzle-orm";
+import { ensureCurrentPersistenceUser } from "@/lib/persistence/current-user";
+import { toApiConversation } from "@/lib/persistence/mappers";
+import { getPersistenceDb } from "@/lib/persistence/server";
 import { formatEntity } from "@/lib/utils/formatEntity";
 import "server-only";
 import { z } from "zod";
@@ -21,189 +24,216 @@ const updateConversationSchema = z
   })
   .partial();
 
+async function getOwnedConversation(userId: string, conversationId: string) {
+  const db = getPersistenceDb();
+  const user = await ensureCurrentPersistenceUser(userId);
+
+  const conversation = await db.query.conversations.findFirst({
+    where: and(
+      eq(conversations.id, conversationId),
+      eq(conversations.userId, user.id),
+    ),
+  });
+
+  if (!conversation) {
+    throw new Error("Conversation not found or access denied");
+  }
+
+  return { db, user, conversation };
+}
+
 export const conversationsDAL = {
-  /**
-   * Create new conversation
-   */
   create: async (
-    _userId: string,
+    userId: string,
     data: z.infer<typeof createConversationSchema>,
-    sessionToken: string,
+    _sessionToken: string,
   ) => {
     const validated = createConversationSchema.parse(data);
-    const convex = getAuthenticatedConvexClient(sessionToken);
+    const db = getPersistenceDb();
+    const user = await ensureCurrentPersistenceUser(userId);
+    const repo = createConversationRepository(db);
 
-    const conversationId = (await (convex.mutation as any)(
-      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      api.conversations.create,
-      {
-        ...validated,
-      },
-    )) as any;
+    const conversation = await repo.create({
+      userId: user.id,
+      title: validated.title ?? "New Chat",
+      model: validated.model,
+    });
 
-    // Fetch full conversation
-    const conversation = (await (convex.query as any)(
-      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      api.conversations.get,
-      {
-        conversationId,
-      },
-    )) as any;
-
-    if (!conversation) {
-      throw new Error("Failed to create conversation");
-    }
-
-    return formatEntity(conversation, "conversation", conversation._id);
-  },
-
-  /**
-   * Get conversation by ID (with ownership verification)
-   */
-  getById: async (userId: string, conversationId: string) => {
-    const convex = getConvexClient();
-
-    // Uses clerkId for server-side ownership verification
-    const conversation = (await (convex.query as any)(
-      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      api.conversations.getWithClerkVerification,
-      {
-        conversationId: conversationId as Id<"conversations">,
-        clerkId: userId,
-      },
-    )) as any;
-
-    if (!conversation) {
-      throw new Error("Conversation not found or access denied");
-    }
-
-    return formatEntity(conversation, "conversation", conversation._id);
-  },
-
-  /**
-   * List conversations (paginated)
-   */
-  list: async (
-    _userId: string,
-    limit = 50,
-    archived = false,
-    sessionToken: string,
-    projectId?: string,
-  ) => {
-    const convex = getAuthenticatedConvexClient(sessionToken);
-
-    const conversations = (await (convex.query as any)(
-      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      api.conversations.list,
-      {
-        limit,
-        archived,
-        projectId:
-          projectId === "none"
-            ? "none"
-            : projectId
-              ? (projectId as Id<"projects">)
-              : undefined,
-      },
-    )) as Array<any>;
-
-    return conversations.map((conversation) =>
-      formatEntity(conversation, "conversation", conversation._id),
+    return formatEntity(
+      toApiConversation({
+        ...conversation,
+        archived: conversation.archived,
+        messageCount: 0,
+        lastMessageAt: conversation.updatedAt,
+      }),
+      "conversation",
+      conversation.id,
     );
   },
 
-  /**
-   * Update conversation
-   */
+  getById: async (userId: string, conversationId: string) => {
+    const { db, conversation } = await getOwnedConversation(
+      userId,
+      conversationId,
+    );
+    const [stats] = await db
+      .select({
+        messageCount: sql<number>`count(*)::int`,
+        lastMessageAt: sql<number | null>`max(${messages.createdAt})`,
+      })
+      .from(messages)
+      .where(eq(messages.conversationId, conversation.id));
+
+    return formatEntity(
+      toApiConversation({
+        ...conversation,
+        messageCount: stats?.messageCount ?? 0,
+        lastMessageAt: stats?.lastMessageAt ?? conversation.updatedAt,
+      }),
+      "conversation",
+      conversation.id,
+    );
+  },
+
+  list: async (
+    userId: string,
+    limit = 50,
+    archived = false,
+    _sessionToken: string,
+    _projectId?: string,
+  ) => {
+    const db = getPersistenceDb();
+    const user = await ensureCurrentPersistenceUser(userId);
+
+    const rows = await db
+      .select({
+        conversation: conversations,
+        messageCount: sql<number>`count(${messages.id})::int`,
+        lastMessageAt: sql<number | null>`max(${messages.createdAt})`,
+      })
+      .from(conversations)
+      .leftJoin(messages, eq(messages.conversationId, conversations.id))
+      .where(
+        and(
+          eq(conversations.userId, user.id),
+          eq(conversations.archived, archived),
+        ),
+      )
+      .groupBy(conversations.id)
+      .orderBy(
+        desc(
+          sql`coalesce(max(${messages.createdAt}), ${conversations.updatedAt})`,
+        ),
+      )
+      .limit(limit);
+
+    return rows.map((row) =>
+      formatEntity(
+        toApiConversation({
+          ...row.conversation,
+          messageCount: row.messageCount,
+          lastMessageAt: row.lastMessageAt,
+        }),
+        "conversation",
+        row.conversation.id,
+      ),
+    );
+  },
+
   update: async (
     userId: string,
     conversationId: string,
     data: z.infer<typeof updateConversationSchema>,
   ) => {
     const validated = updateConversationSchema.parse(data);
-    const convex = getConvexClient();
+    const { db, conversation } = await getOwnedConversation(
+      userId,
+      conversationId,
+    );
 
-    // Verify ownership first
-    await conversationsDAL.getById(userId, conversationId);
+    const [updated] = await db
+      .update(conversations)
+      .set({
+        ...(validated.title !== undefined ? { title: validated.title } : {}),
+        ...(validated.model !== undefined ? { model: validated.model } : {}),
+        updatedAt: Date.now(),
+      })
+      .where(eq(conversations.id, conversation.id))
+      .returning();
 
-    // Update title if provided (use rename mutation)
-    if (validated.title) {
-      await convex.mutation(api.conversations.rename, {
-        conversationId: conversationId as Id<"conversations">,
-        title: validated.title,
-      });
-    }
-
-    // Update model if provided (use updateModel mutation)
-    if (validated.model) {
-      await convex.mutation(api.conversations.updateModel, {
-        conversationId: conversationId as Id<"conversations">,
-        model: validated.model,
-      });
-    }
-
-    const conversation = (await (convex.query as any)(
-      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      api.conversations.get,
-      {
-        conversationId: conversationId as Id<"conversations">,
-      },
-    )) as any;
-
-    if (!conversation) {
+    if (!updated) {
       throw new Error("Conversation not found");
     }
 
-    return formatEntity(conversation, "conversation", conversation._id);
+    return formatEntity(toApiConversation(updated), "conversation", updated.id);
   },
 
-  /**
-   * Archive conversation
-   */
   archive: async (userId: string, conversationId: string) => {
-    const convex = getConvexClient();
+    const { db, conversation } = await getOwnedConversation(
+      userId,
+      conversationId,
+    );
+    const [updated] = await db
+      .update(conversations)
+      .set({
+        archived: true,
+        updatedAt: Date.now(),
+      })
+      .where(eq(conversations.id, conversation.id))
+      .returning();
 
-    // Verify ownership first
-    await conversationsDAL.getById(userId, conversationId);
+    if (!updated) {
+      throw new Error("Conversation not found");
+    }
 
-    await convex.mutation(api.conversations.archive, {
-      conversationId: conversationId as Id<"conversations">,
+    return formatEntity(toApiConversation(updated), "conversation", updated.id);
+  },
+
+  switchBranch: async (
+    userId: string,
+    conversationId: string,
+    targetMessageId: string,
+  ) => {
+    const { db, conversation } = await getOwnedConversation(
+      userId,
+      conversationId,
+    );
+    const targetMessage = await db.query.messages.findFirst({
+      where: and(
+        eq(messages.id, targetMessageId),
+        eq(messages.conversationId, conversation.id),
+      ),
     });
 
-    const conversation = (await (convex.query as any)(
-      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      api.conversations.get,
-      {
-        conversationId: conversationId as Id<"conversations">,
-      },
-    )) as any;
-
-    if (!conversation) {
-      throw new Error("Conversation not found");
+    if (!targetMessage) {
+      throw new Error("Target message not found");
     }
 
-    return formatEntity(conversation, "conversation", conversation._id);
+    await createConversationRepository(db).setActiveLeaf({
+      conversationId: conversation.id,
+      activeLeafMessageId: targetMessage.id,
+    });
+
+    return formatEntity(
+      {
+        conversationId: conversation.id,
+        activeLeafMessageId: targetMessage.id,
+      },
+      "conversation",
+      conversation.id,
+    );
   },
 
-  /**
-   * Delete conversation (soft delete)
-   */
   delete: async (
     userId: string,
     conversationId: string,
-    sessionToken: string,
+    _sessionToken: string,
   ) => {
-    const _convex = getConvexClient();
-
-    // Verify ownership first
-    await conversationsDAL.getById(userId, conversationId);
-
-    // Use authenticated client for mutation that requires ctx.auth
-    const authConvex = getAuthenticatedConvexClient(sessionToken);
-
-    await authConvex.mutation(api.conversations.deleteConversation, {
-      conversationId: conversationId as Id<"conversations">,
-    });
+    const { db, conversation } = await getOwnedConversation(
+      userId,
+      conversationId,
+    );
+    await db.delete(conversations).where(eq(conversations.id, conversation.id));
 
     return formatEntity(
       { deleted: true, conversationId },

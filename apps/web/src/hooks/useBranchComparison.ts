@@ -1,11 +1,11 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
 import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { analytics } from "@/lib/analytics";
+import { useApiClient } from "@/lib/api/client";
+import { useRegenerateMessage } from "@/lib/hooks/mutations/useRegenerateMessage";
 import { useCachedSiblings } from "./useCacheSync";
 
 export interface SiblingWithDuration extends Doc<"messages"> {
@@ -30,18 +30,10 @@ export function useBranchComparison({
   messageId,
   conversationId,
 }: UseBranchComparisonOptions): UseBranchComparisonReturn {
-  // Cache-first approach with Convex subscription for real-time
+  const apiClient = useApiClient();
   const cachedSiblings = useCachedSiblings(messageId);
-
-  // Real-time subscription to Convex
-  const convexSiblings = useQuery(
-    // @ts-ignore - Type depth exceeded with complex Convex query
-    api.messages.getSiblings,
-    { messageId },
-  );
-
-  // Prefer Convex data when available, fallback to cache
-  const rawSiblings = convexSiblings ?? cachedSiblings ?? [];
+  const regenerateMutation = useRegenerateMessage();
+  const rawSiblings = cachedSiblings ?? [];
 
   // Add generation duration to each sibling
   const siblings = useMemo<SiblingWithDuration[]>(() => {
@@ -60,17 +52,15 @@ export function useBranchComparison({
     return idx >= 0 ? idx : 0;
   }, [siblings, messageId]);
 
-  // Mutations
-  const switchBranchMutation = useMutation(api.chat.switchBranch);
-  const regenerateMutation = useMutation(api.chat.regenerate);
-
   const switchToBranch = useCallback(
     async (targetId: Id<"messages">) => {
       try {
-        await switchBranchMutation({
-          conversationId,
-          targetMessageId: targetId,
-        });
+        await apiClient.post(
+          `/api/v1/conversations/${conversationId}/switch-branch`,
+          {
+            targetMessageId: targetId,
+          },
+        );
         analytics.track("branch_switched", {
           conversationId,
           fromMessageId: messageId,
@@ -81,13 +71,16 @@ export function useBranchComparison({
         toast.error("Failed to switch branch");
       }
     },
-    [conversationId, messageId, switchBranchMutation],
+    [apiClient, conversationId, messageId],
   );
 
   const regenerate = useCallback(
     async (msgId: Id<"messages">) => {
       try {
-        await regenerateMutation({ messageId: msgId });
+        await regenerateMutation.mutateAsync({
+          messageId: msgId,
+          conversationId,
+        });
         toast.success("Regenerating response...");
         analytics.track("message_regenerated", {
           conversationId,
@@ -115,7 +108,7 @@ export function useBranchComparison({
   return {
     siblings,
     currentIndex,
-    isLoading: convexSiblings === undefined && cachedSiblings.length === 0,
+    isLoading: cachedSiblings === undefined,
     switchToBranch,
     regenerate,
     copyContent,

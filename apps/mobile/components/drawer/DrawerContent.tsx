@@ -157,6 +157,7 @@ export function DrawerContent() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const segments = useSegments();
+  const routeSegments = segments as string[];
   const { user } = useUser();
   const projects = useProjects();
 
@@ -216,7 +217,7 @@ export function DrawerContent() {
   const isLoading = conversations === undefined;
   const hasProjects = projects && projects.length > 0;
   const isFiltered = selectedProjectId !== null;
-  const activeSection = segments[1];
+  const activeSection = routeSegments[1];
 
   return (
     <View

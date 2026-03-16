@@ -303,6 +303,7 @@ export function DrawerContentV2({ navigation }: DrawerContentComponentProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const segments = useSegments();
+  const routeSegments = segments as string[];
   const drawerStatus = useDrawerStatus();
   const { user } = useUser();
 
@@ -337,10 +338,12 @@ export function DrawerContentV2({ navigation }: DrawerContentComponentProps) {
   const deleteConversation = useDeleteConversation();
   const renameConversation = useRenameConversation();
 
-  const activeSection = segments[1];
+  const activeSection = routeSegments[1];
   const activeConversationFromRoute =
-    segments[1] === "chat" && segments[2] && segments[2] !== "new"
-      ? segments[2]
+    routeSegments[1] === "chat" &&
+    routeSegments[2] &&
+    routeSegments[2] !== "new"
+      ? routeSegments[2]
       : null;
 
   useEffect(() => {

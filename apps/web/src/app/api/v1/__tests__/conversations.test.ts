@@ -53,6 +53,36 @@ import {
   createMockRequest,
 } from "@/lib/test/api-helpers";
 
+function createConversationEnvelope(
+  overrides?: Partial<{
+    _id: string;
+    title: string;
+    model: string;
+    archived: boolean;
+    messageCount: number;
+    lastMessageAt: number;
+    createdAt: number;
+    updatedAt: number;
+  }>,
+) {
+  const timestamp = Date.now();
+
+  return {
+    status: "success" as const,
+    sys: { entity: "conversation", id: overrides?._id ?? "conv-1" },
+    data: {
+      _id: overrides?._id ?? "conv-1",
+      title: overrides?.title ?? "New Chat",
+      model: overrides?.model ?? "gpt-4o",
+      archived: overrides?.archived ?? false,
+      messageCount: overrides?.messageCount ?? 0,
+      lastMessageAt: overrides?.lastMessageAt ?? timestamp,
+      createdAt: overrides?.createdAt ?? timestamp,
+      updatedAt: overrides?.updatedAt ?? timestamp,
+    },
+  };
+}
+
 describe("/api/v1/conversations", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -61,16 +91,10 @@ describe("/api/v1/conversations", () => {
   describe("GET /api/v1/conversations", () => {
     it("returns list with envelope structure", async () => {
       const mockConversations = [
-        {
-          status: "success" as const,
-          sys: { entity: "conversation", id: "conv1" },
-          data: {
-            _id: "conv1",
-            title: "Chat 1",
-            model: "gpt-4o",
-            _creationTime: Date.now(),
-          },
-        },
+        createConversationEnvelope({
+          _id: "conv1",
+          title: "Chat 1",
+        }),
       ];
       vi.mocked(conversationsDAL.list).mockResolvedValue(mockConversations);
 
@@ -164,16 +188,10 @@ describe("/api/v1/conversations", () => {
 
   describe("POST /api/v1/conversations", () => {
     it("creates conversation with 201 status", async () => {
-      const mockResult = {
-        status: "success" as const,
-        sys: { entity: "conversation", id: "new-conv" },
-        data: {
-          _id: "new-conv",
-          title: "New Chat",
-          model: "gpt-4o",
-          _creationTime: Date.now(),
-        },
-      };
+      const mockResult = createConversationEnvelope({
+        _id: "new-conv",
+        title: "New Chat",
+      });
       vi.mocked(conversationsDAL.create).mockResolvedValue(mockResult);
 
       const { POST } = await import("../conversations/route");
@@ -190,11 +208,9 @@ describe("/api/v1/conversations", () => {
     });
 
     it("calls DAL with validated data", async () => {
-      const mockResult = {
-        status: "success" as const,
-        sys: { entity: "conversation", id: "conv-123" },
-        data: { _id: "conv-123", model: "gpt-4o" },
-      };
+      const mockResult = createConversationEnvelope({
+        _id: "conv-123",
+      });
       vi.mocked(conversationsDAL.create).mockResolvedValue(mockResult);
 
       const { POST } = await import("../conversations/route");
@@ -246,11 +262,9 @@ describe("/api/v1/conversations", () => {
     });
 
     it("accepts minimal valid request (only model)", async () => {
-      const mockResult = {
-        status: "success" as const,
-        sys: { entity: "conversation", id: "conv-123" },
-        data: { _id: "conv-123", model: "gpt-4o" },
-      };
+      const mockResult = createConversationEnvelope({
+        _id: "conv-123",
+      });
       vi.mocked(conversationsDAL.create).mockResolvedValue(mockResult);
 
       const { POST } = await import("../conversations/route");

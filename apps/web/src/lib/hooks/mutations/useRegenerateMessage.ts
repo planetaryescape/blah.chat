@@ -7,6 +7,7 @@ import { queryKeys } from "@/lib/query/keys";
 interface RegenerateMessageArgs {
   messageId: Id<"messages">;
   conversationId: Id<"conversations">;
+  modelId?: string;
 }
 
 export function useRegenerateMessage() {
@@ -14,8 +15,11 @@ export function useRegenerateMessage() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ messageId }: RegenerateMessageArgs) => {
-      return api.post(`/api/v1/messages/${messageId}/regenerate`);
+    mutationFn: async ({ messageId, modelId }: RegenerateMessageArgs) => {
+      return api.post(
+        `/api/v1/messages/${messageId}/regenerate`,
+        modelId ? { modelId } : {},
+      );
     },
 
     onSuccess: (_data, variables) => {

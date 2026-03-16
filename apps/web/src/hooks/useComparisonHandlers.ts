@@ -1,19 +1,22 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
-import type { OptimisticMessage } from "@/types/optimistic";
+import { useApiClient } from "@/lib/api/client";
 
-type ServerMessage = Doc<"messages">;
-type MessageWithOptimistic = ServerMessage | OptimisticMessage;
+type VoteRating = "left_better" | "right_better" | "tie" | "both_bad";
 type ConsolidationMode = "same-chat" | "new-chat";
 
+interface ComparisonMessage {
+  _id: string;
+  role: "user" | "assistant" | "system";
+  comparisonGroupId?: string;
+  _optimistic?: boolean;
+}
+
 interface UseComparisonHandlersOptions {
-  conversationId: Id<"conversations"> | undefined;
-  messages: MessageWithOptimistic[] | undefined;
+  conversationId: string | undefined;
+  messages: ComparisonMessage[] | undefined;
 }
 
 interface UseComparisonHandlersReturn {
@@ -21,86 +24,52 @@ interface UseComparisonHandlersReturn {
   handleConsolidate: (model: string, mode: ConsolidationMode) => Promise<void>;
 }
 
-/**
- * Handles voting and consolidation actions for comparison mode.
- */
 export function useComparisonHandlers({
-  conversationId,
+  conversationId: _conversationId,
   messages,
 }: UseComparisonHandlersOptions): UseComparisonHandlersReturn {
   const router = useRouter();
-
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const recordVote = useMutation(api.votes.recordVote);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const createConsolidation = useMutation(
-    api.conversations.createConsolidationConversation,
-  );
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const consolidateInPlace = useMutation(
-    api.conversations.consolidateInSameChat,
-  );
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const updateModelMutation = useMutation(api.conversations.updateModel);
+  const apiClient = useApiClient();
 
   const handleVote = useCallback(
     async (winnerId: string, rating: string) => {
-      // Only handle votes for server-confirmed messages (not optimistic)
       const msg = messages?.find(
-        (m) => !("_optimistic" in m) && m._id === winnerId,
+        (message) => !message._optimistic && message._id === winnerId,
       );
-      if (msg?.comparisonGroupId) {
-        const voteRating = rating as
-          | "left_better"
-          | "right_better"
-          | "tie"
-          | "both_bad";
-        await recordVote({
-          comparisonGroupId: msg.comparisonGroupId,
-          winnerId: msg._id as Id<"messages">,
-          rating: voteRating,
-        });
+      if (!msg?.comparisonGroupId) {
+        return;
       }
+
+      await apiClient.post(
+        `/api/v1/comparisons/${msg.comparisonGroupId}/vote`,
+        {
+          winnerMessageId: winnerId,
+          rating: rating as VoteRating,
+        },
+      );
     },
-    [messages, recordVote],
+    [apiClient, messages],
   );
 
   const handleConsolidate = useCallback(
     async (model: string, mode: ConsolidationMode) => {
-      const msg = messages?.find((m) => m.comparisonGroupId);
-      if (!msg?.comparisonGroupId) return;
+      const msg = messages?.find((message) => message.comparisonGroupId);
+      if (!msg?.comparisonGroupId) {
+        return;
+      }
 
-      if (mode === "same-chat") {
-        // Consolidate in place - no navigation
-        if (!conversationId) return;
-        await consolidateInPlace({
-          conversationId,
-          comparisonGroupId: msg.comparisonGroupId,
-          consolidationModel: model,
-        });
+      const result = await apiClient.post<{
+        conversationId: string;
+      }>(`/api/v1/comparisons/${msg.comparisonGroupId}/consolidate`, {
+        consolidationModel: model,
+        mode,
+      });
 
-        // Update conversation model to match consolidation choice
-        await updateModelMutation({
-          conversationId,
-          model: model,
-        });
-      } else {
-        // Create new conversation and navigate
-        const { conversationId: newConvId } = await createConsolidation({
-          comparisonGroupId: msg.comparisonGroupId,
-          consolidationModel: model,
-        });
-        router.push(`/chat/${newConvId}`);
+      if (mode === "new-chat") {
+        router.push(`/chat/${result.conversationId}`);
       }
     },
-    [
-      conversationId,
-      messages,
-      consolidateInPlace,
-      createConsolidation,
-      updateModelMutation,
-      router,
-    ],
+    [apiClient, messages, router],
   );
 
   return {

@@ -1,4 +1,3 @@
-import type { Message } from "@blah-chat/persistence-postgres";
 import type { GenerationEvent } from "@blah-chat/streaming-core";
 
 export interface GenerationPromptMessage {
@@ -72,6 +71,6 @@ export interface PersistedRequestBundle {
   conversationId: string;
   userId: string;
   userMessageId: string;
-  promptMessages: Message[];
+  promptMessages: Array<{ role: string; content: string }>;
   sessions: PersistedSessionBundle[];
 }

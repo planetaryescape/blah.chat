@@ -14,6 +14,8 @@ type ApiMessage = {
   status?: string;
   model?: string;
   comparisonGroupId?: string;
+  consolidatedMessageId?: string;
+  isConsolidation?: boolean;
   rootMessageId?: string;
   siblingIndex?: number;
   forkReason?: string;

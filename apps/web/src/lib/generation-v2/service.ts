@@ -54,6 +54,34 @@ export class GenerationV2Service {
     return this.repository.createRequest(input);
   }
 
+  async startSameChatConsolidation(input: {
+    comparisonGroupId: string;
+    consolidationModel: string;
+  }): Promise<StartedGeneration> {
+    return this.repository.createSameChatConsolidationRequest(input);
+  }
+
+  async startNewConversationConsolidation(input: {
+    userId: string;
+    comparisonGroupId: string;
+    consolidationModel: string;
+  }): Promise<StartedGeneration> {
+    return this.repository.createNewConversationConsolidationRequest(input);
+  }
+
+  async recordVote(input: {
+    userId: string;
+    comparisonGroupId: string;
+    winnerMessageId?: string | null;
+    rating: "left_better" | "right_better" | "tie" | "both_bad";
+  }) {
+    return this.repository.recordVote(input);
+  }
+
+  async getOriginalResponses(consolidatedMessageId: string) {
+    return this.repository.listOriginalResponses(consolidatedMessageId);
+  }
+
   async process(requestId: string) {
     const bundle = await this.repository.getRequestBundle(requestId);
     if (!bundle) {

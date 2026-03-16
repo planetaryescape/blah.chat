@@ -1,13 +1,27 @@
 "use client";
 
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ComparisonView } from "./ComparisonView";
 
+type OriginalResponse = {
+  _id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  partialContent?: string;
+  status: string;
+  model?: string;
+  comparisonGroupId?: string;
+  cost?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  generationCompletedAt?: number | null;
+  createdAt: number;
+};
+
 interface MessageConsolidationToggleProps {
-  originalResponses: Doc<"messages">[];
+  originalResponses: OriginalResponse[];
   showOriginals: boolean;
   onToggle: () => void;
 }

@@ -1,4 +1,5 @@
 import {
+  comparisonVotes,
   conversations,
   generationCheckpoints,
   generationRequests,
@@ -11,6 +12,7 @@ import {
 } from "@blah-chat/persistence-postgres";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { buildConsolidationPrompt } from "@/lib/consolidation";
 import type {
   ClerkUserProfile,
   PersistedRequestBundle,
@@ -89,6 +91,77 @@ async function getNextSiblingIndex(input: {
   );
 }
 
+async function createAssistantSession(input: {
+  db: PersistenceDb;
+  requestId: string;
+  conversationId: string;
+  parentMessageId: string;
+  modelId: string;
+  comparisonGroupId?: string | null;
+  rootMessageId: string;
+  siblingIndex?: number;
+  forkReason?: string | null;
+  isConsolidation?: boolean;
+}) {
+  const siblingIndex =
+    input.siblingIndex ??
+    (await getNextSiblingIndex({
+      db: input.db,
+      conversationId: input.conversationId,
+      parentIds: [input.parentMessageId],
+    }));
+  const assistantMessageId = nanoid();
+  const [assistantMessage] = await input.db
+    .insert(messages)
+    .values({
+      id: assistantMessageId,
+      conversationId: input.conversationId,
+      role: "assistant",
+      content: "",
+      status: "pending",
+      model: input.modelId,
+      comparisonGroupId: input.comparisonGroupId ?? null,
+      isConsolidation: input.isConsolidation ?? false,
+      rootMessageId: input.rootMessageId,
+      siblingIndex,
+      forkReason: input.forkReason ?? null,
+      createdAt: now(),
+      updatedAt: now(),
+    })
+    .returning();
+
+  if (!assistantMessage) {
+    throw new Error("Failed to create assistant message");
+  }
+
+  await input.db.insert(messageEdges).values({
+    parentMessageId: input.parentMessageId,
+    childMessageId: assistantMessage.id,
+    position: 0,
+    edgeType: "reply",
+    createdAt: now(),
+  });
+
+  const [session] = await input.db
+    .insert(generationSessions)
+    .values({
+      requestId: input.requestId,
+      assistantMessageId: assistantMessage.id,
+      modelId: input.modelId,
+      status: "pending",
+      provider: null,
+      createdAt: now(),
+      updatedAt: now(),
+    })
+    .returning();
+
+  if (!session) {
+    throw new Error("Failed to create generation session");
+  }
+
+  return { assistantMessage, session };
+}
+
 export function createGenerationV2Repository(db: PersistenceDb) {
   return {
     async upsertUser(clerkUser: ClerkUserProfile) {
@@ -154,7 +227,6 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         throw new Error("Conversation not found");
       }
 
-      const comparisonGroupId = modelIds.length > 1 ? nanoid() : null;
       const parentIds = conversation.activeLeafMessageId
         ? [conversation.activeLeafMessageId]
         : [];
@@ -166,6 +238,7 @@ export function createGenerationV2Repository(db: PersistenceDb) {
             ),
           })
         : null;
+      const comparisonGroupId = modelIds.length > 1 ? nanoid() : null;
 
       const userMessageId = nanoid();
       const [userMessage] = await db
@@ -177,6 +250,7 @@ export function createGenerationV2Repository(db: PersistenceDb) {
           role: "user",
           content: input.content,
           status: "complete",
+          comparisonGroupId,
           rootMessageId:
             parentMessage?.rootMessageId ?? parentMessage?.id ?? userMessageId,
           siblingIndex: 0,
@@ -207,6 +281,7 @@ export function createGenerationV2Repository(db: PersistenceDb) {
           conversationId: conversation.id,
           userMessageId: userMessage.id,
           requestedModels: modelIds,
+          promptOverride: null,
           status: "pending",
           createdAt: now(),
           updatedAt: now(),
@@ -218,56 +293,18 @@ export function createGenerationV2Repository(db: PersistenceDb) {
       }
 
       const assistantRows = await Promise.all(
-        modelIds.map(async (modelId, index) => {
-          const assistantMessageId = nanoid();
-          const [assistantMessage] = await db
-            .insert(messages)
-            .values({
-              id: assistantMessageId,
-              conversationId: conversation.id,
-              role: "assistant",
-              content: "",
-              status: "pending",
-              model: modelId,
-              comparisonGroupId,
-              rootMessageId: userMessage.rootMessageId ?? userMessage.id,
-              siblingIndex: index,
-              createdAt: now(),
-              updatedAt: now(),
-            })
-            .returning();
-
-          if (!assistantMessage) {
-            throw new Error("Failed to create assistant message");
-          }
-
-          await db.insert(messageEdges).values({
+        modelIds.map((modelId, index) =>
+          createAssistantSession({
+            db,
+            requestId: request.id,
+            conversationId: conversation.id,
             parentMessageId: userMessage.id,
-            childMessageId: assistantMessage.id,
-            position: 0,
-            edgeType: "reply",
-            createdAt: now(),
-          });
-
-          const [session] = await db
-            .insert(generationSessions)
-            .values({
-              requestId: request.id,
-              assistantMessageId: assistantMessage.id,
-              modelId,
-              status: "pending",
-              provider: null,
-              createdAt: now(),
-              updatedAt: now(),
-            })
-            .returning();
-
-          if (!session) {
-            throw new Error("Failed to create generation session");
-          }
-
-          return { assistantMessage, session };
-        }),
+            modelId,
+            comparisonGroupId,
+            rootMessageId: userMessage.rootMessageId ?? userMessage.id,
+            siblingIndex: index,
+          }),
+        ),
       );
 
       await db
@@ -341,6 +378,7 @@ export function createGenerationV2Repository(db: PersistenceDb) {
           conversationId: assistantMessage.conversationId,
           userMessageId: userMessage.id,
           requestedModels: [resolvedModel],
+          promptOverride: null,
           status: "pending",
           createdAt: now(),
           updatedAt: now(),
@@ -351,52 +389,17 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         throw new Error("Failed to create regeneration request");
       }
 
-      const assistantMessageId = nanoid();
-      const [regeneratedAssistant] = await db
-        .insert(messages)
-        .values({
-          id: assistantMessageId,
+      const { assistantMessage: regeneratedAssistant } =
+        await createAssistantSession({
+          db,
+          requestId: request.id,
           conversationId: assistantMessage.conversationId,
-          role: "assistant",
-          content: "",
-          status: "pending",
-          model: resolvedModel,
+          parentMessageId: userMessage.id,
+          modelId: resolvedModel,
           rootMessageId: userMessage.rootMessageId ?? userMessage.id,
           siblingIndex: nextSiblingIndex,
           forkReason: "regenerate",
-          createdAt: now(),
-          updatedAt: now(),
-        })
-        .returning();
-
-      if (!regeneratedAssistant) {
-        throw new Error("Failed to create regenerated assistant message");
-      }
-
-      await db.insert(messageEdges).values({
-        parentMessageId: userMessage.id,
-        childMessageId: regeneratedAssistant.id,
-        position: 0,
-        edgeType: "reply",
-        createdAt: now(),
-      });
-
-      const [session] = await db
-        .insert(generationSessions)
-        .values({
-          requestId: request.id,
-          assistantMessageId: regeneratedAssistant.id,
-          modelId: resolvedModel,
-          status: "pending",
-          provider: null,
-          createdAt: now(),
-          updatedAt: now(),
-        })
-        .returning();
-
-      if (!session) {
-        throw new Error("Failed to create regeneration session");
-      }
+        });
 
       await db
         .update(conversations)
@@ -487,6 +490,7 @@ export function createGenerationV2Repository(db: PersistenceDb) {
           conversationId: originalMessage.conversationId,
           userMessageId: editedUserMessage.id,
           requestedModels: [resolvedModel],
+          promptOverride: null,
           status: "pending",
           createdAt: now(),
           updatedAt: now(),
@@ -497,52 +501,15 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         throw new Error("Failed to create edit request");
       }
 
-      const assistantMessageId = nanoid();
-      const [assistantMessage] = await db
-        .insert(messages)
-        .values({
-          id: assistantMessageId,
-          conversationId: originalMessage.conversationId,
-          role: "assistant",
-          content: "",
-          status: "pending",
-          model: resolvedModel,
-          rootMessageId:
-            editedUserMessage.rootMessageId ?? editedUserMessage.id,
-          siblingIndex: 0,
-          createdAt: now(),
-          updatedAt: now(),
-        })
-        .returning();
-
-      if (!assistantMessage) {
-        throw new Error("Failed to create edited assistant message");
-      }
-
-      await db.insert(messageEdges).values({
+      const { assistantMessage } = await createAssistantSession({
+        db,
+        requestId: request.id,
+        conversationId: originalMessage.conversationId,
         parentMessageId: editedUserMessage.id,
-        childMessageId: assistantMessage.id,
-        position: 0,
-        edgeType: "reply",
-        createdAt: now(),
+        modelId: resolvedModel,
+        rootMessageId: editedUserMessage.rootMessageId ?? editedUserMessage.id,
+        siblingIndex: 0,
       });
-
-      const [session] = await db
-        .insert(generationSessions)
-        .values({
-          requestId: request.id,
-          assistantMessageId: assistantMessage.id,
-          modelId: resolvedModel,
-          status: "pending",
-          provider: null,
-          createdAt: now(),
-          updatedAt: now(),
-        })
-        .returning();
-
-      if (!session) {
-        throw new Error("Failed to create edited generation session");
-      }
 
       await db
         .update(conversations)
@@ -558,6 +525,206 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         userMessageId: editedUserMessage.id,
         assistantMessageIds: [assistantMessage.id],
         modelIds: [resolvedModel],
+      };
+    },
+
+    async getComparisonContext(comparisonGroupId: string) {
+      const groupedMessages = await db.query.messages.findMany({
+        where: eq(messages.comparisonGroupId, comparisonGroupId),
+        orderBy: (table, { asc: orderAsc }) => [orderAsc(table.createdAt)],
+      });
+      const responses = groupedMessages.filter(
+        (message) => message.role === "assistant",
+      );
+      let userMessage: Message | null =
+        groupedMessages.find((message) => message.role === "user") ?? null;
+
+      if (!userMessage && responses[0]) {
+        const parentEdge = await db.query.messageEdges.findFirst({
+          where: eq(messageEdges.childMessageId, responses[0].id),
+          orderBy: (table, { asc: orderAsc }) => [orderAsc(table.position)],
+        });
+        userMessage = parentEdge
+          ? ((await db.query.messages.findFirst({
+              where: eq(messages.id, parentEdge.parentMessageId),
+            })) ?? null)
+          : null;
+      }
+
+      if (!userMessage || responses.length === 0) {
+        throw new Error("Invalid comparison group");
+      }
+
+      const conversation = await db.query.conversations.findFirst({
+        where: eq(conversations.id, userMessage.conversationId),
+      });
+      if (!conversation) {
+        throw new Error("Conversation not found");
+      }
+
+      return {
+        conversation,
+        userMessage,
+        responses,
+        prompt: buildConsolidationPrompt(
+          userMessage.content,
+          responses.map((response) => ({
+            model: response.model || "unknown",
+            content: response.content,
+          })),
+        ),
+      };
+    },
+
+    async createSameChatConsolidationRequest(input: {
+      comparisonGroupId: string;
+      consolidationModel: string;
+    }): Promise<StartedGeneration> {
+      const { conversation, userMessage, responses, prompt } =
+        await this.getComparisonContext(input.comparisonGroupId);
+
+      const [request] = await db
+        .insert(generationRequests)
+        .values({
+          conversationId: conversation.id,
+          userMessageId: userMessage.id,
+          requestedModels: [input.consolidationModel],
+          promptOverride: prompt,
+          status: "pending",
+          createdAt: now(),
+          updatedAt: now(),
+        })
+        .returning();
+
+      if (!request) {
+        throw new Error("Failed to create consolidation request");
+      }
+
+      const { assistantMessage } = await createAssistantSession({
+        db,
+        requestId: request.id,
+        conversationId: conversation.id,
+        parentMessageId: userMessage.id,
+        modelId: input.consolidationModel,
+        rootMessageId: userMessage.rootMessageId ?? userMessage.id,
+        isConsolidation: true,
+      });
+
+      await Promise.all(
+        responses.map((response) =>
+          db
+            .update(messages)
+            .set({
+              consolidatedMessageId: assistantMessage.id,
+              updatedAt: now(),
+            })
+            .where(eq(messages.id, response.id)),
+        ),
+      );
+
+      await db
+        .update(conversations)
+        .set({
+          activeLeafMessageId: assistantMessage.id,
+          model: input.consolidationModel,
+          updatedAt: now(),
+        })
+        .where(eq(conversations.id, conversation.id));
+
+      return {
+        requestId: request.id,
+        conversationId: conversation.id,
+        userMessageId: userMessage.id,
+        assistantMessageIds: [assistantMessage.id],
+        modelIds: [input.consolidationModel],
+      };
+    },
+
+    async createNewConversationConsolidationRequest(input: {
+      userId: string;
+      comparisonGroupId: string;
+      consolidationModel: string;
+    }): Promise<StartedGeneration> {
+      const { userMessage, prompt } = await this.getComparisonContext(
+        input.comparisonGroupId,
+      );
+      const [conversation] = await db
+        .insert(conversations)
+        .values({
+          userId: input.userId,
+          model: input.consolidationModel,
+          title: `Consolidation: ${userMessage.content.slice(0, 50)}${userMessage.content.length > 50 ? "..." : ""}`,
+          createdAt: now(),
+          updatedAt: now(),
+        })
+        .returning();
+
+      if (!conversation) {
+        throw new Error("Failed to create consolidation conversation");
+      }
+
+      const consolidationPromptMessageId = nanoid();
+      const [consolidationPromptMessage] = await db
+        .insert(messages)
+        .values({
+          id: consolidationPromptMessageId,
+          conversationId: conversation.id,
+          userId: input.userId,
+          role: "user",
+          content: prompt,
+          status: "complete",
+          rootMessageId: consolidationPromptMessageId,
+          siblingIndex: 0,
+          createdAt: now(),
+          updatedAt: now(),
+        })
+        .returning();
+
+      if (!consolidationPromptMessage) {
+        throw new Error("Failed to create consolidation prompt message");
+      }
+
+      const [request] = await db
+        .insert(generationRequests)
+        .values({
+          conversationId: conversation.id,
+          userMessageId: consolidationPromptMessage.id,
+          requestedModels: [input.consolidationModel],
+          promptOverride: null,
+          status: "pending",
+          createdAt: now(),
+          updatedAt: now(),
+        })
+        .returning();
+
+      if (!request) {
+        throw new Error("Failed to create consolidation generation request");
+      }
+
+      const { assistantMessage } = await createAssistantSession({
+        db,
+        requestId: request.id,
+        conversationId: conversation.id,
+        parentMessageId: consolidationPromptMessage.id,
+        modelId: input.consolidationModel,
+        rootMessageId: consolidationPromptMessage.id,
+        siblingIndex: 0,
+      });
+
+      await db
+        .update(conversations)
+        .set({
+          activeLeafMessageId: assistantMessage.id,
+          updatedAt: now(),
+        })
+        .where(eq(conversations.id, conversation.id));
+
+      return {
+        requestId: request.id,
+        conversationId: conversation.id,
+        userMessageId: consolidationPromptMessage.id,
+        assistantMessageIds: [assistantMessage.id],
+        modelIds: [input.consolidationModel],
       };
     },
 
@@ -600,13 +767,28 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         conversation.id,
         request.userMessageId,
       );
+      const promptChain = promptMessages.map((message) => ({
+        role: message.role,
+        content: message.content,
+      }));
+      if (request.promptOverride) {
+        const lastMessage = promptChain.at(-1);
+        if (lastMessage?.role === "user") {
+          lastMessage.content = request.promptOverride;
+        } else {
+          promptChain.push({
+            role: "user",
+            content: request.promptOverride,
+          });
+        }
+      }
 
       return {
         requestId: request.id,
         conversationId: conversation.id,
         userId: user.id,
         userMessageId: request.userMessageId,
-        promptMessages,
+        promptMessages: promptChain,
         sessions: sessions.map((session) => ({
           sessionId: session.id,
           assistantMessageId: session.assistantMessageId,
@@ -709,8 +891,48 @@ export function createGenerationV2Repository(db: PersistenceDb) {
     async listMessages(conversationId: string) {
       return db.query.messages.findMany({
         where: eq(messages.conversationId, conversationId),
-        orderBy: (table, { asc: orderAsc }) => [orderAsc(table.createdAt)],
+        orderBy: (table, { asc: orderAsc }) => [
+          orderAsc(table.createdAt),
+          orderAsc(table.siblingIndex),
+        ],
       });
+    },
+
+    async listOriginalResponses(consolidatedMessageId: string) {
+      return db.query.messages.findMany({
+        where: and(
+          eq(messages.consolidatedMessageId, consolidatedMessageId),
+          eq(messages.role, "assistant"),
+        ),
+        orderBy: (table, { asc: orderAsc }) => [
+          orderAsc(table.createdAt),
+          orderAsc(table.siblingIndex),
+        ],
+      });
+    },
+
+    async recordVote(input: {
+      userId: string;
+      comparisonGroupId: string;
+      winnerMessageId?: string | null;
+      rating: "left_better" | "right_better" | "tie" | "both_bad";
+    }) {
+      const [vote] = await db
+        .insert(comparisonVotes)
+        .values({
+          userId: input.userId,
+          comparisonGroupId: input.comparisonGroupId,
+          winnerMessageId: input.winnerMessageId ?? null,
+          rating: input.rating,
+          votedAt: now(),
+        })
+        .returning();
+
+      if (!vote) {
+        throw new Error("Failed to record vote");
+      }
+
+      return vote;
     },
 
     async listCheckpoints(sessionId: string) {

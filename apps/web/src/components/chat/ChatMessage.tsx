@@ -3,6 +3,7 @@
 import { getModelConfig } from "@blah-chat/ai/utils";
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useQuery as useRestQuery } from "@tanstack/react-query";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
@@ -129,6 +130,28 @@ interface ChatMessageProps {
   showMessageStats?: boolean;
 }
 
+type ApiMessageEnvelope = {
+  data: {
+    _id: string;
+    conversationId: string;
+    role: "user" | "assistant" | "system";
+    content: string;
+    partialContent?: string;
+    status?: string;
+    model?: string;
+    comparisonGroupId?: string;
+    consolidatedMessageId?: string;
+    isConsolidation?: boolean;
+    inputTokens?: number;
+    outputTokens?: number;
+    cost?: number;
+    generationCompletedAt?: number;
+    createdAt: number;
+    updatedAt: number;
+    _creationTime: number;
+  };
+};
+
 export const ChatMessage = memo(
   function ChatMessage({
     message,
@@ -176,12 +199,19 @@ export const ChatMessage = memo(
     } = useHoverIntent({ enterDelay: 350, leaveDelay: 150 });
 
     // Query for original responses if this is a consolidated message
-    const originalResponses = useQuery(
-      api.messages.getOriginalResponses,
-      message.isConsolidation && !isTempMessage
-        ? { consolidatedMessageId: message._id as Id<"messages"> }
-        : "skip",
-    );
+    const originalResponsesQuery = useRestQuery({
+      queryKey: ["message", message._id, "original-responses"],
+      queryFn: async () =>
+        apiClient.get<ApiMessageEnvelope[]>(
+          `/api/v1/messages/${message._id}/original-responses`,
+        ),
+      enabled: message.isConsolidation && !isTempMessage,
+      staleTime: 30_000,
+    });
+    const originalResponses = originalResponsesQuery.data?.map((response) => ({
+      ...response.data,
+      status: response.data.status ?? "complete",
+    }));
 
     // conversation is now passed as prop from VirtualizedMessageList (reduces N→1 subscriptions)
 

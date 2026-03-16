@@ -55,6 +55,8 @@ export function toApiMessageWithMeta(
     status: statusMap[message.status] ?? "complete",
     model: message.model,
     comparisonGroupId: message.comparisonGroupId ?? undefined,
+    consolidatedMessageId: message.consolidatedMessageId ?? undefined,
+    isConsolidation: message.isConsolidation,
     rootMessageId: message.rootMessageId ?? undefined,
     siblingIndex: message.siblingIndex,
     forkReason: message.forkReason ?? undefined,

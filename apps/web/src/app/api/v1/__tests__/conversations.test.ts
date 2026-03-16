@@ -22,7 +22,6 @@ vi.mock("@/lib/api/middleware/auth", () => ({
       return handler(req, {
         params: context?.params ?? Promise.resolve({}),
         userId: "test-user-id",
-        sessionToken: "test-session-token",
       });
     },
 }));
@@ -120,7 +119,7 @@ describe("/api/v1/conversations", () => {
         "test-user-id",
         25,
         false,
-        "test-session-token",
+        undefined,
         undefined,
       );
     });
@@ -136,7 +135,7 @@ describe("/api/v1/conversations", () => {
         "test-user-id",
         50,
         true,
-        "test-session-token",
+        undefined,
         undefined,
       );
     });
@@ -154,7 +153,7 @@ describe("/api/v1/conversations", () => {
         "test-user-id",
         50,
         false,
-        "test-session-token",
+        undefined,
         "proj_123abc",
       );
     });
@@ -170,7 +169,7 @@ describe("/api/v1/conversations", () => {
         "test-user-id",
         50,
         false,
-        "test-session-token",
+        undefined,
         undefined,
       );
     });
@@ -224,15 +223,11 @@ describe("/api/v1/conversations", () => {
       });
       await POST(req, { params: Promise.resolve({}) });
 
-      expect(conversationsDAL.create).toHaveBeenCalledWith(
-        "test-user-id",
-        {
-          model: "gpt-4o",
-          title: "Test Conversation",
-          systemPrompt: "You are a helpful assistant",
-        },
-        "test-session-token",
-      );
+      expect(conversationsDAL.create).toHaveBeenCalledWith("test-user-id", {
+        model: "gpt-4o",
+        title: "Test Conversation",
+        systemPrompt: "You are a helpful assistant",
+      });
     });
 
     it("rejects request missing required model field", async () => {

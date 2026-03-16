@@ -11,6 +11,12 @@ export interface ClerkIdentityInput {
 
 export function createUserRepository(db: PersistenceDb) {
   return {
+    async findByClerkId(clerkId: string) {
+      return db.query.users.findFirst({
+        where: eq(users.clerkId, clerkId),
+      });
+    },
+
     async upsertFromClerk(input: ClerkIdentityInput) {
       const timestamp = Date.now();
 
@@ -41,6 +47,19 @@ export function createUserRepository(db: PersistenceDb) {
         throw new Error(`Failed to upsert user for clerkId=${input.clerkId}`);
       }
       return row;
+    },
+
+    async deleteByClerkId(clerkId: string) {
+      const existing = await db.query.users.findFirst({
+        where: eq(users.clerkId, clerkId),
+      });
+
+      if (!existing) {
+        return null;
+      }
+
+      await db.delete(users).where(eq(users.clerkId, clerkId));
+      return existing;
     },
   };
 }

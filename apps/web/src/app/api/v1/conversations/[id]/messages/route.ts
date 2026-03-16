@@ -66,11 +66,9 @@ async function postHandler(
   {
     params,
     userId,
-    sessionToken,
   }: {
     params: Promise<Record<string, string | string[]>>;
     userId: string;
-    sessionToken: string;
   },
 ) {
   const { id: conversationId } = (await params) as { id: string };
@@ -81,12 +79,7 @@ async function postHandler(
   );
 
   const body = await parseBody(req, sendSchema);
-  const result = await messagesDAL.send(
-    userId,
-    conversationId,
-    body,
-    sessionToken,
-  );
+  const result = await messagesDAL.send(userId, conversationId, body);
 
   const requestId =
     typeof result.data === "object" && result.data && "requestId" in result.data

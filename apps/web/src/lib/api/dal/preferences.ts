@@ -1,7 +1,10 @@
 import "server-only";
-import { api } from "@blah-chat/backend/convex/_generated/api";
+import {
+  createPreferenceRepository,
+  createUserRepository,
+} from "@blah-chat/persistence-postgres";
 import { z } from "zod";
-import { getAuthenticatedConvexClient } from "@/lib/api/convex";
+import { getPersistenceDb } from "@/lib/persistence/server";
 import { formatEntity } from "@/lib/utils/formatEntity";
 
 const updatePreferenceSchema = z.object({
@@ -9,88 +12,52 @@ const updatePreferenceSchema = z.object({
   value: z.any(),
 });
 
+async function getPersistenceUser(clerkId: string) {
+  const user = await createUserRepository(getPersistenceDb()).findByClerkId(
+    clerkId,
+  );
+  if (!user) {
+    throw new Error("Access denied");
+  }
+  return user;
+}
+
 export const preferencesDAL = {
-  /**
-   * Get single preference by key
-   */
-  get: async (userId: string, sessionToken: string, key: string) => {
-    const convex = getAuthenticatedConvexClient(sessionToken);
+  get: async (userId: string, key: string) => {
+    const db = getPersistenceDb();
+    await getPersistenceUser(userId);
+    const value = await createPreferenceRepository(db).getForClerkId(
+      userId,
+      key,
+    );
 
-    const user = await convex.query(api.users.getUserByClerkId, {
-      clerkId: userId,
-    });
-    if (!user) {
-      throw new Error("Access denied");
-    }
-
-    const preference = (await (convex.query as any)(
-      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      api.users.getUserPreference,
-      {
-        key,
-      },
-    )) as any;
-
-    return formatEntity({ key, value: preference }, "preference");
+    return formatEntity({ key, value }, "preference");
   },
 
-  /**
-   * Get all user preferences
-   */
-  getAll: async (userId: string, sessionToken: string) => {
-    const convex = getAuthenticatedConvexClient(sessionToken);
-
-    const user = await convex.query(api.users.getUserByClerkId, {
-      clerkId: userId,
-    });
-    if (!user) {
-      throw new Error("Access denied");
-    }
-
-    const preferences = (await (convex.query as any)(
-      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      api.users.getAllUserPreferences,
-      {},
-    )) as any;
+  getAll: async (userId: string) => {
+    const db = getPersistenceDb();
+    await getPersistenceUser(userId);
+    const preferences =
+      await createPreferenceRepository(db).getAllForClerkId(userId);
 
     return formatEntity(preferences, "preferences");
   },
 
-  /**
-   * Update single preference
-   */
   update: async (
     userId: string,
-    sessionToken: string,
     data: z.infer<typeof updatePreferenceSchema>,
   ) => {
     const validated = updatePreferenceSchema.parse(data);
-    const convex = getAuthenticatedConvexClient(sessionToken);
-
-    const user = await convex.query(api.users.getUserByClerkId, {
-      clerkId: userId,
-    });
-    if (!user) {
-      throw new Error("Access denied");
-    }
-
-    await convex.mutation(api.users.updatePreferences, {
-      preferences: {
-        [validated.key]: validated.value,
-      },
-    });
-
-    // Return updated preference
-    const preference = (await (convex.query as any)(
-      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      api.users.getUserPreference,
-      {
-        key: validated.key,
-      },
-    )) as any;
+    const db = getPersistenceDb();
+    const user = await getPersistenceUser(userId);
+    await createPreferenceRepository(db).setForUser(
+      user.id,
+      validated.key,
+      validated.value,
+    );
 
     return formatEntity(
-      { key: validated.key, value: preference },
+      { key: validated.key, value: validated.value },
       "preference",
     );
   },

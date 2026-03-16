@@ -36,36 +36,41 @@ describe("withAuth middleware", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns 401 when convex session token is unavailable", async () => {
+  it("calls handler with userId only", async () => {
     authMock.mockResolvedValue({
       userId: "user_123",
-      getToken: vi.fn().mockResolvedValue(null),
+      getToken: vi.fn().mockResolvedValue("unused"),
     });
 
     const { withAuth } = await import("../auth");
-    const handler = withAuth(async () => new Response("ok", { status: 200 }));
+    const inner = vi.fn(async (_req, ctx) => {
+      expect(ctx.userId).toBe("user_123");
+      return new Response("ok", { status: 200 });
+    });
 
+    const handler = withAuth(inner);
     const res = await handler(new Request("http://localhost/api") as any, {
       params: Promise.resolve({}),
     });
 
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(200);
+    expect(inner).toHaveBeenCalledTimes(1);
   });
 
-  it("calls handler with userId and sessionToken", async () => {
+  it("legacy convex auth still returns a session token", async () => {
     authMock.mockResolvedValue({
       userId: "user_123",
       getToken: vi.fn().mockResolvedValue("convex_token"),
     });
 
-    const { withAuth } = await import("../auth");
+    const { withLegacyConvexAuth } = await import("../auth");
     const inner = vi.fn(async (_req, ctx) => {
       expect(ctx.userId).toBe("user_123");
       expect(ctx.sessionToken).toBe("convex_token");
       return new Response("ok", { status: 200 });
     });
 
-    const handler = withAuth(inner);
+    const handler = withLegacyConvexAuth(inner);
     const res = await handler(new Request("http://localhost/api") as any, {
       params: Promise.resolve({}),
     });

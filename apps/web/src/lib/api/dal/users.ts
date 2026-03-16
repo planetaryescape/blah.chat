@@ -1,6 +1,6 @@
 import "server-only";
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { getConvexClient } from "@/lib/api/convex";
+import { createUserRepository } from "@blah-chat/persistence-postgres";
+import { getPersistenceDb } from "@/lib/persistence/server";
 import { formatEntity } from "@/lib/utils/formatEntity";
 
 export const usersDAL = {
@@ -8,14 +8,24 @@ export const usersDAL = {
    * Get current user by Clerk ID (auto-creates if needed)
    */
   getCurrentOrCreate: async (clerkId: string) => {
-    const convex = getConvexClient();
+    const user = await createUserRepository(getPersistenceDb()).findByClerkId(
+      clerkId,
+    );
 
-    const user = await convex.query(api.users.getUserByClerkId, { clerkId });
+    if (!user) throw new Error("User not found");
 
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    return formatEntity(user, "user", user._id);
+    return formatEntity(
+      {
+        _id: user.id,
+        clerkId: user.clerkId,
+        email: user.email,
+        name: user.name,
+        imageUrl: user.imageUrl ?? undefined,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+      "user",
+      user.id,
+    );
   },
 };

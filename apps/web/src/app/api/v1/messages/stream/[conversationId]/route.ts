@@ -18,7 +18,6 @@ async function getHandler(
   }: {
     params: Promise<Record<string, string | string[]>>;
     userId: string;
-    sessionToken: string;
   },
 ) {
   const { conversationId } = (await params) as { conversationId: string };

@@ -175,7 +175,6 @@ export const messagesDAL = {
     userId: string,
     conversationId: string,
     data: z.infer<typeof sendMessageSchema>,
-    _sessionToken: string,
   ) => {
     const validated = sendMessageSchema.parse(data);
     const user = await ensureCurrentPersistenceUser(userId);

@@ -1,7 +1,7 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import { type NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedConvexClient } from "@/lib/api/convex";
-import { withAuth } from "@/lib/api/middleware/auth";
+import { withLegacyConvexAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import logger from "@/lib/logger";
 
@@ -216,5 +216,5 @@ function getCallbackHtml(result: {
   `.trim();
 }
 
-export const GET = withErrorHandling(withAuth(getHandler));
+export const GET = withErrorHandling(withLegacyConvexAuth(getHandler));
 export const dynamic = "force-dynamic";

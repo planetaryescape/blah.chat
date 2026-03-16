@@ -7,6 +7,7 @@ export * from "./repositories/attachments";
 export * from "./repositories/conversations";
 export * from "./repositories/generations";
 export * from "./repositories/messages";
+export * from "./repositories/preferences";
 export * from "./repositories/users";
 export * from "./schema";
 export * from "./storage";

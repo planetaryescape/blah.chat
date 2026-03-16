@@ -1,8 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
 import {
   Check,
   Copy,
@@ -21,6 +19,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useCachedSources } from "@/hooks/useCacheSync";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useHaptic } from "@/hooks/useHaptic";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
@@ -54,15 +53,7 @@ export function MessageActions({
   const router = useRouter();
   const apiClient = useApiClient();
   const regenerate = useRegenerateMessage();
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const recordAction = useMutation(api.usage.mutations.recordAction);
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const sources = useQuery(
-    api.sources.operations.getSources,
-    message.role === "assistant" && !message._id.startsWith("temp_")
-      ? { messageId: message._id as Id<"messages"> }
-      : "skip",
-  );
+  const sources = useCachedSources(message._id);
   const { isMobile } = useMobileDetect();
   const { haptic } = useHaptic();
   const features = useFeatureToggles();
@@ -129,7 +120,6 @@ export function MessageActions({
     setCopied(true);
     haptic("SUCCESS");
     setTimeout(() => setCopied(false), 2000);
-    recordAction({ actionType: "copy_message", resourceId: message._id });
   };
 
   const handleBranch = async () => {
@@ -140,7 +130,6 @@ export function MessageActions({
           targetMessageId: message._id,
         },
       );
-      recordAction({ actionType: "branch_message", resourceId: message._id });
       router.push(`/chat/${message.conversationId}`);
     } catch (error) {
       console.error("Failed to branch:", error);
@@ -154,10 +143,6 @@ export function MessageActions({
         conversationId: message.conversationId,
         modelId,
       });
-      recordAction({
-        actionType: "regenerate_message",
-        resourceId: message._id,
-      });
     } catch (error) {
       console.error("Failed to regenerate:", error);
     }
@@ -170,7 +155,6 @@ export function MessageActions({
   };
 
   const handleSaveAsNoteClick = () => {
-    recordAction({ actionType: "save_as_note", resourceId: message._id });
     setShowCreateNote(true);
   };
 

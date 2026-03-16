@@ -1,4 +1,5 @@
 import {
+  conversations,
   createConversationRepository,
   messageEdges,
   messages,
@@ -180,8 +181,71 @@ export const messagesDAL = {
     );
   },
 
-  update: async (_userId: string, _messageId: string, _content: string) => {
-    throw new Error("Message editing not yet implemented");
+  update: async (
+    userId: string,
+    messageId: string,
+    content: string,
+    options?: {
+      createBranch?: boolean;
+      modelId?: string;
+    },
+  ) => {
+    const trimmedContent = content.trim();
+    if (!trimmedContent) {
+      throw new Error("Message content cannot be empty");
+    }
+
+    const { db, message } = await getOwnedRequestMessage(userId, messageId);
+    if (message.role !== "user") {
+      throw new Error("Can only edit user messages");
+    }
+
+    const shouldCreateBranch = options?.createBranch !== false;
+    if (!shouldCreateBranch) {
+      await db
+        .update(messages)
+        .set({
+          content: trimmedContent,
+          updatedAt: Date.now(),
+        })
+        .where(eq(messages.id, message.id));
+
+      return formatEntity(
+        toApiMessageWithMeta({
+          ...message,
+          content: trimmedContent,
+          updatedAt: Date.now(),
+        }),
+        "message",
+        message.id,
+      );
+    }
+
+    const repo = createGenerationV2Repository(db);
+    const started = await repo.createEditRequest({
+      messageId: message.id,
+      content: trimmedContent,
+      modelId: options?.modelId,
+    });
+
+    return {
+      status: "success" as const,
+      sys: {
+        entity: "message",
+        async: true,
+      },
+      data: {
+        requestId: started.requestId,
+        conversationId: started.conversationId,
+        messageId: started.userMessageId,
+        assistantMessageId: started.assistantMessageIds[0],
+        assistantMessageIds: started.assistantMessageIds,
+        status: "pending" as const,
+        pollUrl: `/api/v1/messages/${started.assistantMessageIds[0]}`,
+        streamUrl: `/api/v1/generations/${started.requestId}/stream`,
+        stopUrl: `/api/v1/generations/${started.requestId}/stop`,
+      },
+    };
   },
 
   regenerate: async (userId: string, messageId: string, modelId?: string) => {
@@ -214,7 +278,49 @@ export const messagesDAL = {
 
   delete: async (userId: string, messageId: string) => {
     const { db, message } = await getOwnedRequestMessage(userId, messageId);
-    await db.delete(messages).where(eq(messages.id, message.id));
+    const messagesToDelete = new Set<string>([message.id]);
+    const queue = [message.id];
+
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+      const childEdges = await db.query.messageEdges.findMany({
+        where: eq(messageEdges.parentMessageId, currentId),
+      });
+
+      for (const edge of childEdges) {
+        if (!messagesToDelete.has(edge.childMessageId)) {
+          messagesToDelete.add(edge.childMessageId);
+          queue.push(edge.childMessageId);
+        }
+      }
+    }
+
+    const parentEdge = await db.query.messageEdges.findFirst({
+      where: eq(messageEdges.childMessageId, message.id),
+      orderBy: (table, { asc }) => [asc(table.position)],
+      columns: {
+        parentMessageId: true,
+      },
+    });
+
+    const conversation = await db.query.conversations.findFirst({
+      where: eq(conversations.id, message.conversationId),
+    });
+
+    await db
+      .delete(messages)
+      .where(inArray(messages.id, [...messagesToDelete]));
+
+    if (
+      conversation?.activeLeafMessageId &&
+      messagesToDelete.has(conversation.activeLeafMessageId)
+    ) {
+      await createConversationRepository(db).setActiveLeaf({
+        conversationId: message.conversationId,
+        activeLeafMessageId: parentEdge?.parentMessageId ?? null,
+      });
+    }
+
     return formatEntity({ deleted: true, messageId }, "message", messageId);
   },
 };

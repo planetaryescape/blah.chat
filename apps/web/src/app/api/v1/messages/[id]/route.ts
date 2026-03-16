@@ -1,10 +1,18 @@
-import { type NextRequest, NextResponse } from "next/server";
+import { after, type NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { CachePresets, getCacheControl } from "@/lib/api/cache";
 import { messagesDAL } from "@/lib/api/dal/messages";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { trackAPIPerformance } from "@/lib/api/monitoring";
+import { getGenerationV2Service } from "@/lib/generation-v2/runtime";
 import logger from "@/lib/logger";
+
+const updateMessageSchema = z.object({
+  content: z.string().min(1),
+  createBranch: z.boolean().optional(),
+  modelId: z.string().optional(),
+});
 
 async function getHandler(
   _req: NextRequest,
@@ -45,14 +53,63 @@ async function deleteHandler(
   const startTime = Date.now();
   logger.info({ userId, messageId: id }, "DELETE /api/v1/messages/:id");
 
-  await messagesDAL.delete(userId, id);
-
   const duration = Date.now() - startTime;
   logger.info({ userId, messageId: id, duration }, "Message deleted");
 
-  return new NextResponse(null, { status: 204 });
+  const result = await messagesDAL.delete(userId, id);
+  return NextResponse.json(result, { status: 200 });
+}
+
+async function patchHandler(
+  req: NextRequest,
+  {
+    params,
+    userId,
+  }: { params: Promise<Record<string, string | string[]>>; userId: string },
+) {
+  const { id } = (await params) as { id: string };
+  const startTime = performance.now();
+  logger.info({ userId, messageId: id }, "PATCH /api/v1/messages/:id");
+
+  const body = updateMessageSchema.parse(await req.json());
+  const result = await messagesDAL.update(userId, id, body.content, {
+    createBranch: body.createBranch,
+    modelId: body.modelId,
+  });
+
+  const requestId =
+    typeof result.data === "object" && result.data && "requestId" in result.data
+      ? (result.data.requestId as string | undefined)
+      : undefined;
+
+  if (requestId) {
+    const service = getGenerationV2Service();
+    after(async () => {
+      try {
+        await service.process(requestId);
+      } catch (error) {
+        logger.error(
+          { error, requestId },
+          "message update route background generation failed",
+        );
+      }
+    });
+  }
+
+  const duration = performance.now() - startTime;
+  const statusCode = requestId ? 202 : 200;
+  trackAPIPerformance({
+    endpoint: "/api/v1/messages/:id",
+    method: "PATCH",
+    duration,
+    status: statusCode,
+    userId,
+  });
+
+  return NextResponse.json(result, { status: statusCode });
 }
 
 export const GET = withErrorHandling(withAuth(getHandler));
+export const PATCH = withErrorHandling(withAuth(patchHandler));
 export const DELETE = withErrorHandling(withAuth(deleteHandler));
 export const dynamic = "force-dynamic";

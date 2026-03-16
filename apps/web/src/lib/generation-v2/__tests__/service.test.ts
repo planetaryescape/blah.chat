@@ -299,6 +299,97 @@ describe("GenerationV2Service", () => {
     ]);
   });
 
+  it("creates an edited user branch and generates a fresh assistant response", async () => {
+    const db = await createTestPersistenceDb();
+    const conversations = createConversationRepository(db);
+    const store = new MemoryGenerationEventStore();
+    const service = new GenerationV2Service(
+      db,
+      store,
+      new FakeGenerationProvider({
+        "openai:gpt-5-mini": ["first reply"],
+        "openai:gpt-5": ["edited reply"],
+      }),
+      async () => {},
+      (() => {
+        let time = 3_000;
+        return () => {
+          time += 300;
+          return time;
+        };
+      })(),
+    );
+
+    const user = await service.repository.upsertUser({
+      clerkId: "user_edit",
+      email: "edit@example.com",
+      name: "Edit User",
+    });
+    const conversation = await conversations.create({
+      userId: user.id,
+      title: "Edit",
+      model: "openai:gpt-5-mini",
+    });
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_edit",
+        email: "edit@example.com",
+        name: "Edit User",
+      },
+      conversationId: conversation.id,
+      content: "Original prompt",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    await service.process(started.requestId);
+
+    const originalUserMessage = (
+      await service.repository.listMessages(conversation.id)
+    ).find((message) => message.role === "user");
+    expect(originalUserMessage).toBeTruthy();
+
+    const edited = await service.repository.createEditRequest({
+      messageId: originalUserMessage!.id,
+      content: "Edited prompt",
+      modelId: "openai:gpt-5",
+    });
+
+    await service.process(edited.requestId);
+
+    const messages = await service.repository.listMessages(conversation.id);
+    const userMessages = messages.filter((message) => message.role === "user");
+    const assistantMessages = messages.filter(
+      (message) => message.role === "assistant",
+    );
+    const activePath = await conversations.getActivePath(conversation.id);
+
+    expect(userMessages).toHaveLength(2);
+    expect(
+      userMessages.map((message) => ({
+        content: message.content,
+        siblingIndex: message.siblingIndex,
+        forkReason: message.forkReason,
+      })),
+    ).toEqual([
+      {
+        content: "Original prompt",
+        siblingIndex: 0,
+        forkReason: null,
+      },
+      {
+        content: "Edited prompt",
+        siblingIndex: 1,
+        forkReason: "edit",
+      },
+    ]);
+    expect(assistantMessages.at(-1)?.content).toBe("edited reply");
+    expect(activePath.map((message) => message.content)).toEqual([
+      "Edited prompt",
+      "edited reply",
+    ]);
+  });
+
   it("stops one comparison child session without cancelling the others", async () => {
     const db = await createTestPersistenceDb();
     const conversations = createConversationRepository(db);

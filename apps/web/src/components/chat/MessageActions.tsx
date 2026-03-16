@@ -53,8 +53,6 @@ export function MessageActions({
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
   const router = useRouter();
   const apiClient = useApiClient();
-  const retryMessage = useMutation(api.chat.retryMessage);
-  const branchFromMessage = useMutation(api.chat.branchFromMessage);
   const regenerate = useRegenerateMessage();
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const recordAction = useMutation(api.usage.mutations.recordAction);
@@ -136,11 +134,14 @@ export function MessageActions({
 
   const handleBranch = async () => {
     try {
-      const result = await branchFromMessage({
-        messageId: message._id as Id<"messages">,
-      });
+      await apiClient.post(
+        `/api/v1/conversations/${message.conversationId}/switch-branch`,
+        {
+          targetMessageId: message._id,
+        },
+      );
       recordAction({ actionType: "branch_message", resourceId: message._id });
-      router.push(`/chat/${result.conversationId}`);
+      router.push(`/chat/${message.conversationId}`);
     } catch (error) {
       console.error("Failed to branch:", error);
     }
@@ -266,9 +267,16 @@ export function MessageActions({
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
-                    onClick={() =>
-                      retryMessage({ messageId: message._id as Id<"messages"> })
-                    }
+                    onClick={() => {
+                      if (!nextMessage) {
+                        return;
+                      }
+
+                      void regenerate.mutateAsync({
+                        messageId: nextMessage._id as Id<"messages">,
+                        conversationId: message.conversationId,
+                      });
+                    }}
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span className="sr-only">Retry</span>

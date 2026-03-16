@@ -4,13 +4,13 @@ import { getModelConfig } from "@blah-chat/ai/utils";
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useQuery as useRestQuery } from "@tanstack/react-query";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { format } from "date-fns";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useCachedAttachments, useCachedToolCalls } from "@/hooks/useCacheSync";
+import { useCachedToolCalls } from "@/hooks/useCacheSync";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useHoverIntent } from "@/hooks/useHoverIntent";
 import { useMessageKeyboardShortcuts } from "@/hooks/useMessageKeyboardShortcuts";
@@ -119,8 +119,8 @@ function ErrorDisplay({
 }
 
 interface ChatMessageProps {
-  message: Doc<"messages"> | OptimisticMessage;
-  nextMessage?: Doc<"messages"> | OptimisticMessage;
+  message: MessageWithAttachments;
+  nextMessage?: MessageWithAttachments;
   readOnly?: boolean;
   isCollaborative?: boolean;
   senderUser?: { name?: string; imageUrl?: string } | null;
@@ -129,6 +129,20 @@ interface ChatMessageProps {
   // Lifted preference to avoid memo blocking updates
   showMessageStats?: boolean;
 }
+
+type MessageAttachment = {
+  id: string;
+  type: "file" | "image" | "audio";
+  name: string;
+  storageId: string;
+  mimeType: string;
+  size: number;
+  url?: string;
+};
+
+type MessageWithAttachments = (Doc<"messages"> | OptimisticMessage) & {
+  attachments?: MessageAttachment[];
+};
 
 type ApiMessageEnvelope = {
   data: {
@@ -238,27 +252,14 @@ export const ChatMessage = memo(
         : null;
     const isCached = ttft !== null && isCachedResponse(ttft);
 
-    // Read attachments from local cache (instant)
-    // Cache is synced by useMetadataCacheSync in VirtualizedMessageList
-    const attachments = useCachedAttachments(
-      isTempMessage ? "" : (message._id as string),
-    );
-
-    // Fetch URLs for attachments
-    const attachmentStorageIds =
-      attachments?.map((a: any) => a.storageId) || [];
-    const attachmentUrls = useQuery(
-      api.files.getAttachmentUrls,
-      attachmentStorageIds.length > 0
-        ? { storageIds: attachmentStorageIds }
-        : "skip",
-    );
-
+    const attachments = message.attachments;
     const urlMap = new Map<string, string>(
-      attachmentUrls
-        ?.map((a: any) => [a.storageId, a.url] as [string, string])
-        .filter((pair: any): pair is [string, string] => pair[1] !== null) ||
-        [],
+      (attachments ?? [])
+        .filter(
+          (attachment): attachment is MessageAttachment & { url: string } =>
+            !!attachment?.url,
+        )
+        .map((attachment) => [attachment.storageId, attachment.url]),
     );
 
     // Read tool calls from local cache (instant)

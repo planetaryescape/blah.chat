@@ -37,6 +37,13 @@ vi.mock("@/lib/analytics", () => ({
   analytics: { track: vi.fn() },
 }));
 
+vi.mock("@/lib/api/client", () => ({
+  useApiClient: () => ({
+    post: vi.fn(),
+    get: vi.fn(),
+  }),
+}));
+
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 // Import component AFTER mocks
 import { ChatInput } from "../ChatInput";

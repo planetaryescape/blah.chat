@@ -13,7 +13,7 @@ import {
   serializeDraftRecord,
   WEB_MOBILE_DRAFT_STORAGE_KEY,
 } from "@blah-chat/chat-ui-core";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Expand, Loader2, Send, Square, Upload } from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
@@ -82,6 +82,7 @@ interface Attachment {
   storageId: string;
   mimeType: string;
   size: number;
+  url?: string;
 }
 
 interface ChatInputProps {
@@ -181,10 +182,6 @@ export const ChatInput = memo(function ChatInput({
   const lastAssistantMessage = useQuery(api.messages.getLastAssistantMessage, {
     conversationId,
   });
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const saveFile = useMutation(api.files.saveFile);
 
   // Check model capabilities
   const modelConfig = getModelConfig(selectedModel);
@@ -603,21 +600,22 @@ export const ChatInput = memo(function ChatInput({
 
       setUploading(true);
       try {
-        const uploadUrl = await generateUploadUrl();
+        const { uploadUrl, storageId } = await apiClient.post<{
+          uploadUrl: string;
+          storageId: string;
+        }>("/api/v1/files/upload-url", {
+          conversationId,
+          fileName: file.name || `pasted-image-${Date.now()}.png`,
+          contentType: file.type,
+        });
         const result = await fetch(uploadUrl, {
-          method: "POST",
+          method: "PUT",
           headers: { "Content-Type": file.type },
           body: file,
         });
-        const { storageId } = await result.json();
-
-        await saveFile({
-          storageId,
-          name: file.name || `pasted-image-${Date.now()}.png`,
-          mimeType: file.type,
-          size: file.size,
-          conversationId,
-        });
+        if (!result.ok) {
+          throw new Error("Failed to upload image");
+        }
 
         const attachment: Attachment = {
           type: "image",
@@ -625,6 +623,7 @@ export const ChatInput = memo(function ChatInput({
           storageId,
           mimeType: file.type,
           size: file.size,
+          url: URL.createObjectURL(file),
         };
 
         onAttachmentsChange([...attachments, attachment]);
@@ -642,14 +641,7 @@ export const ChatInput = memo(function ChatInput({
         setUploading(false);
       }
     },
-    [
-      attachments,
-      conversationId,
-      generateUploadUrl,
-      onAttachmentsChange,
-      saveFile,
-      setUploading,
-    ],
+    [attachments, apiClient, conversationId, onAttachmentsChange, setUploading],
   );
 
   const handleLargeTextPaste = useCallback(
@@ -659,21 +651,22 @@ export const ChatInput = memo(function ChatInput({
         const blob = new Blob([text], { type: "text/plain" });
         const filename = `pasted-text-${Date.now()}.txt`;
 
-        const uploadUrl = await generateUploadUrl();
+        const { uploadUrl, storageId } = await apiClient.post<{
+          uploadUrl: string;
+          storageId: string;
+        }>("/api/v1/files/upload-url", {
+          conversationId,
+          fileName: filename,
+          contentType: "text/plain",
+        });
         const result = await fetch(uploadUrl, {
-          method: "POST",
+          method: "PUT",
           headers: { "Content-Type": "text/plain" },
           body: blob,
         });
-        const { storageId } = await result.json();
-
-        await saveFile({
-          storageId,
-          name: filename,
-          mimeType: "text/plain",
-          size: blob.size,
-          conversationId,
-        });
+        if (!result.ok) {
+          throw new Error("Failed to upload text attachment");
+        }
 
         const attachment: Attachment = {
           type: "file",
@@ -698,13 +691,7 @@ export const ChatInput = memo(function ChatInput({
         setUploading(false);
       }
     },
-    [
-      attachments,
-      conversationId,
-      generateUploadUrl,
-      onAttachmentsChange,
-      saveFile,
-    ],
+    [attachments, apiClient, conversationId, onAttachmentsChange],
   );
 
   const handlePaste = useCallback(

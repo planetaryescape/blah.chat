@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { createR2Client } from "../src/clients/r2";
 import { createAttachmentRepository } from "../src/repositories/attachments";
 import { createConversationRepository } from "../src/repositories/conversations";
@@ -5,13 +6,21 @@ import { createMessageRepository } from "../src/repositories/messages";
 import { createUserRepository } from "../src/repositories/users";
 import {
   buildAttachmentObjectKey,
+  buildDraftObjectKey,
   createSignedReadUrl,
   createSignedUploadUrl,
 } from "../src/storage";
 import { createTestPersistenceDb } from "../src/testing/pglite";
 
 describe("attachment storage", () => {
-  test("builds stable object keys and signs upload/read URLs", async () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.spyOn(crypto, "randomUUID").mockReturnValue(
+      "123e4567-e89b-12d3-a456-426614174000",
+    );
+  });
+
+  test("builds unique object keys and signs upload/read URLs", async () => {
     const key = buildAttachmentObjectKey({
       userId: "user_1",
       conversationId: "conv_1",
@@ -45,11 +54,22 @@ describe("attachment storage", () => {
     });
 
     expect(key).toBe(
-      "users/user_1/conversations/conv_1/messages/msg_1/Quarterly-Report-2026.pdf",
+      "users/user_1/conversations/conv_1/messages/msg_1/123e4567-e89b-12d3-a456-426614174000-Quarterly-Report-2026.pdf",
     );
     expect(uploadUrl).toContain("blah-chat-prod");
     expect(uploadUrl).toContain("Quarterly-Report-2026.pdf");
     expect(readUrl).toContain("X-Amz-Signature");
+  });
+
+  test("builds unique draft keys", () => {
+    const key = buildDraftObjectKey({
+      userId: "user_1",
+      fileName: "voice note.webm",
+    });
+
+    expect(key).toBe(
+      "users/user_1/drafts/123e4567-e89b-12d3-a456-426614174000-voice-note.webm",
+    );
   });
 
   test("persists attachment metadata against a message", async () => {

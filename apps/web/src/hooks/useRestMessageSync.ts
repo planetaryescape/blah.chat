@@ -16,6 +16,15 @@ type ApiMessage = {
   comparisonGroupId?: string;
   consolidatedMessageId?: string;
   isConsolidation?: boolean;
+  attachments?: Array<{
+    id: string;
+    type: "file" | "image" | "audio";
+    storageId: string;
+    name: string;
+    mimeType: string;
+    size: number;
+    url?: string;
+  }>;
   rootMessageId?: string;
   siblingIndex?: number;
   forkReason?: string;

@@ -90,7 +90,11 @@ export function useSendMessage(
         status: "optimistic" as const,
         attachments: variables.attachments?.map((att) => ({
           id: att.storageId,
-          storageId: att.storageId as Id<"_storage">,
+          type: att.type,
+          name: att.name,
+          storageId: att.storageId,
+          mimeType: att.mimeType,
+          size: att.size,
           _optimistic: true,
         })),
         createdAt: Date.now(),

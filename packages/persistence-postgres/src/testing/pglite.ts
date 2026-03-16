@@ -32,6 +32,8 @@ CREATE TABLE messages (
   status text NOT NULL,
   model text,
   comparison_group_id text,
+  consolidated_message_id text,
+  is_consolidation boolean NOT NULL DEFAULT false,
   root_message_id text,
   sibling_index bigint NOT NULL,
   fork_reason text,
@@ -70,6 +72,7 @@ CREATE TABLE generation_requests (
   conversation_id text NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
   user_message_id text NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
   requested_models text[] NOT NULL DEFAULT ARRAY[]::text[],
+  prompt_override text,
   status text NOT NULL,
   created_at bigint NOT NULL,
   updated_at bigint NOT NULL
@@ -92,6 +95,15 @@ CREATE TABLE generation_checkpoints (
   content text NOT NULL,
   sequence bigint NOT NULL,
   created_at bigint NOT NULL
+);
+
+CREATE TABLE comparison_votes (
+  id text PRIMARY KEY,
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  comparison_group_id text NOT NULL,
+  winner_message_id text,
+  rating text NOT NULL,
+  voted_at bigint NOT NULL
 );
 `;
 

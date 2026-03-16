@@ -1,14 +1,20 @@
 "use client";
 
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { forwardRef } from "react";
 import { Badge } from "@/components/ui/badge";
-import type { OptimisticMessage } from "@/types/optimistic";
 import { MarkdownContent } from "./MarkdownContent";
 import { VotingControls } from "./VotingControls";
 
-type MessageWithUser = (Doc<"messages"> | OptimisticMessage) & {
-  senderUser?: { name?: string; imageUrl?: string } | null;
+type MessageWithUser = {
+  _id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  partialContent?: string;
+  status: string;
+  model?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  cost?: number;
 };
 
 interface ComparisonPanelProps {

@@ -1,6 +1,5 @@
 "use client";
 
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { Eye, EyeOff, Sparkles, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useMediaQuery } from "usehooks-ts";
@@ -16,13 +15,24 @@ import { useSyncedScroll } from "@/hooks/useSyncedScroll";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { analytics } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
-import type { OptimisticMessage } from "@/types/optimistic";
 import { ComparisonPanel } from "./ComparisonPanel";
 import { ConsolidateDialog } from "./ConsolidateDialog";
 
 type ConsolidationMode = "same-chat" | "new-chat";
 
-type MessageWithUser = (Doc<"messages"> | OptimisticMessage) & {
+type MessageWithUser = {
+  _id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  partialContent?: string;
+  status: string;
+  model?: string;
+  comparisonGroupId?: string;
+  cost?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  generationCompletedAt?: number | null;
+  createdAt: number;
   senderUser?: { name?: string; imageUrl?: string } | null;
 };
 

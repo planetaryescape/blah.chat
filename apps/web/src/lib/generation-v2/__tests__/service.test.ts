@@ -18,6 +18,29 @@ class FakeGenerationProvider implements GenerationProvider {
   }
 }
 
+class InspectableGenerationProvider implements GenerationProvider {
+  calls: Array<{
+    modelId: string;
+    messages: Array<{ role: string; content: string }>;
+  }> = [];
+
+  constructor(private readonly outputs: Record<string, string[]>) {}
+
+  async *streamText(input: {
+    modelId: string;
+    messages: Array<{ role: string; content: string }>;
+  }) {
+    this.calls.push({
+      modelId: input.modelId,
+      messages: input.messages,
+    });
+
+    for (const chunk of this.outputs[input.modelId] ?? []) {
+      yield chunk;
+    }
+  }
+}
+
 class StoppableGenerationProvider implements GenerationProvider {
   async *streamText() {
     yield "hello ";
@@ -195,6 +218,7 @@ describe("GenerationV2Service", () => {
     const assistants = await (
       service as any
     ).repository.getAssistantMessagesForRequest(started.requestId);
+    const messages = await service.repository.listMessages(conversation.id);
     const events = await store.read(started.requestId);
 
     expect(status).toBe("complete");
@@ -211,6 +235,154 @@ describe("GenerationV2Service", () => {
     expect(
       events.events.filter((event) => event.type === "complete"),
     ).toHaveLength(2);
+    expect(
+      messages.find((message: { role: string }) => message.role === "user")
+        ?.comparisonGroupId,
+    ).toBeTruthy();
+  });
+
+  it("creates an in-chat consolidation request, hides originals, and streams with a consolidation prompt override", async () => {
+    const db = await createTestPersistenceDb();
+    const conversations = createConversationRepository(db);
+    const store = new MemoryGenerationEventStore();
+    const provider = new InspectableGenerationProvider({
+      "openai:gpt-5-mini": ["first"],
+      "anthropic:claude-sonnet-4": ["second"],
+      "openai:gpt-5": ["merged answer"],
+    });
+    const service = new GenerationV2Service(
+      db,
+      store,
+      provider,
+      async () => {},
+      (() => {
+        let time = 4_000;
+        return () => {
+          time += 300;
+          return time;
+        };
+      })(),
+    );
+
+    const user = await service.repository.upsertUser({
+      clerkId: "user_merge",
+      email: "merge@example.com",
+      name: "Merge User",
+    });
+    const conversation = await conversations.create({
+      userId: user.id,
+      title: "Compare",
+      model: "auto",
+    });
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_merge",
+        email: "merge@example.com",
+        name: "Merge User",
+      },
+      conversationId: conversation.id,
+      content: "Which answer is best?",
+      models: ["openai:gpt-5-mini", "anthropic:claude-sonnet-4"],
+    });
+    await service.process(started.requestId);
+
+    const originalAssistants =
+      await service.repository.getAssistantMessagesForRequest(
+        started.requestId,
+      );
+    const comparisonGroupId = originalAssistants[0]?.comparisonGroupId;
+    expect(comparisonGroupId).toBeTruthy();
+
+    const consolidated = await service.startSameChatConsolidation({
+      comparisonGroupId: comparisonGroupId!,
+      consolidationModel: "openai:gpt-5",
+    });
+    await service.process(consolidated.requestId);
+
+    const messages = await service.repository.listMessages(conversation.id);
+    const mergedMessage = messages.find((message) =>
+      consolidated.assistantMessageIds.includes(message.id),
+    );
+    const hiddenOriginals = messages.filter(
+      (message) => message.consolidatedMessageId === mergedMessage?.id,
+    );
+
+    expect(mergedMessage).toMatchObject({
+      isConsolidation: true,
+      content: "merged answer",
+      status: "complete",
+      model: "openai:gpt-5",
+    });
+    expect(hiddenOriginals).toHaveLength(2);
+    expect(provider.calls.at(-1)?.messages.at(-1)?.content).toContain(
+      "Can you consolidate all of this information",
+    );
+  });
+
+  it("creates a new conversation for consolidation", async () => {
+    const db = await createTestPersistenceDb();
+    const conversations = createConversationRepository(db);
+    const store = new MemoryGenerationEventStore();
+    const provider = new InspectableGenerationProvider({
+      "openai:gpt-5-mini": ["first"],
+      "anthropic:claude-sonnet-4": ["second"],
+      "openai:gpt-5": ["standalone merge"],
+    });
+    const service = new GenerationV2Service(
+      db,
+      store,
+      provider,
+      async () => {},
+    );
+
+    const user = await service.repository.upsertUser({
+      clerkId: "user_merge_new",
+      email: "merge-new@example.com",
+      name: "Merge New User",
+    });
+    const sourceConversation = await conversations.create({
+      userId: user.id,
+      title: "Compare",
+      model: "auto",
+    });
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_merge_new",
+        email: "merge-new@example.com",
+        name: "Merge New User",
+      },
+      conversationId: sourceConversation.id,
+      content: "Compare for export",
+      models: ["openai:gpt-5-mini", "anthropic:claude-sonnet-4"],
+    });
+    await service.process(started.requestId);
+
+    const originalAssistants =
+      await service.repository.getAssistantMessagesForRequest(
+        started.requestId,
+      );
+    const comparisonGroupId = originalAssistants[0]?.comparisonGroupId;
+
+    const consolidated = await service.startNewConversationConsolidation({
+      userId: user.id,
+      comparisonGroupId: comparisonGroupId!,
+      consolidationModel: "openai:gpt-5",
+    });
+    await service.process(consolidated.requestId);
+
+    const newConversationMessages = await service.repository.listMessages(
+      consolidated.conversationId,
+    );
+
+    expect(consolidated.conversationId).not.toBe(sourceConversation.id);
+    expect(newConversationMessages.map((message) => message.role)).toEqual([
+      "user",
+      "assistant",
+    ]);
+    expect(newConversationMessages[0]?.content).toContain("Original prompt");
+    expect(newConversationMessages[1]?.content).toBe("standalone merge");
   });
 
   it("creates a regenerated assistant sibling under the same user message", async () => {

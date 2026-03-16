@@ -82,6 +82,8 @@ function createMessageEnvelope(
     status: "pending" | "generating" | "complete" | "stopped" | "error";
     model: string | null;
     comparisonGroupId: string | undefined;
+    consolidatedMessageId: string | undefined;
+    isConsolidation: boolean;
     rootMessageId: string | undefined;
     siblingIndex: number;
     forkReason: string | undefined;
@@ -107,6 +109,8 @@ function createMessageEnvelope(
       status: overrides?.status ?? "complete",
       model: overrides?.model ?? null,
       comparisonGroupId: overrides?.comparisonGroupId,
+      consolidatedMessageId: overrides?.consolidatedMessageId,
+      isConsolidation: overrides?.isConsolidation ?? false,
       rootMessageId: overrides?.rootMessageId,
       siblingIndex: overrides?.siblingIndex ?? 0,
       forkReason: overrides?.forkReason,

@@ -1,7 +1,6 @@
 "use client";
 
 import { MODEL_CONFIG } from "@blah-chat/ai/models";
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,12 +20,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { OptimisticMessage } from "@/types/optimistic";
 
 type ConsolidationMode = "same-chat" | "new-chat";
 
-type MessageWithUser = (Doc<"messages"> | OptimisticMessage) & {
-  senderUser?: { name?: string; imageUrl?: string } | null;
+type MessageWithUser = {
+  _id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
 };
 
 interface ConsolidateDialogProps {

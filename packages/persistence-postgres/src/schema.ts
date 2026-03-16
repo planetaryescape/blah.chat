@@ -47,6 +47,8 @@ export const messages = pgTable("messages", {
   status: text("status").notNull().default("complete"),
   model: text("model"),
   comparisonGroupId: text("comparison_group_id"),
+  consolidatedMessageId: text("consolidated_message_id"),
+  isConsolidation: boolean("is_consolidation").notNull().default(false),
   rootMessageId: text("root_message_id"),
   siblingIndex: bigint("sibling_index", { mode: "number" })
     .notNull()
@@ -113,9 +115,21 @@ export const generationRequests = pgTable("generation_requests", {
     .array()
     .notNull()
     .default(sql`ARRAY[]::text[]`),
+  promptOverride: text("prompt_override"),
   status: text("status").notNull().default("pending"),
   createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(now),
   updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(now),
+});
+
+export const comparisonVotes = pgTable("comparison_votes", {
+  id: text("id").primaryKey().$defaultFn(id),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  comparisonGroupId: text("comparison_group_id").notNull(),
+  winnerMessageId: text("winner_message_id"),
+  rating: text("rating").notNull(),
+  votedAt: bigint("voted_at", { mode: "number" }).notNull().$defaultFn(now),
 });
 
 export const generationSessions = pgTable("generation_sessions", {

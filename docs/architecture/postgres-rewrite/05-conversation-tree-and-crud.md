@@ -1,5 +1,14 @@
 # Phase 5: Conversation Tree And CRUD
 
+Status: in progress as of March 16, 2026.
+Completed work:
+- Postgres-backed conversation and message DAL added for the main web chat path
+- active-path message reads, regenerate flows, and branch switching moved onto REST routes
+- tree payloads now include parent and active-branch metadata needed by the chat UI
+Still pending for full phase closure:
+- migrate remaining conversation and message surfaces still reading or mutating through Convex
+- finish parity for broader branch/edit flows outside the main chat path
+
 ## Goal
 
 Build the basic Postgres-backed conversation and message APIs, with branch-safe reads and writes.
@@ -66,4 +75,3 @@ This phase does not implement comparison streaming yet, but the data model must 
 ## What Comes Next
 
 Once core tree CRUD is solid, phase 6 can move attachments and blob storage to R2.
-

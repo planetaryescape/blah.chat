@@ -1,6 +1,6 @@
 # Phase 7: Generation V2 Single Model
 
-Status: implemented backend slice on March 16, 2026.
+Status: in progress as of March 16, 2026.
 Implemented:
 - Postgres-backed `generation_request` + `generation_session` creation
 - Redis-backed event log
@@ -8,10 +8,11 @@ Implemented:
 - explicit stop route
 - checkpoint persistence
 - targeted Vitest coverage for complete/stop flows
+- main web chat read/send/stop loop moved onto the new REST + SSE path
+- active streaming UI no longer uses `useStreamBuffer`
 Still pending for full phase closure:
-- wire the primary UI send/listen flow to these endpoints
-- replace old Convex-backed send path
-- measure end-to-end UX in the live app
+- complete non-primary app-surface migration to the new generation runtime
+- finish broader cutover and production hardening for the single-model path
 
 ## Goal
 

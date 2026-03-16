@@ -31,15 +31,31 @@ Execution rules:
 
 Execution status:
 
-- [x] Phase 2 foundation implemented and locally verified with Docker Compose
-- [x] Phase 3 schema foundation implemented in `@blah-chat/persistence-postgres`
-- [x] Phase 7 backend runtime slice implemented: Postgres message/session persistence, Redis event log, SSE stream, stop route, checkpoints
-- [x] Phase 8 backend runtime slice implemented: multi-model sibling sessions and parallel comparison processing
-- [x] Main web chat read/send/stop loop moved onto Postgres-backed REST + SSE routes
-- [x] Main web chat regenerate flow moved onto Postgres-backed runtime and route handlers
-- [x] Main web chat branch payloads now include parent/active-branch metadata, with a Postgres-backed branch switch route
-- [x] Main web chat streaming UI no longer uses `useStreamBuffer` visual throttling
-- [ ] Phases 4-6 and 9-17 still require broader app-surface migration/cutover work outside the main chat path
+- Complete: 3 / 17 phases
+- In progress: 6 / 17 phases
+- Not started: 8 / 17 phases
+
+Phase status snapshot:
+
+| Phase | Status | Notes |
+| --- | --- | --- |
+| 01 | Complete | Architecture pack written and locked in `/docs/architecture/postgres-rewrite` |
+| 02 | Complete | Local infra, clients, env parsing, health checks implemented |
+| 03 | Complete | Postgres schema foundation implemented in `@blah-chat/persistence-postgres` |
+| 04 | In progress | Direct Clerk/Postgres path exists in migrated web APIs, broader Convex auth removal still pending |
+| 05 | In progress | Main chat CRUD, branch switch, regenerate moved to Postgres-backed APIs; broader surfaces still pending |
+| 06 | In progress | Chat attachment upload/read path moved to R2 + Postgres; other blob flows still pending |
+| 07 | In progress | Single-model generation runtime works on new stack for main web chat; broader surface cutover/perf hardening pending |
+| 08 | In progress | Backend comparison runtime exists; more UI/app-surface parity still pending |
+| 09 | In progress | Web local-first cache/queue path still active on migrated chat path; mobile parity and full resume work still pending |
+| 10 | Not started | Planned only |
+| 11 | Not started | Planned only |
+| 12 | Not started | Planned only |
+| 13 | Not started | Planned only |
+| 14 | Not started | Planned only |
+| 15 | Not started | Planned only |
+| 16 | Not started | Planned only |
+| 17 | Not started | Planned only |
 
 Phase order:
 

@@ -1,5 +1,13 @@
 # Phase 9: Offline Mobile Resume
 
+Status: in progress as of March 16, 2026.
+Completed work:
+- migrated web chat path still uses local cache and local-first message sync
+- new generation runtime supports Redis log plus Postgres checkpoints for resume-oriented transport
+Still pending for full phase closure:
+- migrate mobile onto the new transport model
+- complete offline replay and resume parity across all surfaces
+
 ## Goal
 
 Rebuild the local-first layer so offline sends, reconnect, refresh, and mobile parity remain strong on the new stack.
@@ -79,4 +87,3 @@ Queue records must store enough to fully replay the send:
 ## What Comes Next
 
 Once the runtime and client resilience paths are stable, phase 10 can rebuild the router on top of real data.
-

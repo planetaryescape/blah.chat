@@ -1,5 +1,11 @@
 # Phase 3: Postgres Schema
 
+Status: complete as of March 16, 2026.
+Completed work:
+- `@blah-chat/persistence-postgres` package created
+- canonical schema foundation implemented for users, conversations, messages, edges, attachments, generation requests, sessions, and checkpoints
+- repository tests added for core persistence flows
+
 ## Goal
 
 Design and implement the canonical Postgres schema, with the message tree as a first-class data model.
@@ -124,4 +130,3 @@ Do not make `messages.is_active_branch` canonical. It can be derived with recurs
 ## What Comes Next
 
 Once the schema is real, auth and user identity can move onto it in phase 4.
-

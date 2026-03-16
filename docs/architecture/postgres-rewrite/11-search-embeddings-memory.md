@@ -1,5 +1,7 @@
 # Phase 11: Search Embeddings Memory
 
+Status: not started as of March 16, 2026.
+
 ## Goal
 
 Port search, embedding storage, and retrieval-heavy memory features from Convex to Postgres plus Trigger.
@@ -64,4 +66,3 @@ Embedding generation and reindexing should run in Trigger tasks, not inside user
 ## What Comes Next
 
 With retrieval moved, phase 12 can migrate the rest of the asynchronous Convex work to Trigger.dev.
-

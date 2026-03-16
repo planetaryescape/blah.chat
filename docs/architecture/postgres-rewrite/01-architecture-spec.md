@@ -1,5 +1,11 @@
 # Phase 1: Architecture Spec
 
+Status: complete as of March 16, 2026.
+Completed work:
+- full rewrite program documented in this directory
+- phase ordering, invariants, infra choices, and migration constraints locked
+- each downstream phase has a self-contained implementation brief
+
 ## Goal
 
 Write the final architecture spec before implementation starts. This phase exists to remove ambiguity. If this phase is weak, every later phase will fork or drift.
@@ -92,4 +98,3 @@ None.
 ## What Comes Next
 
 After the contracts are fixed, infrastructure can be created safely in phase 2.
-

@@ -1,5 +1,13 @@
 # Phase 4: Auth And Identity
 
+Status: in progress as of March 16, 2026.
+Completed work:
+- migrated Postgres-backed web APIs resolve current user through the new server-side persistence path
+- direct non-Convex request paths now exist for key chat flows
+Still pending for full phase closure:
+- remove the remaining Convex auth bridge assumptions across all app surfaces
+- complete Clerk/Postgres identity unification beyond the migrated chat path
+
 ## Goal
 
 Replace Convex auth dependence with direct Clerk-authenticated app APIs backed by Postgres users.
@@ -65,4 +73,3 @@ Before building CRUD and generation on the new stack, the app needs a stable way
 ## What Comes Next
 
 With identity solved, phase 5 can build conversation and message CRUD on the new schema.
-

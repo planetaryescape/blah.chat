@@ -1,5 +1,7 @@
 # Phase 12: Trigger Background Jobs
 
+Status: not started as of March 16, 2026.
+
 ## Goal
 
 Move delayed work, scheduled work, long-running work, and backfills from Convex scheduler/actions/crons to Trigger.dev.
@@ -65,4 +67,3 @@ Anything that must feel immediate to the user stays out of Trigger. Anything dur
 ## What Comes Next
 
 With the core app stable and background work moved, phase 13 can redesign BYOD as a separate Postgres-based product surface.
-

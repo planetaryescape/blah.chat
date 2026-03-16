@@ -1,5 +1,7 @@
 # Phase 13: BYOD V1 Bring Your Own Neon
 
+Status: not started as of March 16, 2026.
+
 ## Goal
 
 Redesign BYOD around Postgres, starting with a tightly scoped and supportable v1: Bring Your Own Neon.
@@ -71,4 +73,3 @@ BYOD only moves the tenant database. Redis, R2, and app control-plane infrastruc
 ## What Comes Next
 
 After BYOD is redesigned, phase 14 can focus on historical data migration from Convex into the new stack.
-

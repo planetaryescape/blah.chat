@@ -1,5 +1,7 @@
 # Phase 14: Historical Data Migration
 
+Status: not started as of March 16, 2026.
+
 ## Goal
 
 Build and run the migration tooling that moves historical data from Convex and Convex storage into Postgres and R2.
@@ -72,4 +74,3 @@ The target schema and runtime must be stable before historical migration is atte
 ## What Comes Next
 
 After historical data is ready, phase 15 can cut all app surfaces over to the new runtime.
-

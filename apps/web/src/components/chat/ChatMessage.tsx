@@ -1,10 +1,8 @@
 "use client";
 
 import { getModelConfig } from "@blah-chat/ai/utils";
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useQuery as useRestQuery } from "@tanstack/react-query";
-import { useMutation } from "convex/react";
 import { format } from "date-fns";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
@@ -191,9 +189,6 @@ export const ChatMessage = memo(
     const isTempMessage =
       typeof message._id === "string" && message._id.startsWith("temp-");
     const apiClient = useApiClient();
-
-    // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-    const _updateModel = useMutation(api.conversations.updateModel);
 
     // Phase 4: Use new preference hooks
     const prefAlwaysShowActions = useUserPreference("alwaysShowMessageActions");

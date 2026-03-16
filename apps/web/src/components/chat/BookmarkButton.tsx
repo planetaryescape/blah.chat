@@ -50,8 +50,6 @@ export function BookmarkButton({
   const createBookmark = useMutation(api.bookmarks.create);
   const removeBookmark = useMutation(api.bookmarks.remove);
   const updateBookmark = useMutation(api.bookmarks.update);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const recordAction = useMutation(api.usage.mutations.recordAction);
 
   const isBookmarked = !!existingBookmark;
 
@@ -107,7 +105,6 @@ export function BookmarkButton({
           hasNote: !!note,
           tagCount: tagList?.length || 0,
         });
-        recordAction({ actionType: "bookmark_message", resourceId: messageId });
       }
       setShowDialog(false);
       setNote("");

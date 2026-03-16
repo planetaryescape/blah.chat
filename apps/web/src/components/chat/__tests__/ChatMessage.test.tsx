@@ -8,13 +8,49 @@ vi.mock("convex/react", () => ({
   useAction: vi.fn(() => vi.fn()),
 }));
 
+vi.mock("@tanstack/react-query", async () => {
+  const actual = await vi.importActual<typeof import("@tanstack/react-query")>(
+    "@tanstack/react-query",
+  );
+
+  return {
+    ...actual,
+    useQuery: vi.fn(() => ({
+      data: undefined,
+      isLoading: false,
+      error: null,
+    })),
+  };
+});
+
 // Mock hooks
 vi.mock("@/hooks/useFeatureToggles", () => ({
-  useFeatureToggles: () => ({}),
+  useFeatureToggles: () => ({
+    showNotes: true,
+    showBookmarks: true,
+    showTemplates: true,
+    showProjects: true,
+    isLoading: false,
+  }),
 }));
 
 vi.mock("@/hooks/useUserPreference", () => ({
   useUserPreference: () => false,
+}));
+
+vi.mock("@/lib/api/client", () => ({
+  useApiClient: () => ({
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
+  }),
+}));
+
+vi.mock("@/lib/hooks/mutations/useRegenerateMessage", () => ({
+  useRegenerateMessage: () => ({
+    mutateAsync: vi.fn(),
+  }),
 }));
 
 vi.mock("@/hooks/useMessageKeyboardShortcuts", () => ({

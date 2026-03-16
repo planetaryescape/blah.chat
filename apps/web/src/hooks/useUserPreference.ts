@@ -1,82 +1,82 @@
-/**
- * Phase 4: User Preferences React Hooks
- *
- * Custom hooks for accessing user preferences from the flat key-value table.
- * Provides reactivity and automatic fallback to defaults.
- * Uses Dexie cache for instant reads, synced from Convex.
- */
-
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { PREFERENCE_DEFAULTS } from "@blah-chat/shared/preferences";
-import { useQuery } from "convex/react";
+import {
+  PREFERENCE_CATEGORIES,
+  PREFERENCE_DEFAULTS,
+} from "@blah-chat/shared/preferences";
+import { useQuery } from "@tanstack/react-query";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect } from "react";
+import { useApiClient } from "@/lib/api/client";
 import { cache } from "@/lib/cache";
+import { queryKeys } from "@/lib/query/keys";
 
-/**
- * Get a single user preference by key
- *
- * Cache strategy:
- * 1. Return cached value for instant UI (no flash)
- * 2. Convex query runs in background
- * 3. When Convex returns, sync to cache
- * 4. useLiveQuery triggers re-render with fresh value
- *
- * @param key - Preference key (e.g., "theme", "defaultModel")
- * @returns Preference value or default if not set
- *
- * @example
- * const theme = useUserPreference("theme");
- * const defaultModel = useUserPreference("defaultModel");
- */
-export function useUserPreference<K extends keyof typeof PREFERENCE_DEFAULTS>(
-  key: K,
-): (typeof PREFERENCE_DEFAULTS)[K] {
-  // @ts-ignore - Type depth exceeded with Convex modules
-  const convexValue = useQuery(api.users.getUserPreference, { key });
+type UserPreferences = typeof PREFERENCE_DEFAULTS;
 
-  // Read from Dexie cache (reactive via useLiveQuery)
+function mergePreferences(preferences?: Partial<UserPreferences> | null) {
+  return {
+    ...PREFERENCE_DEFAULTS,
+    ...(preferences ?? {}),
+  } satisfies UserPreferences;
+}
+
+function usePreferencesQuery() {
+  const apiClient = useApiClient();
+
+  return useQuery({
+    queryKey: queryKeys.preferences.all,
+    queryFn: () =>
+      apiClient.get<Partial<UserPreferences>>("/api/v1/preferences"),
+    staleTime: 30_000,
+  });
+}
+
+export function usePreferenceSnapshot() {
   const cachedPreferences = useLiveQuery(
     () => cache.userPreferences.get("current"),
     [],
     null,
   );
+  const preferencesQuery = usePreferencesQuery();
 
-  // Sync Convex → Dexie when Convex value changes
   useEffect(() => {
-    if (convexValue === undefined) return; // Still loading
+    if (!preferencesQuery.data) {
+      return;
+    }
 
-    const syncToCache = async () => {
-      const current = await cache.userPreferences.get("current");
-      const existingData = current?.data ?? {};
+    const nextPreferences = mergePreferences(preferencesQuery.data);
 
-      // Only update if value actually changed
-      if (existingData[key] !== convexValue) {
-        await cache.userPreferences.put({
+    void cache.userPreferences
+      .get("current")
+      .then((current) => {
+        if (
+          JSON.stringify(current?.data ?? null) ===
+          JSON.stringify(nextPreferences)
+        ) {
+          return;
+        }
+
+        return cache.userPreferences.put({
           _id: "current",
-          data: { ...existingData, [key]: convexValue },
+          data: nextPreferences,
         });
-      }
-    };
+      })
+      .catch(console.error);
+  }, [preferencesQuery.data]);
 
-    syncToCache().catch(console.error);
-  }, [convexValue, key]);
-
-  // Priority: cached (instant) → convex (reactive) → defaults
-  if (cachedPreferences?.data?.[key] !== undefined) {
-    return cachedPreferences.data[key] as (typeof PREFERENCE_DEFAULTS)[K];
-  }
-  return convexValue ?? PREFERENCE_DEFAULTS[key];
+  return {
+    preferences: mergePreferences(
+      (cachedPreferences?.data as Partial<UserPreferences> | undefined) ??
+        preferencesQuery.data,
+    ),
+    isLoading:
+      cachedPreferences?.data === undefined && preferencesQuery.isLoading,
+  };
 }
 
-/**
- * Update preference cache optimistically.
- * Call this immediately when updating preferences for instant UI response.
- *
- * @example
- * await updatePreferenceCache("showMessageStatistics", true);
- * await updatePreferences({ preferences: { showMessageStatistics: true } });
- */
+export function useUserPreference<K extends keyof UserPreferences>(key: K) {
+  const { preferences } = usePreferenceSnapshot();
+  return preferences[key];
+}
+
 export async function updatePreferenceCache(
   key: string,
   value: unknown,
@@ -89,36 +89,17 @@ export async function updatePreferenceCache(
   });
 }
 
-/**
- * Get all user preferences (flattened into single object)
- *
- * @returns Object with all 35 preference fields
- *
- * @example
- * const preferences = useUserPreferences();
- * console.log(preferences.theme, preferences.defaultModel);
- */
 export function useUserPreferences() {
-  // @ts-ignore - Type depth exceeded with Convex modules
-  const preferences = useQuery(api.users.getAllUserPreferences);
-
-  return preferences ?? PREFERENCE_DEFAULTS;
+  const { preferences } = usePreferenceSnapshot();
+  return preferences;
 }
 
-/**
- * Get all preferences in a specific category
- *
- * @param category - Category name (e.g., "appearance", "models", "chat")
- * @returns Object with all preferences in that category
- *
- * @example
- * const audioPrefs = useUserPreferencesByCategory("audio");
- * console.log(audioPrefs.ttsEnabled, audioPrefs.ttsVoice);
- */
 export function useUserPreferencesByCategory(category: string) {
-  // Keep direct query - category filtering happens server-side
-  // @ts-ignore - Type depth exceeded with Convex modules
-  const prefs = useQuery(api.users.getUserPreferencesByCategory, { category });
+  const { preferences } = usePreferenceSnapshot();
 
-  return prefs ?? {};
+  return Object.fromEntries(
+    Object.entries(preferences).filter(
+      ([key]) => PREFERENCE_CATEGORIES[key] === category,
+    ),
+  );
 }

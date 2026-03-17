@@ -14,7 +14,7 @@ export function useToggleStar() {
 
   return useMutation({
     mutationFn: async ({ conversationId }: ToggleStarArgs) => {
-      return api.patch(`/api/v1/conversations/${conversationId}/star`);
+      return api.post(`/api/v1/conversations/${conversationId}/star`);
     },
 
     onMutate: async ({ conversationId }) => {

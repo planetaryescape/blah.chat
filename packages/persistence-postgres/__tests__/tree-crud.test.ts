@@ -88,4 +88,27 @@ describe("tree CRUD repositories", () => {
     ]);
     expect(siblings[1]?.forkReason).toBe("regenerate");
   });
+
+  test("toggles pin and star state for a conversation", async () => {
+    const db = await createTestPersistenceDb();
+    const users = createUserRepository(db);
+    const conversations = createConversationRepository(db);
+    const user = await users.upsertFromClerk({
+      clerkId: "user_flags",
+      email: "flags@example.com",
+      name: "Flag User",
+    });
+
+    const conversation = await conversations.create({
+      userId: user.id,
+      title: "Flags Chat",
+      model: "auto",
+    });
+
+    const pinned = await conversations.togglePin(conversation.id);
+    const starred = await conversations.toggleStar(conversation.id);
+
+    expect(pinned.pinned).toBe(true);
+    expect(starred.starred).toBe(true);
+  });
 });

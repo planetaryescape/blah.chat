@@ -1,35 +1,31 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import {
-  Authenticated,
-  Unauthenticated,
-  useConvexAuth,
-  useMutation,
-} from "convex/react";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useAuth } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef } from "react";
 import { MessageListSkeleton } from "@/components/chat/MessageListSkeleton";
 import { useNewChat } from "@/hooks/useNewChat";
 import { useNewChatModel } from "@/hooks/useNewChatModel";
 import { analytics } from "@/lib/analytics";
+import { useApiClient } from "@/lib/api/client";
 import { useTemplateStore } from "@/stores/templateStore";
 
 function ChatPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
+  const { isLoaded: authLoaded, userId } = useAuth();
   const { startNewChat } = useNewChat();
   const { newChatModel } = useNewChatModel();
+  const apiClient = useApiClient();
   const navigationStarted = useRef(false);
 
   // Zustand store for template text
   const consumeTemplateText = useTemplateStore((s) => s.consumeTemplateText);
 
-  // @ts-ignore - Type depth exceeded with complex Convex mutation
-  const createConversation = useMutation(api.conversations.create);
-
   const fromTemplate = searchParams.get("from") === "template";
+  const isAuthenticated = Boolean(userId);
+  const authLoading = !authLoaded;
 
   // Redirect unauthenticated users to sign-in
   useEffect(() => {
@@ -58,10 +54,14 @@ function ChatPageContent() {
 
       try {
         // Create new conversation
-        const conversationId = await createConversation({
-          model: newChatModel,
-          title: templateData.name || "New Chat",
-        });
+        const conversation = await apiClient.post<{ _id: Id<"conversations"> }>(
+          "/api/v1/conversations",
+          {
+            model: newChatModel,
+            title: templateData.name || "New Chat",
+          },
+        );
+        const conversationId = conversation._id;
 
         // Track analytics
         analytics.track("template_used", {
@@ -88,7 +88,7 @@ function ChatPageContent() {
     isAuthenticated,
     fromTemplate,
     consumeTemplateText,
-    createConversation,
+    apiClient,
     newChatModel,
     router,
     startNewChat,
@@ -106,14 +106,13 @@ function ChatPageContent() {
 
   return (
     <>
-      <Authenticated>
+      {isAuthenticated ? (
         <MessageListSkeleton />
-      </Authenticated>
-      <Unauthenticated>
+      ) : (
         <div className="flex items-center justify-center min-h-screen">
           <p className="text-muted-foreground">Redirecting to sign in...</p>
         </div>
-      </Unauthenticated>
+      )}
     </>
   );
 }

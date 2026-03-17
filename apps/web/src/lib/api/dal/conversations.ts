@@ -16,6 +16,7 @@ const createConversationSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   model: z.string().min(1),
   systemPrompt: z.string().optional(),
+  projectId: z.string().nullable().optional(),
 });
 
 const updateConversationSchema = z
@@ -57,6 +58,7 @@ export const conversationsDAL = {
       userId: user.id,
       title: validated.title ?? "New Chat",
       model: validated.model,
+      projectId: validated.projectId,
     });
 
     return formatEntity(
@@ -117,6 +119,11 @@ export const conversationsDAL = {
         and(
           eq(conversations.userId, user.id),
           eq(conversations.archived, archived),
+          _projectId && _projectId !== "none"
+            ? eq(conversations.projectId, _projectId)
+            : _projectId === "none"
+              ? sql`${conversations.projectId} is null`
+              : undefined,
         ),
       )
       .groupBy(conversations.id)
@@ -186,6 +193,28 @@ export const conversationsDAL = {
       throw new Error("Conversation not found");
     }
 
+    return formatEntity(toApiConversation(updated), "conversation", updated.id);
+  },
+
+  togglePin: async (userId: string, conversationId: string) => {
+    const { db, conversation } = await getOwnedConversation(
+      userId,
+      conversationId,
+    );
+    const updated = await createConversationRepository(db).togglePin(
+      conversation.id,
+    );
+    return formatEntity(toApiConversation(updated), "conversation", updated.id);
+  },
+
+  toggleStar: async (userId: string, conversationId: string) => {
+    const { db, conversation } = await getOwnedConversation(
+      userId,
+      conversationId,
+    );
+    const updated = await createConversationRepository(db).toggleStar(
+      conversation.id,
+    );
     return formatEntity(toApiConversation(updated), "conversation", updated.id);
   },
 

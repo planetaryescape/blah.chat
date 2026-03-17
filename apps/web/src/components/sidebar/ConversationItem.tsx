@@ -1,6 +1,6 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useAction, useMutation } from "convex/react";
+import { useAction } from "convex/react";
 import { Ghost, GitBranch, MoreVertical, Pin, Star, Users } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryState } from "nuqs";
@@ -30,6 +30,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
+import {
+  useArchiveConversation,
+  useDeleteConversation,
+  useTogglePin,
+  useToggleStar,
+} from "@/lib/hooks/mutations";
 import { cn } from "@/lib/utils";
 import { getConversationMenuItems } from "./ConversationMenuItems";
 import { ConversationPrefetcher } from "./ConversationPrefetcher";
@@ -60,11 +66,11 @@ export function ConversationItem({
   const [projectFilter, setProjectFilter] = useQueryState("project");
   const features = useFeatureToggles();
 
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const deleteConversation = useMutation(api.conversations.deleteConversation);
-  const togglePin = useMutation(api.conversations.togglePin);
-  const toggleStar = useMutation(api.conversations.toggleStar);
-  const archiveConversation = useMutation(api.conversations.archive);
+  const { mutateAsync: deleteConversation } = useDeleteConversation();
+  const { mutateAsync: togglePin } = useTogglePin();
+  const { mutateAsync: toggleStar } = useToggleStar();
+  const { mutateAsync: archiveConversation } = useArchiveConversation();
+  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
   const autoRenameAction = useAction(api.conversations.actions.bulkAutoRename);
 
   const isActive = pathname === `/chat/${conversation._id}`;
@@ -157,8 +163,9 @@ export function ConversationItem({
       ? () => onToggleSelection(conversation._id)
       : undefined,
     onPin: () => handlePinClick(),
-    onStar: () => toggleStar({ conversationId: conversation._id }),
-    onArchive: () => archiveConversation({ conversationId: conversation._id }),
+    onStar: () => void toggleStar({ conversationId: conversation._id }),
+    onArchive: () =>
+      void archiveConversation({ conversationId: conversation._id }),
     onAutoRename: () => handleAutoRename(),
   });
 

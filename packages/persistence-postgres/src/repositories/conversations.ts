@@ -6,6 +6,7 @@ export interface CreateConversationInput {
   userId: string;
   title: string;
   model: string;
+  projectId?: string | null;
 }
 
 export function createConversationRepository(db: PersistenceDb) {
@@ -17,6 +18,7 @@ export function createConversationRepository(db: PersistenceDb) {
           userId: input.userId,
           title: input.title,
           model: input.model,
+          projectId: input.projectId ?? null,
           createdAt: Date.now(),
           updatedAt: Date.now(),
         })
@@ -40,6 +42,54 @@ export function createConversationRepository(db: PersistenceDb) {
           updatedAt: Date.now(),
         })
         .where(eq(conversations.id, input.conversationId));
+    },
+
+    async togglePin(conversationId: string) {
+      const conversation = await db.query.conversations.findFirst({
+        where: eq(conversations.id, conversationId),
+      });
+      if (!conversation) {
+        throw new Error("Conversation not found");
+      }
+
+      const [updated] = await db
+        .update(conversations)
+        .set({
+          pinned: !conversation.pinned,
+          updatedAt: Date.now(),
+        })
+        .where(eq(conversations.id, conversationId))
+        .returning();
+
+      if (!updated) {
+        throw new Error("Conversation not found");
+      }
+
+      return updated;
+    },
+
+    async toggleStar(conversationId: string) {
+      const conversation = await db.query.conversations.findFirst({
+        where: eq(conversations.id, conversationId),
+      });
+      if (!conversation) {
+        throw new Error("Conversation not found");
+      }
+
+      const [updated] = await db
+        .update(conversations)
+        .set({
+          starred: !conversation.starred,
+          updatedAt: Date.now(),
+        })
+        .where(eq(conversations.id, conversationId))
+        .returning();
+
+      if (!updated) {
+        throw new Error("Conversation not found");
+      }
+
+      return updated;
     },
 
     async getActivePath(conversationId: string): Promise<Message[]> {

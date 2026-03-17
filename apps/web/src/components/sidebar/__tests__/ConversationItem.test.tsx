@@ -1,15 +1,30 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock convex/react BEFORE importing component
-const mockMutation = vi.fn();
 const mockAction = vi.fn();
+const mockDeleteConversation = vi.fn();
+const mockTogglePin = vi.fn();
+const mockToggleStar = vi.fn();
+const mockArchiveConversation = vi.fn();
 
 vi.mock("convex/react", () => ({
-  useQuery: vi.fn(() => null),
-  useMutation: vi.fn(() => mockMutation),
   useAction: vi.fn(() => mockAction),
+}));
+
+vi.mock("@/lib/hooks/mutations", () => ({
+  useDeleteConversation: () => ({
+    mutateAsync: mockDeleteConversation,
+  }),
+  useTogglePin: () => ({
+    mutateAsync: mockTogglePin,
+  }),
+  useToggleStar: () => ({
+    mutateAsync: mockToggleStar,
+  }),
+  useArchiveConversation: () => ({
+    mutateAsync: mockArchiveConversation,
+  }),
 }));
 
 // Mock nuqs
@@ -168,7 +183,7 @@ describe("ConversationItem", () => {
     const pinButton = screen.getByRole("button", { name: /pin/i });
     await user.click(pinButton);
 
-    expect(mockMutation).toHaveBeenCalledWith({ conversationId: "conv-123" });
+    expect(mockTogglePin).toHaveBeenCalledWith({ conversationId: "conv-123" });
   });
 
   it("shows delete dialog and calls mutation on confirm", async () => {
@@ -189,7 +204,7 @@ describe("ConversationItem", () => {
 
     // Confirm delete
     await user.click(screen.getByText("Confirm Delete"));
-    expect(mockMutation).toHaveBeenCalledWith({
+    expect(mockDeleteConversation).toHaveBeenCalledWith({
       conversationId: "conv-123",
     });
   });
@@ -201,7 +216,9 @@ describe("ConversationItem", () => {
     render(<ConversationItem conversation={conversation} />);
 
     const item = screen.getByRole("option");
-    item.focus();
+    await act(async () => {
+      item.focus();
+    });
     await user.keyboard("{Enter}");
 
     expect(mockRouterPush).toHaveBeenCalledWith("/chat/conv-123");

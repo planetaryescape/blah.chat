@@ -13,6 +13,7 @@ const createSchema = z.object({
   title: z.string().optional(),
   model: z.string(),
   systemPrompt: z.string().optional(),
+  projectId: z.string().nullable().optional(),
 });
 
 async function postHandler(req: NextRequest, { userId }: { userId: string }) {

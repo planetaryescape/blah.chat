@@ -1,8 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
 import { Flame } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -24,6 +22,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useDeleteConversation } from "@/lib/hooks/mutations";
 import { cn } from "@/lib/utils";
 
 interface FireButtonProps {
@@ -33,8 +32,7 @@ interface FireButtonProps {
 
 export function FireButton({ conversationId, className }: FireButtonProps) {
   const [isDeleting, setIsDeleting] = useState(false);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation
-  const deleteConversation = useMutation(api.conversations.deleteConversation);
+  const { mutateAsync: deleteConversation } = useDeleteConversation();
   const router = useRouter();
 
   const handleFire = async () => {

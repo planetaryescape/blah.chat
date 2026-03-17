@@ -1,13 +1,22 @@
 # Phase 5: Conversation Tree And CRUD
 
-Status: in progress as of March 16, 2026.
+Status: complete as of March 16, 2026.
 Completed work:
 - Postgres-backed conversation and message DAL added for the main web chat path
 - active-path message reads, regenerate flows, and branch switching moved onto REST routes
 - tree payloads now include parent and active-branch metadata needed by the chat UI
-Still pending for full phase closure:
-- migrate remaining conversation and message surfaces still reading or mutating through Convex
-- finish parity for broader branch/edit flows outside the main chat path
+- sidebar conversation CRUD now uses Postgres-backed REST mutations for rename, delete, archive, pin, and star
+- new-chat bootstrap, empty-conversation reuse, and template chat creation now create or update conversations through the Postgres-backed API
+- branch badge now derives branch state from the cached message tree instead of Convex branch queries
+
+Residual Convex references still in the repo are not blockers for this phase:
+- search and command-palette conversation search
+- export endpoints
+- comparison consolidation helpers
+- model recommendation and token-usage helpers
+- admin and maintenance tooling
+
+Those move in later phases because they depend on search, comparison, or cleanup work outside the core tree CRUD contract.
 
 ## Goal
 
@@ -71,6 +80,7 @@ This phase does not implement comparison streaming yet, but the data model must 
 
 - the tree can be read and navigated reliably
 - branch operations are represented correctly in Postgres
+- main web conversation CRUD entry points no longer depend on Convex for their core read or write path
 
 ## What Comes Next
 

@@ -4,33 +4,35 @@ import { toast } from "sonner";
 import { useApiClient } from "@/lib/api/client";
 import { queryKeys } from "@/lib/query/keys";
 
-interface ArchiveConversationArgs {
+interface RenameConversationArgs {
   conversationId: Id<"conversations">;
+  title: string;
 }
 
-export function useArchiveConversation() {
+export function useRenameConversation() {
   const api = useApiClient();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ conversationId }: ArchiveConversationArgs) => {
-      return api.post(`/api/v1/conversations/${conversationId}/archive`);
+    mutationFn: async ({ conversationId, title }: RenameConversationArgs) => {
+      return api.patch(`/api/v1/conversations/${conversationId}`, { title });
     },
 
-    onSuccess: (_data, _variables) => {
-      // Invalidate conversations list
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.conversations.lists(),
       });
-
-      toast.success("Conversation archived");
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.conversations.detail(variables.conversationId),
+      });
+      toast.success("Conversation renamed");
     },
 
     onError: (error) => {
       const msg =
         error instanceof Error
           ? error.message
-          : "Failed to archive conversation";
+          : "Failed to rename conversation";
       toast.error(msg);
     },
   });

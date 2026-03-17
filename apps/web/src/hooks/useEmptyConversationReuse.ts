@@ -1,9 +1,9 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
+import { useLiveQuery } from "dexie-react-hooks";
 import { useCallback } from "react";
+import { cache } from "@/lib/cache";
 
 /**
  * Hook to detect and find reusable empty conversations
@@ -15,8 +15,11 @@ import { useCallback } from "react";
  * - Returns null if no empty conversations found
  */
 export function useEmptyConversationReuse() {
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const conversations = useQuery(api.conversations.list, {});
+  const conversations = useLiveQuery(
+    () => cache.conversations.toArray(),
+    [],
+    [],
+  );
 
   const findEmptyConversation = useCallback((): Doc<"conversations"> | null => {
     if (!conversations?.length) return null;

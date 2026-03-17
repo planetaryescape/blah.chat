@@ -1,11 +1,10 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { analytics } from "@/lib/analytics";
+import { useApiClient } from "@/lib/api/client";
 import { useEmptyConversationReuse } from "./useEmptyConversationReuse";
 import { useNewChatModel } from "./useNewChatModel";
 
@@ -27,10 +26,7 @@ import { useNewChatModel } from "./useNewChatModel";
  */
 export function useNewChat() {
   const router = useRouter();
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const createConversation = useMutation(api.conversations.create);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const updateModel = useMutation(api.conversations.updateModel);
+  const apiClient = useApiClient();
   const { newChatModel } = useNewChatModel();
   const { findEmptyConversation, isLoading } = useEmptyConversationReuse();
 
@@ -41,8 +37,7 @@ export function useNewChat() {
     if (empty) {
       // Update model to user's preferred new chat model if different
       if (empty.model !== newChatModel) {
-        await updateModel({
-          conversationId: empty._id,
+        await apiClient.patch(`/api/v1/conversations/${empty._id}`, {
           model: newChatModel,
         });
       }
@@ -52,21 +47,20 @@ export function useNewChat() {
     }
 
     // Create new conversation with user's preferred model
-    const conversationId = await createConversation({
-      model: newChatModel,
-      title: "New Chat",
-    });
+    const conversation = await apiClient.post<{ _id: Id<"conversations"> }>(
+      "/api/v1/conversations",
+      {
+        model: newChatModel,
+        title: "New Chat",
+      },
+    );
+
+    const conversationId = conversation._id;
 
     router.push(`/chat/${conversationId}`);
     analytics.track("conversation_started", { model: newChatModel });
     return conversationId;
-  }, [
-    findEmptyConversation,
-    createConversation,
-    updateModel,
-    newChatModel,
-    router,
-  ]);
+  }, [apiClient, findEmptyConversation, newChatModel, router]);
 
   return {
     startNewChat,

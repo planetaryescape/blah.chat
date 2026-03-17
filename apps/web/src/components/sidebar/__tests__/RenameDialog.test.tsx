@@ -2,11 +2,12 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock convex/react BEFORE importing component
-const mockMutation = vi.fn();
+const mockRenameConversation = vi.fn();
 
-vi.mock("convex/react", () => ({
-  useMutation: vi.fn(() => mockMutation),
+vi.mock("@/lib/hooks/mutations/useRenameConversation", () => ({
+  useRenameConversation: () => ({
+    mutateAsync: mockRenameConversation,
+  }),
 }));
 
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
@@ -60,7 +61,7 @@ describe("RenameDialog", () => {
 
     await user.click(screen.getByRole("button", { name: /save/i }));
 
-    expect(mockMutation).toHaveBeenCalledWith({
+    expect(mockRenameConversation).toHaveBeenCalledWith({
       conversationId: "conv-123",
       title: "New Title",
     });
@@ -77,7 +78,7 @@ describe("RenameDialog", () => {
     await user.clear(input);
     await user.type(input, "Enter Title{Enter}");
 
-    expect(mockMutation).toHaveBeenCalledWith({
+    expect(mockRenameConversation).toHaveBeenCalledWith({
       conversationId: "conv-123",
       title: "Enter Title",
     });
@@ -92,7 +93,7 @@ describe("RenameDialog", () => {
 
     await user.click(screen.getByRole("button", { name: /cancel/i }));
 
-    expect(mockMutation).not.toHaveBeenCalled();
+    expect(mockRenameConversation).not.toHaveBeenCalled();
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

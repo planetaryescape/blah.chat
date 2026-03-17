@@ -18,7 +18,10 @@ CREATE TABLE conversations (
   title text NOT NULL,
   model text NOT NULL,
   active_leaf_message_id text,
+  project_id text,
+  pinned boolean NOT NULL DEFAULT false,
   archived boolean NOT NULL DEFAULT false,
+  starred boolean NOT NULL DEFAULT false,
   created_at bigint NOT NULL,
   updated_at bigint NOT NULL
 );

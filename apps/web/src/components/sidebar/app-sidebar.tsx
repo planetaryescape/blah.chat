@@ -48,9 +48,9 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useConversationContext } from "@/contexts/ConversationContext";
-import { useConversationCacheSync } from "@/hooks/useCacheSync";
 import { useListKeyboardNavigation } from "@/hooks/useListKeyboardNavigation";
 import { useNewChat } from "@/hooks/useNewChat";
+import { useRestConversationSync } from "@/hooks/useRestConversationSync";
 import { cn } from "@/lib/utils";
 import { BulkActionBar } from "./BulkActionBar";
 import { BulkDeleteDialog } from "./BulkDeleteDialog";
@@ -104,10 +104,9 @@ export function AppSidebar() {
 
   // Local-first: Convex syncs to Dexie, reads from cache (instant)
   const { conversations: rawConversations, isLoading: conversationsLoading } =
-    useConversationCacheSync({
-      projectId:
-        (projectFilter as Id<"projects"> | "none" | undefined) || undefined,
-    });
+    useRestConversationSync(
+      (projectFilter as Id<"projects"> | "none" | undefined) || undefined,
+    );
 
   const conversations = rawConversations;
 

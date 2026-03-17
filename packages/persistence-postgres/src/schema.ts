@@ -32,7 +32,10 @@ export const conversations = pgTable("conversations", {
   title: text("title").notNull(),
   model: text("model").notNull(),
   activeLeafMessageId: text("active_leaf_message_id"),
+  projectId: text("project_id"),
+  pinned: boolean("pinned").notNull().default(false),
   archived: boolean("archived").notNull().default(false),
+  starred: boolean("starred").notNull().default(false),
   createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(now),
   updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(now),
 });

@@ -57,7 +57,10 @@ function createConversationEnvelope(
     _id: string;
     title: string;
     model: string;
+    projectId: string | undefined;
+    pinned: boolean;
     archived: boolean;
+    starred: boolean;
     messageCount: number;
     lastMessageAt: number;
     createdAt: number;
@@ -73,7 +76,10 @@ function createConversationEnvelope(
       _id: overrides?._id ?? "conv-1",
       title: overrides?.title ?? "New Chat",
       model: overrides?.model ?? "gpt-4o",
+      projectId: overrides?.projectId,
+      pinned: overrides?.pinned ?? false,
       archived: overrides?.archived ?? false,
+      starred: overrides?.starred ?? false,
       messageCount: overrides?.messageCount ?? 0,
       lastMessageAt: overrides?.lastMessageAt ?? timestamp,
       createdAt: overrides?.createdAt ?? timestamp,

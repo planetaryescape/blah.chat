@@ -14,7 +14,7 @@ export function useTogglePin() {
 
   return useMutation({
     mutationFn: async ({ conversationId }: TogglePinArgs) => {
-      return api.patch(`/api/v1/conversations/${conversationId}/pin`);
+      return api.post(`/api/v1/conversations/${conversationId}/pin`);
     },
 
     onMutate: async ({ conversationId }) => {

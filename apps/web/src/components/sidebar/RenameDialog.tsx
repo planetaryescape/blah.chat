@@ -1,18 +1,18 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { useRenameConversation } from "@/lib/hooks/mutations/useRenameConversation";
 
 export function RenameDialog({
   conversation,
@@ -25,8 +25,7 @@ export function RenameDialog({
 }) {
   const [title, setTitle] = useState(conversation.title || "");
   const [isComposing, setIsComposing] = useState(false);
-  // @ts-ignore - TypeScript recursion limit with 84+ Convex modules
-  const renameConversation = useMutation(api.conversations.rename);
+  const { mutateAsync: renameConversation } = useRenameConversation();
 
   const handleSave = async () => {
     await renameConversation({
@@ -41,6 +40,9 @@ export function RenameDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Rename conversation</DialogTitle>
+          <DialogDescription className="sr-only">
+            Update the conversation title.
+          </DialogDescription>
         </DialogHeader>
         <Input
           value={title}

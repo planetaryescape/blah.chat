@@ -1,6 +1,6 @@
 # Phase 11: Search Embeddings Memory
 
-Status: not started as of March 16, 2026.
+Status: in progress as of March 23, 2026.
 
 ## Goal
 
@@ -57,12 +57,21 @@ Embedding generation and reindexing should run in Trigger tasks, not inside user
 - compare current and new search results for sampled queries
 - test file and memory retrieval
 - validate hybrid RRF behavior
+- verify project knowledge, notes, and tasks surfaces read/write through Postgres routes instead of Convex
 
 ## Done Criteria
 
 - search quality is at least as good as the current app
 - embedding generation is job-driven and durable
 
+## Evidence So Far
+
+- `/api/v1/search/hybrid` and the main web search hooks now use Postgres-backed REST
+- memories CRUD, consolidate, and recent-scan are on Postgres + Trigger-backed routes
+- project knowledge/file surfaces are on Postgres-backed routes
+- project notes/tasks now have Postgres tables, generated Drizzle migration coverage, project-scoped REST routes, and web project-page hooks/UI on the new stack
+- global `/notes` and `/tasks` now use top-level Postgres REST routes, hooks, and dedicated workspaces instead of the old Convex cache/dashboard surfaces
+
 ## What Comes Next
 
-With retrieval moved, phase 12 can migrate the rest of the asynchronous Convex work to Trigger.dev.
+Remaining phase-11 work is now broader embedding/retrieval parity, not note/task CRUD surface migration.

@@ -31,26 +31,26 @@ Execution rules:
 
 Execution status:
 
-- Complete: 5 / 17 phases
-- In progress: 4 / 17 phases
-- Not started: 8 / 17 phases
+- Complete: 4 / 17 phases
+- In progress: 8 / 17 phases
+- Not started: 5 / 17 phases
 
 Phase status snapshot:
 
 | Phase | Status | Notes |
 | --- | --- | --- |
 | 01 | Complete | Architecture pack written and locked in `/docs/architecture/postgres-rewrite` |
-| 02 | Complete | Local infra, clients, env parsing, health checks implemented |
-| 03 | Complete | Postgres schema foundation implemented in `@blah-chat/persistence-postgres` |
-| 04 | Complete | Main `v1` API auth now uses direct Clerk + Postgres user sync/preferences; Convex token minting removed from normal API middleware |
-| 05 | Complete | Core conversation tree CRUD, sidebar CRUD, new-chat bootstrap, and branch badge now use the Postgres-backed API/tree model |
+| 02 | Complete | Audited on `codex/postgres-rewrite`: centralized Postgres/Redis/R2/Trigger env + client path exists and health route now checks all four dependencies |
+| 03 | Complete | Audited on `codex/postgres-rewrite`: missing rewrite tables, indexes, PGlite bootstrap, and generated Drizzle migration artifacts are now present and test-validated |
+| 04 | Complete | Audited on `codex/postgres-rewrite`: Clerk-only auth + JIT Postgres user creation now works across conversations, preferences, webhook sync, and the user DAL; only the isolated non-`v1` legacy callback remains on Convex auth by design |
+| 05 | In progress | Audited REST coverage is now green for create/get/update/delete/archive/pin/star plus branch edit/regenerate/delete/switch flows; remaining parity work is narrower follow-up surface audit |
 | 06 | In progress | Chat attachment upload/read path moved to R2 + Postgres; other blob flows still pending |
 | 07 | In progress | Single-model generation runtime works on new stack for main web chat; broader surface cutover/perf hardening pending |
 | 08 | In progress | Backend comparison runtime exists; more UI/app-surface parity still pending |
-| 09 | In progress | Web local-first cache/queue path still active on migrated chat path; mobile parity and full resume work still pending |
-| 10 | Not started | Planned only |
-| 11 | Not started | Planned only |
-| 12 | Not started | Planned only |
+| 09 | In progress | Web send/replay now preserves branch context + client ids, refresh can discover active requests, the shared SDK now exposes request-stream APIs, and mobile HTTP mode can resume/stream generation events; durable offline replay parity and broader mobile surface audit still remain |
+| 10 | In progress | Generation-v2 now routes `"auto"` requests through classifier or hard-rule route labels plus Postgres-backed policy, candidate-score, recent-outcome, provider-health, and sticky-follow-up scoring; decisions/outcomes/feedback are persisted, and sticky route context now prefers the latest routed decision over explicit/manual-default rows |
+| 11 | In progress | `/api/v1/search/hybrid`, web search hooks/cards/filter lookups, search bulk bookmark/archive/delete actions, the main memories CRUD/search/consolidate/scan routes, Postgres-backed chat source routes/cache sync, canonical chat attachment extraction enqueue, project knowledge/file surfaces, and both project-scoped plus global notes/tasks routes/hooks/pages now run through Postgres + REST; broader embedding parity still remains |
+| 12 | In progress | Trigger `extract-memories`, `transcribe`, `generate-title`, `extract-text`, `analyze-model-fit`, `auto-triage-feedback`, `embed-file`, `enrich-source-metadata`, and `process-source` now have canonical Postgres/REST-backed runtime or user-facing surfaces on the rewrite stack, the old web Trigger bridge has been removed, BYOD health is Trigger-scheduled instead of Convex-cron-scheduled, and manual extraction/transcription/image-generation now start through REST-backed Trigger jobs; remaining work is now broader scheduler/backfill and legacy-domain cleanup outside the canonical chat/knowledge path |
 | 13 | Not started | Planned only |
 | 14 | Not started | Planned only |
 | 15 | Not started | Planned only |

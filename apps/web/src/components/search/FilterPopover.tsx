@@ -1,7 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useQuery } from "convex/react";
 import { Bot, Calendar, MessageSquare, User } from "lucide-react";
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
@@ -14,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useSearchConversations } from "@/hooks/useSearchConversations";
 import type { SearchFilters } from "@/hooks/useSearchFilters";
 
 interface FilterPopoverProps {
@@ -29,7 +28,7 @@ const DATE_PRESETS = [
 ] as const;
 
 export function FilterPopover({ filters, onFilterChange }: FilterPopoverProps) {
-  const conversations = useQuery(api.conversations.list, {});
+  const { conversations } = useSearchConversations("", 50);
 
   const [datePreset, setDatePreset] = useState<string>("all");
   const [messageType, setMessageType] = useState<string>(

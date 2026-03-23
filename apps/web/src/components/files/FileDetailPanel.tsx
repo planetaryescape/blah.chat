@@ -1,8 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -13,11 +10,12 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useKnowledgeSourceDetail } from "@/hooks/useKnowledgeSources";
 import { FileChunkCard } from "./FileChunkCard";
 
 interface FileDetailPanelProps {
-  fileId: Id<"files">;
-  highlightChunkId?: Id<"fileChunks"> | null;
+  fileId: string;
+  highlightChunkId?: string | null;
   onClose: () => void;
 }
 
@@ -26,10 +24,9 @@ export function FileDetailPanel({
   highlightChunkId,
   onClose,
 }: FileDetailPanelProps) {
-  // @ts-ignore - Type depth exceeded with 94+ Convex modules
-  const fileData = useQuery(api.files.getFileWithChunks, { fileId });
+  const { data: fileData, isLoading } = useKnowledgeSourceDetail(fileId);
 
-  if (fileData === undefined) {
+  if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -37,7 +34,7 @@ export function FileDetailPanel({
     );
   }
 
-  if (fileData === null) {
+  if (!fileData) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-2 text-muted-foreground">
         <AlertCircle className="h-8 w-8" />
@@ -48,6 +45,8 @@ export function FileDetailPanel({
       </div>
     );
   }
+
+  const source = fileData;
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -88,9 +87,10 @@ export function FileDetailPanel({
         <div className="flex items-center gap-3 min-w-0">
           <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
           <div className="min-w-0">
-            <h2 className="font-medium truncate">{fileData.name}</h2>
+            <h2 className="font-medium truncate">{source.title}</h2>
             <p className="text-xs text-muted-foreground">
-              {formatFileSize(fileData.size)} &bull; {fileData.mimeType}
+              {formatFileSize(source.size ?? 0)} &bull;{" "}
+              {source.mimeType ?? "Unknown"}
             </p>
           </div>
         </div>
@@ -105,28 +105,24 @@ export function FileDetailPanel({
           <div>
             <span className="text-muted-foreground text-xs">Status</span>
             <div className="flex items-center gap-1.5 mt-0.5">
-              {getStatusIcon(fileData.embeddingStatus || "pending")}
-              <span>
-                {getStatusLabel(fileData.embeddingStatus || "pending")}
-              </span>
+              {getStatusIcon(source.status || "pending")}
+              <span>{getStatusLabel(source.status || "pending")}</span>
             </div>
           </div>
           <div>
             <span className="text-muted-foreground text-xs">Chunks</span>
-            <p className="mt-0.5">{fileData.chunks?.length || 0}</p>
+            <p className="mt-0.5">{source.chunks?.length ?? 0}</p>
           </div>
           <div>
             <span className="text-muted-foreground text-xs">Added</span>
             <p className="mt-0.5">
-              {new Date(fileData.createdAt).toLocaleDateString()}
+              {new Date(source.createdAt).toLocaleDateString()}
             </p>
           </div>
-          {fileData.url && (
+          {source.storageId && (
             <div>
               <a
-                href={fileData.url}
-                target="_blank"
-                rel="noopener noreferrer"
+                href={`/api/v1/files/${source.storageId}`}
                 className="inline-flex items-center gap-1 text-primary hover:underline text-xs mt-0.5"
               >
                 <Download className="h-3 w-3" />
@@ -136,9 +132,9 @@ export function FileDetailPanel({
           )}
         </div>
 
-        {fileData.embeddingError && (
+        {source.error && (
           <div className="mt-3 p-2 bg-red-500/10 border border-red-500/20 rounded text-xs text-red-500">
-            {fileData.embeddingError}
+            {source.error}
           </div>
         )}
       </div>
@@ -146,15 +142,22 @@ export function FileDetailPanel({
       {/* Chunks List */}
       <div className="flex-1 min-h-0 overflow-auto">
         <div className="p-4 space-y-3">
-          {fileData.chunks && fileData.chunks.length > 0 ? (
+          {source.chunks && source.chunks.length > 0 ? (
             <>
               <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                Content Chunks ({fileData.chunks.length})
+                Content Chunks ({source.chunks.length})
               </h3>
-              {fileData.chunks.map((chunk: any) => (
+              {source.chunks.map((chunk) => (
                 <FileChunkCard
                   key={chunk._id}
-                  chunk={chunk}
+                  chunk={{
+                    _id: chunk._id,
+                    chunkIndex: chunk.chunkIndex,
+                    content: chunk.content,
+                    tokenCount: chunk.tokenCount,
+                    startPage: chunk.pageNumber,
+                    endPage: chunk.pageNumber,
+                  }}
                   isHighlighted={highlightChunkId === chunk._id}
                 />
               ))}
@@ -164,9 +167,9 @@ export function FileDetailPanel({
               <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p className="text-sm">No content chunks available</p>
               <p className="text-xs mt-1">
-                {fileData.embeddingStatus === "pending"
+                {source.status === "pending"
                   ? "File is waiting to be processed"
-                  : fileData.embeddingStatus === "processing"
+                  : source.status === "processing"
                     ? "File is being processed..."
                     : "This file type may not support text extraction"}
               </p>

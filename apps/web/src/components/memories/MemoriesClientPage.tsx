@@ -1,8 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useAction, useMutation, useQuery } from "convex/react";
+import type { Memory } from "@blah-chat/api-client";
 import { Brain, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
@@ -19,6 +17,8 @@ import { MemoriesHeader } from "@/components/memories/MemoriesHeader";
 import { MemoryFilters } from "@/components/memories/MemoryFilters";
 import { MemoryItem } from "@/components/memories/MemoryItem";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useMemories } from "@/hooks/useMemories";
+import { useSDKClient } from "@/lib/api/sdkClient";
 
 const CATEGORY_LABELS: Record<string, { title: string; description: string }> =
   {
@@ -46,6 +46,7 @@ const CATEGORY_LABELS: Record<string, { title: string; description: string }> =
 
 export function MemoriesClientPage() {
   const router = useRouter();
+  const sdk = useSDKClient();
 
   // URL state for filters and UI toggles
   const [showReasoning, setShowReasoning] = useQueryState(
@@ -75,29 +76,23 @@ export function MemoriesClientPage() {
   );
 
   const [debouncedSearchQuery] = useDebounceValue(searchParam, 300);
-
-  // @ts-ignore - Type instantiation is excessively deep and possibly infinite
-  const memories = useQuery(api.memories.listFiltered, {
-    category: categoryFilter || undefined,
-    sortBy: sortBy || undefined,
-    searchQuery: debouncedSearchQuery || undefined,
+  const {
+    data: memories = [],
+    isLoading,
+    refetch,
+  } = useMemories({
+    category: categoryFilter,
+    sortBy,
+    searchQuery: debouncedSearchQuery,
   });
-
-  const deleteMemory = useMutation(api.memories.deleteMemory);
-  const deleteAllMemories = useMutation(api.memories.deleteAllMemories);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const deleteSelectedMemories = useMutation(api.memories.deleteSelected);
-  const consolidateMemories = useAction(api.memories.consolidateUserMemories);
 
   const [isConsolidating, setIsConsolidating] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDeleteSelectedDialog, setShowDeleteSelectedDialog] =
     useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<Id<"memories">>>(
-    new Set(),
-  );
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const toggleSelection = (id: Id<"memories">) => {
+  const toggleSelection = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
@@ -115,7 +110,8 @@ export function MemoriesClientPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await deleteMemory({ id: id as any });
+      await sdk.deleteMemory(id);
+      await refetch();
       toast.success("Memory deleted");
     } catch (_error) {
       toast.error("Failed to delete memory");
@@ -123,13 +119,15 @@ export function MemoriesClientPage() {
   };
 
   const handleDeleteAll = async () => {
-    const result = await deleteAllMemories({});
+    const result = await sdk.deleteAllMemories();
+    await refetch();
     toast.success(`Deleted ${result.deleted} memories`);
   };
 
   const handleDeleteSelected = async () => {
     const ids = Array.from(selectedIds);
-    const result = await deleteSelectedMemories({ ids });
+    const result = await sdk.deleteSelectedMemories({ ids });
+    await refetch();
     toast.success(`Deleted ${result.deleted} memories`);
     clearSelection();
   };
@@ -137,44 +135,54 @@ export function MemoriesClientPage() {
   const handleMergeSelected = async () => {
     if (selectedIds.size < 2) return;
     setIsConsolidating(true);
-    try {
-      toast.info("Merging selected memories...");
-      const ids = Array.from(selectedIds);
-      const result = await consolidateMemories({ selectedIds: ids });
-      if (result.created > 0) {
-        toast.success(
-          `Merged ${result.deleted} memories into ${result.created}`,
-        );
-      } else {
-        toast.info("No changes made.");
-      }
-      clearSelection();
-    } catch (error) {
-      toast.error("Failed to merge memories");
-      console.error("Merge error:", error);
-    } finally {
-      setIsConsolidating(false);
-    }
+    toast.info("Merging selected memories...");
+    const ids = Array.from(selectedIds);
+
+    return sdk
+      .consolidateMemories({ ids })
+      .then(async (result) => {
+        await refetch();
+        if (result.created > 0) {
+          toast.success(
+            `Merged ${result.deleted} memories into ${result.created}`,
+          );
+        } else {
+          toast.info("No changes made.");
+        }
+        clearSelection();
+      })
+      .catch((error) => {
+        toast.error("Failed to merge memories");
+        console.error("Merge error:", error);
+      })
+      .finally(() => {
+        setIsConsolidating(false);
+      });
   };
 
   const handleConsolidate = async () => {
     setIsConsolidating(true);
-    try {
-      toast.info("Consolidating memories...");
-      const result = await consolidateMemories({});
-      if (result.created > 0 || result.deleted > 0) {
-        toast.success(
-          `Consolidated ${result.original} → ${result.consolidated} memories`,
-        );
-      } else {
-        toast.info("No duplicate memories found.");
-      }
-    } catch (error) {
-      toast.error("Failed to consolidate memories");
-      console.error("Consolidation error:", error);
-    } finally {
-      setIsConsolidating(false);
-    }
+    toast.info("Consolidating memories...");
+
+    return sdk
+      .consolidateMemories()
+      .then(async (result) => {
+        await refetch();
+        if (result.created > 0 || result.deleted > 0) {
+          toast.success(
+            `Consolidated ${result.original} → ${result.consolidated} memories`,
+          );
+        } else {
+          toast.info("No duplicate memories found.");
+        }
+      })
+      .catch((error) => {
+        toast.error("Failed to consolidate memories");
+        console.error("Consolidation error:", error);
+      })
+      .finally(() => {
+        setIsConsolidating(false);
+      });
   };
 
   const handleNavigateToSource = (
@@ -184,7 +192,7 @@ export function MemoriesClientPage() {
     router.push(`/chat/${conversationId}?messageId=${messageId}`);
   };
 
-  if (memories === undefined) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -192,8 +200,8 @@ export function MemoriesClientPage() {
     );
   }
 
-  const groupedMemories = memories.reduce<Record<string, typeof memories>>(
-    (acc, memory: Doc<"memories">) => {
+  const groupedMemories = memories.reduce<Record<string, Memory[]>>(
+    (acc, memory) => {
       const category = (memory.metadata?.category as string) || "other";
       if (!acc[category]) acc[category] = [];
       acc[category].push(memory);
@@ -250,7 +258,7 @@ export function MemoriesClientPage() {
           ) : (
             <div className="space-y-8">
               {Object.entries(groupedMemories).map(
-                ([category, categoryMemories]: [string, Doc<"memories">[]]) => {
+                ([category, categoryMemories]: [string, Memory[]]) => {
                   const label = CATEGORY_LABELS[category] || {
                     title: category,
                     description: "Other memories",
@@ -269,7 +277,7 @@ export function MemoriesClientPage() {
 
                       <div className="border border-border/40 rounded-lg overflow-hidden bg-card/30">
                         <div className="divide-y divide-border/40">
-                          {categoryMemories.map((memory: Doc<"memories">) => (
+                          {categoryMemories.map((memory) => (
                             <MemoryItem
                               key={memory._id}
                               memory={memory}

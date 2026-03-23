@@ -1,10 +1,9 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
 import { File, MessageSquare, NotebookPen } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { useProjectSurfaceStats } from "@/hooks/useProjectSurfaceStats";
 import { cn } from "@/lib/utils";
 
 interface ProjectStatsProps {
@@ -12,10 +11,9 @@ interface ProjectStatsProps {
 }
 
 export function ProjectStats({ projectId }: ProjectStatsProps) {
-  // @ts-ignore
-  const stats = useQuery(api.projects.getProjectStats, { projectId });
+  const surface = useProjectSurfaceStats(projectId);
 
-  if (!stats) {
+  if (!surface.stats || surface.isLoading) {
     return (
       <div className="w-full space-y-3">
         <div className="flex items-center gap-2">
@@ -29,7 +27,7 @@ export function ProjectStats({ projectId }: ProjectStatsProps) {
     );
   }
 
-  const { conversationCount, noteCount, fileCount, taskStats } = stats;
+  const { conversationCount, fileCount, noteCount, taskStats } = surface.stats;
 
   // Calculate completion percentage safely
   const completionPercentage =

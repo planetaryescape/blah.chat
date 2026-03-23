@@ -1,14 +1,11 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
-import DOMPurify from "dompurify";
-import { motion } from "framer-motion";
+import { domAnimation, LazyMotion, m } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { Fragment, type ReactNode, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -22,6 +19,7 @@ interface SearchResultsProps {
   results: Array<{
     _id: Id<"messages">;
     conversationId: Id<"conversations">;
+    conversationTitle?: string | null;
     role: "user" | "assistant" | "system";
     content: string;
     createdAt: number;
@@ -141,44 +139,46 @@ export function SearchResults({
 
       {/* Results list with stagger animation */}
       <div className="border border-border/40 rounded-lg overflow-hidden bg-muted/5">
-        <motion.div
-          className="divide-y divide-border/40"
-          variants={{
-            hidden: { opacity: 0 },
-            show: {
-              opacity: 1,
-              transition: {
-                staggerChildren: 0.02,
-              },
-            },
-          }}
-          initial="hidden"
-          animate="show"
-        >
-          {results.map((result: any, index: number) => (
-            <motion.div
-              key={result._id}
-              variants={{
-                hidden: { opacity: 0, y: 10 },
-                show: {
-                  opacity: 1,
-                  y: 0,
-                  transition: {
-                    duration: 0.2,
-                  },
+        <LazyMotion features={domAnimation}>
+          <m.div
+            className="divide-y divide-border/40"
+            variants={{
+              hidden: { opacity: 0 },
+              show: {
+                opacity: 1,
+                transition: {
+                  staggerChildren: 0.02,
                 },
-              }}
-            >
-              <SearchResultCard
-                message={result}
-                query={query}
-                index={index}
-                isSelected={isSelected ? isSelected(result._id) : false}
-                onToggleSelection={toggleSelection || (() => {})}
-              />
-            </motion.div>
-          ))}
-        </motion.div>
+              },
+            }}
+            initial="hidden"
+            animate="show"
+          >
+            {results.map((result: any, index: number) => (
+              <m.div
+                key={result._id}
+                variants={{
+                  hidden: { opacity: 0, y: 10 },
+                  show: {
+                    opacity: 1,
+                    y: 0,
+                    transition: {
+                      duration: 0.2,
+                    },
+                  },
+                }}
+              >
+                <SearchResultCard
+                  message={result}
+                  query={query}
+                  index={index}
+                  isSelected={isSelected ? isSelected(result._id) : false}
+                  onToggleSelection={toggleSelection || (() => {})}
+                />
+              </m.div>
+            ))}
+          </m.div>
+        </LazyMotion>
       </div>
 
       {/* Load more trigger & button */}
@@ -218,15 +218,7 @@ function SearchResultCard({
   isSelected: boolean;
   onToggleSelection: (id: Id<"messages">) => void;
 }) {
-  const conversation = useQuery(
-    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-    api.conversations.get,
-    message.conversationId
-      ? { conversationId: message.conversationId }
-      : "skip",
-  );
-
-  // Highlight query terms in content (sanitized)
+  // Highlight query terms in content without injecting HTML
   const highlightedContent = highlightText(message.content, query);
 
   const handleResultClick = () => {
@@ -251,7 +243,6 @@ function SearchResultCard({
         <div className="flex items-start gap-3">
           {/* Checkbox - aligned with content */}
           <div
-            onClick={(e) => e.preventDefault()}
             className="pt-1 opacity-10 group-hover/item:opacity-100 transition-opacity" // Hide checkbox by default unless selected? keeping it visible on hover for cleaner look
           >
             <Checkbox
@@ -274,7 +265,7 @@ function SearchResultCard({
                     isSelected ? "text-foreground" : "text-foreground/90",
                   )}
                 >
-                  {conversation?.title || "Untitled Conversation"}
+                  {message.conversationTitle || "Untitled Conversation"}
                 </h3>
                 <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-muted/50 text-muted-foreground font-medium uppercase tracking-wider">
                   {message.role === "user" ? "You" : "AI"}
@@ -293,8 +284,9 @@ function SearchResultCard({
                   "text-[12px] line-clamp-2 leading-relaxed text-muted-foreground/70",
                   isSelected ? "text-muted-foreground/90" : "",
                 )}
-                dangerouslySetInnerHTML={{ __html: highlightedContent }}
-              />
+              >
+                {highlightedContent}
+              </p>
             </div>
           </Link>
         </div>
@@ -303,33 +295,52 @@ function SearchResultCard({
   );
 }
 
-function highlightText(text: string, query: string): string {
-  // Normalize content: trim whitespace and collapse excess newlines
-  // This prevents leading whitespace from causing inconsistent card heights
-  const normalizedText = (text ?? "")
+function highlightText(text: string, query: string): ReactNode {
+  const normalizedText = normalizeSearchText(text);
+  const terms = getSearchTerms(query);
+
+  if (terms.length === 0) {
+    return normalizedText;
+  }
+
+  const pattern = new RegExp(`(${terms.map(escapeRegex).join("|")})`, "gi");
+  const lowerCaseTerms = new Set(terms.map((term) => term.toLowerCase()));
+  let offset = 0;
+
+  return normalizedText.split(pattern).map((part) => {
+    const key = `${part}-${offset}`;
+    offset += part.length;
+
+    if (lowerCaseTerms.has(part.toLowerCase())) {
+      return (
+        <mark key={key} className="bg-yellow-200 dark:bg-yellow-900">
+          {part}
+        </mark>
+      );
+    }
+
+    return <Fragment key={key}>{part}</Fragment>;
+  });
+}
+
+function normalizeSearchText(text: string): string {
+  return (text ?? "")
     .trim()
-    .replace(/^\s+/gm, "") // Remove leading whitespace from each line
-    .replace(/\n{3,}/g, "\n\n"); // Collapse 3+ newlines to 2
+    .replace(/^\s+/gm, "")
+    .replace(/\n{3,}/g, "\n\n");
+}
 
-  if (!query?.trim()) return DOMPurify.sanitize(normalizedText);
+function getSearchTerms(query: string): string[] {
+  if (!query?.trim()) return [];
 
-  const terms = query?.trim().split(/\s+/) ?? [];
-  let highlighted = normalizedText;
-
-  terms.forEach((term) => {
-    if (term.length < 2) return; // Skip single chars
-    const regex = new RegExp(`(${escapeRegex(term)})`, "gi");
-    highlighted = highlighted.replace(
-      regex,
-      '<mark class="bg-yellow-200 dark:bg-yellow-900">$1</mark>',
-    );
-  });
-
-  // Sanitize to prevent XSS while allowing mark tags
-  return DOMPurify.sanitize(highlighted, {
-    ALLOWED_TAGS: ["mark"],
-    ALLOWED_ATTR: ["class"],
-  });
+  return [
+    ...new Set(
+      query
+        .trim()
+        .split(/\s+/)
+        .filter((term) => term.length >= 2),
+    ),
+  ];
 }
 
 function escapeRegex(str: string): string {

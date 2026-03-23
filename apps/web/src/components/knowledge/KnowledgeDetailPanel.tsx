@@ -1,8 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -14,13 +11,14 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useKnowledgeSourceDetail } from "@/hooks/useKnowledgeSources";
 import { SOURCE_ICONS, TYPE_LABELS } from "./constants";
 import { KnowledgeChunkCard } from "./KnowledgeChunkCard";
 import type { SourceType } from "./types";
 
 interface KnowledgeDetailPanelProps {
-  sourceId: Id<"knowledgeSources">;
-  highlightChunkId?: Id<"knowledgeChunks"> | null;
+  sourceId: string;
+  highlightChunkId?: string | null;
   onClose: () => void;
 }
 
@@ -29,12 +27,9 @@ export function KnowledgeDetailPanel({
   highlightChunkId,
   onClose,
 }: KnowledgeDetailPanelProps) {
-  // @ts-ignore - Type depth exceeded with 94+ Convex modules
-  const sourceData = useQuery(api.knowledgeBank.index.getSourceWithChunks, {
-    sourceId,
-  });
+  const { data: sourceData, isLoading } = useKnowledgeSourceDetail(sourceId);
 
-  if (sourceData === undefined) {
+  if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -53,6 +48,12 @@ export function KnowledgeDetailPanel({
       </div>
     );
   }
+
+  if (!sourceData) {
+    return null;
+  }
+
+  const source = sourceData;
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -86,8 +87,8 @@ export function KnowledgeDetailPanel({
     }
   };
 
-  const Icon = SOURCE_ICONS[sourceData.type as SourceType] || FileText;
-  const typeLabel = TYPE_LABELS[sourceData.type as SourceType] || "Source";
+  const Icon = SOURCE_ICONS[source.type as SourceType] || FileText;
+  const typeLabel = TYPE_LABELS[source.type as SourceType] || "Source";
 
   return (
     <div className="flex flex-col h-full border-l bg-background">
@@ -95,7 +96,7 @@ export function KnowledgeDetailPanel({
         <div className="flex items-center gap-3 min-w-0">
           <Icon className="h-5 w-5 text-muted-foreground shrink-0" />
           <div className="min-w-0">
-            <h2 className="font-medium truncate">{sourceData.title}</h2>
+            <h2 className="font-medium truncate">{source.title}</h2>
             <p className="text-xs text-muted-foreground">{typeLabel}</p>
           </div>
         </div>
@@ -109,43 +110,43 @@ export function KnowledgeDetailPanel({
           <div>
             <span className="text-muted-foreground text-xs">Status</span>
             <div className="flex items-center gap-1.5 mt-0.5">
-              {getStatusIcon(sourceData.status)}
-              <span>{getStatusLabel(sourceData.status)}</span>
+              {getStatusIcon(source.status)}
+              <span>{getStatusLabel(source.status)}</span>
             </div>
           </div>
           <div>
             <span className="text-muted-foreground text-xs">Chunks</span>
-            <p className="mt-0.5">{sourceData.chunks?.length || 0}</p>
+            <p className="mt-0.5">{source.chunks?.length || 0}</p>
           </div>
           <div>
             <span className="text-muted-foreground text-xs">Added</span>
             <p className="mt-0.5">
-              {new Date(sourceData.createdAt).toLocaleDateString()}
+              {new Date(source.createdAt).toLocaleDateString()}
             </p>
           </div>
-          {sourceData.size && (
+          {source.size && (
             <div>
               <span className="text-muted-foreground text-xs">Size</span>
-              <p className="mt-0.5">{formatFileSize(sourceData.size)}</p>
+              <p className="mt-0.5">{formatFileSize(source.size)}</p>
             </div>
           )}
         </div>
 
         <div className="flex items-center gap-3 mt-3">
-          {sourceData.url && (
+          {source.url && (
             <a
-              href={sourceData.url}
+              href={source.url}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-primary hover:underline text-xs"
             >
               <ExternalLink className="h-3 w-3" />
-              {sourceData.type === "youtube" ? "Watch Video" : "Visit Page"}
+              {source.type === "youtube" ? "Watch Video" : "Visit Page"}
             </a>
           )}
-          {sourceData.storageId && (
+          {source.storageId && (
             <a
-              href={`/api/files/${sourceData.storageId}`}
+              href={`/api/v1/files/${source.storageId}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-primary hover:underline text-xs"
@@ -156,32 +157,32 @@ export function KnowledgeDetailPanel({
           )}
         </div>
 
-        {sourceData.error && (
+        {source.error && (
           <div className="mt-3 p-2 bg-red-500/10 border border-red-500/20 rounded text-xs text-red-500">
-            {sourceData.error}
+            {source.error}
           </div>
         )}
 
-        {sourceData.description && (
+        {source.description && (
           <div className="mt-3">
             <span className="text-muted-foreground text-xs">Description</span>
-            <p className="mt-0.5 text-sm">{sourceData.description}</p>
+            <p className="mt-0.5 text-sm">{source.description}</p>
           </div>
         )}
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto">
         <div className="p-4 space-y-3">
-          {sourceData.chunks && sourceData.chunks.length > 0 ? (
+          {source.chunks && source.chunks.length > 0 ? (
             <>
               <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                Content Chunks ({sourceData.chunks.length})
+                Content Chunks ({source.chunks.length})
               </h3>
-              {sourceData.chunks.map((chunk: any) => (
+              {source.chunks.map((chunk: any) => (
                 <KnowledgeChunkCard
                   key={chunk._id}
                   chunk={chunk}
-                  sourceType={sourceData.type as SourceType}
+                  sourceType={source.type as SourceType}
                   isHighlighted={highlightChunkId === chunk._id}
                 />
               ))}
@@ -191,9 +192,9 @@ export function KnowledgeDetailPanel({
               <Icon className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p className="text-sm">No content chunks available</p>
               <p className="text-xs mt-1">
-                {sourceData.status === "pending"
+                {source.status === "pending"
                   ? "Source is waiting to be processed"
-                  : sourceData.status === "processing"
+                  : source.status === "processing"
                     ? "Source is being processed..."
                     : "Processing may have failed"}
               </p>

@@ -1,7 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
+import { toPng } from "html-to-image";
 import {
   Bug,
   Camera,
@@ -68,9 +67,6 @@ const feedbackTypeConfig: Record<
 
 export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
   const pathname = usePathname();
-  const user = useQuery(api.users.getCurrentUser);
-  const createFeedback = useMutation(api.feedback.createFeedback);
-  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
   const [feedbackType, setFeedbackType] = useState<FeedbackType>("bug");
   const [description, setDescription] = useState("");
@@ -89,92 +85,134 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
     setIncludeScreenshot(true);
   }, []);
 
-  const captureScreenshot = useCallback(async (): Promise<string | null> => {
-    try {
-      console.log("[Feedback] Starting screenshot capture...");
-      // Use html-to-image which supports modern CSS color functions
-      const { toPng } = await import("html-to-image");
+  const captureScreenshot = useCallback((): Promise<string | null> => {
+    console.log("[Feedback] Starting screenshot capture...");
 
-      // Hide the modal temporarily for screenshot
-      const dialogOverlay = document.querySelector(
-        '[data-slot="dialog-overlay"]',
-      );
-      const dialogContent = document.querySelector(
-        '[data-slot="dialog-content"]',
-      );
-
-      if (dialogOverlay)
-        (dialogOverlay as HTMLElement).style.visibility = "hidden";
-      if (dialogContent)
-        (dialogContent as HTMLElement).style.visibility = "hidden";
-
-      // Small delay to ensure modal is hidden
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      const dataUrl = await toPng(document.body, {
-        cacheBust: true,
-        width: window.innerWidth,
-        height: window.innerHeight,
-        style: {
-          transform: "scale(1)",
-          transformOrigin: "top left",
-        },
-        // Filter out dialog elements from the screenshot
-        filter: (node) => {
-          if (node instanceof Element) {
-            const slot = node.getAttribute("data-slot");
-            if (slot === "dialog-overlay" || slot === "dialog-content") {
-              return false;
-            }
-            // Also filter by role for broader coverage
-            const role = node.getAttribute("role");
-            if (role === "dialog" || role === "alertdialog") {
-              return false;
-            }
-          }
-          return true;
-        },
-      });
-
-      console.log(
-        "[Feedback] Screenshot captured, data URL length:",
-        dataUrl.length,
-      );
-
-      // Restore modal
-      if (dialogOverlay) (dialogOverlay as HTMLElement).style.visibility = "";
-      if (dialogContent) (dialogContent as HTMLElement).style.visibility = "";
-
-      // Convert data URL to blob
-      const response = await fetch(dataUrl);
-      const blob = await response.blob();
-
-      console.log("[Feedback] Blob created, size:", blob.size, "bytes");
-
-      try {
-        // Upload to Convex storage
-        const uploadUrl = await generateUploadUrl();
-        console.log("[Feedback] Got upload URL, uploading...");
-
-        const uploadResponse = await fetch(uploadUrl, {
-          method: "POST",
-          headers: { "Content-Type": "image/png" },
-          body: blob,
-        });
-        const result = await uploadResponse.json();
-        console.log("[Feedback] Upload complete, storageId:", result.storageId);
-        return result.storageId;
-      } catch (error) {
-        console.error("[Feedback] Failed to upload screenshot:", error);
-        return null;
+    const dialogOverlay = document.querySelector(
+      '[data-slot="dialog-overlay"]',
+    );
+    const dialogContent = document.querySelector(
+      '[data-slot="dialog-content"]',
+    );
+    const restoreDialogVisibility = () => {
+      if (dialogOverlay) {
+        (dialogOverlay as HTMLElement).style.visibility = "";
       }
-    } catch (error) {
-      console.error("[Feedback] Failed to capture screenshot:", error);
-      return null;
-    }
-  }, [generateUploadUrl]);
+      if (dialogContent) {
+        (dialogContent as HTMLElement).style.visibility = "";
+      }
+    };
 
-  const handleSubmit = async () => {
+    if (dialogOverlay) {
+      (dialogOverlay as HTMLElement).style.visibility = "hidden";
+    }
+    if (dialogContent) {
+      (dialogContent as HTMLElement).style.visibility = "hidden";
+    }
+
+    return Promise.resolve()
+      .then(
+        () =>
+          new Promise<string>((resolve, reject) => {
+            setTimeout(() => {
+              void toPng(document.body, {
+                cacheBust: true,
+                width: window.innerWidth,
+                height: window.innerHeight,
+                style: {
+                  transform: "scale(1)",
+                  transformOrigin: "top left",
+                },
+                filter: (node) => {
+                  if (node instanceof Element) {
+                    const slot = node.getAttribute("data-slot");
+                    if (
+                      slot === "dialog-overlay" ||
+                      slot === "dialog-content"
+                    ) {
+                      return false;
+                    }
+                    const role = node.getAttribute("role");
+                    if (role === "dialog" || role === "alertdialog") {
+                      return false;
+                    }
+                  }
+                  return true;
+                },
+              })
+                .then(resolve)
+                .catch(reject);
+            }, 100);
+          }),
+      )
+      .then((dataUrl) => {
+        console.log(
+          "[Feedback] Screenshot captured, data URL length:",
+          dataUrl.length,
+        );
+        restoreDialogVisibility();
+        return fetch(dataUrl).then((response) => response.blob());
+      })
+      .then((blob) => {
+        console.log("[Feedback] Blob created, size:", blob.size, "bytes");
+        return fetch("/api/v1/files/upload-url", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fileName: "feedback-screenshot.png",
+            contentType: "image/png",
+          }),
+        })
+          .then((uploadUrlResponse) => uploadUrlResponse.json())
+          .then(
+            (uploadUrlJson: {
+              data?: {
+                uploadUrl?: string;
+                storageId?: string;
+              };
+              error?: string;
+            }) => {
+              const uploadUrl = uploadUrlJson.data?.uploadUrl;
+              const storageId = uploadUrlJson.data?.storageId;
+              if (!uploadUrl || !storageId) {
+                return null;
+              }
+              console.log("[Feedback] Got upload URL, uploading...");
+              return fetch(uploadUrl, {
+                method: "PUT",
+                headers: { "Content-Type": "image/png" },
+                body: blob,
+              })
+                .then((uploadResponse) => {
+                  if (!uploadResponse.ok) {
+                    return null;
+                  }
+                  console.log(
+                    "[Feedback] Upload complete, storageId:",
+                    storageId,
+                  );
+                  return storageId;
+                })
+                .catch((error) => {
+                  console.error(
+                    "[Feedback] Failed to upload screenshot:",
+                    error,
+                  );
+                  return null;
+                });
+            },
+          );
+      })
+      .catch((error) => {
+        restoreDialogVisibility();
+        console.error("[Feedback] Failed to capture screenshot:", error);
+        return null;
+      });
+  }, []);
+
+  const handleSubmit = () => {
     if (!description.trim()) {
       toast.error("Please describe your feedback");
       return;
@@ -182,48 +220,69 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
 
     setIsSubmitting(true);
 
-    try {
-      let screenshotStorageId: string | undefined;
+    const screenshotPromise = includeScreenshot
+      ? (() => {
+          toast.info("Capturing screenshot...");
+          return captureScreenshot().then((storageId) => {
+            if (storageId) {
+              toast.success("Screenshot captured!");
+              return storageId;
+            }
 
-      if (includeScreenshot) {
-        toast.info("Capturing screenshot...");
-        const storageId = await captureScreenshot();
-        if (storageId) {
-          screenshotStorageId = storageId;
-          toast.success("Screenshot captured!");
-        } else {
-          toast.warning("Screenshot capture failed, submitting without it");
+            toast.warning("Screenshot capture failed, submitting without it");
+            return undefined;
+          });
+        })()
+      : Promise.resolve<string | undefined>(undefined);
+
+    void screenshotPromise
+      .then((screenshotStorageId) =>
+        fetch("/api/v1/feedback", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            feedbackType,
+            description: description.trim(),
+            page: pathname,
+            whatTheyDid:
+              feedbackType === "bug" && whatTheyDid.trim()
+                ? whatTheyDid.trim()
+                : undefined,
+            whatTheySaw:
+              feedbackType === "bug" && whatTheySaw.trim()
+                ? whatTheySaw.trim()
+                : undefined,
+            whatTheyExpected:
+              feedbackType === "bug" && whatTheyExpected.trim()
+                ? whatTheyExpected.trim()
+                : undefined,
+            screenshotKey: screenshotStorageId,
+          }),
+        }),
+      )
+      .then((response) => {
+        if (!response.ok) {
+          return response
+            .json()
+            .catch(() => null)
+            .then((payload: { error?: string } | null) => {
+              throw new Error(payload?.error || "Failed to submit feedback");
+            });
         }
-      }
 
-      await createFeedback({
-        feedbackType,
-        description: description.trim(),
-        page: pathname,
-        whatTheyDid:
-          feedbackType === "bug" && whatTheyDid.trim()
-            ? whatTheyDid.trim()
-            : undefined,
-        whatTheySaw:
-          feedbackType === "bug" && whatTheySaw.trim()
-            ? whatTheySaw.trim()
-            : undefined,
-        whatTheyExpected:
-          feedbackType === "bug" && whatTheyExpected.trim()
-            ? whatTheyExpected.trim()
-            : undefined,
-        screenshotStorageId: screenshotStorageId as any,
+        toast.success("Thank you for your feedback!");
+        resetForm();
+        onOpenChange(false);
+      })
+      .catch((error) => {
+        console.error("Failed to submit feedback:", error);
+        toast.error("Failed to submit feedback. Please try again.");
+      })
+      .finally(() => {
+        setIsSubmitting(false);
       });
-
-      toast.success("Thank you for your feedback!");
-      resetForm();
-      onOpenChange(false);
-    } catch (error) {
-      console.error("Failed to submit feedback:", error);
-      toast.error("Failed to submit feedback. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const getDescriptionLabel = () => {
@@ -263,18 +322,11 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* User Info (read-only) */}
-          {user && (
-            <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
-              <p>
-                <span className="font-medium">From:</span> {user.name}
-                {user.email && ` (${user.email})`}
-              </p>
-              <p>
-                <span className="font-medium">Page:</span> {pathname}
-              </p>
-            </div>
-          )}
+          <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
+            <p>
+              <span className="font-medium">Page:</span> {pathname}
+            </p>
+          </div>
 
           {/* Feedback Type Selector */}
           <div className="space-y-2">

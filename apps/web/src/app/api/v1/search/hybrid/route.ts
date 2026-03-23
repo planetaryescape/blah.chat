@@ -1,11 +1,9 @@
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { fetchAction } from "convex/nextjs";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import logger from "@/lib/logger";
+import { searchMessages } from "@/lib/persistence/search";
 import { formatEntityList } from "@/lib/utils/formatEntity";
 
 const searchSchema = z.object({
@@ -27,11 +25,9 @@ async function handler(req: NextRequest, { userId }: { userId: string }) {
     "POST /api/v1/search/hybrid",
   );
 
-  // Direct Convex action call - completes in ~200-500ms
-  // @ts-ignore - Type depth exceeded with complex Convex action
-  const results = await fetchAction(api.search.hybridSearch, {
+  const results = await searchMessages(userId, {
     query: validated.query,
-    conversationId: validated.conversationId as Id<"conversations"> | undefined,
+    conversationId: validated.conversationId,
     limit: validated.limit,
     dateFrom: validated.dateFrom,
     dateTo: validated.dateTo,

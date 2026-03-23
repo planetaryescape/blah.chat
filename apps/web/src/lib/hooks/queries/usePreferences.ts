@@ -15,6 +15,7 @@ export function usePreferences() {
 
   // Convex WebSocket subscription (web desktop)
   const convexData = useConvexQuery(
+    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
     api.users.getAllUserPreferences,
     useConvexMode ? {} : "skip",
   );

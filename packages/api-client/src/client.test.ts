@@ -1,0 +1,717 @@
+import { describe, expect, it, vi } from "vitest";
+import { createBlahClient } from "./client";
+
+describe("BlahClient generation request APIs", () => {
+  it("sends messages through the generation request envelope", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          status: "success",
+          sys: {
+            entity: "generationRequest",
+            id: "req_1",
+          },
+          data: {
+            requestId: "req_1",
+            conversationId: "conv_1",
+            userMessageId: "msg_user_1",
+            assistantMessageIds: ["msg_assistant_1"],
+            modelIds: ["openai:gpt-5"],
+            streamUrl: "/api/v1/generations/req_1/stream",
+            stopUrl: "/api/v1/generations/req_1/stop",
+            status: "pending",
+          },
+        }),
+        {
+          status: 202,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const client = createBlahClient({
+      baseUrl: "https://example.com",
+      getAccessToken: async () => "token_123",
+      fetch: fetchMock,
+    });
+
+    const result = await client.sendMessage("conv_1", {
+      content: "Hello",
+      parentMessageId: "msg_parent_1",
+      clientMessageId: "client_msg_1",
+    });
+
+    expect(result).toEqual({
+      requestId: "req_1",
+      conversationId: "conv_1",
+      userMessageId: "msg_user_1",
+      assistantMessageIds: ["msg_assistant_1"],
+      modelIds: ["openai:gpt-5"],
+      streamUrl: "/api/v1/generations/req_1/stream",
+      stopUrl: "/api/v1/generations/req_1/stop",
+      status: "pending",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toBe(
+      "https://example.com/api/v1/conversations/conv_1/messages",
+    );
+    expect(init?.method).toBe("POST");
+    expect(JSON.parse(String(init?.body))).toEqual({
+      content: "Hello",
+      parentMessageId: "msg_parent_1",
+      clientMessageId: "client_msg_1",
+    });
+    expect(init?.headers).toMatchObject({
+      Authorization: "Bearer token_123",
+      "Content-Type": "application/json",
+    });
+  });
+
+  it("returns null when no active generation exists", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("Not found", { status: 404 }));
+
+    const client = createBlahClient({
+      baseUrl: "https://example.com",
+      getAccessToken: async () => "token_123",
+      fetch: fetchMock,
+    });
+
+    const result = await (
+      client as unknown as {
+        getActiveGeneration: (
+          conversationId: string,
+        ) => Promise<null | { requestId: string | null }>;
+      }
+    ).getActiveGeneration("conv_1");
+
+    expect(result).toBeNull();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.com/api/v1/conversations/conv_1/active-generation",
+      expect.objectContaining({
+        method: "GET",
+        headers: expect.objectContaining({
+          Authorization: "Bearer token_123",
+        }),
+      }),
+    );
+  });
+
+  it("searches messages through the REST search envelope", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          status: "success",
+          sys: { entity: "list" },
+          data: [
+            {
+              sys: { entity: "message", id: "msg_1" },
+              data: {
+                _id: "msg_1",
+                conversationId: "conv_1",
+                conversationTitle: "Search Chat",
+                role: "user",
+                content: "solar eclipse facts",
+              },
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const client = createBlahClient({
+      baseUrl: "https://example.com",
+      getAccessToken: async () => "token_123",
+      fetch: fetchMock,
+    });
+
+    const result = await (
+      client as unknown as {
+        searchMessages: (payload: {
+          query: string;
+          limit?: number;
+          conversationId?: string;
+        }) => Promise<
+          Array<{
+            _id: string;
+            conversationId: string;
+            conversationTitle?: string | null;
+            content: string;
+            role: string;
+          }>
+        >;
+      }
+    ).searchMessages({
+      query: "solar eclipse",
+      limit: 20,
+      conversationId: "conv_1",
+    });
+
+    expect(result).toEqual([
+      {
+        _id: "msg_1",
+        conversationId: "conv_1",
+        conversationTitle: "Search Chat",
+        role: "user",
+        content: "solar eclipse facts",
+      },
+    ]);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.com/api/v1/search/hybrid",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Bearer token_123",
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({
+          query: "solar eclipse",
+          limit: 20,
+          conversationId: "conv_1",
+        }),
+      }),
+    );
+  });
+
+  it("bulk bookmarks messages through the REST bookmarks route", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          status: "success",
+          sys: { entity: "bookmark" },
+          data: {
+            bookmarkedCount: 2,
+            bookmarkIds: ["bookmark_1", "bookmark_2"],
+          },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const client = createBlahClient({
+      baseUrl: "https://example.com",
+      getAccessToken: async () => "token_123",
+      fetch: fetchMock,
+    });
+
+    const result = await client.bulkCreateBookmarks({
+      messageIds: ["msg_1", "msg_2"],
+    });
+
+    expect(result).toEqual({
+      bookmarkedCount: 2,
+      bookmarkIds: ["bookmark_1", "bookmark_2"],
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.com/api/v1/bookmarks/bulk",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Bearer token_123",
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({
+          messageIds: ["msg_1", "msg_2"],
+        }),
+      }),
+    );
+  });
+
+  it("lists memories through the REST memories route", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          status: "success",
+          sys: { entity: "list" },
+          data: [
+            {
+              sys: { entity: "memory", id: "mem_1" },
+              data: {
+                _id: "mem_1",
+                content: "User prefers concise answers",
+                category: "preference",
+                metadata: {
+                  importance: 8,
+                },
+                createdAt: 123,
+              },
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const client = createBlahClient({
+      baseUrl: "https://example.com",
+      getAccessToken: async () => "token_123",
+      fetch: fetchMock,
+    });
+
+    const result = await client.listMemories({
+      category: "preference",
+      sortBy: "importance",
+      searchQuery: "concise",
+    });
+
+    expect(result).toEqual([
+      {
+        _id: "mem_1",
+        content: "User prefers concise answers",
+        category: "preference",
+        metadata: {
+          importance: 8,
+        },
+        createdAt: 123,
+      },
+    ]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.com/api/v1/memories?category=preference&sortBy=importance&searchQuery=concise",
+      expect.objectContaining({
+        method: "GET",
+        headers: expect.objectContaining({
+          Authorization: "Bearer token_123",
+        }),
+      }),
+    );
+  });
+
+  it("consolidates memories through the REST memories route", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          status: "success",
+          sys: { entity: "memory" },
+          data: {
+            created: 1,
+            deleted: 1,
+            original: 2,
+            consolidated: 1,
+          },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const client = createBlahClient({
+      baseUrl: "https://example.com",
+      getAccessToken: async () => "token_123",
+      fetch: fetchMock,
+    });
+
+    const result = await client.consolidateMemories({
+      ids: ["mem_1", "mem_2"],
+    });
+
+    expect(result).toEqual({
+      created: 1,
+      deleted: 1,
+      original: 2,
+      consolidated: 1,
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.com/api/v1/memories/consolidate",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Bearer token_123",
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({
+          ids: ["mem_1", "mem_2"],
+        }),
+      }),
+    );
+  });
+
+  it("starts memory extraction through the REST extraction route", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          status: "success",
+          sys: { entity: "job", id: "run_123" },
+          data: {
+            jobId: "run_123",
+            status: "pending",
+            pollUrl: "/api/v1/actions/jobs/run_123",
+          },
+        }),
+        {
+          status: 202,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const client = createBlahClient({
+      baseUrl: "https://example.com",
+      getAccessToken: async () => "token_123",
+      fetch: fetchMock,
+    });
+
+    const result = await (
+      client as unknown as {
+        extractMemories: (conversationId: string) => Promise<{
+          jobId: string;
+          status: string;
+          pollUrl: string;
+        }>;
+      }
+    ).extractMemories("conv_1");
+
+    expect(result).toEqual({
+      jobId: "run_123",
+      status: "pending",
+      pollUrl: "/api/v1/actions/jobs/run_123",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.com/api/v1/memories/extract",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Bearer token_123",
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({
+          conversationId: "conv_1",
+        }),
+      }),
+    );
+  });
+
+  it("starts transcription through the REST actions route", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          status: "success",
+          sys: { entity: "job", id: "run_transcribe_123" },
+          data: {
+            jobId: "run_transcribe_123",
+            status: "pending",
+            pollUrl: "/api/v1/actions/jobs/run_transcribe_123",
+          },
+        }),
+        {
+          status: 202,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const client = createBlahClient({
+      baseUrl: "https://example.com",
+      getAccessToken: async () => "token_123",
+      fetch: fetchMock,
+    });
+
+    const result = await (
+      client as unknown as {
+        transcribeAudio: (payload: {
+          storageId: string;
+          model?: "whisper-1" | "whisper-large-v3";
+        }) => Promise<{
+          jobId: string;
+          status: string;
+          pollUrl: string;
+        }>;
+      }
+    ).transcribeAudio({
+      storageId: "storage_123",
+      model: "whisper-1",
+    });
+
+    expect(result).toEqual({
+      jobId: "run_transcribe_123",
+      status: "pending",
+      pollUrl: "/api/v1/actions/jobs/run_transcribe_123",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.com/api/v1/actions/transcribe",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Bearer token_123",
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({
+          storageId: "storage_123",
+          model: "whisper-1",
+        }),
+      }),
+    );
+  });
+
+  it("starts image generation through the REST actions route", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          status: "success",
+          sys: { entity: "job", id: "run_image_123" },
+          data: {
+            jobId: "run_image_123",
+            status: "pending",
+            pollUrl: "/api/v1/actions/jobs/run_image_123",
+          },
+        }),
+        {
+          status: 202,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const client = createBlahClient({
+      baseUrl: "https://example.com",
+      getAccessToken: async () => "token_123",
+      fetch: fetchMock,
+    });
+
+    const result = await (
+      client as unknown as {
+        generateImage: (payload: {
+          conversationId: string;
+          messageId: string;
+          prompt: string;
+          model?: string;
+          thinkingEffort?: "none" | "low" | "medium" | "high";
+        }) => Promise<{
+          jobId: string;
+          status: string;
+          pollUrl: string;
+        }>;
+      }
+    ).generateImage({
+      conversationId: "conv_1",
+      messageId: "msg_1",
+      prompt: "A bot deleting the last web bridge",
+      model: "google:gemini-3-pro-image",
+      thinkingEffort: "high",
+    });
+
+    expect(result).toEqual({
+      jobId: "run_image_123",
+      status: "pending",
+      pollUrl: "/api/v1/actions/jobs/run_image_123",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.com/api/v1/actions/images/generate",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Bearer token_123",
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({
+          conversationId: "conv_1",
+          messageId: "msg_1",
+          prompt: "A bot deleting the last web bridge",
+          model: "google:gemini-3-pro-image",
+          thinkingEffort: "high",
+        }),
+      }),
+    );
+  });
+
+  it("forwards mimeType for the current upload/transcribe flow", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          status: "success",
+          sys: { entity: "job", id: "run_transcribe_456" },
+          data: {
+            jobId: "run_transcribe_456",
+            status: "pending",
+            pollUrl: "/api/v1/actions/jobs/run_transcribe_456",
+          },
+        }),
+        {
+          status: 202,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const client = createBlahClient({
+      baseUrl: "https://example.com",
+      getAccessToken: async () => "token_123",
+      fetch: fetchMock,
+    });
+
+    await client.transcribeAudio({
+      storageId: "storage_456",
+      mimeType: "audio/webm",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.com/api/v1/actions/transcribe",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          storageId: "storage_456",
+          mimeType: "audio/webm",
+        }),
+      }),
+    );
+  });
+
+  it("polls background jobs until completion", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            status: "success",
+            sys: { entity: "job", id: "run_123" },
+            data: {
+              _id: "run_123",
+              status: "running",
+              progress: { current: 50, message: "Working..." },
+            },
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            status: "success",
+            sys: { entity: "job", id: "run_123" },
+            data: {
+              _id: "run_123",
+              status: "completed",
+              result: { text: "hello world" },
+            },
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
+      );
+
+    const client = createBlahClient({
+      baseUrl: "https://example.com",
+      getAccessToken: async () => "token_123",
+      fetch: fetchMock,
+    });
+
+    const result = await client.waitForJob<{ text: string }>("run_123", {
+      initialInterval: 1,
+      maxInterval: 1,
+      backoffMultiplier: 1,
+      timeoutMs: 100,
+    });
+
+    expect(result).toEqual({
+      _id: "run_123",
+      status: "completed",
+      result: { text: "hello world" },
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("scans recent conversations through the REST memories route", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          status: "success",
+          sys: { entity: "memory" },
+          data: {
+            triggered: 2,
+          },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const client = createBlahClient({
+      baseUrl: "https://example.com",
+      getAccessToken: async () => "token_123",
+      fetch: fetchMock,
+    });
+
+    const result = await client.scanRecentConversations();
+
+    expect(result).toEqual({
+      triggered: 2,
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.com/api/v1/memories/scan-recent",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Bearer token_123",
+          "Content-Type": "application/json",
+        }),
+      }),
+    );
+  });
+
+  it("streams generation SSE events from a request stream", async () => {
+    const generationEvent = {
+      type: "delta",
+      requestId: "req_1",
+      sessionId: "sess_1",
+      assistantMessageId: "msg_assistant_1",
+      modelId: "openai:gpt-5",
+      seq: 1,
+      ts: 123,
+      delta: "Hello",
+    };
+
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(
+        `event: generation\ndata: ${JSON.stringify(generationEvent)}\n\n`,
+        {
+          status: 200,
+          headers: { "Content-Type": "text/event-stream" },
+        },
+      ),
+    );
+
+    const client = createBlahClient({
+      baseUrl: "https://example.com",
+      getAccessToken: async () => "token_123",
+      fetch: fetchMock,
+    });
+
+    const iterator = (
+      client as unknown as {
+        streamGeneration: (
+          requestId: string,
+        ) => AsyncGenerator<{ data: unknown; event: string }, void, undefined>;
+      }
+    ).streamGeneration("req_1");
+
+    const next = await iterator.next();
+
+    expect(next.done).toBe(false);
+    expect(next.value).toEqual({
+      event: "generation",
+      data: generationEvent,
+    });
+  });
+});

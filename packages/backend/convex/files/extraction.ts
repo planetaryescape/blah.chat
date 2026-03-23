@@ -27,6 +27,10 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
 import { logger } from "../lib/logger";
+import {
+  buildPdfPageExtractionPrompt,
+  DOCUMENT_EXTRACTION_PROMPT,
+} from "../lib/prompts/operational/documentExtraction";
 
 // Usage tracking context
 interface UsageContext {
@@ -106,34 +110,6 @@ const DOCX_TYPES = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/msword",
 ];
-
-// Extraction prompts
-const PDF_PAGE_EXTRACTION_PROMPT = (pageNum: number, totalPages: number) => `
-Extract ALL text content from page ${pageNum} of ${totalPages} of this PDF document.
-
-Rules:
-- Extract text EXACTLY as it appears (preserve formatting where possible)
-- Include headers, footers, captions, table content
-- If the page is blank or has no text, respond with "[BLANK PAGE]"
-- Do NOT summarize or interpret - extract verbatim
-- For tables, preserve structure using markdown table format
-- For code blocks, wrap in triple backticks
-
-Output the extracted text directly, no preamble.
-`;
-
-const DOCUMENT_EXTRACTION_PROMPT = `
-Extract ALL text content from this document.
-
-Rules:
-- Extract text EXACTLY as it appears
-- Preserve document structure (headings, lists, tables)
-- For tables, use markdown table format
-- For code blocks, wrap in triple backticks
-- Do NOT summarize or interpret - extract verbatim
-
-Output the extracted text directly, no preamble.
-`;
 
 const _CSV_BATCH_EXTRACTION_PROMPT = (startRow: number, endRow: number) => `
 Extract rows ${startRow} to ${endRow} from this CSV file.
@@ -342,7 +318,7 @@ async function extractPdfWithLlm(
               },
               {
                 type: "text",
-                text: PDF_PAGE_EXTRACTION_PROMPT(pageNum, maxPages),
+                text: buildPdfPageExtractionPrompt(pageNum, maxPages),
               },
             ],
           },

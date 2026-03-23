@@ -1,8 +1,15 @@
-import { task } from "@trigger.dev/sdk";
-import { callConvexTriggerEndpoint } from "./utils";
+import { schedules } from "@trigger.dev/sdk";
+import { callLegacyConvexTrigger } from "./utils";
 
-export const checkHealthTask = task({
+export const CHECK_HEALTH_CRON = {
+  pattern: "0 */6 * * *",
+  timezone: "UTC",
+  environments: ["PRODUCTION"] as Array<"PRODUCTION">,
+};
+
+export const checkHealthTask = schedules.task({
   id: "check-health",
+  cron: CHECK_HEALTH_CRON,
   maxDuration: 120,
   retry: {
     maxAttempts: 2,
@@ -10,7 +17,7 @@ export const checkHealthTask = task({
     maxTimeoutInMs: 30000,
     factor: 2,
   },
-  run: async (_payload: Record<string, never>) => {
-    return callConvexTriggerEndpoint<{ success: boolean }>("check-health", {});
+  run: async () => {
+    return callLegacyConvexTrigger<{ success: boolean }>("check-health", {});
   },
 });

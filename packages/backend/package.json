@@ -8,7 +8,11 @@
     "./*": "./convex/*",
     "./_generated/*": "./convex/_generated/*",
     "./convex/_generated/api": "./convex/_generated/api.js",
-    "./convex/_generated/dataModel": "./convex/_generated/dataModel.d.ts"
+    "./convex/_generated/dataModel": "./convex/_generated/dataModel.d.ts",
+    "./documentExtractionPrompts": "./convex/documentExtractionPrompts.ts",
+    "./memoryExtractionPrompt": "./convex/memoryExtractionPrompt.ts",
+    "./titleGenerationPrompt": "./convex/titleGenerationPrompt.ts",
+    "./tokenCounting": "./convex/tokenCounting.ts"
   },
   "scripts": {
     "dev": "bun --filter=@blah-chat/ai run build && bun --filter=@blah-chat/shared run build && bun --filter=@blah-chat/auto-router run build && bun --filter=@blah-chat/cognitive-memory run build && convex dev",

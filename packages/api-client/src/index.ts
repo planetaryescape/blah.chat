@@ -5,10 +5,16 @@ export type { Id } from "./rpc";
 export * as rpc from "./rpc";
 export { streamSSE } from "./sse";
 export type {
+  ActiveGeneration,
   ApiEnvelope,
+  BackgroundJob,
+  BackgroundJobError,
+  BackgroundJobProgress,
   Bookmark,
   CliRpcMethodMap,
   Conversation,
+  GenerationRequest,
+  GenerationStreamEvent,
   Memory,
   Message,
   Model,

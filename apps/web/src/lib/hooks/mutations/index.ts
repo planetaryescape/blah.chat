@@ -1,4 +1,5 @@
 export * from "./useArchiveConversation";
+export * from "./useAutoRenameConversation";
 export * from "./useDeleteConversation";
 export * from "./useRegenerateMessage";
 export * from "./useRenameConversation";

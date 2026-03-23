@@ -13,6 +13,7 @@ const persistenceEnvSchema = z.object({
   R2_FORCE_PATH_STYLE: z.enum(["true", "false", "1", "0"]).optional(),
   R2_PUBLIC_BASE_URL: z.url().optional(),
   TRIGGER_SECRET_KEY: z.string().min(1).optional(),
+  TRIGGER_API_URL: z.url().optional(),
 });
 
 export interface PersistenceEnv {
@@ -33,6 +34,7 @@ export interface PersistenceEnv {
   };
   trigger: {
     secretKey?: string;
+    apiUrl: string;
   };
 }
 
@@ -65,6 +67,7 @@ export function parsePersistenceEnv(
     },
     trigger: {
       secretKey: parsed.TRIGGER_SECRET_KEY,
+      apiUrl: parsed.TRIGGER_API_URL ?? "https://api.trigger.dev",
     },
   };
 }

@@ -1,6 +1,7 @@
 export { createNeonClient } from "./clients/neon";
 export * from "./clients/r2";
 export * from "./clients/redis";
+export * from "./clients/trigger";
 export * from "./db";
 export * from "./env";
 export * from "./repositories/attachments";

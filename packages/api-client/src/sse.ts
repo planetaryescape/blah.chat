@@ -1,6 +1,11 @@
 import { createParser, type EventSourceMessage } from "eventsource-parser";
 
-export type SSEEventName = "snapshot" | "update" | "error" | "heartbeat";
+export type SSEEventName =
+  | "snapshot"
+  | "update"
+  | "error"
+  | "heartbeat"
+  | "generation";
 
 export interface SSEEvent<T = unknown> {
   event: SSEEventName;
@@ -46,7 +51,8 @@ export async function* streamSSE<T = unknown>(
         name !== "snapshot" &&
         name !== "update" &&
         name !== "error" &&
-        name !== "heartbeat"
+        name !== "heartbeat" &&
+        name !== "generation"
       ) {
         return;
       }

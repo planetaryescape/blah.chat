@@ -31,7 +31,7 @@
     "active": true,
     "createUpdaterArtifacts": true,
     "targets": "all",
-    "icon": ["../../raycast/assets/icon.png"]
+    "icon": ["../../mobile/assets/icon.png"]
   },
   "plugins": {
     "deep-link": {

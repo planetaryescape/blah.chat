@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { extractMessagesFromPayload } from "../useRestMessageSync";
+import {
+  applyGenerationEventToMessages,
+  extractMessagesFromPayload,
+} from "../useRestMessageSync";
 
 describe("useRestMessageSync helpers", () => {
   it("extracts messages from list envelopes", () => {
@@ -55,6 +58,66 @@ describe("useRestMessageSync helpers", () => {
       _id: "msg_3",
       partialContent: "stream",
       status: "generating",
+    });
+  });
+
+  it("applies delta events to the cached assistant message", () => {
+    const messages = applyGenerationEventToMessages(
+      [
+        {
+          _id: "msg_1",
+          conversationId: "conv_1",
+          role: "assistant",
+          content: "hel",
+          partialContent: "hel",
+          status: "generating",
+          model: "openai:gpt-5",
+          createdAt: 1,
+          updatedAt: 1,
+          _creationTime: 1,
+        },
+      ],
+      "conv_1",
+      {
+        type: "delta",
+        requestId: "req_1",
+        sessionId: "sess_1",
+        assistantMessageId: "msg_1",
+        modelId: "openai:gpt-5",
+        seq: 1,
+        ts: 2,
+        delta: "lo",
+      },
+    );
+
+    expect(messages[0]).toMatchObject({
+      _id: "msg_1",
+      content: "hello",
+      partialContent: "hello",
+      status: "generating",
+    });
+  });
+
+  it("creates a resumable assistant stub from a complete event when cache is cold", () => {
+    const messages = applyGenerationEventToMessages([], "conv_1", {
+      type: "complete",
+      requestId: "req_1",
+      sessionId: "sess_1",
+      assistantMessageId: "msg_2",
+      modelId: "openai:gpt-5",
+      seq: 2,
+      ts: 3,
+      content: "done",
+    });
+
+    expect(messages).toHaveLength(1);
+    expect(messages[0]).toMatchObject({
+      _id: "msg_2",
+      conversationId: "conv_1",
+      role: "assistant",
+      content: "done",
+      status: "complete",
+      model: "openai:gpt-5",
     });
   });
 });

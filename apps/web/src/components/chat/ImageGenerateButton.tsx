@@ -3,9 +3,9 @@
 import { MODEL_CONFIG } from "@blah-chat/ai/models";
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useAction, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { ImageIcon, Loader2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { analytics } from "@/lib/analytics";
+import { useSDKClient } from "@/lib/api/sdkClient";
 import { QuickModelSwitcher } from "./QuickModelSwitcher";
 
 interface ImageGenerateButtonProps {
@@ -46,7 +47,7 @@ export function ImageGenerateButton({
   iconOnly = false,
 }: ImageGenerateButtonProps) {
   const [open, setOpen] = useState(false);
-  const [prompt, setPrompt] = useState(initialPrompt);
+  const [prompt, setPrompt] = useState("");
   const [selectedModel, setSelectedModel] = useState(
     "google:gemini-3-pro-image",
   );
@@ -55,6 +56,7 @@ export function ImageGenerateButton({
   >("none");
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const sdk = useSDKClient();
 
   // Filter to image generation models
   const _imageModels = useMemo(
@@ -68,60 +70,57 @@ export function ImageGenerateButton({
   // Check if selected model supports thinking
   const selectedModelConfig = MODEL_CONFIG[selectedModel];
   const supportsThinking = !!selectedModelConfig?.reasoning;
+  // @ts-ignore - Type depth exceeded with complex Convex mutation
   const sendMessage = useMutation(api.chat.sendMessage as any);
 
-  const generateImage = useAction(
-    (api as any)["generation/image"].generateImageAction,
-  );
-
-  const handleGenerate = async () => {
-    if (!prompt.trim()) return;
+  const handleGenerate = (promptOverride?: string) => {
+    const promptToUse = (promptOverride ?? prompt).trim();
+    if (!promptToUse) return;
 
     setIsGenerating(true);
-    try {
-      // If no messageId, send as regular message first
-      if (!messageId) {
-        await sendMessage({
+    const request = !messageId
+      ? sendMessage({
           conversationId,
-          content: prompt.trim(),
+          content: promptToUse,
           modelId: selectedModel,
-        });
-      } else {
-        await generateImage({
+        })
+      : sdk.generateImage({
           conversationId,
           messageId,
-          prompt: prompt.trim(),
+          prompt: promptToUse,
           model: selectedModel,
           thinkingEffort: supportsThinking ? thinkingEffort : undefined,
         });
-      }
 
-      analytics.track("feature_used", { feature: "image_gen" });
-
-      setOpen(false);
-      setPrompt("");
-    } catch (error) {
-      console.error("Image generation failed:", error);
-    } finally {
-      setIsGenerating(false);
-    }
+    void Promise.resolve(request)
+      .then(() => {
+        analytics.track("feature_used", { feature: "image_gen" });
+        setOpen(false);
+        setPrompt("");
+      })
+      .catch((error) => {
+        console.error("Image generation failed:", error);
+      })
+      .finally(() => {
+        setIsGenerating(false);
+      });
   };
 
   const handleClick = (e: React.MouseEvent) => {
     // If we have an initial prompt and no messageId, generate immediately
     if (initialPrompt.trim() && !messageId) {
       e.preventDefault();
-      handleGenerate();
+      void handleGenerate(initialPrompt);
     }
   };
 
-  // Sync initialPrompt when it changes
-  useEffect(() => {
-    setPrompt(initialPrompt);
-  }, [initialPrompt]);
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    setPrompt(nextOpen ? initialPrompt : "");
+  };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant={variant} size={size} onClick={handleClick}>
           <ImageIcon className={iconOnly ? "h-4 w-4" : "h-4 w-4 mr-2"} />
@@ -186,7 +185,7 @@ export function ImageGenerateButton({
         </div>
         <DialogFooter>
           <Button
-            onClick={handleGenerate}
+            onClick={() => void handleGenerate()}
             disabled={!prompt.trim() || isGenerating}
           >
             {isGenerating ? (

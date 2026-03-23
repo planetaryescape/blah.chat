@@ -14,6 +14,14 @@ const createSchema = z.object({
   model: z.string(),
   systemPrompt: z.string().optional(),
   projectId: z.string().nullable().optional(),
+  isIncognito: z.boolean().optional(),
+  incognitoSettings: z
+    .object({
+      enableReadTools: z.boolean().optional(),
+      applyCustomInstructions: z.boolean().optional(),
+      inactivityTimeoutMinutes: z.number().optional(),
+    })
+    .optional(),
 });
 
 async function postHandler(req: NextRequest, { userId }: { userId: string }) {

@@ -67,6 +67,15 @@ vi.mock("@/lib/api/client", () => ({
   }),
 }));
 
+vi.mock("@/lib/api/sdkClient", () => ({
+  useSDKClient: () => ({
+    transcribeAudio: vi.fn(),
+    waitForJob: vi.fn(),
+    extractMemories: vi.fn(),
+    generateImage: vi.fn(),
+  }),
+}));
+
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 // Import component AFTER mocks
 import { ChatInput } from "../ChatInput";
@@ -98,7 +107,7 @@ describe("ChatInput", () => {
 
   it("calls sendMessage when user types and presses Enter", async () => {
     const user = userEvent.setup();
-    render(<ChatInput {...defaultProps} />);
+    render(<ChatInput {...defaultProps} parentMessageId="msg-parent-1" />);
 
     const input = screen.getByLabelText("Message input");
     await user.type(input, "Hello world{Enter}");
@@ -107,6 +116,7 @@ describe("ChatInput", () => {
       expect.objectContaining({
         content: "Hello world",
         conversationId: "test-conversation-id",
+        parentMessageId: "msg-parent-1",
         modelId: "openai:gpt-4o",
       }),
       expect.any(Object),

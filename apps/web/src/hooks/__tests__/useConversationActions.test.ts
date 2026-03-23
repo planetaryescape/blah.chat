@@ -14,10 +14,10 @@ vi.mock("@/lib/hooks/mutations", () => ({
   useArchiveConversation: () => ({ mutate: mockArchive, isPending: false }),
   useTogglePin: () => ({ mutate: mockTogglePin, isPending: false }),
   useToggleStar: () => ({ mutate: mockToggleStar, isPending: false }),
-}));
-
-vi.mock("convex/react", () => ({
-  useAction: () => mockAutoRename,
+  useAutoRenameConversation: () => ({
+    mutateAsync: mockAutoRename,
+    isPending: false,
+  }),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -144,5 +144,19 @@ describe("useConversationActions", () => {
     expect(mockArchive).not.toHaveBeenCalled();
     expect(mockTogglePin).not.toHaveBeenCalled();
     expect(mockToggleStar).not.toHaveBeenCalled();
+  });
+
+  it("handleAutoRename calls REST-backed auto-rename mutation", async () => {
+    mockAutoRename.mockResolvedValue({ _id: conversationId, title: "Renamed" });
+
+    const { result } = renderHook(() =>
+      useConversationActions(conversationId, "header_menu"),
+    );
+
+    await act(async () => {
+      await result.current.handleAutoRename();
+    });
+
+    expect(mockAutoRename).toHaveBeenCalledWith({ conversationId });
   });
 });

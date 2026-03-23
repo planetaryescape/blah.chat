@@ -26,6 +26,59 @@ interface FileUploadProps {
   maxSizeMB?: number;
 }
 
+type UploadApiClient = {
+  post<T>(path: string, body?: unknown): Promise<T>;
+};
+
+async function uploadAttachmentFile(args: {
+  apiClient: UploadApiClient;
+  conversationId: Id<"conversations">;
+  file: File;
+}) {
+  const { apiClient, conversationId, file } = args;
+  const { uploadUrl, storageId } = await apiClient.post<{
+    uploadUrl: string;
+    storageId: string;
+  }>("/api/v1/files/upload-url", {
+    conversationId,
+    fileName: file.name,
+    contentType: file.type || "application/octet-stream",
+  });
+
+  const result = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": file.type },
+    body: file,
+  });
+
+  if (!result.ok) {
+    throw new Error("Failed to upload file");
+  }
+
+  let type: "file" | "image" | "audio" = "file";
+  if (file.type.startsWith("image/")) type = "image";
+  else if (file.type.startsWith("audio/")) type = "audio";
+
+  return {
+    attachment: {
+      type,
+      name: file.name,
+      storageId,
+      mimeType: file.type,
+      size: file.size,
+      url: file.type.startsWith("image/")
+        ? URL.createObjectURL(file)
+        : undefined,
+    } satisfies Attachment,
+    analyticsPayload: {
+      type,
+      size: file.size,
+      mimeType: file.type,
+      countPerMessage: 1,
+    },
+  };
+}
+
 export function FileUpload({
   conversationId,
   attachments,
@@ -41,82 +94,52 @@ export function FileUpload({
   const apiClient = useApiClient();
 
   const onDrop = useCallback(
-    async (acceptedFiles: File[]) => {
+    (acceptedFiles: File[]) => {
       if (!conversationId) {
         toast.error("Conversation not ready for uploads");
         return;
       }
 
       setUploading(true);
-
-      try {
-        const newAttachments: Attachment[] = [];
-
-        for (const file of acceptedFiles) {
-          // Validate size
-          if (file.size > maxSizeMB * 1024 * 1024) {
-            toast.error(`${file.name} exceeds ${maxSizeMB}MB limit`);
-            continue;
-          }
-
-          const { uploadUrl, storageId } = await apiClient.post<{
-            uploadUrl: string;
-            storageId: string;
-          }>("/api/v1/files/upload-url", {
-            conversationId,
-            fileName: file.name,
-            contentType: file.type || "application/octet-stream",
-          });
-
-          // Upload file
-          const result = await fetch(uploadUrl, {
-            method: "PUT",
-            headers: { "Content-Type": file.type },
-            body: file,
-          });
-          if (!result.ok) {
-            throw new Error("Failed to upload file");
-          }
-
-          // Determine type
-          let type: "file" | "image" | "audio" = "file";
-          if (file.type.startsWith("image/")) type = "image";
-          else if (file.type.startsWith("audio/")) type = "audio";
-
-          newAttachments.push({
-            type,
-            name: file.name,
-            storageId,
-            mimeType: file.type,
-            size: file.size,
-            url: file.type.startsWith("image/")
-              ? URL.createObjectURL(file)
-              : undefined,
-          });
-
-          // Track each attachment upload
-          analytics.track("attachment_uploaded", {
-            type,
-            size: file.size,
-            mimeType: file.type,
-            countPerMessage: 1,
-          });
+      const validFiles = acceptedFiles.filter((file) => {
+        if (file.size <= maxSizeMB * 1024 * 1024) {
+          return true;
         }
 
-        onAttachmentsChange([...attachments, ...newAttachments]);
-        toast.success(
-          `Uploaded ${newAttachments.length} file${
-            newAttachments.length === 1 ? "" : "s"
-          }`,
-        );
-        // Focus input after successful upload
-        onUploadComplete?.();
-      } catch (error) {
-        console.error("Upload failed:", error);
-        toast.error("Failed to upload files");
-      } finally {
+        toast.error(`${file.name} exceeds ${maxSizeMB}MB limit`);
+        return false;
+      });
+
+      if (validFiles.length === 0) {
         setUploading(false);
+        return;
       }
+
+      void Promise.all(
+        validFiles.map((file) =>
+          uploadAttachmentFile({ apiClient, conversationId, file }),
+        ),
+      )
+        .then((uploads) => {
+          uploads.forEach(({ analyticsPayload }) => {
+            analytics.track("attachment_uploaded", analyticsPayload);
+          });
+          const newAttachments = uploads.map(({ attachment }) => attachment);
+          onAttachmentsChange([...attachments, ...newAttachments]);
+          toast.success(
+            `Uploaded ${newAttachments.length} file${
+              newAttachments.length === 1 ? "" : "s"
+            }`,
+          );
+          onUploadComplete?.();
+        })
+        .catch((error) => {
+          console.error("Upload failed:", error);
+          toast.error("Failed to upload files");
+        })
+        .finally(() => {
+          setUploading(false);
+        });
     },
     [
       attachments,

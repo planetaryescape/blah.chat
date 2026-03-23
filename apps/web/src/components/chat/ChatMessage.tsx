@@ -55,20 +55,20 @@ function ErrorDisplay({
     alertRef.current?.focus();
   }, []);
 
-  const handleRetry = async () => {
+  const handleRetry = () => {
     setIsRetrying(true);
-    try {
-      await regenerate.mutateAsync({
+    regenerate.mutate(
+      {
         messageId,
         conversationId,
         modelId: "auto",
-      });
-    } catch (err) {
-      console.error("[ErrorDisplay] Retry failed:", err);
-      toast.error("Failed to retry generation");
-    } finally {
-      setIsRetrying(false);
-    }
+      },
+      {
+        onSettled: () => {
+          setIsRetrying(false);
+        },
+      },
+    );
   };
 
   return (
@@ -123,9 +123,16 @@ interface ChatMessageProps {
   isCollaborative?: boolean;
   senderUser?: { name?: string; imageUrl?: string } | null;
   // Lifted from child to reduce N subscription to 1
-  conversation?: Doc<"conversations"> | null;
+  conversation?: MessageConversationContext | null;
   // Lifted preference to avoid memo blocking updates
   showMessageStats?: boolean;
+}
+
+export interface MessageConversationContext {
+  _id: Id<"conversations"> | string;
+  modelRecommendation?: {
+    dismissed?: boolean;
+  } | null;
 }
 
 type MessageAttachment = {
@@ -296,7 +303,6 @@ export const ChatMessage = memo(
       try {
         await apiClient.patch(`/api/v1/messages/${message._id}`, {
           content: editedContent,
-          createBranch: true,
         });
         setIsEditing(false);
         toast.success("Message updated");
@@ -552,7 +558,7 @@ export const ChatMessage = memo(
                 {!readOnly && conversation && (
                   <MessageBranchIndicator
                     messageId={message._id as Id<"messages">}
-                    conversationId={conversation._id}
+                    conversationId={conversation._id as Id<"conversations">}
                   />
                 )}
                 {!readOnly && features.showNotes && (

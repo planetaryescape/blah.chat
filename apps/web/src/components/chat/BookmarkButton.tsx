@@ -53,65 +53,62 @@ export function BookmarkButton({
 
   const isBookmarked = !!existingBookmark;
 
-  const handleToggleBookmark = async () => {
+  const handleToggleBookmark = () => {
     if (isBookmarked && existingBookmark) {
-      try {
-        await removeBookmark({ bookmarkId: existingBookmark._id });
-        toast.success("Bookmark removed");
-
-        // Track bookmark deletion
-        analytics.track("bookmark_deleted", {
-          source: "message",
+      void removeBookmark({ bookmarkId: existingBookmark._id })
+        .then(() => {
+          toast.success("Bookmark removed");
+          analytics.track("bookmark_deleted", {
+            source: "message",
+          });
+        })
+        .catch(() => {
+          toast.error("Failed to remove bookmark");
         });
-      } catch (_error) {
-        toast.error("Failed to remove bookmark");
-      }
-    } else {
-      setShowDialog(true);
+      return;
     }
+
+    setShowDialog(true);
   };
 
-  const handleSaveBookmark = async () => {
-    try {
-      const tagList = tags
-        ? tags.split(",").map((t: any) => t.trim())
-        : undefined;
+  const handleSaveBookmark = () => {
+    const tagList = tags ? tags.split(",").map((tag) => tag.trim()) : undefined;
+    const mutation =
+      isBookmarked && existingBookmark
+        ? updateBookmark({
+            bookmarkId: existingBookmark._id,
+            note: note || undefined,
+            tags: tagList,
+          }).then(() => {
+            toast.success("Bookmark updated");
+            analytics.track("bookmark_updated", {
+              hasNote: !!note,
+              tagCount: tagList?.length || 0,
+            });
+          })
+        : createBookmark({
+            messageId,
+            conversationId,
+            note: note || undefined,
+            tags: tagList,
+          }).then(() => {
+            toast.success("Bookmark created");
+            analytics.track("bookmark_created", {
+              source: "message",
+              hasNote: !!note,
+              tagCount: tagList?.length || 0,
+            });
+          });
 
-      if (isBookmarked && existingBookmark) {
-        await updateBookmark({
-          bookmarkId: existingBookmark._id,
-          note: note || undefined,
-          tags: tagList,
-        });
-        toast.success("Bookmark updated");
-
-        // Track bookmark update
-        analytics.track("bookmark_updated", {
-          hasNote: !!note,
-          tagCount: tagList?.length || 0,
-        });
-      } else {
-        await createBookmark({
-          messageId,
-          conversationId,
-          note: note || undefined,
-          tags: tagList,
-        });
-        toast.success("Bookmark created");
-
-        // Track bookmark creation
-        analytics.track("bookmark_created", {
-          source: "message",
-          hasNote: !!note,
-          tagCount: tagList?.length || 0,
-        });
-      }
-      setShowDialog(false);
-      setNote("");
-      setTags("");
-    } catch (_error) {
-      toast.error("Failed to save bookmark");
-    }
+    void mutation
+      .then(() => {
+        setShowDialog(false);
+        setNote("");
+        setTags("");
+      })
+      .catch(() => {
+        toast.error("Failed to save bookmark");
+      });
   };
 
   return (

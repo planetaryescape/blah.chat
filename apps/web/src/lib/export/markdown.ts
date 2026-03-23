@@ -6,10 +6,17 @@ interface SourceInfo {
   url: string;
 }
 
+type ExportConversation = Pick<Doc<"conversations">, "title" | "createdAt">;
+type ExportMessage = {
+  _id: Id<"messages"> | string;
+  role: Doc<"messages">["role"];
+  content: string;
+};
+
 export function exportConversationToMarkdown(
-  conversation: Doc<"conversations">,
-  messages: Doc<"messages">[],
-  sourcesByMessage?: Map<Id<"messages">, SourceInfo[]>,
+  conversation: ExportConversation,
+  messages: ExportMessage[],
+  sourcesByMessage?: Map<Id<"messages"> | string, SourceInfo[]>,
 ): string {
   let md = `# ${conversation.title}\n\n`;
   md += `*Created: ${new Date(conversation.createdAt).toLocaleString()}*\n\n`;

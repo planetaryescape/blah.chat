@@ -58,9 +58,19 @@ function createConversationEnvelope(
     title: string;
     model: string;
     projectId: string | undefined;
+    isIncognito: boolean;
+    incognitoSettings:
+      | {
+          enableReadTools: boolean;
+          applyCustomInstructions: boolean;
+          inactivityTimeoutMinutes?: number;
+          lastActivityAt: number;
+        }
+      | undefined;
     pinned: boolean;
     archived: boolean;
     starred: boolean;
+    modelRecommendation: undefined;
     messageCount: number;
     lastMessageAt: number;
     createdAt: number;
@@ -77,9 +87,12 @@ function createConversationEnvelope(
       title: overrides?.title ?? "New Chat",
       model: overrides?.model ?? "gpt-4o",
       projectId: overrides?.projectId,
+      isIncognito: overrides?.isIncognito ?? false,
+      incognitoSettings: overrides?.incognitoSettings,
       pinned: overrides?.pinned ?? false,
       archived: overrides?.archived ?? false,
       starred: overrides?.starred ?? false,
+      modelRecommendation: overrides?.modelRecommendation,
       messageCount: overrides?.messageCount ?? 0,
       lastMessageAt: overrides?.lastMessageAt ?? timestamp,
       createdAt: overrides?.createdAt ?? timestamp,

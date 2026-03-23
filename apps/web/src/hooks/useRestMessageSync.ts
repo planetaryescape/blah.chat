@@ -1,6 +1,10 @@
 "use client";
 
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import {
+  type GenerationEvent,
+  parseGenerationEvent,
+} from "@blah-chat/streaming-core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cache } from "@/lib/cache";
@@ -10,6 +14,7 @@ type ApiMessage = {
   conversationId: string;
   role: "user" | "assistant" | "system";
   content: string;
+  clientMessageId?: string;
   partialContent?: string;
   status?: string;
   model?: string;
@@ -39,6 +44,19 @@ type MessageEnvelope = {
 
 type MessageStreamPayload = {
   messages?: MessageEnvelope[];
+};
+
+type ActiveGenerationEnvelope = {
+  data?: {
+    requestId?: string | null;
+    streamUrl?: string | null;
+  };
+};
+
+type GenerationStartedDetail = {
+  conversationId: string;
+  requestId: string;
+  streamUrl: string;
 };
 
 interface MessageSyncOptions {
@@ -74,6 +92,98 @@ export function extractMessagesFromPayload(payload: unknown): ApiMessage[] {
   return [];
 }
 
+export function applyGenerationEventToMessages(
+  messages: ApiMessage[],
+  conversationId: string,
+  event: GenerationEvent,
+) {
+  const index = messages.findIndex(
+    (message) => message._id === event.assistantMessageId,
+  );
+  const existing = index === -1 ? undefined : messages[index];
+  const base: ApiMessage = existing ?? {
+    _id: event.assistantMessageId,
+    conversationId,
+    role: "assistant",
+    content: "",
+    status: "pending",
+    model: event.modelId,
+    createdAt: event.ts,
+    updatedAt: event.ts,
+    _creationTime: event.ts,
+  };
+  const currentContent = base.partialContent ?? base.content;
+
+  let nextMessage: ApiMessage = {
+    ...base,
+    model: event.modelId,
+    updatedAt: event.ts,
+  };
+
+  switch (event.type) {
+    case "start":
+      nextMessage = {
+        ...nextMessage,
+        status: "generating",
+        partialContent: currentContent || undefined,
+      };
+      break;
+    case "delta": {
+      const nextContent = `${currentContent}${event.delta}`;
+      nextMessage = {
+        ...nextMessage,
+        content: nextContent,
+        partialContent: nextContent,
+        status: "generating",
+      };
+      break;
+    }
+    case "checkpoint":
+      nextMessage = {
+        ...nextMessage,
+        content: event.content,
+        partialContent: event.content,
+        status: "generating",
+      };
+      break;
+    case "complete":
+      nextMessage = {
+        ...nextMessage,
+        content: event.content,
+        partialContent: undefined,
+        status: "complete",
+      };
+      break;
+    case "cancelled":
+      nextMessage = {
+        ...nextMessage,
+        status: "stopped",
+        partialContent: undefined,
+      };
+      break;
+    case "error":
+      nextMessage = {
+        ...nextMessage,
+        status: "error",
+        partialContent: undefined,
+      };
+      break;
+  }
+
+  const nextMessages = [...messages];
+  if (index === -1) {
+    nextMessages.push(nextMessage);
+  } else {
+    nextMessages[index] = nextMessage;
+  }
+
+  return sortMessages(nextMessages);
+}
+
+function isTerminalGenerationEvent(event: GenerationEvent) {
+  return ["complete", "cancelled", "error"].includes(event.type);
+}
+
 async function syncConversationMessages(
   conversationId: string,
   messages: ApiMessage[],
@@ -96,6 +206,22 @@ async function syncConversationMessages(
   if (sorted.length > 0) {
     await cache.messages.bulkPut(sorted as any[]);
   }
+}
+
+async function syncGenerationEvent(
+  conversationId: string,
+  event: GenerationEvent,
+) {
+  const existing = await cache.messages
+    .where("conversationId")
+    .equals(conversationId)
+    .toArray();
+  const merged = applyGenerationEventToMessages(
+    existing as unknown as ApiMessage[],
+    conversationId,
+    event,
+  );
+  await cache.messages.bulkPut(merged as any[]);
 }
 
 export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
@@ -127,7 +253,15 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
 
     let cancelled = false;
     let pollTimer: ReturnType<typeof setInterval> | null = null;
-    let eventSource: EventSource | null = null;
+    let messageEventSource: EventSource | null = null;
+    let generationEventSource: EventSource | null = null;
+
+    const closeRealtimeStreams = () => {
+      messageEventSource?.close();
+      messageEventSource = null;
+      generationEventSource?.close();
+      generationEventSource = null;
+    };
 
     const fetchMessages = async () => {
       const response = await fetch(
@@ -153,8 +287,30 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
       }
     };
 
-    const connect = () => {
-      eventSource = new EventSource(
+    const startPollingFallback = () => {
+      if (pollTimer) {
+        return;
+      }
+
+      pollTimer = setInterval(() => {
+        void fetchMessages().catch(() => {
+          if (!cancelled) {
+            setStatus("Error");
+          }
+        });
+      }, 1000);
+    };
+
+    const connectMessageStream = () => {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+      generationEventSource?.close();
+      generationEventSource = null;
+      messageEventSource?.close();
+
+      messageEventSource = new EventSource(
         `/api/v1/messages/stream/${conversationId}`,
       );
 
@@ -167,46 +323,156 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
         }
       };
 
-      eventSource.addEventListener("snapshot", (event) => {
+      messageEventSource.addEventListener("snapshot", (event) => {
         void handleMessage(event as MessageEvent<string>);
       });
-      eventSource.addEventListener("update", (event) => {
+      messageEventSource.addEventListener("update", (event) => {
         void handleMessage(event as MessageEvent<string>);
       });
-      eventSource.onerror = () => {
-        eventSource?.close();
-        if (!pollTimer) {
-          pollTimer = setInterval(() => {
-            void fetchMessages().catch(() => {
+      messageEventSource.onerror = () => {
+        messageEventSource?.close();
+        messageEventSource = null;
+        startPollingFallback();
+      };
+    };
+
+    const connectGenerationStream = (streamUrl: string) => {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+      messageEventSource?.close();
+      messageEventSource = null;
+      generationEventSource?.close();
+
+      generationEventSource = new EventSource(streamUrl);
+      generationEventSource.addEventListener("generation", (event) => {
+        void (async () => {
+          const generationEvent = parseGenerationEvent(
+            JSON.parse((event as MessageEvent<string>).data),
+          );
+          await syncGenerationEvent(conversationId, generationEvent);
+          if (!cancelled) {
+            setIsLoading(false);
+            setStatus("Exhausted");
+          }
+
+          if (isTerminalGenerationEvent(generationEvent)) {
+            generationEventSource?.close();
+            generationEventSource = null;
+            await fetchMessages().catch(() => {
               if (!cancelled) {
                 setStatus("Error");
               }
             });
-          }, 1000);
-        }
+            if (!cancelled) {
+              connectMessageStream();
+            }
+          }
+        })();
+      });
+      generationEventSource.onerror = () => {
+        generationEventSource?.close();
+        generationEventSource = null;
+        void fetchMessages()
+          .catch(() => {
+            if (!cancelled) {
+              setStatus("Error");
+            }
+          })
+          .finally(() => {
+            if (!cancelled) {
+              connectMessageStream();
+            }
+          });
       };
+    };
+
+    const connectActiveGenerationIfAny = async () => {
+      const response = await fetch(
+        `/api/v1/conversations/${conversationId}/active-generation`,
+        {
+          credentials: "include",
+          headers: {
+            Accept: "application/json",
+          },
+        },
+      );
+
+      if (response.status === 404) {
+        return false;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch active generation: ${response.status}`,
+        );
+      }
+
+      const payload = (await response.json()) as ActiveGenerationEnvelope;
+      const streamUrl = payload.data?.streamUrl;
+      if (!streamUrl) {
+        return false;
+      }
+
+      connectGenerationStream(streamUrl);
+      return true;
+    };
+
+    const handleGenerationStarted = (event: Event) => {
+      const detail = (event as CustomEvent<GenerationStartedDetail>).detail;
+      if (!detail || detail.conversationId !== conversationId) {
+        return;
+      }
+
+      void fetchMessages()
+        .catch(() => {
+          if (!cancelled) {
+            setStatus("Error");
+          }
+        })
+        .finally(() => {
+          if (!cancelled) {
+            connectGenerationStream(detail.streamUrl);
+          }
+        });
     };
 
     setIsLoading(true);
     setStatus("LoadingFirstPage");
+    window.addEventListener(
+      "generation-request-started",
+      handleGenerationStarted as EventListener,
+    );
+
     void fetchMessages()
       .catch(() => {
         if (!cancelled) {
           setStatus("Error");
         }
       })
-      .finally(() => {
+      .then(() => connectActiveGenerationIfAny())
+      .then((connected) => {
+        if (!cancelled && !connected) {
+          connectMessageStream();
+        }
+      })
+      .catch(() => {
         if (!cancelled) {
-          connect();
+          connectMessageStream();
         }
       });
 
     return () => {
       cancelled = true;
-      eventSource?.close();
+      closeRealtimeStreams();
       if (pollTimer) {
         clearInterval(pollTimer);
       }
+      window.removeEventListener(
+        "generation-request-started",
+        handleGenerationStarted as EventListener,
+      );
     };
   }, [conversationId]);
 

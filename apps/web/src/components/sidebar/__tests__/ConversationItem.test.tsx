@@ -2,15 +2,11 @@ import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mockAction = vi.fn();
 const mockDeleteConversation = vi.fn();
 const mockTogglePin = vi.fn();
 const mockToggleStar = vi.fn();
 const mockArchiveConversation = vi.fn();
-
-vi.mock("convex/react", () => ({
-  useAction: vi.fn(() => mockAction),
-}));
+const mockAutoRenameConversation = vi.fn();
 
 vi.mock("@/lib/hooks/mutations", () => ({
   useDeleteConversation: () => ({
@@ -24,6 +20,9 @@ vi.mock("@/lib/hooks/mutations", () => ({
   }),
   useArchiveConversation: () => ({
     mutateAsync: mockArchiveConversation,
+  }),
+  useAutoRenameConversation: () => ({
+    mutateAsync: mockAutoRenameConversation,
   }),
 }));
 
@@ -101,6 +100,10 @@ const createConversation = (
 describe("ConversationItem", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAutoRenameConversation.mockResolvedValue({
+      _id: "conv-123",
+      title: "Renamed",
+    });
   });
 
   it("navigates to conversation on click", async () => {
@@ -222,5 +225,19 @@ describe("ConversationItem", () => {
     await user.keyboard("{Enter}");
 
     expect(mockRouterPush).toHaveBeenCalledWith("/chat/conv-123");
+  });
+
+  it("calls REST auto-rename mutation from the menu", async () => {
+    const user = userEvent.setup();
+    const conversation = createConversation();
+
+    render(<ConversationItem conversation={conversation} />);
+
+    await user.click(screen.getByRole("button", { name: /options/i }));
+    await user.click(screen.getByText(/auto-rename/i));
+
+    expect(mockAutoRenameConversation).toHaveBeenCalledWith({
+      conversationId: "conv-123",
+    });
   });
 });

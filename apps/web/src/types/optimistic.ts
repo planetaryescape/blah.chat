@@ -70,6 +70,9 @@ export interface QueuedMessage {
   content: string;
   modelId?: string;
   models?: string[];
+  parentMessageId?: Id<"messages">;
+  clientMessageId?: string;
+  thinkingEffort?: "none" | "low" | "medium" | "high";
   attachments?: Array<{
     id: string;
     type: "file" | "image" | "audio";

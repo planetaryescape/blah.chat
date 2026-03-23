@@ -1,9 +1,7 @@
 import "server-only";
-import {
-  createPreferenceRepository,
-  createUserRepository,
-} from "@blah-chat/persistence-postgres";
+import { createPreferenceRepository } from "@blah-chat/persistence-postgres";
 import { z } from "zod";
+import { ensureCurrentPersistenceUser } from "@/lib/persistence/current-user";
 import { getPersistenceDb } from "@/lib/persistence/server";
 import { formatEntity } from "@/lib/utils/formatEntity";
 
@@ -12,20 +10,10 @@ const updatePreferenceSchema = z.object({
   value: z.any(),
 });
 
-async function getPersistenceUser(clerkId: string) {
-  const user = await createUserRepository(getPersistenceDb()).findByClerkId(
-    clerkId,
-  );
-  if (!user) {
-    throw new Error("Access denied");
-  }
-  return user;
-}
-
 export const preferencesDAL = {
   get: async (userId: string, key: string) => {
     const db = getPersistenceDb();
-    await getPersistenceUser(userId);
+    await ensureCurrentPersistenceUser(userId);
     const value = await createPreferenceRepository(db).getForClerkId(
       userId,
       key,
@@ -36,7 +24,7 @@ export const preferencesDAL = {
 
   getAll: async (userId: string) => {
     const db = getPersistenceDb();
-    await getPersistenceUser(userId);
+    await ensureCurrentPersistenceUser(userId);
     const preferences =
       await createPreferenceRepository(db).getAllForClerkId(userId);
 
@@ -49,7 +37,7 @@ export const preferencesDAL = {
   ) => {
     const validated = updatePreferenceSchema.parse(data);
     const db = getPersistenceDb();
-    const user = await getPersistenceUser(userId);
+    const user = await ensureCurrentPersistenceUser(userId);
     await createPreferenceRepository(db).setForUser(
       user.id,
       validated.key,

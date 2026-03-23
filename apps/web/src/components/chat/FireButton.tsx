@@ -35,18 +35,20 @@ export function FireButton({ conversationId, className }: FireButtonProps) {
   const { mutateAsync: deleteConversation } = useDeleteConversation();
   const router = useRouter();
 
-  const handleFire = async () => {
+  const handleFire = () => {
     setIsDeleting(true);
-    try {
-      await deleteConversation({ conversationId });
-      toast.success("Conversation wiped");
-      router.push("/");
-    } catch (error) {
-      console.error("Failed to wipe conversation:", error);
-      toast.error("Failed to wipe conversation");
-    } finally {
-      setIsDeleting(false);
-    }
+    void deleteConversation({ conversationId })
+      .then(() => {
+        toast.success("Conversation wiped");
+        router.push("/");
+      })
+      .catch((error) => {
+        console.error("Failed to wipe conversation:", error);
+        toast.error("Failed to wipe conversation");
+      })
+      .finally(() => {
+        setIsDeleting(false);
+      });
   };
 
   return (

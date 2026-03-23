@@ -10,7 +10,6 @@ import logger from "@/lib/logger";
 
 const updateMessageSchema = z.object({
   content: z.string().min(1),
-  createBranch: z.boolean().optional(),
   modelId: z.string().optional(),
 });
 
@@ -73,7 +72,6 @@ async function patchHandler(
 
   const body = updateMessageSchema.parse(await req.json());
   const result = await messagesDAL.update(userId, id, body.content, {
-    createBranch: body.createBranch,
     modelId: body.modelId,
   });
 

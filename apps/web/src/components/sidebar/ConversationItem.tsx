@@ -1,6 +1,4 @@
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useAction } from "convex/react";
 import { Ghost, GitBranch, MoreVertical, Pin, Star, Users } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryState } from "nuqs";
@@ -32,6 +30,7 @@ import {
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import {
   useArchiveConversation,
+  useAutoRenameConversation,
   useDeleteConversation,
   useTogglePin,
   useToggleStar,
@@ -70,8 +69,7 @@ export function ConversationItem({
   const { mutateAsync: togglePin } = useTogglePin();
   const { mutateAsync: toggleStar } = useToggleStar();
   const { mutateAsync: archiveConversation } = useArchiveConversation();
-  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
-  const autoRenameAction = useAction(api.conversations.actions.bulkAutoRename);
+  const { mutateAsync: autoRenameConversation } = useAutoRenameConversation();
 
   const isActive = pathname === `/chat/${conversation._id}`;
   const isSelected = selectedId === conversation._id;
@@ -108,34 +106,33 @@ export function ConversationItem({
     }
   };
 
-  const handlePinClick = async (e?: React.MouseEvent) => {
+  const handlePinClick = (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    try {
-      await togglePin({ conversationId: conversation._id });
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to pin conversation";
-      toast.error(message);
-    }
+    void Promise.resolve(togglePin({ conversationId: conversation._id })).catch(
+      (error) => {
+        const message =
+          error instanceof Error ? error.message : "Failed to pin conversation";
+        toast.error(message);
+      },
+    );
   };
 
-  const handleAutoRename = async (e?: React.MouseEvent) => {
+  const handleAutoRename = (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    try {
-      toast.loading("Generating title...", { id: "auto-rename" });
-      const results = await autoRenameAction({
-        conversationIds: [conversation._id],
-      });
-
-      if (results[0]?.success) {
+    toast.loading("Generating title...", { id: "auto-rename" });
+    void Promise.resolve(
+      autoRenameConversation({
+        conversationId: conversation._id,
+      }),
+    )
+      .then(() => {
         toast.success("Conversation renamed", { id: "auto-rename" });
-      } else {
-        throw new Error(results[0]?.error || "Failed to generate title");
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to auto-rename";
-      toast.error(msg, { id: "auto-rename" });
-    }
+      })
+      .catch((err) => {
+        const msg =
+          err instanceof Error ? err.message : "Failed to auto-rename";
+        toast.error(msg, { id: "auto-rename" });
+      });
   };
 
   const handleProjectFilterClick = useCallback(() => {

@@ -75,8 +75,9 @@ export function ConsolidateDialog({
 
         <div className="space-y-4 py-4">
           <div className="space-y-3">
-            <label className="text-sm font-medium">Consolidation mode</label>
+            <p className="text-sm font-medium">Consolidation mode</p>
             <RadioGroup
+              aria-label="Consolidation mode"
               value={mode}
               onValueChange={(v) => setMode(v as ConsolidationMode)}
             >
@@ -102,11 +103,11 @@ export function ConsolidateDialog({
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-2 block">
+            <Label htmlFor="consolidate-model" className="mb-2 block">
               Which model should consolidate?
-            </label>
+            </Label>
             <Select value={selectedModel} onValueChange={setSelectedModel}>
-              <SelectTrigger>
+              <SelectTrigger id="consolidate-model">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

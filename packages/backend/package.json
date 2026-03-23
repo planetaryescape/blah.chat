@@ -68,7 +68,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.0.10",
-    "convex-test": "^0.0.41",
+    "convex-test": "^0.0.43",
     "typescript": "^5.9.3",
     "vitest": "^4.0.16"
   }

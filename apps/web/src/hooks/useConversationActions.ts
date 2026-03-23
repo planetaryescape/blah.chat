@@ -1,14 +1,13 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useAction } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { analytics } from "@/lib/analytics";
 import {
   useArchiveConversation,
+  useAutoRenameConversation,
   useDeleteConversation,
   useTogglePin,
   useToggleStar,
@@ -27,8 +26,7 @@ export function useConversationActions(
     useArchiveConversation();
   const { mutate: togglePin, isPending: isPinning } = useTogglePin();
   const { mutate: toggleStar, isPending: isStarring } = useToggleStar();
-  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
-  const autoRenameAction = useAction(api.conversations.actions.bulkAutoRename);
+  const { mutateAsync: autoRenameConversation } = useAutoRenameConversation();
 
   const isLoading =
     isDeleting || isArchiving || isPinning || isStarring || isRenaming;
@@ -110,20 +108,15 @@ export function useConversationActions(
     try {
       setIsRenaming(true);
       toast.loading("Generating title...", { id: "auto-rename" });
-      const results = await autoRenameAction({
-        conversationIds: [conversationId],
+      await autoRenameConversation({
+        conversationId,
       });
-
-      if (results[0]?.success) {
-        toast.success("Conversation renamed", { id: "auto-rename" });
-        analytics.track("conversation_action", {
-          action: "auto_rename",
-          source,
-          conversationId,
-        });
-      } else {
-        throw new Error(results[0]?.error || "Failed to generate title");
-      }
+      toast.success("Conversation renamed", { id: "auto-rename" });
+      analytics.track("conversation_action", {
+        action: "auto_rename",
+        source,
+        conversationId,
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to auto-rename";
       toast.error(msg, { id: "auto-rename" });

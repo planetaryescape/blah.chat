@@ -1,5 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const regenerateMutate = vi.fn();
 
 // Mock Convex hooks BEFORE importing component
 vi.mock("convex/react", () => ({
@@ -49,7 +51,7 @@ vi.mock("@/lib/api/client", () => ({
 
 vi.mock("@/lib/hooks/mutations/useRegenerateMessage", () => ({
   useRegenerateMessage: () => ({
-    mutateAsync: vi.fn(),
+    mutate: regenerateMutate,
   }),
 }));
 
@@ -161,6 +163,47 @@ describe("ChatMessage", () => {
 
     expect(screen.getByText("Unable to generate response")).toBeInTheDocument();
     expect(screen.getByText("Rate limit exceeded")).toBeInTheDocument();
+  });
+
+  it("retries a failed message and resets the retry state when settled", async () => {
+    let onSettled: (() => void) | undefined;
+    regenerateMutate.mockImplementation((_variables, options) => {
+      onSettled = options?.onSettled;
+    });
+
+    const message = {
+      ...baseMessage,
+      role: "assistant" as const,
+      content: "",
+      status: "error" as const,
+      error: "Rate limit exceeded",
+      model: "openai:gpt-4o",
+    };
+
+    render(<ChatMessage message={message} />);
+
+    const retryButton = screen.getByRole("button", { name: "Try Again" });
+    fireEvent.click(retryButton);
+
+    expect(regenerateMutate).toHaveBeenCalledWith(
+      {
+        messageId: "msg-123",
+        conversationId: "conv-123",
+        modelId: "auto",
+      },
+      expect.objectContaining({
+        onSettled: expect.any(Function),
+      }),
+    );
+    expect(retryButton).toBeDisabled();
+
+    act(() => {
+      onSettled?.();
+    });
+
+    expect(
+      screen.getByRole("button", { name: "Try Again" }),
+    ).not.toBeDisabled();
   });
 
   it("renders partial content during streaming", () => {

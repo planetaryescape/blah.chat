@@ -12,7 +12,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useAction } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import {
   ArrowUpDown,
@@ -37,6 +37,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useRestConversationSync } from "@/hooks/useRestConversationSync";
+import { useApiClient } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 
 // Type for conversation data
@@ -58,6 +60,7 @@ export default function ProjectConversationsPage({
   const { id } = use(params);
   const projectId = id as Id<"projects">;
   const router = useRouter();
+  const apiClient = useApiClient();
 
   // State
   const [searchQuery, setSearchQuery] = useState("");
@@ -74,20 +77,16 @@ export default function ProjectConversationsPage({
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Queries - fetch ALL project conversations (no search param to avoid focus loss)
-  // @ts-ignore - Type depth exceeded with complex Convex schema
-  const allConversations = useQuery(api.conversations.list, { projectId });
+  const { conversations: allConversations, isLoading: isConversationsLoading } =
+    useRestConversationSync(projectId);
 
   // Hybrid search action - located in convex/conversations/hybridSearch.ts
   // Must use subdirectory path, not api.conversations.hybridSearch
-  // @ts-ignore - Type depth exceeded
-  const hybridSearch = useAction(
-    (api as any)["conversations/hybridSearch"].hybridSearch,
-  );
-
-  // Mutations
-  const createConversation = useMutation(api.conversations.create);
-  // @ts-ignore - Type depth exceeded
-  const addConversation = useMutation(api.projects.addConversation);
+  // @ts-ignore - Type depth exceeded with complex Convex schema
+  const hybridSearchRef = (api as unknown as any)["conversations/hybridSearch"]
+    .hybridSearch;
+  // @ts-ignore - Type depth exceeded with complex Convex schema
+  const hybridSearch = useAction(hybridSearchRef);
 
   // Debounced hybrid search function
   const executeHybridSearch = useDebouncedCallback(
@@ -262,12 +261,15 @@ export default function ProjectConversationsPage({
   // Handlers
   const handleCreateChat = async () => {
     try {
-      const conversationId = await createConversation({
-        model: "zai:glm-4.6v-flash",
-        title: "New Project Chat",
-      });
-      await addConversation({ projectId, conversationId });
-      router.push(`/chat/${conversationId}`);
+      const conversation = await apiClient.post<{ _id: Id<"conversations"> }>(
+        "/api/v1/conversations",
+        {
+          model: "zai:glm-4.6v-flash",
+          title: "New Project Chat",
+          projectId,
+        },
+      );
+      router.push(`/chat/${conversation._id}`);
     } catch (error) {
       console.error("Failed to create chat:", error);
     }
@@ -288,7 +290,7 @@ export default function ProjectConversationsPage({
   };
 
   // Loading state
-  if (allConversations === undefined) {
+  if (isConversationsLoading && allConversations.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

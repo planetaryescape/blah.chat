@@ -98,7 +98,6 @@ describe("/api/v1/messages/[id]", () => {
 
     expect(response.status).toBe(202);
     expect(update).toHaveBeenCalledWith("user_1", "msg_old", "Edited content", {
-      createBranch: undefined,
       modelId: "openai:gpt-5",
     });
     expect(process).toHaveBeenCalledWith("req_edit");

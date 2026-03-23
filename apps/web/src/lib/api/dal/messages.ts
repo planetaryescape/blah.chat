@@ -3,6 +3,7 @@ import {
   conversations,
   createConversationRepository,
   createSignedReadUrl,
+  createTriggerClient,
   messageEdges,
   messages,
 } from "@blah-chat/persistence-postgres";
@@ -24,6 +25,7 @@ const sendMessageSchema = z.object({
   content: z.string().min(1),
   modelId: z.string().optional(),
   models: z.array(z.string()).optional(),
+  parentMessageId: z.string().optional(),
   clientMessageId: z.string().optional(),
   thinkingEffort: z.enum(["none", "low", "medium", "high"]).optional(),
   attachments: z
@@ -38,6 +40,29 @@ const sendMessageSchema = z.object({
     )
     .optional(),
 });
+
+const EXTRACTABLE_MIME_TYPES = new Set([
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.ms-powerpoint",
+  "text/plain",
+  "text/markdown",
+  "text/csv",
+]);
+
+function isExtractableAttachment(input: {
+  type: "file" | "image" | "audio";
+  mimeType: string;
+}) {
+  return (
+    input.type === "file" &&
+    (EXTRACTABLE_MIME_TYPES.has(input.mimeType) ||
+      input.mimeType.startsWith("text/"))
+  );
+}
 
 async function getOwnedRequestMessage(userId: string, messageId: string) {
   const db = getPersistenceDb();
@@ -124,6 +149,21 @@ async function buildAttachmentMeta(messageIds: string[]) {
     where: inArray(attachments.messageId, messageIds),
     orderBy: (table, { asc }) => [asc(table.createdAt)],
   });
+  if (rows.length === 0) {
+    return new Map<
+      string,
+      Array<{
+        id: string;
+        type: "file" | "image" | "audio";
+        storageId: string;
+        name: string;
+        mimeType: string;
+        size: number;
+        url?: string;
+      }>
+    >();
+  }
+
   const env = getPersistenceEnv();
   const client = getPersistenceR2Client();
   const signed = await Promise.all(
@@ -191,26 +231,52 @@ export const messagesDAL = {
       },
       conversationId,
       content: validated.content,
+      clientMessageId: validated.clientMessageId,
       modelId: validated.modelId,
       models: validated.models,
+      parentMessageId: validated.parentMessageId,
     });
     const db = getPersistenceDb();
     const env = getPersistenceEnv();
     if (validated.attachments && validated.attachments.length > 0) {
-      await db.insert(attachments).values(
-        validated.attachments.map((attachment) => ({
-          messageId: started.userMessageId,
-          conversationId,
-          userId: user.id,
-          type: attachment.type,
-          key: attachment.storageId,
-          bucket: env.r2.bucket,
-          name: attachment.name,
+      const insertedAttachments = await db
+        .insert(attachments)
+        .values(
+          validated.attachments.map((attachment) => ({
+            messageId: started.userMessageId,
+            conversationId,
+            userId: user.id,
+            type: attachment.type,
+            key: attachment.storageId,
+            bucket: env.r2.bucket,
+            name: attachment.name,
+            mimeType: attachment.mimeType,
+            size: attachment.size,
+            createdAt: Date.now(),
+          })),
+        )
+        .returning();
+
+      const extractableAttachments = insertedAttachments.filter((attachment) =>
+        isExtractableAttachment({
+          type: attachment.type as "file" | "image" | "audio",
           mimeType: attachment.mimeType,
-          size: attachment.size,
-          createdAt: Date.now(),
-        })),
+        }),
       );
+
+      if (extractableAttachments.length > 0) {
+        const trigger = createTriggerClient(env);
+        await Promise.all(
+          extractableAttachments.map((attachment) =>
+            trigger.triggerTask("extract-text", {
+              attachmentId: attachment.id,
+              storageId: attachment.key,
+              fileName: attachment.name,
+              mimeType: attachment.mimeType,
+            }),
+          ),
+        );
+      }
     }
 
     return {
@@ -283,7 +349,6 @@ export const messagesDAL = {
     messageId: string,
     content: string,
     options?: {
-      createBranch?: boolean;
       modelId?: string;
     },
   ) => {
@@ -295,27 +360,6 @@ export const messagesDAL = {
     const { db, message } = await getOwnedRequestMessage(userId, messageId);
     if (message.role !== "user") {
       throw new Error("Can only edit user messages");
-    }
-
-    const shouldCreateBranch = options?.createBranch !== false;
-    if (!shouldCreateBranch) {
-      await db
-        .update(messages)
-        .set({
-          content: trimmedContent,
-          updatedAt: Date.now(),
-        })
-        .where(eq(messages.id, message.id));
-
-      return formatEntity(
-        toApiMessageWithMeta({
-          ...message,
-          content: trimmedContent,
-          updatedAt: Date.now(),
-        }),
-        "message",
-        message.id,
-      );
     }
 
     const repo = createGenerationV2Repository(db);

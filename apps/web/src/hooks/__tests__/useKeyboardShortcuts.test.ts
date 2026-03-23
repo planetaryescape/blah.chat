@@ -13,11 +13,12 @@ const mockConversations = [
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockRouterPush }),
   usePathname: () => "/chat/conv-2",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
-vi.mock("@/contexts/ConversationContext", () => ({
-  useConversationContext: () => ({
-    filteredConversations: mockConversations,
+vi.mock("@/hooks/useRestConversationSync", () => ({
+  useRestConversationSync: () => ({
+    conversations: mockConversations,
   }),
 }));
 

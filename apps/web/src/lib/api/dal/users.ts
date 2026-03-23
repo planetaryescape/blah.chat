@@ -1,6 +1,5 @@
 import "server-only";
-import { createUserRepository } from "@blah-chat/persistence-postgres";
-import { getPersistenceDb } from "@/lib/persistence/server";
+import { ensureCurrentPersistenceUser } from "@/lib/persistence/current-user";
 import { formatEntity } from "@/lib/utils/formatEntity";
 
 export const usersDAL = {
@@ -8,11 +7,7 @@ export const usersDAL = {
    * Get current user by Clerk ID (auto-creates if needed)
    */
   getCurrentOrCreate: async (clerkId: string) => {
-    const user = await createUserRepository(getPersistenceDb()).findByClerkId(
-      clerkId,
-    );
-
-    if (!user) throw new Error("User not found");
+    const user = await ensureCurrentPersistenceUser(clerkId);
 
     return formatEntity(
       {

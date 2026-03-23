@@ -1,8 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
 import { ArrowDown } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
@@ -22,7 +20,7 @@ import { scrollToBottom as smoothScrollToBottom } from "@/lib/smooth-scroll";
 import { cn } from "@/lib/utils";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
 import type { OptimisticMessage } from "@/types/optimistic";
-import { ChatMessage } from "./ChatMessage";
+import { ChatMessage, type MessageConversationContext } from "./ChatMessage";
 import { ComparisonView } from "./ComparisonView";
 import { DateSeparator } from "./DateSeparator";
 
@@ -36,6 +34,7 @@ type MessageWithUser = (Doc<"messages"> | OptimisticMessage) & {
 interface VirtualizedMessageListProps {
   messages: MessageWithUser[];
   conversationId: Id<"conversations">;
+  conversation?: MessageConversationContext | null;
   onVote?: (winnerId: string, rating: string) => void;
   onConsolidate?: (model: string, mode: "same-chat" | "new-chat") => void;
   onToggleModelNames?: () => void;
@@ -51,6 +50,7 @@ interface VirtualizedMessageListProps {
 export function VirtualizedMessageList({
   messages,
   conversationId,
+  conversation,
   onVote,
   onConsolidate,
   onToggleModelNames,
@@ -70,7 +70,15 @@ export function VirtualizedMessageList({
   const { escapedFromBottom, autoScrollEnabled, enableAutoScroll } =
     useScrollIntent({ scrollerRef });
 
-  const grouped = useMessageGrouping(messages ?? [], conversationId);
+  const visibleMessages = useMemo(
+    () =>
+      messages.filter(
+        (message) =>
+          !("isActiveBranch" in message) || message.isActiveBranch !== false,
+      ),
+    [messages],
+  );
+  const grouped = useMessageGrouping(visibleMessages, conversationId);
   const useVirtualization = grouped.length >= VIRTUALIZATION_THRESHOLD;
   const _reducedMotion = usePrefersReducedMotion();
 
@@ -103,13 +111,6 @@ export function VirtualizedMessageList({
     conversationId,
     scrollerRef,
     virtuosoRef,
-  );
-
-  // Lift conversation query here to avoid N subscriptions in ChatMessage children
-  const conversation = useQuery(
-    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-    api.conversations.get,
-    conversationId ? { conversationId } : "skip",
   );
 
   // Lift preference here to avoid memo blocking updates in ChatMessage
@@ -404,7 +405,7 @@ interface MessageItemContentProps {
   onVote?: (winnerId: string, rating: string) => void;
   onConsolidate?: (model: string, mode: "same-chat" | "new-chat") => void;
   onToggleModelNames?: () => void;
-  conversation?: Doc<"conversations"> | null;
+  conversation?: MessageConversationContext | null;
 }
 
 const MessageItemContent = memo(function MessageItemContent({

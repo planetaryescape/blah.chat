@@ -5,6 +5,7 @@ import {
 } from "@blah-chat/persistence-postgres";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { compactConversation } from "@/lib/conversations/compaction";
+import { generateConversationTitle } from "@/lib/conversations/titleGeneration";
 import { ensureCurrentPersistenceUser } from "@/lib/persistence/current-user";
 import { toApiConversation } from "@/lib/persistence/mappers";
 import { getPersistenceDb } from "@/lib/persistence/server";
@@ -17,6 +18,14 @@ const createConversationSchema = z.object({
   model: z.string().min(1),
   systemPrompt: z.string().optional(),
   projectId: z.string().nullable().optional(),
+  isIncognito: z.boolean().optional(),
+  incognitoSettings: z
+    .object({
+      enableReadTools: z.boolean().optional(),
+      applyCustomInstructions: z.boolean().optional(),
+      inactivityTimeoutMinutes: z.number().optional(),
+    })
+    .optional(),
 });
 
 const updateConversationSchema = z
@@ -44,6 +53,37 @@ async function getOwnedConversation(userId: string, conversationId: string) {
   return { db, user, conversation };
 }
 
+async function formatOwnedConversation(
+  db: ReturnType<typeof getPersistenceDb>,
+  conversationId: string,
+) {
+  const conversation = await db.query.conversations.findFirst({
+    where: eq(conversations.id, conversationId),
+  });
+
+  if (!conversation) {
+    throw new Error("Conversation not found");
+  }
+
+  const [stats] = await db
+    .select({
+      messageCount: sql<number>`count(*)::int`,
+      lastMessageAt: sql<number | null>`max(${messages.createdAt})`,
+    })
+    .from(messages)
+    .where(eq(messages.conversationId, conversation.id));
+
+  return formatEntity(
+    toApiConversation({
+      ...conversation,
+      messageCount: stats?.messageCount ?? 0,
+      lastMessageAt: stats?.lastMessageAt ?? conversation.updatedAt,
+    }),
+    "conversation",
+    conversation.id,
+  );
+}
+
 export const conversationsDAL = {
   create: async (
     userId: string,
@@ -53,12 +93,27 @@ export const conversationsDAL = {
     const db = getPersistenceDb();
     const user = await ensureCurrentPersistenceUser(userId);
     const repo = createConversationRepository(db);
+    const now = Date.now();
 
     const conversation = await repo.create({
       userId: user.id,
-      title: validated.title ?? "New Chat",
+      title:
+        validated.title ??
+        (validated.isIncognito ? "Incognito Chat" : "New Chat"),
       model: validated.model,
       projectId: validated.projectId,
+      isIncognito: validated.isIncognito ?? false,
+      incognitoSettings: validated.isIncognito
+        ? {
+            enableReadTools:
+              validated.incognitoSettings?.enableReadTools ?? true,
+            applyCustomInstructions:
+              validated.incognitoSettings?.applyCustomInstructions ?? true,
+            inactivityTimeoutMinutes:
+              validated.incognitoSettings?.inactivityTimeoutMinutes,
+            lastActivityAt: now,
+          }
+        : null,
     });
 
     return formatEntity(
@@ -78,23 +133,7 @@ export const conversationsDAL = {
       userId,
       conversationId,
     );
-    const [stats] = await db
-      .select({
-        messageCount: sql<number>`count(*)::int`,
-        lastMessageAt: sql<number | null>`max(${messages.createdAt})`,
-      })
-      .from(messages)
-      .where(eq(messages.conversationId, conversation.id));
-
-    return formatEntity(
-      toApiConversation({
-        ...conversation,
-        messageCount: stats?.messageCount ?? 0,
-        lastMessageAt: stats?.lastMessageAt ?? conversation.updatedAt,
-      }),
-      "conversation",
-      conversation.id,
-    );
+    return formatOwnedConversation(db, conversation.id);
   },
 
   list: async (
@@ -173,6 +212,24 @@ export const conversationsDAL = {
     }
 
     return formatEntity(toApiConversation(updated), "conversation", updated.id);
+  },
+
+  autoRename: async (userId: string, conversationId: string) => {
+    const { db, conversation } = await getOwnedConversation(
+      userId,
+      conversationId,
+    );
+    const result = await generateConversationTitle({
+      db,
+      conversationId: conversation.id,
+      force: true,
+    });
+
+    if (!result.title) {
+      throw new Error("Failed to generate title");
+    }
+
+    return formatOwnedConversation(db, conversation.id);
   },
 
   archive: async (userId: string, conversationId: string) => {
@@ -292,5 +349,42 @@ export const conversationsDAL = {
       "conversation",
       result.conversationId,
     );
+  },
+
+  dismissModelRecommendation: async (
+    userId: string,
+    conversationId: string,
+  ) => {
+    const { db, conversation } = await getOwnedConversation(
+      userId,
+      conversationId,
+    );
+
+    const recommendation = conversation.modelRecommendation;
+    if (!recommendation) {
+      return formatEntity(
+        toApiConversation(conversation),
+        "conversation",
+        conversation.id,
+      );
+    }
+
+    const [updated] = await db
+      .update(conversations)
+      .set({
+        modelRecommendation: {
+          ...recommendation,
+          dismissed: true,
+        },
+        updatedAt: Date.now(),
+      })
+      .where(eq(conversations.id, conversation.id))
+      .returning();
+
+    if (!updated) {
+      throw new Error("Conversation not found");
+    }
+
+    return formatEntity(toApiConversation(updated), "conversation", updated.id);
   },
 };

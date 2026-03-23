@@ -10,6 +10,9 @@ const {
   mockHandleDelete,
   mockHandleAutoRename,
   mockUpdatePreferences,
+  mockApiGet,
+  mockApiPost,
+  mockExtractMemories,
   mockRouterPush,
 } = vi.hoisted(() => ({
   mockHandleTogglePin: vi.fn(),
@@ -18,6 +21,9 @@ const {
   mockHandleDelete: vi.fn(),
   mockHandleAutoRename: vi.fn(),
   mockUpdatePreferences: vi.fn(),
+  mockApiGet: vi.fn(),
+  mockApiPost: vi.fn(),
+  mockExtractMemories: vi.fn(),
   mockRouterPush: vi.fn(),
 }));
 
@@ -56,6 +62,19 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockRouterPush }),
 }));
 
+vi.mock("@/lib/api/client", () => ({
+  useApiClient: () => ({
+    get: mockApiGet,
+    post: mockApiPost,
+  }),
+}));
+
+vi.mock("@/lib/api/sdkClient", () => ({
+  useSDKClient: () => ({
+    extractMemories: mockExtractMemories,
+  }),
+}));
+
 vi.mock("sonner", () => ({
   toast: {
     success: vi.fn(),
@@ -65,6 +84,14 @@ vi.mock("sonner", () => ({
 
 vi.mock("@/lib/analytics", () => ({
   analytics: { track: vi.fn() },
+}));
+
+vi.mock("@/components/sidebar/RenameDialog", () => ({
+  RenameDialog: () => null,
+}));
+
+vi.mock("@/components/sidebar/DeleteConversationDialog", () => ({
+  DeleteConversationDialog: () => null,
 }));
 
 // Import AFTER mocks
@@ -91,6 +118,15 @@ const createConversation = (
 describe("ConversationHeaderMenu", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockApiGet.mockResolvedValue([]);
+    mockApiPost.mockResolvedValue({ conversationId: "conv-123" });
+    mockExtractMemories.mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      value: {
+        writeText: vi.fn(),
+      },
+      configurable: true,
+    });
   });
 
   it("menu opens on trigger click", async () => {
@@ -200,5 +236,57 @@ describe("ConversationHeaderMenu", () => {
     expect(
       screen.getByRole("menuitem", { name: /unstar/i }),
     ).toBeInTheDocument();
+  });
+
+  it("copies conversation markdown using v1 messages and sources routes", async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn();
+    Object.defineProperty(navigator, "clipboard", {
+      value: {
+        writeText,
+      },
+      configurable: true,
+    });
+    mockApiGet
+      .mockResolvedValueOnce([
+        {
+          data: {
+            _id: "msg-1",
+            role: "assistant",
+            content: "Answer body",
+          },
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          data: {
+            messageId: "msg-1",
+            position: 1,
+            title: "Rewrite Spec",
+            url: "https://example.com/spec",
+          },
+        },
+      ]);
+
+    render(<ConversationHeaderMenu conversation={createConversation()} />);
+
+    await user.click(
+      screen.getByRole("button", { name: /conversation options/i }),
+    );
+    await user.click(
+      screen.getByRole("menuitem", { name: /copy conversation/i }),
+    );
+
+    expect(mockApiGet).toHaveBeenNthCalledWith(
+      1,
+      "/api/v1/conversations/conv-123/messages",
+    );
+    expect(mockApiGet).toHaveBeenNthCalledWith(
+      2,
+      "/api/v1/conversations/conv-123/sources",
+    );
+    expect(writeText).toHaveBeenCalledWith(
+      expect.stringContaining("Rewrite Spec"),
+    );
   });
 });

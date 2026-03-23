@@ -1,19 +1,58 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { PREFERENCE_DEFAULTS } from "@blah-chat/shared/preferences";
-import { useAction, usePaginatedQuery, useQuery } from "convex/react";
+import { useQuery as useReactQuery } from "@tanstack/react-query";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useMemo, useRef } from "react";
 import { cache } from "@/lib/cache";
 
-interface MessageCacheSyncOptions {
-  conversationId: Id<"conversations"> | undefined;
-  initialNumItems?: number;
-}
-
 type CachedMessage = Doc<"messages">;
+type CachedSource = Doc<"sources"> & {
+  metadata?: {
+    title?: string;
+    description?: string;
+    ogImage?: string;
+    favicon?: string;
+    siteName?: string;
+    enriched: boolean;
+  } | null;
+};
+
+type MessageMetadataPayload = {
+  attachments: Doc<"attachments">[];
+  toolCalls: Doc<"toolCalls">[];
+  sources: CachedSource[];
+};
+
+async function fetchMessageMetadata(messageIds: string[]) {
+  if (messageIds.length === 0) {
+    return {
+      attachments: [],
+      toolCalls: [],
+      sources: [],
+    } satisfies MessageMetadataPayload;
+  }
+
+  const response = await fetch("/api/v1/messages/metadata", {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ messageIds }),
+  });
+  const payload = (await response.json()) as {
+    data?: MessageMetadataPayload;
+    error?: string;
+  };
+
+  if (!response.ok || payload.data === undefined) {
+    throw new Error(payload.error || "Failed to fetch message metadata");
+  }
+
+  return payload.data;
+}
 
 export function getPrimaryParentId(
   message: Pick<CachedMessage, "parentMessageId" | "parentMessageIds">,
@@ -176,143 +215,6 @@ export function getSiblingsForMessage(
     .sort(compareTreeOrder);
 }
 
-export function useMessageCacheSync({
-  conversationId,
-  initialNumItems = 50,
-}: MessageCacheSyncOptions) {
-  // Track conversation ID changes to detect switches
-  const prevConversationIdRef = useRef<Id<"conversations"> | undefined>(
-    conversationId,
-  );
-  const isConversationChanging =
-    prevConversationIdRef.current !== conversationId;
-
-  // Update ref IMMEDIATELY (not in useEffect) to prevent stale data on next render
-  if (isConversationChanging) {
-    prevConversationIdRef.current = conversationId;
-  }
-
-  // Subscribe to Convex for real-time updates
-  const convexMessages = usePaginatedQuery(
-    // @ts-ignore - Type depth exceeded with complex Convex query
-    api.messages.listActivePathPaginated,
-    conversationId ? { conversationId } : "skip",
-    { initialNumItems },
-  );
-
-  useEffect(() => {
-    if (!conversationId || convexMessages.results === undefined) return;
-
-    const syncCache = async () => {
-      const convexIds = new Set(convexMessages.results.map((m) => m._id));
-      const dexieRecords = await cache.messages
-        .where("conversationId")
-        .equals(conversationId)
-        .toArray();
-
-      const orphanIds = dexieRecords
-        .filter((d) => !convexIds.has(d._id))
-        .map((d) => d._id);
-
-      if (orphanIds.length > 0) await cache.messages.bulkDelete(orphanIds);
-      if (convexMessages.results.length > 0)
-        await cache.messages.bulkPut(convexMessages.results);
-    };
-
-    syncCache().catch(console.error);
-  }, [convexMessages.results, conversationId]);
-
-  // @ts-ignore - Type depth exceeded
-  const triggerAutoRename = useAction(
-    api.conversations.actions.triggerAutoRename,
-  );
-
-  // Track whether auto-rename has been triggered for the current conversation
-  const autoRenameTriggeredRef = useRef<Id<"conversations"> | null>(null);
-
-  useEffect(() => {
-    if (!conversationId || !convexMessages.results?.length) return;
-
-    // Only trigger once per conversation
-    if (autoRenameTriggeredRef.current === conversationId) return;
-    autoRenameTriggeredRef.current = conversationId;
-
-    triggerAutoRename({ conversationId }).catch(() => {});
-  }, [conversationId, convexMessages.results?.length, triggerAutoRename]);
-
-  // @ts-ignore - Dexie PromiseExtended type incompatible with useLiveQuery generics
-  const cachedMessages: Doc<"messages">[] | undefined = useLiveQuery(
-    async () => {
-      if (!conversationId) return [];
-
-      const [conversation, conversationMessages] = await Promise.all([
-        cache.conversations.get(conversationId),
-        cache.messages.where("conversationId").equals(conversationId).toArray(),
-      ]);
-
-      const activeMessages = conversationMessages.filter(
-        (message) => message.isActiveBranch !== false,
-      );
-
-      return orderMessagesByActivePath(
-        activeMessages,
-        conversation?.activeLeafMessageId,
-      );
-    },
-    [conversationId],
-    undefined, // Return undefined while loading, not []
-  );
-
-  // Validate that cached messages actually belong to current conversation
-  // useLiveQuery can return stale data briefly when dependencies change
-  // Handle edge cases:
-  // 1. conversationId undefined → accept any cached data (no validation needed)
-  //    Note: In production, conversationId is always defined via [conversationId] route
-  //    This case exists for hook flexibility/future use cases
-  // 2. Empty array → VALID! Means conversation has no messages (don't return undefined)
-  // 3. Non-empty array → validate all messages belong to current conversation
-  const validatedMessages =
-    conversationId === undefined
-      ? cachedMessages // No conversation selected - accept cache as-is
-      : cachedMessages === undefined
-        ? undefined // Not loaded yet
-        : cachedMessages.length === 0
-          ? cachedMessages // Empty conversation - valid data!
-          : cachedMessages.every((m) => m.conversationId === conversationId)
-            ? cachedMessages // All messages match
-            : undefined; // Wrong conversation
-
-  // During conversation switch (including to/from undefined), force return undefined
-  // to prevent stale data flash. This ensures clean transitions between conversations.
-  // The isConversationChanging guard handles ALL transitions, including:
-  // - Conversation A → B (blocks stale A data)
-  // - Conversation A → undefined (blocks stale A data)
-  // - undefined → Conversation A (blocks any stale cache)
-  const results = isConversationChanging ? undefined : validatedMessages;
-
-  // Determine loading states (compatible with useStableMessages)
-  // isFirstLoad should be true when:
-  // 1. Convex is still loading (LoadingFirstPage) OR
-  // 2. Cache is still empty/loading (results undefined) OR
-  // 3. Convex has data but cache hasn't synced yet (mismatch in lengths)
-  const hasConvexData =
-    convexMessages.results && convexMessages.results.length > 0;
-  const hasCacheData = results && results.length > 0;
-  const isSyncInProgress = hasConvexData && !hasCacheData; // Convex loaded but cache not synced
-  const isConvexStillLoading = convexMessages.status === "LoadingFirstPage";
-
-  const isFirstLoad =
-    isConvexStillLoading || results === undefined || isSyncInProgress;
-
-  return {
-    results,
-    loadMore: convexMessages.loadMore,
-    status: convexMessages.status,
-    isLoading: convexMessages.isLoading,
-    isFirstLoad,
-  };
-}
-
 export function useMetadataCacheSync(messageIds: Id<"messages">[]) {
   const prevIdsRef = useRef<Id<"messages">[]>([]);
   const stableIds = useMemo(() => {
@@ -323,11 +225,13 @@ export function useMetadataCacheSync(messageIds: Id<"messages">[]) {
     return prevIdsRef.current;
   }, [messageIds]);
 
-  const metadata = useQuery(
-    // @ts-ignore - Type depth exceeded with complex Convex query
-    api.messages.batchGetMetadata,
-    stableIds.length > 0 ? { messageIds: stableIds } : "skip",
-  );
+  const { data: metadata } = useReactQuery({
+    queryKey: ["message-metadata", stableIds],
+    queryFn: () => fetchMessageMetadata(stableIds.map(String)),
+    enabled: stableIds.length > 0,
+    staleTime: 5_000,
+    refetchInterval: 15_000,
+  });
 
   useEffect(() => {
     if (!metadata) return;
@@ -346,228 +250,6 @@ export function useMetadataCacheSync(messageIds: Id<"messages">[]) {
       Promise.all(syncOps).catch(console.error);
     }
   }, [metadata]);
-}
-
-interface ConversationCacheSyncOptions {
-  projectId?: Id<"projects"> | "none" | null;
-}
-
-/**
- * Get conversations from Dexie filtered by projectId.
- * Note: "none" case uses toArray() + filter because Dexie can't index null/undefined values.
- */
-async function getConversationsByProject(
-  projectId: Id<"projects"> | "none" | null | undefined,
-): Promise<Doc<"conversations">[]> {
-  let conversations: Doc<"conversations">[];
-
-  if (projectId && projectId !== "none") {
-    conversations = await cache.conversations
-      .where("projectId")
-      .equals(projectId)
-      .toArray();
-  } else if (projectId === "none") {
-    conversations = (await cache.conversations.toArray()).filter(
-      (c) => !c.projectId,
-    );
-  } else {
-    conversations = await cache.conversations.toArray();
-  }
-
-  // Sort: pinned first, then by lastMessageAt (newest first)
-  return conversations.sort((a, b) => {
-    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-    return b.lastMessageAt - a.lastMessageAt;
-  });
-}
-
-export function useConversationCacheSync(
-  options: ConversationCacheSyncOptions = {},
-) {
-  const { projectId } = options;
-
-  const conversations = useQuery(
-    // @ts-ignore - Type depth exceeded with complex Convex query
-    api.conversations.list,
-    { projectId: projectId || undefined },
-  );
-
-  useEffect(() => {
-    if (conversations === undefined) return;
-
-    const syncCache = async () => {
-      const convexIds = new Set(conversations.map((c) => c._id));
-      const dexieRecords = await getConversationsByProject(projectId);
-
-      const orphanIds = dexieRecords
-        .filter((d) => !convexIds.has(d._id))
-        .map((d) => d._id);
-
-      if (orphanIds.length > 0) await cache.conversations.bulkDelete(orphanIds);
-      if (conversations.length > 0)
-        await cache.conversations.bulkPut(conversations);
-    };
-
-    syncCache().catch(console.error);
-  }, [conversations, projectId]);
-
-  const cachedConversations = useLiveQuery(
-    () => getConversationsByProject(projectId),
-    [projectId],
-    [] as Doc<"conversations">[],
-  );
-
-  return {
-    conversations: cachedConversations,
-    isLoading: conversations === undefined,
-  };
-}
-
-export function useNoteCacheSync() {
-  const notes = useQuery(
-    // @ts-ignore - Type depth exceeded with complex Convex query
-    api.notes.list,
-  );
-
-  useEffect(() => {
-    if (notes === undefined) return;
-
-    const syncCache = async () => {
-      const convexIds = new Set(notes.map((n) => n._id));
-      const dexieRecords = await cache.notes.toArray();
-
-      const orphanIds = dexieRecords
-        .filter((d) => !convexIds.has(d._id))
-        .map((d) => d._id);
-
-      if (orphanIds.length > 0) {
-        await cache.notes.bulkDelete(orphanIds);
-      }
-
-      if (notes.length > 0) {
-        await cache.notes.bulkPut(notes);
-      }
-    };
-
-    syncCache().catch(console.error);
-  }, [notes]);
-
-  const cachedNotes = useLiveQuery(
-    () => cache.notes.toArray(),
-    [],
-    [] as Doc<"notes">[],
-  );
-
-  return {
-    notes: cachedNotes,
-    isLoading: notes === undefined && cachedNotes.length === 0,
-  };
-}
-
-export function useTaskCacheSync() {
-  const tasks = useQuery(
-    // @ts-ignore - Type depth exceeded with complex Convex query
-    api.tasks.list,
-    {},
-  );
-
-  useEffect(() => {
-    if (tasks === undefined) return;
-
-    const syncCache = async () => {
-      const convexIds = new Set(tasks.map((t) => t._id));
-      const dexieRecords = await cache.tasks.toArray();
-
-      const orphanIds = dexieRecords
-        .filter((d) => !convexIds.has(d._id))
-        .map((d) => d._id);
-
-      if (orphanIds.length > 0) {
-        await cache.tasks.bulkDelete(orphanIds);
-      }
-
-      if (tasks.length > 0) {
-        await cache.tasks.bulkPut(tasks);
-      }
-    };
-
-    syncCache().catch(console.error);
-  }, [tasks]);
-
-  const cachedTasks = useLiveQuery(
-    () => cache.tasks.toArray(),
-    [],
-    [] as Doc<"tasks">[],
-  );
-
-  return {
-    tasks: cachedTasks,
-    isLoading: tasks === undefined && cachedTasks.length === 0,
-  };
-}
-
-export function useProjectCacheSync() {
-  const projects = useQuery(
-    // @ts-ignore - Type depth exceeded with complex Convex query
-    api.projects.list,
-  );
-
-  useEffect(() => {
-    if (projects === undefined) return;
-
-    const syncCache = async () => {
-      const convexIds = new Set(projects.map((p) => p._id));
-      const dexieRecords = await cache.projects.toArray();
-
-      const orphanIds = dexieRecords
-        .filter((d) => !convexIds.has(d._id))
-        .map((d) => d._id);
-
-      if (orphanIds.length > 0) {
-        await cache.projects.bulkDelete(orphanIds);
-      }
-
-      if (projects.length > 0) {
-        await cache.projects.bulkPut(projects);
-      }
-    };
-
-    syncCache().catch(console.error);
-  }, [projects]);
-
-  const cachedProjects = useLiveQuery(
-    () => cache.projects.toArray(),
-    [],
-    [] as Doc<"projects">[],
-  );
-
-  return {
-    projects: cachedProjects,
-    isLoading: projects === undefined && cachedProjects.length === 0,
-  };
-}
-
-export function usePreferenceCacheSync() {
-  const preferences = useQuery(
-    // @ts-ignore - Type depth exceeded with Convex modules
-    api.users.getAllUserPreferences,
-  );
-
-  useEffect(() => {
-    if (preferences) {
-      cache.userPreferences
-        .put({ _id: "current", data: preferences })
-        .catch(console.error);
-    }
-  }, [preferences]);
-
-  const cachedPreferences = useLiveQuery(
-    () => cache.userPreferences.get("current"),
-    [],
-    null,
-  );
-
-  return cachedPreferences?.data ?? preferences ?? PREFERENCE_DEFAULTS;
 }
 
 export function useCachedAttachments(messageId: Id<"messages"> | string) {

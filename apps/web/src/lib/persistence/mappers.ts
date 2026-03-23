@@ -11,9 +11,12 @@ export function toApiConversation(
     title: conversation.title,
     model: conversation.model,
     projectId: conversation.projectId ?? undefined,
+    isIncognito: conversation.isIncognito,
+    incognitoSettings: conversation.incognitoSettings ?? undefined,
     pinned: conversation.pinned,
     archived: conversation.archived,
     starred: conversation.starred,
+    modelRecommendation: conversation.modelRecommendation ?? undefined,
     messageCount: conversation.messageCount ?? 0,
     lastMessageAt: conversation.lastMessageAt ?? conversation.updatedAt,
     createdAt: conversation.createdAt,
@@ -60,6 +63,7 @@ export function toApiMessageWithMeta(
     conversationId: message.conversationId,
     role: message.role as "user" | "assistant" | "system",
     content: message.content,
+    clientMessageId: message.clientMessageId ?? undefined,
     partialContent:
       message.status === "streaming" || message.status === "pending"
         ? message.content

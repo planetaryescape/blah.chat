@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, domAnimation, LazyMotion, m } from "framer-motion";
 import {
   FileIcon,
   FileSpreadsheet,
@@ -9,6 +9,7 @@ import {
   Mic,
   X,
 } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -48,16 +49,18 @@ function getFileIcon(mimeType: string, name: string) {
     mimeType.includes("spreadsheet") ||
     ["xls", "xlsx", "csv"].includes(ext)
   ) {
-    return FileSpreadsheet;
+    return (
+      <FileSpreadsheet className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+    );
   }
   if (
     mimeType.includes("pdf") ||
     mimeType.includes("document") ||
     ["doc", "docx", "txt", "pdf"].includes(ext)
   ) {
-    return FileText;
+    return <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />;
   }
-  return FileIcon;
+  return <FileIcon className="w-4 h-4 text-muted-foreground flex-shrink-0" />;
 }
 
 function formatSize(bytes: number): string {
@@ -72,38 +75,40 @@ export function AttachmentPreview({
 }: AttachmentPreviewProps) {
   return (
     <div className="flex gap-2 flex-wrap">
-      <AnimatePresence mode="popLayout">
-        {attachments.map((attachment, idx) => (
-          <motion.div
-            key={`${attachment.storageId}-${idx}`}
-            initial={{ opacity: 0, y: 8, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.95 }}
-            transition={{
-              duration: 0.2,
-              delay: idx * 0.05,
-              ease: [0.4, 0, 0.2, 1],
-            }}
-          >
-            {attachment.type === "image" ? (
-              <ImageAttachment
-                attachment={attachment}
-                onRemove={() => onRemove(idx)}
-              />
-            ) : attachment.type === "audio" ? (
-              <AudioAttachment
-                attachment={attachment}
-                onRemove={() => onRemove(idx)}
-              />
-            ) : (
-              <FileAttachment
-                attachment={attachment}
-                onRemove={() => onRemove(idx)}
-              />
-            )}
-          </motion.div>
-        ))}
-      </AnimatePresence>
+      <LazyMotion features={domAnimation}>
+        <AnimatePresence mode="popLayout">
+          {attachments.map((attachment, idx) => (
+            <m.div
+              key={`${attachment.storageId}-${attachment.name}`}
+              initial={{ opacity: 0, y: 8, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.95 }}
+              transition={{
+                duration: 0.2,
+                delay: idx * 0.05,
+                ease: [0.4, 0, 0.2, 1],
+              }}
+            >
+              {attachment.type === "image" ? (
+                <ImageAttachment
+                  attachment={attachment}
+                  onRemove={() => onRemove(idx)}
+                />
+              ) : attachment.type === "audio" ? (
+                <AudioAttachment
+                  attachment={attachment}
+                  onRemove={() => onRemove(idx)}
+                />
+              ) : (
+                <FileAttachment
+                  attachment={attachment}
+                  onRemove={() => onRemove(idx)}
+                />
+              )}
+            </m.div>
+          ))}
+        </AnimatePresence>
+      </LazyMotion>
     </div>
   );
 }
@@ -118,10 +123,12 @@ function ImageAttachment({
   return (
     <div className="relative group overflow-hidden rounded-xl w-16 h-16 bg-muted/30 border border-border/30">
       {attachment.url ? (
-        <img
+        <Image
           src={attachment.url}
           alt={attachment.name}
-          className="object-cover w-full h-full transition-transform duration-200 group-hover:scale-110"
+          fill
+          sizes="64px"
+          className="object-cover transition-transform duration-200 group-hover:scale-110"
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center">
@@ -197,7 +204,6 @@ function FileAttachment({
 }) {
   const ext = getFileExtension(attachment.name);
   const colorClass = fileTypeColors[ext] || fileTypeColors.default;
-  const Icon = getFileIcon(attachment.mimeType, attachment.name);
 
   return (
     <div
@@ -206,7 +212,7 @@ function FileAttachment({
         colorClass,
       )}
     >
-      <Icon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+      {getFileIcon(attachment.mimeType, attachment.name)}
 
       <div className="max-w-[100px] min-w-0">
         <p className="text-xs font-medium truncate text-foreground/90">

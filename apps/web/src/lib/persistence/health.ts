@@ -3,6 +3,7 @@ import {
   createNeonDatabase,
   createR2Client,
   createRedisClient,
+  createTriggerClient,
   parsePersistenceEnv,
 } from "@blah-chat/persistence-postgres";
 import { sql } from "drizzle-orm";
@@ -11,6 +12,7 @@ export interface PersistenceHealth {
   database: "ok";
   redis: "ok";
   r2: "ok";
+  trigger: "ok";
 }
 
 export async function checkPersistenceHealth(): Promise<PersistenceHealth> {
@@ -29,9 +31,13 @@ export async function checkPersistenceHealth(): Promise<PersistenceHealth> {
     }),
   );
 
+  const trigger = createTriggerClient(env);
+  await trigger.ping();
+
   return {
     database: "ok",
     redis: "ok",
     r2: "ok",
+    trigger: "ok",
   };
 }

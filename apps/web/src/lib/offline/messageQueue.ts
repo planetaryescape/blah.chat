@@ -7,6 +7,9 @@ export interface QueuedMessage {
   content: string;
   modelId?: string;
   models?: string[];
+  parentMessageId?: string;
+  clientMessageId?: string;
+  thinkingEffort?: "none" | "low" | "medium" | "high";
   attachments?: Array<{
     type: "file" | "image" | "audio";
     name: string;

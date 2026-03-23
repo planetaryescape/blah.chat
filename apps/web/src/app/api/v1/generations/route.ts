@@ -11,8 +11,10 @@ import { formatEntity } from "@/lib/utils/formatEntity";
 const createGenerationSchema = z.object({
   conversationId: z.string().min(1),
   content: z.string().min(1),
+  clientMessageId: z.string().optional(),
   modelId: z.string().optional(),
   models: z.array(z.string()).optional(),
+  parentMessageId: z.string().optional(),
 });
 
 async function postHandler(req: NextRequest, { userId }: { userId: string }) {
@@ -33,8 +35,10 @@ async function postHandler(req: NextRequest, { userId }: { userId: string }) {
     clerkUser,
     conversationId: body.conversationId,
     content: body.content,
+    clientMessageId: body.clientMessageId,
     modelId: body.modelId,
     models: body.models,
+    parentMessageId: body.parentMessageId,
   });
 
   after(async () => {

@@ -1,8 +1,6 @@
 "use client";
 
 import { DEFAULT_MODEL_ID } from "@blah-chat/ai/operational-models";
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useMutation } from "convex/react";
 import { Ghost, Search, Sparkles, Timer } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -25,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { useApiClient } from "@/lib/api/client";
 
 interface NewIncognitoDialogProps {
   open: boolean;
@@ -40,26 +39,28 @@ export function NewIncognitoDialog({
   const [autoDeleteTimeout, setAutoDeleteTimeout] = useState("30");
   const [isCreating, setIsCreating] = useState(false);
 
-  // @ts-ignore - Type depth exceeded with complex Convex mutation
-  const createConversation = useMutation(api.conversations.create);
+  const apiClient = useApiClient();
   const router = useRouter();
 
   const handleCreate = async () => {
     setIsCreating(true);
     try {
-      const id = await createConversation({
-        model: DEFAULT_MODEL_ID,
-        isIncognito: true,
-        incognitoSettings: {
-          enableReadTools,
-          applyCustomInstructions,
-          inactivityTimeoutMinutes:
-            autoDeleteTimeout === "none"
-              ? undefined
-              : Number(autoDeleteTimeout),
+      const conversation = await apiClient.post<{ _id: string }>(
+        "/api/v1/conversations",
+        {
+          model: DEFAULT_MODEL_ID,
+          isIncognito: true,
+          incognitoSettings: {
+            enableReadTools,
+            applyCustomInstructions,
+            inactivityTimeoutMinutes:
+              autoDeleteTimeout === "none"
+                ? undefined
+                : Number(autoDeleteTimeout),
+          },
         },
-      });
-      router.push(`/chat/${id}`);
+      );
+      router.push(`/chat/${conversation._id}`);
       onOpenChange(false);
       toast.success("Incognito chat started");
 

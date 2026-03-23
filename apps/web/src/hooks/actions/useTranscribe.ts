@@ -1,35 +1,29 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
+import { useSDKClient } from "@/lib/api/sdkClient";
 import { usePollJob } from "../usePollJob";
 
 interface TranscribeJobInput {
   storageId: string;
+  mimeType?: string;
   model?: "whisper-1" | "whisper-large-v3";
 }
 
 interface TranscribeJobResult {
   text: string;
-  duration: number;
-  cost: number;
+  duration?: number;
+  cost?: number;
 }
 
 /**
  * Trigger transcription job creation
  */
 export function useTranscribe() {
+  const sdk = useSDKClient();
+
   return useMutation({
-    mutationFn: async (input: TranscribeJobInput) => {
-      const res = await fetch("/api/v1/actions/transcribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
-      });
-
-      if (!res.ok) throw new Error("Transcription job creation failed");
-
-      const envelope = await res.json();
-      return envelope.data.jobId as string;
-    },
+    mutationFn: async (input: TranscribeJobInput) =>
+      (await sdk.transcribeAudio(input)).jobId,
   });
 }
 
@@ -55,9 +49,14 @@ export function useTranscribeWithPolling() {
     backoffMultiplier: 1.5, // 1s → 1.5s → 2.25s → ...
   });
 
-  const transcribe = async (storageId: string, model?: string) => {
+  const transcribe = async (
+    storageId: string,
+    model?: string,
+    mimeType?: string,
+  ) => {
     const id = await transcribeMutation.mutateAsync({
       storageId,
+      mimeType,
       model: model as "whisper-1" | "whisper-large-v3" | undefined,
     });
     setJobId(id);

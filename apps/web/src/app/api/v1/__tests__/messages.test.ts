@@ -77,6 +77,7 @@ function createMessageEnvelope(
     conversationId: string;
     role: "user" | "assistant" | "system";
     content: string;
+    clientMessageId: string | undefined;
     partialContent: string | undefined;
     status: "pending" | "generating" | "complete" | "stopped" | "error";
     model: string | null;
@@ -115,6 +116,7 @@ function createMessageEnvelope(
       conversationId: overrides?.conversationId ?? "conv-123",
       role: overrides?.role ?? "user",
       content: overrides?.content ?? "Hello",
+      clientMessageId: overrides?.clientMessageId,
       partialContent: overrides?.partialContent,
       status: overrides?.status ?? "complete",
       model: overrides?.model ?? null,

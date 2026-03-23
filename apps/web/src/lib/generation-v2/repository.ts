@@ -1,4 +1,5 @@
 import {
+  attachments,
   comparisonVotes,
   conversations,
   generationCheckpoints,
@@ -7,7 +8,14 @@ import {
   type Message,
   messageEdges,
   messages,
+  messageToolCalls,
   type PersistenceDb,
+  routingCandidateScores,
+  routingDecisions,
+  routingFeedback,
+  routingOutcomes,
+  routingPolicies,
+  userPreferences,
   users,
 } from "@blah-chat/persistence-postgres";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
@@ -15,12 +23,30 @@ import { nanoid } from "nanoid";
 import { buildConsolidationPrompt } from "@/lib/consolidation";
 import type {
   ClerkUserProfile,
+  GenerationToolCall,
   PersistedRequestBundle,
   StartedGeneration,
   StartGenerationInput,
 } from "./types";
 
 const now = () => Date.now();
+const DEFAULT_ROUTING_POLICY_CONFIG = {
+  version: 1,
+  historyWindow: 50,
+  weights: {
+    binRank: 0.4,
+    successRate: 2,
+    errorRate: 1.5,
+    cancelRate: 0.75,
+    latencySeconds: 0.15,
+    ttftSeconds: 0.15,
+    costScore: 1,
+    speedScore: 0.5,
+    stickyBonus: 1.25,
+    degradedPenalty: 1.5,
+    downPenalty: 4,
+  },
+} as const;
 
 function dedupeModels(modelId?: string, models?: string[]) {
   const explicit = modelId ? [modelId] : [];
@@ -162,6 +188,26 @@ async function createAssistantSession(input: {
   return { assistantMessage, session };
 }
 
+function getRoutingSignal(input: {
+  rating: "left_better" | "right_better" | "tie" | "both_bad";
+  winnerMessageId?: string | null;
+  assistantMessageId: string;
+}) {
+  if (input.rating === "tie") {
+    return "tie";
+  }
+
+  if (input.rating === "both_bad") {
+    return "both_bad";
+  }
+
+  if (!input.winnerMessageId) {
+    return input.rating;
+  }
+
+  return input.assistantMessageId === input.winnerMessageId ? "win" : "loss";
+}
+
 export function createGenerationV2Repository(db: PersistenceDb) {
   return {
     async upsertUser(clerkUser: ClerkUserProfile) {
@@ -227,8 +273,10 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         throw new Error("Conversation not found");
       }
 
-      const parentIds = conversation.activeLeafMessageId
-        ? [conversation.activeLeafMessageId]
+      const requestedParentMessageId =
+        input.parentMessageId ?? conversation.activeLeafMessageId ?? null;
+      const parentIds = requestedParentMessageId
+        ? [requestedParentMessageId]
         : [];
       const parentMessage = parentIds[0]
         ? await db.query.messages.findFirst({
@@ -238,6 +286,9 @@ export function createGenerationV2Repository(db: PersistenceDb) {
             ),
           })
         : null;
+      if (input.parentMessageId && !parentMessage) {
+        throw new Error("Parent message not found");
+      }
       const comparisonGroupId = modelIds.length > 1 ? nanoid() : null;
 
       const userMessageId = nanoid();
@@ -249,6 +300,7 @@ export function createGenerationV2Repository(db: PersistenceDb) {
           userId: user.id,
           role: "user",
           content: input.content,
+          clientMessageId: input.clientMessageId ?? null,
           status: "complete",
           comparisonGroupId,
           rootMessageId:
@@ -788,6 +840,7 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         conversationId: conversation.id,
         userId: user.id,
         userMessageId: request.userMessageId,
+        requestedModelIds: request.requestedModels,
         promptMessages: promptChain,
         sessions: sessions.map((session) => ({
           sessionId: session.id,
@@ -860,6 +913,28 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         .where(eq(generationSessions.id, sessionId));
     },
 
+    async updateSessionModel(input: {
+      sessionId: string;
+      assistantMessageId: string;
+      modelId: string;
+    }) {
+      await db
+        .update(generationSessions)
+        .set({
+          modelId: input.modelId,
+          updatedAt: now(),
+        })
+        .where(eq(generationSessions.id, input.sessionId));
+
+      await db
+        .update(messages)
+        .set({
+          model: input.modelId,
+          updatedAt: now(),
+        })
+        .where(eq(messages.id, input.assistantMessageId));
+    },
+
     async updateAssistantMessage(input: {
       assistantMessageId: string;
       content: string;
@@ -875,6 +950,37 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         .where(eq(messages.id, input.assistantMessageId));
     },
 
+    async replaceAssistantToolCalls(input: {
+      assistantMessageId: string;
+      conversationId: string;
+      userId: string;
+      toolCalls: GenerationToolCall[];
+    }) {
+      await db
+        .delete(messageToolCalls)
+        .where(eq(messageToolCalls.messageId, input.assistantMessageId));
+
+      if (input.toolCalls.length === 0) {
+        return;
+      }
+
+      await db.insert(messageToolCalls).values(
+        input.toolCalls.map((toolCall) => ({
+          messageId: input.assistantMessageId,
+          conversationId: input.conversationId,
+          userId: input.userId,
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          args: toolCall.args,
+          result: toolCall.result,
+          textPosition: toolCall.textPosition,
+          isPartial: toolCall.isPartial ?? false,
+          timestamp: toolCall.timestamp,
+          createdAt: now(),
+        })),
+      );
+    },
+
     async insertCheckpoint(input: {
       sessionId: string;
       content: string;
@@ -886,6 +992,195 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         sequence: input.sequence,
         createdAt: now(),
       });
+    },
+
+    async getOrCreateRoutingDecision(input: {
+      policyId?: string | null;
+      requestId: string;
+      conversationId: string;
+      userId: string;
+      selectedModelId: string;
+      routeLabel?: string | null;
+      reasoning?: string | null;
+      details?: Record<string, unknown>;
+    }) {
+      const existing = await db.query.routingDecisions.findFirst({
+        where: and(
+          eq(routingDecisions.generationRequestId, input.requestId),
+          eq(routingDecisions.selectedModelId, input.selectedModelId),
+        ),
+      });
+
+      if (existing) {
+        return existing;
+      }
+
+      const [decision] = await db
+        .insert(routingDecisions)
+        .values({
+          policyId: input.policyId ?? null,
+          generationRequestId: input.requestId,
+          conversationId: input.conversationId,
+          userId: input.userId,
+          routeLabel: input.routeLabel ?? "explicit",
+          selectedModelId: input.selectedModelId,
+          reasoning: input.reasoning ?? null,
+          input: input.details ?? null,
+          createdAt: now(),
+        })
+        .returning();
+
+      if (!decision) {
+        throw new Error("Failed to create routing decision");
+      }
+
+      return decision;
+    },
+
+    async getOrCreateActiveRoutingPolicy() {
+      const existing = await db.query.routingPolicies.findFirst({
+        where: eq(routingPolicies.isActive, true),
+      });
+
+      if (existing) {
+        return existing;
+      }
+
+      const [policy] = await db
+        .insert(routingPolicies)
+        .values({
+          name: "router_v2_default",
+          description: "Default Postgres router policy",
+          isActive: true,
+          strategy: "outcome_weighted",
+          config: DEFAULT_ROUTING_POLICY_CONFIG,
+          createdAt: now(),
+          updatedAt: now(),
+        })
+        .returning();
+
+      if (!policy) {
+        throw new Error("Failed to create active routing policy");
+      }
+
+      return policy;
+    },
+
+    async replaceRoutingCandidateScores(input: {
+      decisionId: string;
+      scores: Array<{
+        modelId: string;
+        provider?: string | null;
+        score: number;
+        rank: number;
+        features?: Record<string, unknown>;
+      }>;
+    }) {
+      await db
+        .delete(routingCandidateScores)
+        .where(eq(routingCandidateScores.decisionId, input.decisionId));
+
+      if (input.scores.length === 0) {
+        return;
+      }
+
+      await db.insert(routingCandidateScores).values(
+        input.scores.map((score) => ({
+          decisionId: input.decisionId,
+          modelId: score.modelId,
+          provider: score.provider ?? null,
+          score: score.score,
+          rank: score.rank,
+          features: score.features ?? null,
+          createdAt: now(),
+        })),
+      );
+    },
+
+    async listRecentRoutingOutcomes(modelIds: string[], limit = 100) {
+      if (modelIds.length === 0) {
+        return [];
+      }
+
+      return db
+        .select({
+          selectedModelId: routingDecisions.selectedModelId,
+          status: routingOutcomes.status,
+          latencyMs: routingOutcomes.latencyMs,
+          ttftMs: routingOutcomes.ttftMs,
+          costUsd: routingOutcomes.costUsd,
+          createdAt: routingOutcomes.createdAt,
+        })
+        .from(routingOutcomes)
+        .innerJoin(
+          routingDecisions,
+          eq(routingDecisions.id, routingOutcomes.decisionId),
+        )
+        .where(inArray(routingDecisions.selectedModelId, modelIds))
+        .orderBy(desc(routingOutcomes.createdAt))
+        .limit(limit);
+    },
+
+    async listRecentProviderHealth() {
+      return db.query.providerHealthSnapshots.findMany({
+        orderBy: (table, { desc: orderDesc }) => [orderDesc(table.capturedAt)],
+        limit: 200,
+      });
+    },
+
+    async upsertRoutingOutcome(input: {
+      decisionId: string;
+      requestId: string;
+      sessionId: string;
+      status: "complete" | "cancelled" | "error";
+      ttftMs?: number | null;
+      latencyMs?: number | null;
+      metadata?: Record<string, unknown>;
+    }) {
+      const existing = await db.query.routingOutcomes.findFirst({
+        where: eq(routingOutcomes.generationSessionId, input.sessionId),
+      });
+
+      if (existing) {
+        const [updated] = await db
+          .update(routingOutcomes)
+          .set({
+            decisionId: input.decisionId,
+            generationRequestId: input.requestId,
+            status: input.status,
+            ttftMs: input.ttftMs ?? null,
+            latencyMs: input.latencyMs ?? null,
+            metadata: input.metadata ?? null,
+          })
+          .where(eq(routingOutcomes.id, existing.id))
+          .returning();
+
+        if (!updated) {
+          throw new Error("Failed to update routing outcome");
+        }
+
+        return updated;
+      }
+
+      const [outcome] = await db
+        .insert(routingOutcomes)
+        .values({
+          decisionId: input.decisionId,
+          generationRequestId: input.requestId,
+          generationSessionId: input.sessionId,
+          status: input.status,
+          ttftMs: input.ttftMs ?? null,
+          latencyMs: input.latencyMs ?? null,
+          metadata: input.metadata ?? null,
+          createdAt: now(),
+        })
+        .returning();
+
+      if (!outcome) {
+        throw new Error("Failed to create routing outcome");
+      }
+
+      return outcome;
     },
 
     async listMessages(conversationId: string) {
@@ -932,7 +1227,140 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         throw new Error("Failed to record vote");
       }
 
+      const assistantMessages = await db.query.messages.findMany({
+        where: and(
+          eq(messages.comparisonGroupId, input.comparisonGroupId),
+          eq(messages.role, "assistant"),
+        ),
+        orderBy: (table, { asc: orderAsc }) => [orderAsc(table.siblingIndex)],
+      });
+
+      if (assistantMessages.length > 0) {
+        const sessions = await db.query.generationSessions.findMany({
+          where: inArray(
+            generationSessions.assistantMessageId,
+            assistantMessages.map((message) => message.id),
+          ),
+        });
+        const outcomeRows =
+          sessions.length === 0
+            ? []
+            : await db.query.routingOutcomes.findMany({
+                where: inArray(
+                  routingOutcomes.generationSessionId,
+                  sessions.map((session) => session.id),
+                ),
+              });
+        const sessionByAssistantMessageId = new Map(
+          sessions.map((session) => [session.assistantMessageId, session]),
+        );
+        const outcomeBySessionId = new Map(
+          outcomeRows.map((outcome) => [outcome.generationSessionId, outcome]),
+        );
+
+        await db.insert(routingFeedback).values(
+          assistantMessages.map((message) => {
+            const session = sessionByAssistantMessageId.get(message.id);
+            const outcome = session
+              ? outcomeBySessionId.get(session.id)
+              : undefined;
+
+            return {
+              outcomeId: outcome?.id ?? null,
+              comparisonGroupId: input.comparisonGroupId,
+              winnerMessageId: input.winnerMessageId ?? null,
+              signal: getRoutingSignal({
+                rating: input.rating,
+                winnerMessageId: input.winnerMessageId,
+                assistantMessageId: message.id,
+              }),
+              metadata: {
+                rating: input.rating,
+                voteId: vote.id,
+                assistantMessageId: message.id,
+                modelId: message.model ?? null,
+                isWinner:
+                  input.winnerMessageId !== undefined &&
+                  input.winnerMessageId !== null &&
+                  input.winnerMessageId === message.id,
+              },
+              createdAt: now(),
+            };
+          }),
+        );
+      }
+
       return vote;
+    },
+
+    async getAutoRoutingContext(input: {
+      conversationId: string;
+      userId: string;
+      userMessageId: string;
+    }) {
+      const preferenceRows = await db.query.userPreferences.findMany({
+        where: and(
+          eq(userPreferences.userId, input.userId),
+          inArray(userPreferences.key, [
+            "autoRouterEnabled",
+            "autoRouterCostBias",
+            "autoRouterSpeedBias",
+            "defaultModel",
+          ]),
+        ),
+      });
+      const preferences = Object.fromEntries(
+        preferenceRows.map((row) => [row.key, row.value]),
+      ) as Record<string, unknown>;
+
+      const promptPath = await this.getPathToMessage(
+        input.conversationId,
+        input.userMessageId,
+      );
+      const previousAssistant = [...promptPath]
+        .reverse()
+        .find(
+          (message) =>
+            message.role === "assistant" &&
+            !!message.model &&
+            message.model !== "auto",
+        );
+      const previousDecisions = previousAssistant?.model
+        ? await db.query.routingDecisions.findMany({
+            where: and(
+              eq(routingDecisions.conversationId, input.conversationId),
+              eq(routingDecisions.selectedModelId, previousAssistant.model),
+            ),
+            orderBy: (table, { desc: orderDesc }) => [
+              orderDesc(table.createdAt),
+            ],
+            limit: 10,
+          })
+        : [];
+      const previousDecision =
+        previousDecisions.find(
+          (decision) =>
+            decision.routeLabel !== null &&
+            decision.routeLabel !== "explicit" &&
+            decision.routeLabel !== "manual_default",
+        ) ??
+        previousDecisions[0] ??
+        null;
+      const messageAttachments = await db.query.attachments.findMany({
+        where: eq(attachments.messageId, input.userMessageId),
+      });
+
+      return {
+        autoRouterEnabled: preferences.autoRouterEnabled,
+        costBias: preferences.autoRouterCostBias,
+        speedBias: preferences.autoRouterSpeedBias,
+        defaultModel: preferences.defaultModel,
+        previousModelId: previousAssistant?.model ?? null,
+        previousRouteLabel: previousDecision?.routeLabel ?? null,
+        attachmentTypes: messageAttachments.map(
+          (attachment) => attachment.mimeType,
+        ),
+      };
     },
 
     async listCheckpoints(sessionId: string) {

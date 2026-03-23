@@ -32,6 +32,10 @@ export default defineConfig({
   resolve: {
     alias: {
       // Order matters: more specific aliases first
+      "@blah-chat/persistence-postgres": path.resolve(
+        __dirname,
+        "../../packages/persistence-postgres/src/index.ts",
+      ),
       "@blah-chat/chat-ui-core": path.resolve(
         __dirname,
         "../../packages/chat-ui-core/src/index.ts",

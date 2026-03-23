@@ -3,9 +3,14 @@ import { BlahSDKError, unwrapEnvelope } from "./errors";
 import type { paths } from "./generated/openapi";
 import { type SSEEvent, type SSEStreamOptions, streamSSE } from "./sse";
 import type {
+  ActiveGeneration,
   ApiEnvelope,
+  BackgroundJob,
   CliRpcMethodMap,
   Conversation,
+  GenerationRequest,
+  GenerationStreamEvent,
+  Memory,
   Message,
   ThinkingEffort,
 } from "./types";
@@ -28,6 +33,8 @@ export interface SendMessagePayload {
   content: string;
   modelId?: string;
   models?: string[];
+  parentMessageId?: string;
+  clientMessageId?: string;
   thinkingEffort?: ThinkingEffort;
   attachments?: Array<{
     type: "file" | "image" | "audio";
@@ -123,6 +130,32 @@ export class BlahClient {
     return unwrapEnvelope(envelope, result.response.status);
   }
 
+  private async fetchEnvelope<T>(
+    path: string,
+    init: RequestInit,
+    mode: "bearer" | "api-key",
+  ): Promise<T> {
+    const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
+      ...init,
+      headers: {
+        ...(await this.authHeaders(mode)),
+        ...init.headers,
+      },
+    });
+
+    const payload = (await response.json()) as unknown;
+    const envelope = this.toEnvelope<T>(payload);
+
+    if (!response.ok && envelope.status !== "error") {
+      throw new BlahSDKError(
+        `Request failed with status ${response.status}`,
+        response.status,
+      );
+    }
+
+    return unwrapEnvelope(envelope, response.status);
+  }
+
   async health(): Promise<Record<string, unknown>> {
     const result = await this.client.GET("/api/v1/health");
     return this.unwrapFromResult<Record<string, unknown>>(
@@ -154,10 +187,17 @@ export class BlahClient {
     model: string;
     title?: string;
     systemPrompt?: string;
+    isIncognito?: boolean;
+    incognitoSettings?: {
+      enableReadTools?: boolean;
+      applyCustomInstructions?: boolean;
+      inactivityTimeoutMinutes?: number;
+    };
   }): Promise<Conversation> {
     const result = await this.client.POST("/api/v1/conversations", {
       headers: await this.authHeaders("bearer"),
-      body: payload,
+      // Generated OpenAPI types can lag the runtime route during migration work.
+      body: payload as any,
     });
 
     return this.unwrapFromResult<Conversation>(result as RequestResult);
@@ -193,6 +233,28 @@ export class BlahClient {
     return this.unwrapFromResult<Conversation>(result as RequestResult);
   }
 
+  async archiveConversation(conversationId: string): Promise<Conversation> {
+    return this.fetchEnvelope<Conversation>(
+      `/api/v1/conversations/${encodeURIComponent(conversationId)}/archive`,
+      {
+        method: "POST",
+      },
+      "bearer",
+    );
+  }
+
+  async deleteConversation(
+    conversationId: string,
+  ): Promise<{ deleted: boolean; conversationId: string }> {
+    return this.fetchEnvelope<{ deleted: boolean; conversationId: string }>(
+      `/api/v1/conversations/${encodeURIComponent(conversationId)}`,
+      {
+        method: "DELETE",
+      },
+      "bearer",
+    );
+  }
+
   async listMessages(conversationId: string): Promise<Message[]> {
     const result = await this.client.GET(
       "/api/v1/conversations/{id}/messages",
@@ -220,36 +282,335 @@ export class BlahClient {
     });
   }
 
-  async sendMessage(
-    conversationId: string,
-    payload: SendMessagePayload,
-  ): Promise<{
-    conversationId: string;
-    messageId: string;
-    assistantMessageId: string;
-    status: "pending";
-    pollUrl: string;
-  }> {
-    const result = await this.client.POST(
-      "/api/v1/conversations/{id}/messages",
+  async searchMessages(payload: {
+    query: string;
+    limit?: number;
+    conversationId?: string;
+    dateFrom?: number;
+    dateTo?: number;
+    messageType?: "user" | "assistant";
+  }): Promise<Message[]> {
+    const response = await this.fetchImpl(
+      `${this.baseUrl}/api/v1/search/hybrid`,
       {
+        method: "POST",
         headers: await this.authHeaders("bearer"),
-        params: {
-          path: {
-            id: conversationId,
-          },
-        },
-        body: payload,
+        body: JSON.stringify(payload),
       },
     );
 
-    return this.unwrapFromResult<{
-      conversationId: string;
-      messageId: string;
-      assistantMessageId: string;
-      status: "pending";
+    const result = (await response.json()) as unknown;
+    const envelope = this.toEnvelope<Array<{ data: Message }>>(result);
+
+    if (!response.ok && envelope.status !== "error") {
+      throw new BlahSDKError(
+        `Request failed with status ${response.status}`,
+        response.status,
+      );
+    }
+
+    const items = unwrapEnvelope<Array<{ data: Message }>>(
+      envelope,
+      response.status,
+    );
+
+    if (!Array.isArray(items)) {
+      throw new BlahSDKError(
+        "Malformed search response",
+        response.status,
+        "MALFORMED_RESPONSE",
+      );
+    }
+
+    return items.map((item) => item.data);
+  }
+
+  async bulkCreateBookmarks(payload: {
+    messageIds: string[];
+    note?: string;
+    tags?: string[];
+  }): Promise<{ bookmarkedCount: number; bookmarkIds: string[] }> {
+    return this.fetchEnvelope<{
+      bookmarkedCount: number;
+      bookmarkIds: string[];
+    }>(
+      "/api/v1/bookmarks/bulk",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async listMemories(
+    params: {
+      category?: string;
+      sortBy?: "date" | "importance" | "confidence";
+      searchQuery?: string;
+      limit?: number;
+    } = {},
+  ): Promise<Memory[]> {
+    const searchParams = new URLSearchParams();
+    if (params.category) {
+      searchParams.set("category", params.category);
+    }
+    if (params.sortBy) {
+      searchParams.set("sortBy", params.sortBy);
+    }
+    if (params.searchQuery) {
+      searchParams.set("searchQuery", params.searchQuery);
+    }
+    if (params.limit !== undefined) {
+      searchParams.set("limit", String(params.limit));
+    }
+
+    const query = searchParams.toString();
+    const response = await this.fetchImpl(
+      `${this.baseUrl}/api/v1/memories${query ? `?${query}` : ""}`,
+      {
+        method: "GET",
+        headers: await this.authHeaders("bearer"),
+      },
+    );
+
+    const result = (await response.json()) as unknown;
+    const envelope = this.toEnvelope<Array<{ data: Memory }>>(result);
+    const items = unwrapEnvelope<Array<{ data: Memory }>>(
+      envelope,
+      response.status,
+    );
+
+    if (!Array.isArray(items)) {
+      throw new BlahSDKError(
+        "Malformed memories response",
+        response.status,
+        "MALFORMED_RESPONSE",
+      );
+    }
+
+    return items.map((item) => item.data);
+  }
+
+  async createMemory(payload: {
+    content: string;
+    category?: string;
+  }): Promise<Memory> {
+    return this.fetchEnvelope<Memory>(
+      "/api/v1/memories",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async deleteMemory(
+    memoryId: string,
+  ): Promise<{ deleted: number; ids: string[] }> {
+    return this.fetchEnvelope<{ deleted: number; ids: string[] }>(
+      `/api/v1/memories/${encodeURIComponent(memoryId)}`,
+      {
+        method: "DELETE",
+      },
+      "bearer",
+    );
+  }
+
+  async deleteSelectedMemories(payload: {
+    ids: string[];
+  }): Promise<{ deleted: number }> {
+    return this.fetchEnvelope<{ deleted: number }>(
+      "/api/v1/memories/delete-selected",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async deleteAllMemories(): Promise<{ deleted: number }> {
+    return this.fetchEnvelope<{ deleted: number }>(
+      "/api/v1/memories",
+      {
+        method: "DELETE",
+      },
+      "bearer",
+    );
+  }
+
+  async consolidateMemories(payload: { ids?: string[] } = {}): Promise<{
+    created: number;
+    deleted: number;
+    original: number;
+    consolidated: number;
+  }> {
+    return this.fetchEnvelope<{
+      created: number;
+      deleted: number;
+      original: number;
+      consolidated: number;
+    }>(
+      "/api/v1/memories/consolidate",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async extractMemories(conversationId: string): Promise<{
+    jobId: string;
+    status: string;
+    pollUrl: string;
+  }> {
+    return this.fetchEnvelope<{
+      jobId: string;
+      status: string;
       pollUrl: string;
-    }>(result as RequestResult);
+    }>(
+      "/api/v1/memories/extract",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          conversationId,
+        }),
+      },
+      "bearer",
+    );
+  }
+
+  async transcribeAudio(payload: {
+    storageId: string;
+    mimeType?: string;
+    model?: "whisper-1" | "whisper-large-v3";
+  }): Promise<{
+    jobId: string;
+    status: string;
+    pollUrl: string;
+  }> {
+    return this.fetchEnvelope<{
+      jobId: string;
+      status: string;
+      pollUrl: string;
+    }>(
+      "/api/v1/actions/transcribe",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async generateImage(payload: {
+    conversationId: string;
+    messageId: string;
+    prompt: string;
+    model?: string;
+    referenceImageStorageId?: string;
+    thinkingEffort?: ThinkingEffort;
+  }): Promise<{
+    jobId: string;
+    status: string;
+    pollUrl: string;
+  }> {
+    return this.fetchEnvelope<{
+      jobId: string;
+      status: string;
+      pollUrl: string;
+    }>(
+      "/api/v1/actions/images/generate",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async getJob<TResult = unknown>(
+    jobId: string,
+  ): Promise<BackgroundJob<TResult>> {
+    return this.fetchEnvelope<BackgroundJob<TResult>>(
+      `/api/v1/actions/jobs/${encodeURIComponent(jobId)}`,
+      {
+        method: "GET",
+      },
+      "bearer",
+    );
+  }
+
+  async waitForJob<TResult = unknown>(
+    jobId: string,
+    options: {
+      initialInterval?: number;
+      maxInterval?: number;
+      backoffMultiplier?: number;
+      timeoutMs?: number;
+    } = {},
+  ): Promise<BackgroundJob<TResult>> {
+    const {
+      initialInterval = 1000,
+      maxInterval = 10000,
+      backoffMultiplier = 1.5,
+      timeoutMs = 120000,
+    } = options;
+
+    const startedAt = Date.now();
+    let interval = initialInterval;
+
+    while (Date.now() - startedAt < timeoutMs) {
+      const job = await this.getJob<TResult>(jobId);
+
+      if (job.status === "completed") {
+        return job;
+      }
+
+      if (job.status === "failed" || job.status === "cancelled") {
+        throw new BlahSDKError(
+          job.error?.message || `Job ${job.status}`,
+          500,
+          "JOB_FAILED",
+        );
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, interval));
+      interval = Math.min(interval * backoffMultiplier, maxInterval);
+    }
+
+    throw new BlahSDKError(
+      `Job ${jobId} timed out after ${timeoutMs}ms`,
+      408,
+      "JOB_TIMEOUT",
+    );
+  }
+
+  async scanRecentConversations(): Promise<{ triggered: number }> {
+    return this.fetchEnvelope<{ triggered: number }>(
+      "/api/v1/memories/scan-recent",
+      {
+        method: "POST",
+      },
+      "bearer",
+    );
+  }
+
+  async sendMessage(
+    conversationId: string,
+    payload: SendMessagePayload,
+  ): Promise<GenerationRequest> {
+    return this.fetchEnvelope<GenerationRequest>(
+      `/api/v1/conversations/${encodeURIComponent(conversationId)}/messages`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
   }
 
   async getMessage(messageId: string): Promise<Message> {
@@ -320,6 +681,53 @@ export class BlahClient {
   ): AsyncGenerator<SSEEvent<{ messages: Message[] }>, void, undefined> {
     return streamSSE<{ messages: Message[] }>(
       `${this.baseUrl}/api/v1/messages/stream/${conversationId}`,
+      {
+        ...options,
+        headers: {
+          ...(this.options.headers || {}),
+          ...(options.headers || {}),
+        },
+        fetch: async (input, init) => {
+          const authHeaders = await this.authHeaders("bearer");
+          return this.fetchImpl(input, {
+            ...init,
+            headers: {
+              ...(init?.headers || {}),
+              ...authHeaders,
+            },
+          });
+        },
+      },
+    );
+  }
+
+  async getActiveGeneration(
+    conversationId: string,
+  ): Promise<ActiveGeneration | null> {
+    const authHeaders = await this.authHeaders("bearer");
+    const response = await this.fetchImpl(
+      `${this.baseUrl}/api/v1/conversations/${encodeURIComponent(conversationId)}/active-generation`,
+      {
+        method: "GET",
+        headers: authHeaders,
+      },
+    );
+
+    if (response.status === 404) {
+      return null;
+    }
+
+    const payload = (await response.json()) as unknown;
+    const envelope = this.toEnvelope<ActiveGeneration>(payload);
+    return unwrapEnvelope(envelope, response.status);
+  }
+
+  streamGeneration(
+    requestId: string,
+    options: SSEStreamOptions = {},
+  ): AsyncGenerator<SSEEvent<GenerationStreamEvent>, void, undefined> {
+    return streamSSE<GenerationStreamEvent>(
+      `${this.baseUrl}/api/v1/generations/${encodeURIComponent(requestId)}/stream`,
       {
         ...options,
         headers: {

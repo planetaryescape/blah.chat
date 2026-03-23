@@ -12,10 +12,69 @@ export interface ApiEnvelope<T = unknown> {
 
 export type ThinkingEffort = "none" | "low" | "medium" | "high";
 
+export interface GenerationRequest {
+  requestId: string;
+  conversationId: string;
+  userMessageId: string;
+  assistantMessageIds: string[];
+  modelIds?: string[];
+  streamUrl: string;
+  stopUrl: string;
+  status: string;
+}
+
+export interface ActiveGeneration {
+  conversationId: string;
+  requestId: string | null;
+  streamUrl: string | null;
+  status: string | null;
+}
+
+export interface BackgroundJobProgress {
+  current?: number;
+  message?: string;
+  eta?: number;
+}
+
+export interface BackgroundJobError {
+  message: string;
+  code?: string;
+}
+
+export interface BackgroundJob<TResult = unknown> {
+  _id: string;
+  status: "pending" | "running" | "completed" | "failed" | "cancelled";
+  progress?: BackgroundJobProgress;
+  result?: TResult;
+  error?: BackgroundJobError;
+}
+
+export interface GenerationStreamEvent {
+  type: string;
+  requestId: string;
+  sessionId: string;
+  assistantMessageId: string;
+  modelId: string;
+  seq: number;
+  ts: number;
+  content?: string;
+  delta?: string;
+  error?: string;
+  retryable?: boolean;
+  reason?: string;
+}
+
 export interface Conversation {
   _id: string;
   title?: string | null;
   model?: string | null;
+  isIncognito?: boolean;
+  incognitoSettings?: {
+    enableReadTools: boolean;
+    applyCustomInstructions: boolean;
+    inactivityTimeoutMinutes?: number;
+    lastActivityAt?: number;
+  };
   pinned?: boolean;
   messageCount?: number;
   lastMessageAt?: number;
@@ -25,6 +84,7 @@ export interface Conversation {
 export interface Message {
   _id: string;
   conversationId?: string;
+  conversationTitle?: string | null;
   role: "user" | "assistant" | "system";
   content: string;
   partialContent?: string;
@@ -49,9 +109,21 @@ export interface Model {
 export interface Memory {
   _id: string;
   content: string;
-  category: string;
-  importance?: number;
+  category?: string;
+  conversationId?: string;
+  sourceMessageId?: string;
+  sourceMessageIds?: string[];
+  metadata?: {
+    category?: string;
+    importance?: number;
+    confidence?: number;
+    reasoning?: string;
+    expiresAt?: number;
+    version?: number;
+    verifiedBy?: string;
+  };
   createdAt: number;
+  updatedAt?: number;
 }
 
 export interface Project {

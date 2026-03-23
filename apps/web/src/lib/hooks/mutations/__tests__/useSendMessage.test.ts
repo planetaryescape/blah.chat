@@ -1,4 +1,4 @@
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Store mutation config to call lifecycle methods
@@ -181,6 +181,29 @@ describe("useSendMessage", () => {
     });
   });
 
+  it("dispatches generation request metadata on success", () => {
+    const dispatchEventSpy = vi.spyOn(window, "dispatchEvent");
+    renderHook(() => useSendMessage());
+
+    mutationConfig?.onSuccess?.(
+      {
+        requestId: "req_123",
+        streamUrl: "/api/v1/generations/req_123/stream",
+      },
+      { conversationId, content: "Test" },
+    );
+
+    expect(dispatchEventSpy).toHaveBeenCalledTimes(1);
+    const [event] = dispatchEventSpy.mock.calls[0] ?? [];
+    expect(event).toBeInstanceOf(CustomEvent);
+    expect((event as CustomEvent).type).toBe("generation-request-started");
+    expect((event as CustomEvent).detail).toEqual({
+      conversationId,
+      requestId: "req_123",
+      streamUrl: "/api/v1/generations/req_123/stream",
+    });
+  });
+
   it("shows error toast when online and fails", () => {
     Object.defineProperty(navigator, "onLine", {
       value: true,
@@ -211,7 +234,10 @@ describe("useSendMessage", () => {
     const args = {
       conversationId,
       content: "Offline message",
+      parentMessageId: "msg-parent-1",
       modelId: "openai:gpt-4o",
+      clientMessageId: "client-fixed-id",
+      thinkingEffort: "high" as const,
     };
 
     mutationConfig?.onError?.(new Error("Failed"), args, undefined);
@@ -219,12 +245,77 @@ describe("useSendMessage", () => {
     expect(mockMessageQueue.enqueue).toHaveBeenCalledWith({
       conversationId,
       content: "Offline message",
+      parentMessageId: "msg-parent-1",
       modelId: "openai:gpt-4o",
       models: undefined,
+      clientMessageId: "client-fixed-id",
+      thinkingEffort: "high",
       attachments: undefined,
     });
     expect(mockToast.info).toHaveBeenCalledWith(
       "You're offline. Message queued and will send when reconnected.",
     );
+  });
+
+  it("replays queued messages with branch anchor, client id, and thinking effort on reconnect", async () => {
+    const dispatchEventSpy = vi.spyOn(window, "dispatchEvent");
+    mockMessageQueue.getCount.mockResolvedValueOnce(1);
+    mockPost.mockResolvedValueOnce({
+      requestId: "req_replay_1",
+      streamUrl: "/api/v1/generations/req_replay_1/stream",
+    });
+    mockMessageQueue.processQueue.mockImplementationOnce(async (sendFn) => {
+      await sendFn({
+        id: "queued-1",
+        conversationId,
+        content: "Queued branch reply",
+        parentMessageId: "msg-parent-1",
+        modelId: "openai:gpt-4o",
+        clientMessageId: "client-fixed-id",
+        thinkingEffort: "medium",
+        attachments: undefined,
+        timestamp: Date.now(),
+        retries: 0,
+      });
+    });
+
+    renderHook(() => useSendMessage());
+
+    window.dispatchEvent(new Event("online"));
+    await waitFor(() => {
+      expect(mockPost).toHaveBeenCalledWith(
+        `/api/v1/conversations/${conversationId}/messages`,
+        {
+          conversationId,
+          content: "Queued branch reply",
+          modelId: "openai:gpt-4o",
+          models: undefined,
+          parentMessageId: "msg-parent-1",
+          clientMessageId: "client-fixed-id",
+          thinkingEffort: "medium",
+          attachments: undefined,
+        },
+      );
+      expect(mockToast.info).toHaveBeenCalledWith(
+        "Processing 1 queued message...",
+      );
+      expect(mockToast.success).toHaveBeenCalledWith(
+        "All queued messages sent",
+      );
+      const generationEvents = dispatchEventSpy.mock.calls
+        .map(([event]) => event)
+        .filter(
+          (event): event is CustomEvent =>
+            event instanceof CustomEvent &&
+            event.type === "generation-request-started",
+        );
+      expect(generationEvents).toHaveLength(1);
+      const [event] = generationEvents;
+      expect((event as CustomEvent).detail).toEqual({
+        conversationId,
+        requestId: "req_replay_1",
+        streamUrl: "/api/v1/generations/req_replay_1/stream",
+      });
+    });
   });
 });

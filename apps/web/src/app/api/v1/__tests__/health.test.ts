@@ -3,11 +3,60 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/persistence/health", () => ({
-  checkPersistenceHealth: vi.fn(),
+const mockExecute = vi.fn();
+const mockPing = vi.fn();
+const mockSend = vi.fn();
+const mockTriggerPing = vi.fn();
+
+vi.mock("@blah-chat/persistence-postgres", () => ({
+  createNeonDatabase: vi.fn(() => ({
+    execute: mockExecute,
+  })),
+  createRedisClient: vi.fn(() => ({
+    ping: mockPing,
+  })),
+  createR2Client: vi.fn(() => ({
+    send: mockSend,
+  })),
+  createTriggerClient: vi.fn(() => ({
+    ping: mockTriggerPing,
+  })),
+  parsePersistenceEnv: vi.fn(() => ({
+    databaseUrl: "postgres://user:pass@host/db",
+    redis: {
+      restUrl: "https://example.upstash.io",
+      restToken: "token",
+    },
+    r2: {
+      accountId: "account123",
+      accessKeyId: "key",
+      secretAccessKey: "secret",
+      bucket: "blah-chat-prod",
+      endpoint: "https://account123.r2.cloudflarestorage.com",
+      region: "auto",
+      forcePathStyle: false,
+    },
+    trigger: {
+      secretKey: "tr_dev_123",
+      apiUrl: "https://api.trigger.dev",
+    },
+  })),
 }));
 
-import { checkPersistenceHealth } from "@/lib/persistence/health";
+vi.mock("@aws-sdk/client-s3", () => ({
+  HeadBucketCommand: class HeadBucketCommand {
+    input: unknown;
+
+    constructor(input: unknown) {
+      this.input = input;
+    }
+  },
+}));
+
+vi.mock("drizzle-orm", () => ({
+  sql: vi.fn((strings: TemplateStringsArray) => strings.join("")),
+}));
+
 import {
   assertEnvelopeError,
   assertEnvelopeSuccess,
@@ -15,16 +64,18 @@ import {
 
 describe("/api/v1/health", () => {
   beforeEach(() => {
+    vi.resetModules();
     vi.clearAllMocks();
+    mockExecute.mockResolvedValue([{ "?column?": 1 }]);
+    mockPing.mockResolvedValue("PONG");
+    mockSend.mockResolvedValue({});
+    mockTriggerPing.mockResolvedValue({
+      data: [],
+      pagination: {},
+    });
   });
 
   it("returns health envelope including persistence status", async () => {
-    vi.mocked(checkPersistenceHealth).mockResolvedValue({
-      database: "ok",
-      redis: "ok",
-      r2: "ok",
-    });
-
     const { GET } = await import("../health/route");
     const response = await GET();
     const json = await response.json();
@@ -36,13 +87,12 @@ describe("/api/v1/health", () => {
       database: "ok",
       redis: "ok",
       r2: "ok",
+      trigger: "ok",
     });
   });
 
   it("returns 503 when persistence health fails", async () => {
-    vi.mocked(checkPersistenceHealth).mockRejectedValue(
-      new Error("database down"),
-    );
+    mockTriggerPing.mockRejectedValue(new Error("trigger down"));
 
     const { GET } = await import("../health/route");
     const response = await GET();

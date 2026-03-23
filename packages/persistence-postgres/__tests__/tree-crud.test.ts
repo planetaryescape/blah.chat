@@ -89,6 +89,95 @@ describe("tree CRUD repositories", () => {
     expect(siblings[1]?.forkReason).toBe("regenerate");
   });
 
+  test("persists comparison siblings on a branched tree and derives the active path from the chosen sibling", async () => {
+    const db = await createTestPersistenceDb();
+    const users = createUserRepository(db);
+    const conversations = createConversationRepository(db);
+    const messages = createMessageRepository(db);
+    const user = await users.upsertFromClerk({
+      clerkId: "user_compare",
+      email: "compare@example.com",
+      name: "Compare User",
+    });
+
+    const conversation = await conversations.create({
+      userId: user.id,
+      title: "Compare Chat",
+      model: "auto",
+    });
+
+    const rootUser = await messages.create({
+      conversationId: conversation.id,
+      userId: user.id,
+      role: "user",
+      content: "Root question",
+      parentMessageIds: [],
+      siblingIndex: 0,
+    });
+    const branchedAssistant = await messages.create({
+      conversationId: conversation.id,
+      role: "assistant",
+      content: "Branch answer",
+      parentMessageIds: [rootUser.id],
+      siblingIndex: 0,
+    });
+    const followUpUser = await messages.create({
+      conversationId: conversation.id,
+      userId: user.id,
+      role: "user",
+      content: "Compare these models",
+      parentMessageIds: [branchedAssistant.id],
+      siblingIndex: 0,
+    });
+    const leftAssistant = await messages.create({
+      conversationId: conversation.id,
+      role: "assistant",
+      content: "Model A answer",
+      model: "openai:gpt-5",
+      comparisonGroupId: "comparison_123",
+      parentMessageIds: [followUpUser.id],
+      siblingIndex: 0,
+    });
+    const rightAssistant = await messages.create({
+      conversationId: conversation.id,
+      role: "assistant",
+      content: "Model B answer",
+      model: "anthropic:claude-sonnet-4",
+      comparisonGroupId: "comparison_123",
+      parentMessageIds: [followUpUser.id],
+      siblingIndex: 1,
+    });
+
+    await conversations.setActiveLeaf({
+      conversationId: conversation.id,
+      activeLeafMessageId: rightAssistant.id,
+    });
+
+    const activePath = await conversations.getActivePath(conversation.id);
+    const comparisonSiblings = await messages.listSiblings({
+      conversationId: conversation.id,
+      parentMessageId: followUpUser.id,
+    });
+
+    expect(activePath.map((message) => message.id)).toEqual([
+      rootUser.id,
+      branchedAssistant.id,
+      followUpUser.id,
+      rightAssistant.id,
+    ]);
+    expect(comparisonSiblings.map((message) => message.id)).toEqual([
+      leftAssistant.id,
+      rightAssistant.id,
+    ]);
+    expect(
+      comparisonSiblings.map((message) => message.comparisonGroupId),
+    ).toEqual(["comparison_123", "comparison_123"]);
+    expect(comparisonSiblings.map((message) => message.rootMessageId)).toEqual([
+      rootUser.id,
+      rootUser.id,
+    ]);
+  });
+
   test("toggles pin and star state for a conversation", async () => {
     const db = await createTestPersistenceDb();
     const users = createUserRepository(db);

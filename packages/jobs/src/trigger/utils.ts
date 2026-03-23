@@ -1,19 +1,7 @@
-/**
- * Shared helper for trigger.dev tasks that call Convex HTTP endpoints.
- * Centralizes env checks, URL derivation, auth, and error handling.
- */
-export async function callConvexTriggerEndpoint<T = unknown>(
-  taskId: string,
-  payload: Record<string, unknown>,
-): Promise<T> {
+function getConvexSiteUrl() {
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
   if (!convexUrl) {
     throw new Error("NEXT_PUBLIC_CONVEX_URL is not set");
-  }
-
-  const secret = process.env.TRIGGER_CONVEX_SECRET;
-  if (!secret) {
-    throw new Error("TRIGGER_CONVEX_SECRET is not set");
   }
 
   const siteUrl = convexUrl.replace(".convex.cloud", ".convex.site");
@@ -23,19 +11,41 @@ export async function callConvexTriggerEndpoint<T = unknown>(
     );
   }
 
-  const response = await fetch(`${siteUrl}/trigger/${taskId}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${secret}`,
+  return siteUrl;
+}
+
+/**
+ * Legacy-domain compatibility helper.
+ * Remaining legacy Trigger tasks call Convex's task endpoints directly,
+ * without hopping through the web app bridge.
+ */
+export async function callLegacyConvexTrigger<T = unknown>(
+  taskId: string,
+  payload: Record<string, unknown>,
+): Promise<T> {
+  const secret = process.env.TRIGGER_CONVEX_SECRET;
+  if (!secret) {
+    throw new Error("TRIGGER_CONVEX_SECRET is not set");
+  }
+
+  const response = await fetch(
+    `${getConvexSiteUrl()}/trigger/${encodeURIComponent(taskId)}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${secret}`,
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(300_000),
     },
-    body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(300_000),
-  });
+  );
 
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(`Convex ${taskId} failed (${response.status}): ${body}`);
+    throw new Error(
+      `Legacy Convex trigger ${taskId} failed (${response.status}): ${body}`,
+    );
   }
 
   return (await response.json()) as T;

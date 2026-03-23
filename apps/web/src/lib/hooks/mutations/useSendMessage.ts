@@ -8,11 +8,37 @@ import { messageQueue } from "@/lib/offline/messageQueue";
 import { queryKeys } from "@/lib/query/keys";
 import type { OptimisticMessage } from "@/types/optimistic";
 
+type GenerationRequestResponse = {
+  conversationId?: string;
+  requestId?: string;
+  streamUrl?: string;
+};
+
+function dispatchGenerationStartedEvent(
+  conversationId: string,
+  data: GenerationRequestResponse | undefined,
+) {
+  if (!data?.requestId || !data.streamUrl) {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent("generation-request-started", {
+      detail: {
+        conversationId: data.conversationId ?? conversationId,
+        requestId: data.requestId,
+        streamUrl: data.streamUrl,
+      },
+    }),
+  );
+}
+
 interface SendMessageArgs {
   conversationId: Id<"conversations">;
   content: string;
   modelId?: string;
   models?: string[];
+  parentMessageId?: string;
   clientMessageId?: string;
   thinkingEffort?: "none" | "low" | "medium" | "high";
   attachments?: Array<{
@@ -42,16 +68,20 @@ export function useSendMessage(
 
       await messageQueue.processQueue(async (msg) => {
         // Send queued message
-        await apiClient.post(
+        const response = await apiClient.post<GenerationRequestResponse>(
           `/api/v1/conversations/${msg.conversationId}/messages`,
           {
             conversationId: msg.conversationId,
             content: msg.content,
             modelId: msg.modelId,
             models: msg.models,
+            parentMessageId: msg.parentMessageId,
+            clientMessageId: msg.clientMessageId,
+            thinkingEffort: msg.thinkingEffort,
             attachments: msg.attachments,
           },
         );
+        dispatchGenerationStartedEvent(msg.conversationId, response);
       });
 
       toast.success("All queued messages sent");
@@ -106,12 +136,17 @@ export function useSendMessage(
       };
     },
 
-    onSuccess: (_data, variables) => {
+    onSuccess: (data, variables) => {
       // Server confirmed - Convex query will update with real messages
       // Deduplication happens automatically in useOptimistic merge
       queryClient.invalidateQueries({
         queryKey: queryKeys.messages.list(variables.conversationId),
       });
+
+      dispatchGenerationStartedEvent(
+        variables.conversationId,
+        data as GenerationRequestResponse | undefined,
+      );
 
       // Track analytics
       analytics.track("message_sent", {
@@ -133,6 +168,9 @@ export function useSendMessage(
           content: variables.content,
           modelId: variables.modelId,
           models: variables.models,
+          parentMessageId: variables.parentMessageId,
+          clientMessageId: variables.clientMessageId,
+          thinkingEffort: variables.thinkingEffort,
           attachments: variables.attachments,
         });
 

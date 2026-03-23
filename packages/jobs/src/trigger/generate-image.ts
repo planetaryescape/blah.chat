@@ -1,5 +1,5 @@
 import { task } from "@trigger.dev/sdk";
-import { callConvexTriggerEndpoint } from "./utils";
+import { callLegacyConvexTrigger } from "./utils";
 
 export const generateImageTask = task({
   id: "generate-image",
@@ -18,7 +18,7 @@ export const generateImageTask = task({
     referenceImageStorageId?: string;
     thinkingEffort?: string;
   }) => {
-    return callConvexTriggerEndpoint<{ success: boolean }>(
+    return callLegacyConvexTrigger<{ success: boolean }>(
       "generate-image",
       payload,
     );

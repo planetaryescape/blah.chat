@@ -1,12 +1,24 @@
 /**
  * @vitest-environment node
  */
-import { createConversationRepository } from "@blah-chat/persistence-postgres";
-import { describe, expect, it } from "vitest";
+import {
+  createConversationRepository,
+  createPreferenceRepository,
+  messageSources,
+  messageToolCalls,
+  providerHealthSnapshots,
+  routingCandidateScores,
+  routingDecisions,
+  routingOutcomes,
+  routingPolicies,
+  sourceMetadata,
+} from "@blah-chat/persistence-postgres";
+import { eq } from "drizzle-orm";
+import { describe, expect, it, vi } from "vitest";
 import { createTestPersistenceDb } from "../../../../../../packages/persistence-postgres/src/testing/pglite";
 import { GenerationV2Service } from "../service";
 import { MemoryGenerationEventStore } from "../store";
-import type { GenerationProvider } from "../types";
+import type { GenerationProvider, GenerationToolCall } from "../types";
 
 class FakeGenerationProvider implements GenerationProvider {
   constructor(private readonly outputs: Record<string, string[]>) {}
@@ -38,6 +50,47 @@ class InspectableGenerationProvider implements GenerationProvider {
     for (const chunk of this.outputs[input.modelId] ?? []) {
       yield chunk;
     }
+  }
+}
+
+class SourceAwareGenerationProvider implements GenerationProvider {
+  constructor(
+    private readonly outputs: Record<string, string[]>,
+    private readonly sources: Record<
+      string,
+      Array<{ title: string; url: string }>
+    >,
+  ) {}
+
+  async *streamText(input: { modelId: string }) {
+    for (const chunk of this.outputs[input.modelId] ?? []) {
+      yield chunk;
+    }
+  }
+
+  async getSources(input: { sessionId: string }) {
+    return (this.sources[input.sessionId] ?? []).map((source, index) => ({
+      position: index + 1,
+      title: source.title,
+      url: source.url,
+    }));
+  }
+}
+
+class ToolCallAwareGenerationProvider implements GenerationProvider {
+  constructor(
+    private readonly outputs: Record<string, string[]>,
+    private readonly toolCalls: Record<string, GenerationToolCall[]>,
+  ) {}
+
+  async *streamText(input: { modelId: string }) {
+    for (const chunk of this.outputs[input.modelId] ?? []) {
+      yield chunk;
+    }
+  }
+
+  async getToolCalls(input: { sessionId: string }) {
+    return this.toolCalls[input.sessionId] ?? [];
   }
 }
 
@@ -125,6 +178,775 @@ describe("GenerationV2Service", () => {
     ]);
     expect(checkpoints.length).toBeGreaterThanOrEqual(1);
     expect(events.events.map((event) => event.type)).toContain("complete");
+  });
+
+  it("queues auto-title after completing a default-title conversation", async () => {
+    const db = await createTestPersistenceDb();
+    const conversations = createConversationRepository(db);
+    const store = new MemoryGenerationEventStore();
+    const autoTitleConversation = vi.fn(async (_conversationId: string) => {});
+    const service = new GenerationV2Service(
+      db,
+      store,
+      new FakeGenerationProvider({
+        "openai:gpt-5-mini": ["Hello", " world"],
+      }),
+      async () => {},
+      (() => {
+        let time = 2_000;
+        return () => {
+          time += 300;
+          return time;
+        };
+      })(),
+      {
+        autoTitleConversation,
+      },
+    );
+
+    const user = await (service as any).repository.upsertUser({
+      clerkId: "user_title_123",
+      email: "user-title@example.com",
+      name: "User Title",
+    });
+    const conversation = await conversations.create({
+      userId: user.id,
+      title: "New Chat",
+      model: "openai:gpt-5-mini",
+    });
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_title_123",
+        email: "user-title@example.com",
+        name: "User Title",
+      },
+      conversationId: conversation.id,
+      content: "Title this conversation",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    const status = await service.process(started.requestId);
+
+    expect(status).toBe("complete");
+    expect(autoTitleConversation).toHaveBeenCalledWith(conversation.id);
+  });
+
+  it("persists assistant sources and enqueues metadata enrichment on completion", async () => {
+    const db = await createTestPersistenceDb();
+    const conversations = createConversationRepository(db);
+    const store = new MemoryGenerationEventStore();
+    const enrichSourceMetadata = vi.fn(async () => {});
+    const service = new GenerationV2Service(
+      db,
+      store,
+      new SourceAwareGenerationProvider(
+        {
+          "perplexity:sonar": ["Researched answer"],
+        },
+        {},
+      ),
+      async () => {},
+      (() => {
+        let time = 5_000;
+        return () => {
+          time += 250;
+          return time;
+        };
+      })(),
+      {
+        enrichSourceMetadata,
+      },
+    );
+
+    const user = await (service as any).repository.upsertUser({
+      clerkId: "user_sources",
+      email: "sources@example.com",
+      name: "Source User",
+    });
+    const conversation = await conversations.create({
+      userId: user.id,
+      title: "Source test",
+      model: "perplexity:sonar",
+    });
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_sources",
+        email: "sources@example.com",
+        name: "Source User",
+      },
+      conversationId: conversation.id,
+      content: "What changed in the rewrite?",
+      modelId: "perplexity:sonar",
+    });
+
+    const bundle = await (service as any).repository.getRequestBundle(
+      started.requestId,
+    );
+    const sessionId = bundle.sessions[0]!.sessionId;
+    (service as any).provider = new SourceAwareGenerationProvider(
+      {
+        "perplexity:sonar": ["Researched answer"],
+      },
+      {
+        [sessionId]: [
+          {
+            title: "Postgres Rewrite Notes",
+            url: "https://example.com/rewrite",
+          },
+        ],
+      },
+    );
+
+    const status = await service.process(started.requestId);
+
+    expect(status).toBe("complete");
+    const storedSources = await db.query.messageSources.findMany({
+      where: eq(messageSources.messageId, started.assistantMessageIds[0]!),
+    });
+    const storedMetadata = await db.query.sourceMetadata.findFirst({
+      where: eq(sourceMetadata.urlHash, storedSources[0]!.urlHash),
+    });
+
+    expect(storedSources).toHaveLength(1);
+    expect(storedSources[0]).toMatchObject({
+      provider: "perplexity",
+      title: "Postgres Rewrite Notes",
+      url: "https://example.com/rewrite",
+    });
+    expect(storedMetadata).toMatchObject({
+      title: "Postgres Rewrite Notes",
+      enriched: false,
+    });
+    expect(enrichSourceMetadata).toHaveBeenCalledWith({
+      messageId: started.assistantMessageIds[0],
+      sourceUrls: ["https://example.com/rewrite"],
+    });
+  });
+
+  it("persists assistant tool calls on completion", async () => {
+    const db = await createTestPersistenceDb();
+    const conversations = createConversationRepository(db);
+    const store = new MemoryGenerationEventStore();
+    const toolCallsBySession: Record<string, GenerationToolCall[]> = {};
+    const service = new GenerationV2Service(
+      db,
+      store,
+      new ToolCallAwareGenerationProvider(
+        {
+          "openai:gpt-5-mini": ["Tool-backed answer"],
+        },
+        toolCallsBySession,
+      ),
+      async () => {},
+      (() => {
+        let time = 7_500;
+        return () => {
+          time += 250;
+          return time;
+        };
+      })(),
+    );
+
+    const user = await (service as any).repository.upsertUser({
+      clerkId: "user_tools",
+      email: "tools@example.com",
+      name: "Tool User",
+    });
+    const conversation = await conversations.create({
+      userId: user.id,
+      title: "Tool test",
+      model: "openai:gpt-5-mini",
+    });
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_tools",
+        email: "tools@example.com",
+        name: "Tool User",
+      },
+      conversationId: conversation.id,
+      content: "Use tools",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    const bundle = await (service as any).repository.getRequestBundle(
+      started.requestId,
+    );
+    const sessionId = bundle?.sessions[0]?.sessionId;
+    const assistantMessageId = bundle?.sessions[0]?.assistantMessageId;
+
+    expect(sessionId).toBeTruthy();
+    expect(assistantMessageId).toBeTruthy();
+
+    toolCallsBySession[sessionId!] = [
+      {
+        toolCallId: "call_search_1",
+        toolName: "webSearch",
+        args: { query: "postgres rewrite" },
+        result: { success: true, hits: 3 },
+        timestamp: 7_800,
+      },
+    ];
+
+    const status = await service.process(started.requestId);
+
+    expect(status).toBe("complete");
+    const persistedToolCalls = await db.query.messageToolCalls.findMany({
+      where: eq(messageToolCalls.messageId, assistantMessageId!),
+    });
+
+    expect(persistedToolCalls).toHaveLength(1);
+    expect(persistedToolCalls[0]).toMatchObject({
+      messageId: assistantMessageId,
+      conversationId: conversation.id,
+      userId: user.id,
+      toolCallId: "call_search_1",
+      toolName: "webSearch",
+      args: { query: "postgres rewrite" },
+      result: { success: true, hits: 3 },
+      isPartial: false,
+      timestamp: 7_800,
+    });
+  });
+
+  it("queues model-fit analysis after completing an explicit expensive-model request", async () => {
+    const db = await createTestPersistenceDb();
+    const conversations = createConversationRepository(db);
+    const store = new MemoryGenerationEventStore();
+    const analyzeModelFit = vi.fn(
+      async (_input: {
+        conversationId: string;
+        userMessage: string;
+        currentModelId: string;
+        wasAutoSelected: boolean;
+      }) => {},
+    );
+    const service = new GenerationV2Service(
+      db,
+      store,
+      new FakeGenerationProvider({
+        "openai:gpt-5": ["Short", " answer"],
+      }),
+      async () => {},
+      (() => {
+        let time = 2_500;
+        return () => {
+          time += 300;
+          return time;
+        };
+      })(),
+      {
+        analyzeModelFit,
+      },
+    );
+
+    const user = await (service as any).repository.upsertUser({
+      clerkId: "user_model_triage_service",
+      email: "triage-service@example.com",
+      name: "Triage Service",
+    });
+    const conversation = await conversations.create({
+      userId: user.id,
+      title: "Expensive",
+      model: "openai:gpt-5",
+    });
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_model_triage_service",
+        email: "triage-service@example.com",
+        name: "Triage Service",
+      },
+      conversationId: conversation.id,
+      content: "Summarize these notes quickly.",
+      modelId: "openai:gpt-5",
+    });
+
+    const status = await service.process(started.requestId);
+
+    expect(status).toBe("complete");
+    expect(analyzeModelFit).toHaveBeenCalledWith({
+      conversationId: conversation.id,
+      userMessage: "Summarize these notes quickly.",
+      currentModelId: "openai:gpt-5",
+      wasAutoSelected: false,
+    });
+  });
+
+  it("records a routing decision and terminal routing outcome for each generated session", async () => {
+    const db = await createTestPersistenceDb();
+    const conversations = createConversationRepository(db);
+    const store = new MemoryGenerationEventStore();
+    const service = new GenerationV2Service(
+      db,
+      store,
+      new FakeGenerationProvider({
+        "openai:gpt-5-mini": ["Hello", " world"],
+      }),
+      async () => {},
+      (() => {
+        let time = 2_000;
+        return () => {
+          time += 200;
+          return time;
+        };
+      })(),
+    );
+
+    const user = await (service as any).repository.upsertUser({
+      clerkId: "user_routing",
+      email: "routing@example.com",
+      name: "Routing User",
+    });
+    const conversation = await conversations.create({
+      userId: user.id,
+      title: "Routing",
+      model: "openai:gpt-5-mini",
+    });
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_routing",
+        email: "routing@example.com",
+        name: "Routing User",
+      },
+      conversationId: conversation.id,
+      content: "Log this route",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    await service.process(started.requestId);
+
+    const decisions = await db
+      .select()
+      .from(routingDecisions)
+      .where(eq(routingDecisions.generationRequestId, started.requestId));
+    const outcomes = await db
+      .select()
+      .from(routingOutcomes)
+      .where(eq(routingOutcomes.generationRequestId, started.requestId));
+
+    expect(decisions).toHaveLength(1);
+    expect(decisions[0]).toMatchObject({
+      generationRequestId: started.requestId,
+      conversationId: conversation.id,
+      userId: user.id,
+      selectedModelId: "openai:gpt-5-mini",
+    });
+    expect(outcomes).toHaveLength(1);
+    expect(outcomes[0]).toMatchObject({
+      generationRequestId: started.requestId,
+      status: "complete",
+    });
+    expect(outcomes[0]?.decisionId).toBe(decisions[0]?.id);
+    expect(outcomes[0]?.ttftMs).toBeGreaterThan(0);
+    expect(outcomes[0]?.latencyMs).toBeGreaterThanOrEqual(
+      outcomes[0]?.ttftMs ?? 0,
+    );
+  });
+
+  it("routes auto requests to a concrete model and persists the selected route", async () => {
+    const db = await createTestPersistenceDb();
+    const conversations = createConversationRepository(db);
+    const store = new MemoryGenerationEventStore();
+    const service = new GenerationV2Service(
+      db,
+      store,
+      new FakeGenerationProvider({
+        "openai:gpt-5.1-codex": ["typed ", "output"],
+      }),
+      async () => {},
+      (() => {
+        let time = 3_000;
+        return () => {
+          time += 150;
+          return time;
+        };
+      })(),
+    );
+
+    const user = await (service as any).repository.upsertUser({
+      clerkId: "user_auto",
+      email: "auto@example.com",
+      name: "Auto User",
+    });
+    const conversation = await conversations.create({
+      userId: user.id,
+      title: "Auto route",
+      model: "auto",
+    });
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_auto",
+        email: "auto@example.com",
+        name: "Auto User",
+      },
+      conversationId: conversation.id,
+      content: "```ts\nconst sum = (a: number, b: number) => a + b;\n```",
+      modelId: "auto",
+    });
+
+    await service.process(started.requestId);
+
+    const bundle = await (service as any).repository.getRequestBundle(
+      started.requestId,
+    );
+    const decisions = await db
+      .select()
+      .from(routingDecisions)
+      .where(eq(routingDecisions.generationRequestId, started.requestId));
+    const messages = await (service as any).repository.listMessages(
+      conversation.id,
+    );
+
+    expect(bundle?.sessions[0]?.modelId).toBe("openai:gpt-5.1-codex");
+    expect(decisions[0]).toMatchObject({
+      routeLabel: "code_heavy",
+      selectedModelId: "openai:gpt-5.1-codex",
+    });
+    expect(messages[1]).toMatchObject({
+      role: "assistant",
+      model: "openai:gpt-5.1-codex",
+      content: "typed output",
+      status: "complete",
+    });
+  });
+
+  it("uses the persisted default model when auto router is disabled", async () => {
+    const db = await createTestPersistenceDb();
+    const conversations = createConversationRepository(db);
+    const preferences = createPreferenceRepository(db);
+    const service = new GenerationV2Service(
+      db,
+      new MemoryGenerationEventStore(),
+      new FakeGenerationProvider({
+        "google:gemini-2.0-flash": ["manual fallback"],
+      }),
+      async () => {},
+      (() => {
+        let time = 4_000;
+        return () => {
+          time += 150;
+          return time;
+        };
+      })(),
+    );
+
+    const user = await (service as any).repository.upsertUser({
+      clerkId: "user_auto_disabled",
+      email: "auto-disabled@example.com",
+      name: "Auto Disabled",
+    });
+    await preferences.setForUser(user.id, "autoRouterEnabled", false);
+    await preferences.setForUser(
+      user.id,
+      "defaultModel",
+      "google:gemini-2.0-flash",
+    );
+    const conversation = await conversations.create({
+      userId: user.id,
+      title: "Auto disabled",
+      model: "auto",
+    });
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_auto_disabled",
+        email: "auto-disabled@example.com",
+        name: "Auto Disabled",
+      },
+      conversationId: conversation.id,
+      content: "Use my saved preference",
+      modelId: "auto",
+    });
+
+    await service.process(started.requestId);
+
+    const decisions = await db
+      .select()
+      .from(routingDecisions)
+      .where(eq(routingDecisions.generationRequestId, started.requestId));
+    const messages = await (service as any).repository.listMessages(
+      conversation.id,
+    );
+
+    expect(decisions[0]).toMatchObject({
+      routeLabel: "manual_default",
+      selectedModelId: "google:gemini-2.0-flash",
+    });
+    expect(messages[1]).toMatchObject({
+      role: "assistant",
+      model: "google:gemini-2.0-flash",
+      content: "manual fallback",
+      status: "complete",
+    });
+  });
+
+  it("keeps the previous successful model for the same auto-router route", async () => {
+    const db = await createTestPersistenceDb();
+    const conversations = createConversationRepository(db);
+    const service = new GenerationV2Service(
+      db,
+      new MemoryGenerationEventStore(),
+      new FakeGenerationProvider({
+        "deepseek:deepseek-r1": ["sticky route"],
+        "openai:gpt-5.1-codex": ["fallback route"],
+      }),
+      async () => {},
+      (() => {
+        let time = 5_000;
+        return () => {
+          time += 150;
+          return time;
+        };
+      })(),
+    );
+
+    const user = await (service as any).repository.upsertUser({
+      clerkId: "user_sticky",
+      email: "sticky@example.com",
+      name: "Sticky User",
+    });
+    const conversation = await conversations.create({
+      userId: user.id,
+      title: "Sticky route",
+      model: "auto",
+    });
+
+    const firstStarted = await service.start({
+      clerkUser: {
+        clerkId: "user_sticky",
+        email: "sticky@example.com",
+        name: "Sticky User",
+      },
+      conversationId: conversation.id,
+      content:
+        "```ts\nexport const add = (a: number, b: number) => a + b;\n```",
+      modelId: "deepseek:deepseek-r1",
+    });
+
+    await service.process(firstStarted.requestId);
+    await db.insert(routingDecisions).values({
+      generationRequestId: firstStarted.requestId,
+      conversationId: conversation.id,
+      userId: user.id,
+      routeLabel: "code_heavy",
+      selectedModelId: "deepseek:deepseek-r1",
+      reasoning: "seed sticky route",
+      input: { source: "test_seed" },
+      createdAt: 9_500,
+    });
+
+    const secondStarted = await service.start({
+      clerkUser: {
+        clerkId: "user_sticky",
+        email: "sticky@example.com",
+        name: "Sticky User",
+      },
+      conversationId: conversation.id,
+      content:
+        "```ts\nexport function multiply(a: number, b: number) { return a * b; }\n```",
+      modelId: "auto",
+    });
+
+    await service.process(secondStarted.requestId);
+
+    const decisions = await db
+      .select()
+      .from(routingDecisions)
+      .where(eq(routingDecisions.generationRequestId, secondStarted.requestId));
+
+    expect(decisions[0]).toMatchObject({
+      routeLabel: "code_heavy",
+      selectedModelId: "deepseek:deepseek-r1",
+    });
+    expect(decisions[0]?.input).toMatchObject({
+      isSticky: true,
+    });
+  });
+
+  it("logs policy-linked candidate scores for auto-routed requests", async () => {
+    const db = await createTestPersistenceDb();
+    const conversations = createConversationRepository(db);
+    const service = new GenerationV2Service(
+      db,
+      new MemoryGenerationEventStore(),
+      new FakeGenerationProvider({
+        "openai:gpt-5.1-codex": ["policy scored"],
+      }),
+      async () => {},
+      (() => {
+        let time = 6_000;
+        return () => {
+          time += 150;
+          return time;
+        };
+      })(),
+    );
+
+    const user = await (service as any).repository.upsertUser({
+      clerkId: "user_policy",
+      email: "policy@example.com",
+      name: "Policy User",
+    });
+    const conversation = await conversations.create({
+      userId: user.id,
+      title: "Policy route",
+      model: "auto",
+    });
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_policy",
+        email: "policy@example.com",
+        name: "Policy User",
+      },
+      conversationId: conversation.id,
+      content: String.raw` \`\`\`ts
+export const greet = (name: string) => \`hi \${name}\`;
+\`\`\` `.trim(),
+      modelId: "auto",
+    });
+
+    await service.process(started.requestId);
+
+    const decisions = await db
+      .select()
+      .from(routingDecisions)
+      .where(eq(routingDecisions.generationRequestId, started.requestId));
+    const decision = decisions[0];
+    const candidateScores = await db
+      .select()
+      .from(routingCandidateScores)
+      .where(eq(routingCandidateScores.decisionId, decision!.id));
+    const policies = await db
+      .select()
+      .from(routingPolicies)
+      .where(eq(routingPolicies.id, decision!.policyId!));
+
+    expect(decision?.policyId).toBeTruthy();
+    expect(policies[0]).toMatchObject({
+      isActive: true,
+      strategy: "outcome_weighted",
+    });
+    expect(candidateScores.length).toBeGreaterThan(1);
+    expect(candidateScores[0]).toMatchObject({
+      decisionId: decision?.id,
+      modelId: decision?.selectedModelId,
+      rank: 1,
+    });
+  });
+
+  it("prefers healthy high-success candidates when policy scoring reranks auto routes", async () => {
+    const db = await createTestPersistenceDb();
+    const conversations = createConversationRepository(db);
+    const service = new GenerationV2Service(
+      db,
+      new MemoryGenerationEventStore(),
+      new FakeGenerationProvider({
+        "anthropic:claude-sonnet-4": ["healthy winner"],
+        "openai:gpt-5.1-codex": ["should not win"],
+      }),
+      async () => {},
+      (() => {
+        let time = 7_000;
+        return () => {
+          time += 150;
+          return time;
+        };
+      })(),
+    );
+
+    const user = await (service as any).repository.upsertUser({
+      clerkId: "user_outcomes",
+      email: "outcomes@example.com",
+      name: "Outcome User",
+    });
+    const conversation = await conversations.create({
+      userId: user.id,
+      title: "Outcome route",
+      model: "auto",
+    });
+
+    const [historicalDecision] = await db
+      .insert(routingDecisions)
+      .values({
+        conversationId: conversation.id,
+        userId: user.id,
+        routeLabel: "code_heavy",
+        selectedModelId: "anthropic:claude-sonnet-4",
+        reasoning: "historical success",
+        input: { source: "seed" },
+        createdAt: 6_000,
+      })
+      .returning();
+
+    await db.insert(routingOutcomes).values([
+      {
+        decisionId: historicalDecision!.id,
+        status: "complete",
+        ttftMs: 120,
+        latencyMs: 800,
+        costUsd: 0.2,
+        createdAt: 6_100,
+      },
+      {
+        decisionId: historicalDecision!.id,
+        status: "complete",
+        ttftMs: 140,
+        latencyMs: 900,
+        costUsd: 0.22,
+        createdAt: 6_200,
+      },
+    ]);
+
+    await db.insert(providerHealthSnapshots).values({
+      provider: "openai",
+      modelId: "openai:gpt-5.1-codex",
+      status: "down",
+      capturedAt: 6_250,
+    });
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_outcomes",
+        email: "outcomes@example.com",
+        name: "Outcome User",
+      },
+      conversationId: conversation.id,
+      content: "```ts\nexport const square = (n: number) => n * n;\n```",
+      modelId: "auto",
+    });
+
+    await service.process(started.requestId);
+
+    const [decision] = await db
+      .select()
+      .from(routingDecisions)
+      .where(eq(routingDecisions.generationRequestId, started.requestId));
+    const candidateScores = await db
+      .select()
+      .from(routingCandidateScores)
+      .where(eq(routingCandidateScores.decisionId, decision!.id));
+
+    expect(decision).toMatchObject({
+      routeLabel: "code_heavy",
+      selectedModelId: "anthropic:claude-sonnet-4",
+    });
+    expect(candidateScores[0]).toMatchObject({
+      modelId: "anthropic:claude-sonnet-4",
+      rank: 1,
+    });
+    expect(
+      candidateScores.find(
+        (candidate) => candidate.modelId === "openai:gpt-5.1-codex",
+      )?.features,
+    ).toMatchObject({
+      healthStatus: "down",
+    });
   });
 
   it("stops a running request and emits a cancelled event", async () => {

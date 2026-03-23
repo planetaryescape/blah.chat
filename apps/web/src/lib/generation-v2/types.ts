@@ -5,6 +5,24 @@ export interface GenerationPromptMessage {
   content: string;
 }
 
+export interface GenerationSource {
+  position: number;
+  title: string;
+  url: string;
+  snippet?: string;
+  publishedDate?: string;
+}
+
+export interface GenerationToolCall {
+  toolCallId: string;
+  toolName: string;
+  args: unknown;
+  result?: unknown;
+  textPosition?: number;
+  isPartial?: boolean;
+  timestamp: number;
+}
+
 export interface GenerationProviderStreamInput {
   modelId: string;
   userId: string;
@@ -19,6 +37,14 @@ export interface GenerationProvider {
   streamText(
     input: GenerationProviderStreamInput,
   ): AsyncIterable<string> | AsyncGenerator<string>;
+  getToolCalls?(input: {
+    requestId: string;
+    sessionId: string;
+  }): Promise<GenerationToolCall[]>;
+  getSources?(input: {
+    requestId: string;
+    sessionId: string;
+  }): Promise<GenerationSource[]>;
 }
 
 export interface GenerationEventStore {
@@ -46,8 +72,10 @@ export interface StartGenerationInput {
   clerkUser: ClerkUserProfile;
   conversationId: string;
   content: string;
+  clientMessageId?: string;
   modelId?: string;
   models?: string[];
+  parentMessageId?: string;
 }
 
 export interface StartedGeneration {
@@ -71,6 +99,7 @@ export interface PersistedRequestBundle {
   conversationId: string;
   userId: string;
   userMessageId: string;
+  requestedModelIds: string[];
   promptMessages: Array<{ role: string; content: string }>;
   sessions: PersistedSessionBundle[];
 }

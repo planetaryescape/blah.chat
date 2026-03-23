@@ -1,8 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { parseAsString, useQueryState } from "nuqs";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -10,12 +8,58 @@ import { useDebounceValue } from "usehooks-ts";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import type { Priority } from "@/lib/constants/feedback";
 
+type FeedbackListItem = {
+  _id: string;
+  userName: string;
+  userEmail: string;
+  feedbackType: string;
+  description: string;
+  status: string;
+  priority: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
+type FeedbackCounts = Record<string, number>;
+type FeedbackDetail = FeedbackListItem & {
+  page: string;
+  whatTheyDid?: string;
+  whatTheySaw?: string;
+  whatTheyExpected?: string;
+  screenshotKey?: string;
+  screenshotUrl?: string;
+  userSuggestedUrgency?: string;
+  tags?: string[];
+  aiTriage?: {
+    suggestedPriority?: string;
+    suggestedTags?: string[];
+    triageNotes?: string;
+    sentiment?: string;
+    category?: string;
+    createdAt: number;
+  };
+  errorContext?: Record<string, unknown>;
+};
+
+async function readEnvelope<T>(response: Response): Promise<T> {
+  const payload = (await response.json()) as {
+    data?: T;
+    error?: string;
+  };
+
+  if (!response.ok || payload.data === undefined) {
+    throw new Error(payload.error || "Request failed");
+  }
+
+  return payload.data;
+}
+
 export function useFeedbackAdmin() {
-  const [selectedId, setSelectedId] = useState<Id<"feedback"> | null>(null);
+  const queryClient = useQueryClient();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<"list" | "detail">("list");
   const { isMobile } = useMobileDetect();
 
-  // URL-persisted filters
   const [statusFilter, setStatusFilter] = useQueryState(
     "status",
     parseAsString,
@@ -38,22 +82,15 @@ export function useFeedbackAdmin() {
     parseAsString.withDefault("desc"),
   );
 
-  // Debounced search
   const [searchQuery] = useDebounceValue(searchParam, 300);
-
-  // Keyboard navigation index
   const [_keyboardIndex, setKeyboardIndex] = useState(-1);
-
-  // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const isSelectionMode = selectedIds.size > 0;
 
-  // Check if any filters are active
   const hasActiveFilters = Boolean(
     statusFilter || typeFilter || priorityFilter || searchParam,
   );
 
-  // Clear all filters
   const clearFilters = () => {
     setStatusFilter(null);
     setTypeFilter(null);
@@ -61,54 +98,107 @@ export function useFeedbackAdmin() {
     setSearchParam("");
   };
 
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const feedbackList = useQuery(api.feedback.listFeedback, {
-    status: (statusFilter as any) || undefined,
-    feedbackType: (typeFilter as any) || undefined,
-    priority: (priorityFilter as any) || undefined,
-    searchQuery: searchQuery || undefined,
-    sortBy: (sortBy as any) || "createdAt",
-    sortOrder: (sortOrder as any) || "desc",
+  const feedbackListQuery = useQuery<FeedbackListItem[]>({
+    queryKey: [
+      "feedback-list",
+      {
+        statusFilter,
+        typeFilter,
+        priorityFilter,
+        searchQuery,
+        sortBy,
+        sortOrder,
+      },
+    ],
+    queryFn: async () => {
+      const search = new URLSearchParams();
+      if (statusFilter) search.set("status", statusFilter);
+      if (typeFilter) search.set("type", typeFilter);
+      if (priorityFilter) search.set("priority", priorityFilter);
+      if (searchQuery) search.set("q", searchQuery);
+      if (sortBy) search.set("sort", sortBy);
+      if (sortOrder) search.set("order", sortOrder);
+      const response = await fetch(
+        `/api/v1/admin/feedback?${search.toString()}`,
+      );
+      const items =
+        await readEnvelope<Array<{ data: FeedbackListItem }>>(response);
+      return items.map((item) => item.data);
+    },
   });
 
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const feedbackCounts = useQuery(api.feedback.getFeedbackCounts, {});
+  const feedbackCountsQuery = useQuery<FeedbackCounts>({
+    queryKey: ["feedback-counts"],
+    queryFn: async () => {
+      const response = await fetch("/api/v1/admin/feedback/counts");
+      return readEnvelope<FeedbackCounts>(response);
+    },
+    staleTime: 10_000,
+  });
 
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const selectedFeedback = useQuery(
-    api.feedback.getFeedback,
-    selectedId ? { feedbackId: selectedId } : "skip",
-  );
+  const selectedFeedbackQuery = useQuery<FeedbackDetail | null>({
+    queryKey: ["feedback-detail", selectedId],
+    queryFn: async () => {
+      if (!selectedId) {
+        return null;
+      }
+      const response = await fetch(
+        `/api/v1/admin/feedback/${encodeURIComponent(selectedId)}`,
+      );
+      return readEnvelope<FeedbackDetail>(response);
+    },
+    enabled: Boolean(selectedId),
+  });
 
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const updateStatus = useMutation(api.feedback.updateFeedbackStatus);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const updatePriority = useMutation(api.feedback.updateFeedbackPriority);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const bulkUpdateStatus = useMutation(api.feedback.bulkUpdateStatus);
+  const invalidateFeedbackQueries = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["feedback-list"] }),
+      queryClient.invalidateQueries({ queryKey: ["feedback-counts"] }),
+      selectedId
+        ? queryClient.invalidateQueries({
+            queryKey: ["feedback-detail", selectedId],
+          })
+        : Promise.resolve(),
+    ]);
+  }, [queryClient, selectedId]);
 
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const archiveFeedback = useMutation(api.feedback.archiveFeedback);
-  const acceptTriage = useMutation(
-    (api.feedback as any).triage.acceptTriageSuggestion,
+  const postJson = useCallback(
+    async <T>(path: string, init?: RequestInit): Promise<T> => {
+      const response = await fetch(path, {
+        ...init,
+        headers: {
+          "Content-Type": "application/json",
+          ...(init?.headers ?? {}),
+        },
+      });
+      return readEnvelope<T>(response);
+    },
+    [],
   );
 
   const handleStatusChange = async (newStatus: string) => {
     if (!selectedId) return;
-    await updateStatus({ feedbackId: selectedId, status: newStatus as any });
+    await postJson(`/api/v1/admin/feedback/${selectedId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: newStatus }),
+    });
+    await invalidateFeedbackQueries();
   };
 
   const handlePriorityChange = async (newPriority: Priority) => {
     if (!selectedId) return;
-    await updatePriority({ feedbackId: selectedId, priority: newPriority });
+    await postJson(`/api/v1/admin/feedback/${selectedId}/priority`, {
+      method: "PATCH",
+      body: JSON.stringify({ priority: newPriority }),
+    });
+    await invalidateFeedbackQueries();
   };
 
-  const handleSelect = (id: Id<"feedback">) => {
+  const handleSelect = (id: string) => {
     setSelectedId(id);
     if (isMobile) setMobileView("detail");
   };
 
-  // Bulk selection handlers
   const toggleItemSelection = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -122,8 +212,8 @@ export function useFeedbackAdmin() {
   };
 
   const selectAll = () => {
-    if (feedbackList) {
-      setSelectedIds(new Set(feedbackList.map((f: any) => f._id)));
+    if (feedbackListQuery.data) {
+      setSelectedIds(new Set(feedbackListQuery.data.map((f) => f._id)));
     }
   };
 
@@ -134,13 +224,17 @@ export function useFeedbackAdmin() {
   const handleBulkStatusChange = async (status: string) => {
     if (selectedIds.size === 0) return;
     try {
-      await bulkUpdateStatus({
-        feedbackIds: Array.from(selectedIds) as Id<"feedback">[],
-        status: status as any,
+      await postJson("/api/v1/admin/feedback/bulk-status", {
+        method: "POST",
+        body: JSON.stringify({
+          feedbackIds: Array.from(selectedIds),
+          status,
+        }),
       });
+      await invalidateFeedbackQueries();
       toast.success(`Updated ${selectedIds.size} items`);
       clearSelection();
-    } catch (_error) {
+    } catch {
       toast.error("Failed to update status");
     }
   };
@@ -148,14 +242,18 @@ export function useFeedbackAdmin() {
   const handleBulkArchive = async () => {
     if (selectedIds.size === 0) return;
     try {
-      if (!confirm("Are you sure you want to archive these items?")) return;
-
-      for (const id of selectedIds) {
-        await archiveFeedback({ feedbackId: id as Id<"feedback"> });
-      }
+      await Promise.all(
+        Array.from(selectedIds).map((id) =>
+          postJson(`/api/v1/admin/feedback/${id}/archive`, {
+            method: "POST",
+            body: JSON.stringify({}),
+          }),
+        ),
+      );
+      await invalidateFeedbackQueries();
       toast.success(`Archived ${selectedIds.size} items`);
       clearSelection();
-    } catch (_error) {
+    } catch {
       toast.error("Failed to archive items");
     }
   };
@@ -166,25 +264,23 @@ export function useFeedbackAdmin() {
   }) => {
     if (!selectedId) return;
     try {
-      await acceptTriage({
-        feedbackId: selectedId,
-        ...args,
+      await postJson(`/api/v1/admin/feedback/${selectedId}/accept-triage`, {
+        method: "POST",
+        body: JSON.stringify(args),
       });
+      await invalidateFeedbackQueries();
       toast.success("Applied AI suggestion");
-    } catch (_error) {
+    } catch {
       toast.error("Failed to apply suggestion");
     }
   };
 
-  // Toggle sort order
   const toggleSortOrder = useCallback(() => {
     setSortOrder(sortOrder === "desc" ? "asc" : "desc");
   }, [sortOrder, setSortOrder]);
 
-  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't handle if user is typing in an input
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement
@@ -192,7 +288,7 @@ export function useFeedbackAdmin() {
         return;
       }
 
-      const list = feedbackList || [];
+      const list = feedbackListQuery.data || [];
 
       switch (e.key) {
         case "j":
@@ -234,22 +330,23 @@ export function useFeedbackAdmin() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [feedbackList]);
+  }, [feedbackListQuery.data]);
 
-  // Sync keyboard index when selection changes
   useEffect(() => {
-    if (selectedId && feedbackList) {
-      const index = feedbackList.findIndex((f: any) => f._id === selectedId);
+    if (selectedId && feedbackListQuery.data) {
+      const index = feedbackListQuery.data.findIndex(
+        (f) => f._id === selectedId,
+      );
       if (index !== -1) setKeyboardIndex(index);
     }
-  }, [selectedId, feedbackList]);
+  }, [selectedId, feedbackListQuery.data]);
 
   return {
     state: {
       selectedId,
-      setSelectedId, // Exposed for manual clearing
+      setSelectedId,
       mobileView,
-      setMobileView, // Exposed for back button
+      setMobileView,
       isMobile,
       statusFilter,
       typeFilter,
@@ -257,9 +354,9 @@ export function useFeedbackAdmin() {
       searchParam,
       sortBy,
       sortOrder,
-      feedbackList,
-      feedbackCounts,
-      selectedFeedback,
+      feedbackList: feedbackListQuery.data,
+      feedbackCounts: feedbackCountsQuery.data,
+      selectedFeedback: selectedFeedbackQuery.data,
       selectedIds,
       isSelectionMode,
       hasActiveFilters,

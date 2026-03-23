@@ -1,7 +1,6 @@
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useAction } from "convex/react";
 import { useEffect, useState } from "react";
+import { useSDKClient } from "@/lib/api/sdkClient";
 
 interface UseSearchQueryOptions {
   conversationId?: Id<"conversations">;
@@ -27,9 +26,7 @@ export function useSearchQuery(options: UseSearchQueryOptions = {}) {
   const [results, setResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasMore, setHasMore] = useState(false);
-
-  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
-  const hybridSearch = useAction(api.search.hybridSearch);
+  const sdk = useSDKClient();
 
   // Debounce the input value
   useEffect(() => {
@@ -62,7 +59,7 @@ export function useSearchQuery(options: UseSearchQueryOptions = {}) {
     const executeSearch = async () => {
       setIsSearching(true);
       try {
-        const searchResults = await hybridSearch({
+        const searchResults = await sdk.searchMessages({
           query: debouncedQuery,
           limit,
           conversationId,
@@ -89,7 +86,7 @@ export function useSearchQuery(options: UseSearchQueryOptions = {}) {
     dateFrom,
     dateTo,
     messageType,
-    hybridSearch,
+    sdk,
   ]);
 
   // Indicator for debouncing state

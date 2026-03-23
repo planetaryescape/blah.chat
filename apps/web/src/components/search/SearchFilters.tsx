@@ -1,7 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useQuery } from "convex/react";
 import { Bot, Calendar, MessageSquare, Pin, Plus, User, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +19,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useSearchConversations } from "@/hooks/useSearchConversations";
 import type { SearchFilters as Filters } from "@/hooks/useSearchFilters";
 import { analytics } from "@/lib/analytics";
 
@@ -58,12 +57,7 @@ export function SearchFilters({
 }: SearchFiltersProps) {
   const [conversationSearch, setConversationSearch] = useState("");
   const debouncedSearch = useDebouncedValue(conversationSearch, 300);
-
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const conversations = useQuery(api.conversations.list, {
-    searchQuery: debouncedSearch || undefined,
-    limit: 20,
-  });
+  const { conversations } = useSearchConversations(debouncedSearch, 50);
 
   const [datePreset, setDatePreset] = useState<string>("all");
   const [messageType, setMessageType] = useState<string>(

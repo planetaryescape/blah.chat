@@ -1,11 +1,11 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
 import { CheckCircle2, FileText, Loader2, Upload, XCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import type { ChangeEvent } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
+import type { KnowledgeSource } from "@/components/knowledge/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,23 +13,33 @@ import { Card } from "@/components/ui/card";
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const WARN_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
+type RequestPayload<T> = {
+  data?: T;
+  error?: string;
+};
+
+async function requestJson<T>(input: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(input, init);
+  const payload = (await response.json()) as RequestPayload<T>;
+
+  if (!response.ok || payload.data === undefined) {
+    throw new Error(payload.error || "Request failed");
+  }
+
+  return payload.data;
+}
+
 export function ProjectFiles({
   projectId,
   files,
 }: {
-  projectId: Id<"projects">;
-  files: any[];
+  projectId: string;
+  files: KnowledgeSource[];
 }) {
+  const router = useRouter();
   const [uploading, setUploading] = useState(false);
 
-  // @ts-ignore - Type depth exceeded
-  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
-  // @ts-ignore - Type depth exceeded
-  const saveFile = useMutation(api.files.saveFile);
-  // @ts-ignore - Type depth exceeded
-  const addFileToProject = useMutation(api.projects.addFileToProject);
-
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -42,52 +52,62 @@ export function ProjectFiles({
     }
 
     if (file.size > WARN_FILE_SIZE) {
-      const confirmed = confirm(
-        `This file is ${Math.round(file.size / 1024 / 1024)}MB. Large files may take time to process. Continue?`,
-      );
-      if (!confirmed) return;
+      toast("Large file", {
+        description: "Large files may take longer to process",
+      });
     }
 
     setUploading(true);
 
-    try {
-      // Get upload URL
-      const uploadUrl = await generateUploadUrl();
+    void requestJson<{
+      uploadUrl: string;
+      storageId: string;
+    }>("/api/v1/files/upload-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fileName: file.name,
+        contentType: file.type || "application/octet-stream",
+      }),
+    })
+      .then((upload) =>
+        fetch(upload.uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": file.type || "application/octet-stream" },
+          body: file,
+        }).then((result) => {
+          if (!result.ok) {
+            throw new Error("Upload failed");
+          }
 
-      // Upload file
-      const result = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
+          return requestJson("/api/v1/knowledge/sources", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "file",
+              title: file.name,
+              storageId: upload.storageId,
+              mimeType: file.type || "application/octet-stream",
+              size: file.size,
+              projectId,
+            }),
+          });
+        }),
+      )
+      .then(() => {
+        toast.success("File uploaded", {
+          description: "Processing for semantic search...",
+        });
+        router.refresh();
+      })
+      .catch((error: unknown) => {
+        toast.error("Upload failed", {
+          description: error instanceof Error ? error.message : "Upload failed",
+        });
+      })
+      .finally(() => {
+        setUploading(false);
       });
-
-      if (!result.ok) {
-        throw new Error("Upload failed");
-      }
-
-      const { storageId } = await result.json();
-
-      // Save file metadata
-      const fileId = await saveFile({
-        storageId,
-        name: file.name,
-        mimeType: file.type,
-        size: file.size,
-      });
-
-      // Link to project
-      await addFileToProject({ projectId, fileId });
-
-      toast.success("File uploaded", {
-        description: "Processing for semantic search...",
-      });
-    } catch (error: any) {
-      toast.error("Upload failed", {
-        description: error.message,
-      });
-    } finally {
-      setUploading(false);
-    }
   };
 
   const getStatusIcon = (status?: string) => {
@@ -112,27 +132,26 @@ export function ProjectFiles({
             type="file"
             className="hidden"
             id="file-upload"
+            aria-label="Upload project file"
             onChange={handleUpload}
             accept=".pdf,.docx,.txt,.md"
             disabled={uploading}
           />
-          <label htmlFor="file-upload">
-            <Button asChild disabled={uploading}>
-              <span>
-                {uploading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload File
-                  </>
-                )}
-              </span>
-            </Button>
-          </label>
+          <Button asChild disabled={uploading}>
+            <label htmlFor="file-upload">
+              {uploading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload File
+                </>
+              )}
+            </label>
+          </Button>
         </div>
       </div>
 
@@ -156,24 +175,22 @@ export function ProjectFiles({
                 <div className="flex items-center gap-3">
                   <FileText className="h-8 w-8 text-muted-foreground" />
                   <div>
-                    <h4 className="font-medium">{file.name}</h4>
+                    <h4 className="font-medium">{file.title}</h4>
                     <p className="text-sm text-muted-foreground">
-                      {(file.size / 1024 / 1024).toFixed(2)} MB ·{" "}
+                      {((file.size ?? 0) / 1024 / 1024).toFixed(2)} MB ·{" "}
                       {new Date(file.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {getStatusIcon(file.embeddingStatus)}
-                  {file.embeddingStatus === "completed" && file.chunkCount && (
+                  {getStatusIcon(file.status)}
+                  {file.status === "completed" && file.chunkCount && (
                     <Badge variant="outline">{file.chunkCount} chunks</Badge>
                   )}
-                  {file.embeddingStatus === "failed" && (
+                  {file.status === "failed" && (
                     <Badge variant="destructive">Failed to index</Badge>
                   )}
-                  {file.embeddingStatus === "processing" && (
-                    <Badge>Processing...</Badge>
-                  )}
+                  {file.status === "processing" && <Badge>Processing...</Badge>}
                 </div>
               </div>
             </Card>

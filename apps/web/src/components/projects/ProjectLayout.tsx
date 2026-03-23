@@ -19,6 +19,7 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { useProjectSurfaceStats } from "@/hooks/useProjectSurfaceStats";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { cn } from "@/lib/utils";
 
@@ -33,8 +34,7 @@ export function ProjectLayout({ projectId, children }: ProjectLayoutProps) {
   const showTasks = useUserPreference("showTasks");
   // @ts-ignore - Type depth exceeded
   const project = useQuery(api.projects.get, { id: projectId });
-  // @ts-ignore - Type depth exceeded
-  const stats = useQuery(api.projects.getProjectStats, { projectId });
+  const surface = useProjectSurfaceStats(projectId);
 
   if (!project) {
     return (
@@ -64,28 +64,28 @@ export function ProjectLayout({ projectId, children }: ProjectLayoutProps) {
       label: "Tasks",
       icon: Archive, // Using Archive as placeholder for "Tasks" drawer icon, commonly used in Linear-likes
       path: `/projects/${projectId}/tasks`,
-      count: stats?.taskStats?.active || undefined,
+      count: surface.stats?.taskStats.active || undefined,
     },
     {
       id: "notes",
       label: "Notes",
       icon: FileText,
       path: `/projects/${projectId}/notes`,
-      count: stats?.noteCount || undefined,
+      count: surface.stats?.noteCount || undefined,
     },
     {
       id: "knowledge",
       label: "Knowledge",
       icon: BookOpen,
       path: `/projects/${projectId}/knowledge`,
-      count: stats?.fileCount || undefined,
+      count: surface.stats?.fileCount || undefined,
     },
     {
       id: "conversations",
       label: "Conversations",
       icon: MessageSquare,
       path: `/projects/${projectId}/conversations`,
-      count: stats?.conversationCount || undefined,
+      count: surface.stats?.conversationCount || undefined,
     },
   ];
 

@@ -1,11 +1,13 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { fetchMutation } from "convex/nextjs";
+import {
+  createTriggerClient,
+  parsePersistenceEnv,
+} from "@blah-chat/persistence-postgres";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
-import { createExtractMemoriesJob } from "@/lib/api/dal/jobs";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import logger from "@/lib/logger";
+import { formatEntity } from "@/lib/utils/formatEntity";
 import {
   createHeartbeat,
   createSSEResponse,
@@ -33,28 +35,53 @@ async function handler(
 
   logger.info(
     { userId, conversationId: validated.conversationId },
-    "POST /api/v1/memories/extract (SSE)",
+    "POST /api/v1/memories/extract",
   );
+
+  const env = parsePersistenceEnv(process.env);
+  const trigger = createTriggerClient(env);
+  const run = await trigger.triggerTask("extract-memories", {
+    conversationId: validated.conversationId,
+  });
+  const runId = run.id;
+
+  if (!runId) {
+    throw new Error("Trigger run did not return an id");
+  }
+
+  const acceptsSse = req.headers.get("accept")?.includes("text/event-stream");
+  if (!acceptsSse) {
+    return new Response(
+      JSON.stringify(
+        formatEntity(
+          {
+            jobId: runId,
+            status: "pending",
+            pollUrl: `/api/v1/actions/jobs/${runId}`,
+          },
+          "job",
+        ),
+      ),
+      {
+        status: 202,
+        headers: {
+          "Content-Type": "application/json",
+          Location: `/api/v1/actions/jobs/${runId}`,
+        },
+      },
+    );
+  }
 
   return createSSEResponse(async (stream: SSEStream) => {
     try {
-      // Create job record for persistence
-      const jobId = await createExtractMemoriesJob(
-        fetchMutation,
-        userId as Id<"users">,
-        {
-          conversationId: validated.conversationId,
-        },
-      );
-
       // Setup heartbeat to keep connection alive
       const stopHeartbeat = createHeartbeat(stream, 30000); // 30s
 
       try {
         // Send initial progress
-        stream.sendProgress(jobId, {
+        stream.sendProgress(runId, {
           current: 0,
-          message: "Loading conversation messages...",
+          message: "Queued memory extraction...",
         });
 
         // Poll job with exponential backoff for progress updates
@@ -71,7 +98,7 @@ async function handler(
 
           // Fetch job status
           const jobResponse = await fetch(
-            `${req.nextUrl.origin}/api/v1/actions/jobs/${jobId}`,
+            `${req.nextUrl.origin}/api/v1/actions/jobs/${runId}`,
             {
               headers: {
                 Authorization: req.headers.get("Authorization") || "",
@@ -89,7 +116,7 @@ async function handler(
 
           // Send progress if available
           if (job.progress) {
-            stream.sendProgress(jobId, {
+            stream.sendProgress(runId, {
               current: job.progress.current || 0,
               message: job.progress.message || "Processing...",
               eta: job.progress.eta,
@@ -98,11 +125,11 @@ async function handler(
 
           // Handle completion
           if (job.status === "completed") {
-            stream.sendComplete(jobId, job.result);
+            stream.sendComplete(runId, job.result);
             logger.info(
               {
                 userId,
-                jobId,
+                jobId: runId,
                 duration: Date.now() - startTime,
                 extracted: job.result?.extracted || 0,
               },
@@ -116,9 +143,9 @@ async function handler(
           if (job.status === "failed") {
             const errorMessage =
               job.error?.message || "Memory extraction failed";
-            stream.sendError(jobId, errorMessage);
+            stream.sendError(runId, errorMessage);
             logger.error(
-              { userId, jobId, error: job.error },
+              { userId, jobId: runId, error: job.error },
               "Memory extraction failed",
             );
             stopHeartbeat();
@@ -135,11 +162,11 @@ async function handler(
         }
 
         // Timeout after max attempts
-        stream.sendError(jobId, {
+        stream.sendError(runId, {
           message: "Memory extraction timeout",
           code: "TIMEOUT",
         });
-        logger.warn({ userId, jobId }, "Memory extraction timeout");
+        logger.warn({ userId, jobId: runId }, "Memory extraction timeout");
         stopHeartbeat();
       } catch (error) {
         stopHeartbeat();

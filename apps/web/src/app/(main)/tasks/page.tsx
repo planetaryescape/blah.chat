@@ -1,30 +1,11 @@
-"use client";
+import type { Metadata } from "next";
+import { TasksPageClient } from "./TasksPageClient";
 
-import { Suspense } from "react";
-import { FeatureDisabled } from "@/components/ui/feature-disabled";
-import { useUserPreference } from "@/hooks/useUserPreference";
-import { TasksDashboard } from "./_components/TasksDashboard";
-
-function TasksDashboardFallback() {
-  return (
-    <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-      <div className="animate-pulse text-muted-foreground">
-        Loading tasks...
-      </div>
-    </div>
-  );
-}
+export const metadata: Metadata = {
+  title: "Tasks",
+  description: "Track tasks stored on the Postgres rewrite stack.",
+};
 
 export default function TasksPage() {
-  const showTasks = useUserPreference("showTasks");
-
-  if (!showTasks) {
-    return <FeatureDisabled feature="Tasks" settingKey="showTasks" />;
-  }
-
-  return (
-    <Suspense fallback={<TasksDashboardFallback />}>
-      <TasksDashboard />
-    </Suspense>
-  );
+  return <TasksPageClient />;
 }

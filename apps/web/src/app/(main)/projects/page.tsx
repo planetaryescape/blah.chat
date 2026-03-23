@@ -34,8 +34,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useProjectCacheSync } from "@/hooks/useCacheSync";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
+import { useProjectCacheSync } from "@/hooks/useLegacyProjectCacheSync";
 import { analytics } from "@/lib/analytics";
 
 export default function ProjectsPage() {

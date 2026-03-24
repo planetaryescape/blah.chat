@@ -31,8 +31,8 @@ Execution rules:
 
 Execution status:
 
-- Complete: 4 / 17 phases
-- In progress: 8 / 17 phases
+- Complete: 5 / 17 phases
+- In progress: 7 / 17 phases
 - Not started: 5 / 17 phases
 
 Phase status snapshot:
@@ -45,7 +45,7 @@ Phase status snapshot:
 | 04 | Complete | Audited on `codex/postgres-rewrite`: Clerk-only auth + JIT Postgres user creation now works across conversations, preferences, webhook sync, and the user DAL; only the isolated non-`v1` legacy callback remains on Convex auth by design |
 | 05 | In progress | Audited REST coverage is now green for create/get/update/delete/archive/pin/star plus branch edit/regenerate/delete/switch flows; remaining parity work is narrower follow-up surface audit |
 | 06 | In progress | Chat attachment upload/read path moved to R2 + Postgres; other blob flows still pending |
-| 07 | In progress | Single-model generation runtime works on new stack for main web chat; broader surface cutover/perf hardening pending |
+| 07 | Complete | Audited on `codex/postgres-rewrite`: single-model generation now has durable Redis→Postgres resume fallback, durable stop semantics that preserve partial assistant text, and CLI chat send/resume/stream cut over to API-key Postgres generation-v2 routes |
 | 08 | In progress | Backend comparison runtime exists; more UI/app-surface parity still pending |
 | 09 | In progress | Web send/replay now preserves branch context + client ids, refresh can discover active requests, the shared SDK now exposes request-stream APIs, and mobile HTTP mode can resume/stream generation events; durable offline replay parity and broader mobile surface audit still remain |
 | 10 | In progress | Generation-v2 now routes `"auto"` requests through classifier or hard-rule route labels plus Postgres-backed policy, candidate-score, recent-outcome, provider-health, and sticky-follow-up scoring; decisions/outcomes/feedback are persisted, and sticky route context now prefers the latest routed decision over explicit/manual-default rows |

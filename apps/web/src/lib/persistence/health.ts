@@ -1,6 +1,6 @@
 import { HeadBucketCommand } from "@aws-sdk/client-s3";
 import {
-  createNeonDatabase,
+  createPersistenceDatabase,
   createR2Client,
   createRedisClient,
   createTriggerClient,
@@ -18,7 +18,7 @@ export interface PersistenceHealth {
 export async function checkPersistenceHealth(): Promise<PersistenceHealth> {
   const env = parsePersistenceEnv(process.env);
 
-  const database = createNeonDatabase(env.databaseUrl);
+  const database = createPersistenceDatabase(env.databaseUrl);
   await database.execute(sql`select 1`);
 
   const redis = createRedisClient(env);

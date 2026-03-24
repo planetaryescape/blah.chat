@@ -1,9 +1,14 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { internal } from "../../_generated/api";
+import type { Id } from "../../_generated/dataModel";
 import type { ActionCtx } from "../../_generated/server";
 
-export function createCodeExecutionTool(ctx: ActionCtx) {
+export function createCodeExecutionTool(
+  ctx: ActionCtx,
+  userId: Id<"users">,
+  conversationId: Id<"conversations">,
+) {
   return tool({
     description:
       "Execute Python or JavaScript code in a secure sandboxed environment. Supports data analysis, calculations, plotting/visualization, and algorithm testing. Returns stdout, stderr, return values, and any generated images (plots). Use this when the user asks to run code, analyze data, create visualizations, or test algorithms.",
@@ -27,16 +32,17 @@ export function createCodeExecutionTool(ctx: ActionCtx) {
       // Enforce timeout limits
       const effectiveTimeout = Math.min(timeout || 30, 60);
 
-      const result = await ctx.runAction(
+      return await (ctx.runAction as any)(
+        // @ts-ignore - Type depth exceeded with complex Convex action modules
         internal.tools.codeExecution.executeCode,
         {
           code,
           language,
           timeout: effectiveTimeout,
+          userId,
+          conversationId,
         },
       );
-
-      return result;
     },
   });
 }

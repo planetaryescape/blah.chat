@@ -112,7 +112,11 @@ export function buildTools(config: BuildToolsConfig): Record<string, unknown> {
     conversationId,
     messageAttachments,
   );
-  const codeExecutionTool = createCodeExecutionTool(ctx);
+  const codeExecutionTool = createCodeExecutionTool(
+    ctx,
+    userId,
+    conversationId,
+  );
   const weatherTool = createWeatherTool(ctx);
   const youtubeVideoTool = createYoutubeVideoTool(ctx, userId);
   const askForClarificationTool = createAskForClarificationTool();

@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import type { PersistenceDb } from "../db";
+import type { AttachmentMetadata } from "../schema";
 import { attachments } from "../schema";
 
 export interface CreateAttachmentInput {
@@ -12,6 +13,7 @@ export interface CreateAttachmentInput {
   name: string;
   mimeType: string;
   size: number;
+  metadata?: AttachmentMetadata;
 }
 
 export function createAttachmentRepository(db: PersistenceDb) {
@@ -29,6 +31,7 @@ export function createAttachmentRepository(db: PersistenceDb) {
           name: input.name,
           mimeType: input.mimeType,
           size: input.size,
+          metadata: input.metadata,
           createdAt: Date.now(),
         })
         .returning();

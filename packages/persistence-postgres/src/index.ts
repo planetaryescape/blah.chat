@@ -9,6 +9,8 @@ export * from "./repositories/conversations";
 export * from "./repositories/generations";
 export * from "./repositories/messages";
 export * from "./repositories/preferences";
+export * from "./repositories/tts-cache";
+export * from "./repositories/usage";
 export * from "./repositories/users";
 export * from "./schema";
 export * from "./storage";

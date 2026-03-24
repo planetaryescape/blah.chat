@@ -35,6 +35,53 @@ export function buildDraftObjectKey(input: {
   return `users/${input.userId}/drafts/${buildObjectLeafName(input.fileName)}`;
 }
 
+export function buildGeneratedAttachmentObjectKey(input: {
+  userId: string;
+  conversationId: string;
+  messageId: string;
+  fileName: string;
+}) {
+  return `users/${input.userId}/conversations/${input.conversationId}/messages/${input.messageId}/generated/${buildObjectLeafName(input.fileName)}`;
+}
+
+export function buildCodeExecutionObjectKey(input: {
+  userId: string;
+  conversationId: string;
+  fileName: string;
+}) {
+  return `users/${input.userId}/conversations/${input.conversationId}/tool-outputs/code-execution/${buildObjectLeafName(input.fileName)}`;
+}
+
+export function buildTtsCacheObjectKey(input: {
+  hash: string;
+  format: string;
+}) {
+  const safeFormat = sanitizeFileName(input.format) || "bin";
+  return `cache/tts/${input.hash}.${safeFormat}`;
+}
+
+export async function uploadObject(input: {
+  client: S3Client;
+  bucket: string;
+  key: string;
+  body: Uint8Array | ArrayBuffer | Blob | string;
+  contentType: string;
+  cacheControl?: string;
+}) {
+  const body =
+    input.body instanceof ArrayBuffer ? new Uint8Array(input.body) : input.body;
+
+  await input.client.send(
+    new PutObjectCommand({
+      Bucket: input.bucket,
+      Key: input.key,
+      Body: body,
+      ContentType: input.contentType,
+      CacheControl: input.cacheControl,
+    }),
+  );
+}
+
 export async function createSignedUploadUrl(input: {
   client: S3Client;
   bucket: string;

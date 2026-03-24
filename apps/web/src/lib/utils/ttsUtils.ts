@@ -75,23 +75,9 @@ export function getTTSUrl(
   voice?: string,
   speed?: number,
 ): string {
-  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "";
-  let baseUrl = "";
-
-  if (convexUrl) {
-    if (convexUrl.includes(".convex.cloud")) {
-      baseUrl = convexUrl.replace(".convex.cloud", ".convex.site");
-    } else {
-      baseUrl = convexUrl;
-    }
-  }
-
-  const finalUrl = baseUrl ? `${baseUrl}/tts` : "/tts";
-
-  // URL constructor requires base if path is relative
   const base =
     typeof window !== "undefined" ? window.location.origin : "http://localhost";
-  const url = new URL(finalUrl, base);
+  const url = new URL("/tts", base);
 
   url.searchParams.set("text", text);
   if (voice) url.searchParams.set("voice", voice);

@@ -513,6 +513,29 @@ export class BlahClient {
     );
   }
 
+  async createFileUploadUrl(payload: {
+    conversationId?: string;
+    fileName: string;
+    contentType: string;
+  }): Promise<{
+    uploadUrl: string;
+    storageId: string;
+    method: string;
+  }> {
+    return this.fetchEnvelope<{
+      uploadUrl: string;
+      storageId: string;
+      method: string;
+    }>(
+      "/api/v1/files/upload-url",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
   async generateImage(payload: {
     conversationId: string;
     messageId: string;

@@ -1,8 +1,10 @@
+import { useAuth } from "@clerk/clerk-expo";
 import { toast } from "burnt";
-import { useAction, useMutation } from "convex/react";
 import { Audio } from "expo-av";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api } from "@/lib/convex";
+import { createMobileSdkClient } from "@/lib/transport/httpClient";
+import { supportsR2BlobTransport } from "@/lib/transport/mode";
+import { uploadAssetToSignedUrl } from "@/lib/transport/uploads";
 
 export type STTState = "idle" | "recording" | "transcribing";
 export type STTStopMode = "insert" | "send";
@@ -10,16 +12,14 @@ export type STTStopMode = "insert" | "send";
 const DEFAULT_RECORDING_MIME_TYPE = "audio/m4a";
 
 export function useChatSTT(sttEnabled: boolean) {
-  // @ts-ignore - Type depth exceeded with complex Convex action modules
-  const transcribeAudio = useAction(api.transcription.transcribeAudio);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation modules
-  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
-
+  const isAvailable = supportsR2BlobTransport();
+  const { getToken } = useAuth();
   const recordingRef = useRef<Audio.Recording | null>(null);
   const [state, setState] = useState<STTState>("idle");
 
   const startRecording = useCallback(async (): Promise<boolean> => {
     if (!sttEnabled) return false;
+    if (!isAvailable) return false;
     if (state !== "idle") return false;
 
     try {
@@ -54,7 +54,7 @@ export function useChatSTT(sttEnabled: boolean) {
       setState("idle");
       return false;
     }
-  }, [state, sttEnabled]);
+  }, [isAvailable, state, sttEnabled]);
 
   const stopRecording = useCallback(
     async (_mode: STTStopMode): Promise<string | null> => {
@@ -76,28 +76,22 @@ export function useChatSTT(sttEnabled: boolean) {
         const audioResponse = await fetch(uri);
         const audioBlob = await audioResponse.blob();
         const mimeType = audioBlob.type || DEFAULT_RECORDING_MIME_TYPE;
-
-        const uploadUrl = await generateUploadUrl();
-        const uploadResponse = await fetch(uploadUrl, {
-          method: "POST",
-          headers: { "Content-Type": mimeType },
-          body: audioBlob,
-        });
-
-        if (!uploadResponse.ok) {
-          throw new Error("Upload failed");
-        }
-
-        const { storageId } = (await uploadResponse.json()) as {
-          storageId: string;
-        };
-
-        const transcript = (await transcribeAudio({
-          storageId,
+        const client = createMobileSdkClient(() => getToken());
+        const uploaded = await uploadAssetToSignedUrl(client, {
+          uri,
+          name: `recording-${Date.now()}.m4a`,
           mimeType,
-        })) as string;
+          size: audioBlob.size,
+        });
+        const job = await client.transcribeAudio({
+          storageId: uploaded.storageId,
+          mimeType: uploaded.mimeType,
+        });
+        const completed = await client.waitForJob<string>(job.jobId);
 
-        return transcript?.trim() || null;
+        return typeof completed.result === "string"
+          ? completed.result.trim() || null
+          : null;
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Transcription failed";
@@ -107,7 +101,7 @@ export function useChatSTT(sttEnabled: boolean) {
         setState("idle");
       }
     },
-    [generateUploadUrl, state, transcribeAudio],
+    [getToken, state],
   );
 
   useEffect(() => {
@@ -124,6 +118,7 @@ export function useChatSTT(sttEnabled: boolean) {
     state,
     isRecording: state === "recording",
     isTranscribing: state === "transcribing",
+    isAvailable,
     startRecording,
     stopRecording,
   };

@@ -1,8 +1,14 @@
+import { useAuth } from "@clerk/clerk-expo";
 import { toast } from "burnt";
-import { useMutation } from "convex/react";
 import { useCallback, useState } from "react";
 import type { Id } from "@/lib/convex";
-import { api } from "@/lib/convex";
+import { createMobileSdkClient } from "@/lib/transport/httpClient";
+import { supportsR2BlobTransport } from "@/lib/transport/mode";
+import {
+  inferUploadName,
+  type UploadAssetInput,
+  uploadAssetToSignedUrl,
+} from "@/lib/transport/uploads";
 
 export type UploadedAttachment = {
   type: "file" | "image" | "audio";
@@ -12,23 +18,6 @@ export type UploadedAttachment = {
   size: number;
 };
 
-export type UploadAssetInput = {
-  uri: string;
-  name?: string;
-  mimeType?: string;
-  size?: number;
-};
-
-const FALLBACK_MIME_TYPE = "application/octet-stream";
-
-function inferName(uri: string, mimeType: string): string {
-  const fromUri = decodeURIComponent(uri.split("/").pop() || "");
-  if (fromUri.length > 0) return fromUri;
-
-  const extension = mimeType.split("/")[1] || "bin";
-  return `attachment-${Date.now()}.${extension}`;
-}
-
 function mapAttachmentType(mimeType: string): UploadedAttachment["type"] {
   if (mimeType.startsWith("image/")) return "image";
   if (mimeType.startsWith("audio/")) return "audio";
@@ -36,54 +25,39 @@ function mapAttachmentType(mimeType: string): UploadedAttachment["type"] {
 }
 
 export function useChatAttachmentUpload(conversationId?: Id<"conversations">) {
-  // @ts-ignore - Type depth exceeded with complex Convex mutation modules
-  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation modules
-  const saveFile = useMutation(api.files.saveFile);
-
+  const isAvailable = supportsR2BlobTransport();
+  const { getToken } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
 
   const uploadAsset = useCallback(
     async (asset: UploadAssetInput): Promise<UploadedAttachment | null> => {
+      if (!isAvailable) {
+        return null;
+      }
+
       setIsUploading(true);
 
       try {
-        const fileResponse = await fetch(asset.uri);
-        const blob = await fileResponse.blob();
-
-        const mimeType = asset.mimeType || blob.type || FALLBACK_MIME_TYPE;
-        const name = asset.name || inferName(asset.uri, mimeType);
-        const size = asset.size ?? blob.size;
-
-        const uploadUrl = await generateUploadUrl();
-        const uploadResponse = await fetch(uploadUrl, {
-          method: "POST",
-          headers: { "Content-Type": mimeType },
-          body: blob,
-        });
-
-        if (!uploadResponse.ok) {
-          throw new Error("Failed to upload file");
-        }
-
-        const { storageId } = (await uploadResponse.json()) as {
-          storageId: string;
-        };
-
-        await saveFile({
-          storageId,
-          name,
-          mimeType,
-          size,
+        const client = createMobileSdkClient(() => getToken());
+        const uploaded = await uploadAssetToSignedUrl(
+          client,
+          {
+            ...asset,
+            name:
+              asset.name ||
+              (asset.mimeType
+                ? inferUploadName(asset.uri, asset.mimeType)
+                : undefined),
+          },
           conversationId,
-        });
+        );
 
         return {
-          type: mapAttachmentType(mimeType),
-          name,
-          storageId,
-          mimeType,
-          size,
+          type: mapAttachmentType(uploaded.mimeType),
+          name: uploaded.name,
+          storageId: uploaded.storageId,
+          mimeType: uploaded.mimeType,
+          size: uploaded.size,
         };
       } catch {
         toast({
@@ -95,11 +69,12 @@ export function useChatAttachmentUpload(conversationId?: Id<"conversations">) {
         setIsUploading(false);
       }
     },
-    [conversationId, generateUploadUrl, saveFile],
+    [conversationId, getToken, isAvailable],
   );
 
   return {
     isUploading,
+    isAvailable,
     uploadAsset,
   };
 }

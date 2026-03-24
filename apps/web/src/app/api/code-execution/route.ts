@@ -1,5 +1,13 @@
+import {
+  buildCodeExecutionObjectKey,
+  uploadObject,
+} from "@blah-chat/persistence-postgres";
 import { auth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
+import {
+  getPersistenceEnv,
+  getPersistenceR2Client,
+} from "@/lib/persistence/storage";
 
 // Types for E2B execution results
 interface E2BResult {
@@ -10,6 +18,41 @@ interface E2BResult {
   [key: string]: any;
 }
 
+function buildFileAccessUrl(storageId: string) {
+  return `/api/v1/files/${storageId
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/")}`;
+}
+
+function getImagePayload(result: E2BResult) {
+  if (result.png) {
+    return {
+      bytes: Buffer.from(result.png, "base64"),
+      contentType: "image/png",
+      fileName: "plot.png",
+    };
+  }
+
+  if (result.jpeg) {
+    return {
+      bytes: Buffer.from(result.jpeg, "base64"),
+      contentType: "image/jpeg",
+      fileName: "plot.jpg",
+    };
+  }
+
+  if (result.svg) {
+    return {
+      bytes: Buffer.from(result.svg),
+      contentType: "image/svg+xml",
+      fileName: "plot.svg",
+    };
+  }
+
+  return null;
+}
+
 /**
  * API Route for code execution using E2B
  * This is outside Convex to avoid ESM/CommonJS bundling conflicts
@@ -17,16 +60,25 @@ interface E2BResult {
 export async function POST(request: NextRequest) {
   // Check for internal Convex call header or verify user authentication
   const isInternalCall = request.headers.get("X-Convex-Internal") === "true";
+  let authenticatedUserId: string | null = null;
 
   if (!isInternalCall) {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    authenticatedUserId = userId;
   }
 
   try {
-    const { code, language, timeout = 30 } = await request.json();
+    const {
+      code,
+      language,
+      timeout = 30,
+      userId: requestUserId,
+      conversationId,
+    } = await request.json();
 
     if (!code || !language) {
       return NextResponse.json(
@@ -43,11 +95,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get Convex site URL for storing images
-    const convexSiteUrl = process.env.NEXT_PUBLIC_CONVEX_URL?.replace(
-      ".cloud",
-      ".site",
-    );
+    const effectiveUserId = isInternalCall
+      ? requestUserId
+      : authenticatedUserId;
+    const persistenceEnv = getPersistenceEnv();
+    const r2 = getPersistenceR2Client();
 
     // Dynamic import E2B (works correctly in Next.js runtime)
     const { Sandbox } = await import("@e2b/code-interpreter");
@@ -73,45 +125,28 @@ export async function POST(request: NextRequest) {
       // E2B returns results array with display outputs (including plots)
       if (execution.results && Array.isArray(execution.results)) {
         for (const result of execution.results as E2BResult[]) {
-          // Check for PNG image (matplotlib plots)
-          if (result.png && convexSiteUrl) {
+          const imagePayload = getImagePayload(result);
+          if (imagePayload && effectiveUserId && conversationId) {
             try {
-              // Decode base64 to binary
-              const imageBuffer = Buffer.from(result.png, "base64");
+              const storageId = buildCodeExecutionObjectKey({
+                userId: effectiveUserId,
+                conversationId,
+                fileName: imagePayload.fileName,
+              });
 
-              // Convert to Uint8Array for proper fetch body handling
-              const uint8Array = new Uint8Array(imageBuffer);
+              await uploadObject({
+                client: r2,
+                bucket: persistenceEnv.r2.bucket,
+                key: storageId,
+                body: new Uint8Array(imagePayload.bytes),
+                contentType: imagePayload.contentType,
+                cacheControl: "private, max-age=31536000, immutable",
+              });
 
-              console.log(
-                "[CodeExecution] Uploading image, size:",
-                uint8Array.length,
-                "bytes",
-              );
-
-              // Store in Convex
-              const storeResponse = await fetch(
-                `${convexSiteUrl}/store-code-execution-image`,
-                {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "image/png",
-                    "Content-Length": uint8Array.length.toString(),
-                    "X-Convex-Internal": "true",
-                  },
-                  body: uint8Array,
-                },
-              );
-
-              if (storeResponse.ok) {
-                const { url, storageId } = await storeResponse.json();
-                console.log("[CodeExecution] Image stored successfully:", url);
-                images.push({ url, storageId });
-              } else {
-                console.error(
-                  "[CodeExecution] Failed to store image:",
-                  await storeResponse.text(),
-                );
-              }
+              images.push({
+                storageId,
+                url: buildFileAccessUrl(storageId),
+              });
             } catch (imgError) {
               console.error("[CodeExecution] Image storage error:", imgError);
             }

@@ -1,7 +1,6 @@
 "use client";
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { Bookmark, BookmarkCheck } from "lucide-react";
 import { useState } from "react";
@@ -23,10 +22,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { analytics } from "@/lib/analytics";
+import {
+  isConvexConversationId,
+  isConvexMessageId,
+} from "@/lib/utils/chatRouteIds";
 
 interface BookmarkButtonProps {
-  messageId: Id<"messages">;
-  conversationId: Id<"conversations">;
+  messageId: string;
+  conversationId: string;
 }
 
 export function BookmarkButton({
@@ -40,16 +43,26 @@ export function BookmarkButton({
   // Check if this is a temporary optimistic message (not yet persisted)
   const isTempMessage =
     typeof messageId === "string" && messageId.startsWith("temp-");
+  const convexMessageId = isConvexMessageId(messageId) ? messageId : null;
+  const convexConversationId = isConvexConversationId(conversationId)
+    ? conversationId
+    : null;
+  const shouldSkipBookmark =
+    isTempMessage || !convexMessageId || !convexConversationId;
 
-  // Skip query for temporary optimistic messages
+  // Postgres rewrite ids are not valid Convex document ids.
   const existingBookmark = useQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query
     api.bookmarks.getByMessage,
-    isTempMessage ? "skip" : { messageId },
+    shouldSkipBookmark ? "skip" : { messageId: convexMessageId },
   );
   const createBookmark = useMutation(api.bookmarks.create);
   const removeBookmark = useMutation(api.bookmarks.remove);
   const updateBookmark = useMutation(api.bookmarks.update);
+
+  if (shouldSkipBookmark) {
+    return null;
+  }
 
   const isBookmarked = !!existingBookmark;
 
@@ -87,8 +100,8 @@ export function BookmarkButton({
             });
           })
         : createBookmark({
-            messageId,
-            conversationId,
+            messageId: convexMessageId,
+            conversationId: convexConversationId,
             note: note || undefined,
             tags: tagList,
           }).then(() => {

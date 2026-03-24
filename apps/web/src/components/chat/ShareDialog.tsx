@@ -26,12 +26,21 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { analytics } from "@/lib/analytics";
+import { isConvexConversationId } from "@/lib/utils/chatRouteIds";
 
 interface ShareDialogProps {
-  conversationId: Id<"conversations">;
+  conversationId: string;
 }
 
 export function ShareDialog({ conversationId }: ShareDialogProps) {
+  const convexConversationId = isConvexConversationId(conversationId)
+    ? (conversationId as Id<"conversations">)
+    : null;
+
+  if (!convexConversationId) {
+    return null;
+  }
+
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [expiresIn, setExpiresIn] = useState<number | undefined>(7);
@@ -42,7 +51,7 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
 
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const existingShare = useQuery(api.shares.getByConversation, {
-    conversationId,
+    conversationId: convexConversationId,
   });
   const createShare = useAction(api.shares.create);
   const toggleShare = useMutation(api.shares.toggle);
@@ -62,7 +71,7 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
   const handleShare = async () => {
     try {
       const shareId = await createShare({
-        conversationId,
+        conversationId: convexConversationId,
         password: password || undefined,
         expiresIn,
         anonymizeUsernames: anonymize,
@@ -92,7 +101,7 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
 
   const handleToggle = async (isActive: boolean) => {
     try {
-      await toggleShare({ conversationId, isActive });
+      await toggleShare({ conversationId: convexConversationId, isActive });
     } catch (error) {
       console.error("Failed to toggle share:", error);
     }
@@ -101,7 +110,7 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
   const handleExtendExpiration = async () => {
     try {
       await extendExpiration({
-        conversationId,
+        conversationId: convexConversationId,
         expiresIn: extendExpiresIn,
       });
       analytics.track("share_expiration_extended", {

@@ -39,7 +39,7 @@ import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { ShareDialog } from "../ShareDialog";
 
 describe("ShareDialog", () => {
-  const conversationId = "conv-123" as Id<"conversations">;
+  const conversationId = "conv123" as Id<"conversations">;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -120,5 +120,11 @@ describe("ShareDialog", () => {
     // Should show share URL input
     const urlInput = screen.getByDisplayValue(/existing-share/);
     expect(urlInput).toBeInTheDocument();
+  });
+
+  it("does not render for postgres rewrite conversation ids", () => {
+    render(<ShareDialog conversationId="WRBHYWzRJwMeRigUQqMnq" />);
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 });

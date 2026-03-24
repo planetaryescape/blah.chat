@@ -11,9 +11,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { isConvexConversationId } from "@/lib/utils/chatRouteIds";
 
 interface ContextWindowIndicatorProps {
-  conversationId: Id<"conversations">;
+  conversationId: string;
   modelId: string; // Currently selected model
 }
 
@@ -21,15 +22,32 @@ export function ContextWindowIndicator({
   conversationId,
   modelId,
 }: ContextWindowIndicatorProps) {
+  const convexConversationId = isConvexConversationId(conversationId)
+    ? (conversationId as Id<"conversations">)
+    : "skip";
+
   // @ts-ignore
-  const tokenUsage = useQuery(api.conversations.getTokenUsage, {
-    conversationId,
-  });
+  const tokenUsage = useQuery(
+    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+    api.conversations.getTokenUsage,
+    convexConversationId === "skip"
+      ? "skip"
+      : {
+          conversationId: convexConversationId,
+        },
+  );
 
   // Get last assistant message to find actual routed model (for Auto model)
-  const lastMessage = useQuery(api.messages.getLastAssistantMessage, {
-    conversationId,
-  });
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const lastMessage = useQuery(
+    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+    api.messages.getLastAssistantMessage,
+    convexConversationId === "skip"
+      ? "skip"
+      : {
+          conversationId: convexConversationId,
+        },
+  );
 
   // For Auto model, use the actual routed model's context window
   const effectiveModelId =

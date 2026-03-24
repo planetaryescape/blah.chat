@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockRequest, unwrapData } from "@/lib/test/api-helpers";
 
 const comparisonsDAL = {
+  getComparisonGroup: vi.fn(),
   recordVote: vi.fn(),
   consolidate: vi.fn(),
   listOriginalResponses: vi.fn(),
@@ -52,13 +53,105 @@ describe("/api/v1/comparisons", () => {
     vi.clearAllMocks();
   });
 
+  it("returns comparison group state", async () => {
+    comparisonsDAL.getComparisonGroup.mockResolvedValueOnce({
+      status: "success",
+      data: {
+        comparisonGroupId: "cmp_1",
+        status: "running",
+        requestId: "req_1",
+        sessionsByMessageId: {
+          msg_1: {
+            sessionId: "sess_1",
+            modelId: "openai:gpt-5",
+            status: "running",
+          },
+        },
+        latestVote: {
+          outcome: "winner",
+          winnerMessageId: "msg_1",
+          votedAt: 123,
+        },
+      },
+    });
+
+    const { GET } = await import("../comparisons/[comparisonGroupId]/route");
+    const response = await GET(createMockRequest("/api/v1/comparisons/cmp_1"), {
+      params: Promise.resolve({ comparisonGroupId: "cmp_1" }),
+    });
+
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    const data = unwrapData<{
+      comparisonGroupId: string;
+      status: string;
+      requestId?: string;
+      sessionsByMessageId: Record<
+        string,
+        { sessionId: string; modelId: string; status: string }
+      >;
+      latestVote?: {
+        outcome: string;
+        winnerMessageId?: string;
+        votedAt: number;
+      };
+    }>(json);
+    expect(data.comparisonGroupId).toBe("cmp_1");
+    expect(data.status).toBe("running");
+    expect(data.requestId).toBe("req_1");
+    expect(data.latestVote?.outcome).toBe("winner");
+    expect(comparisonsDAL.getComparisonGroup).toHaveBeenCalledWith(
+      "user_123",
+      "cmp_1",
+    );
+  });
+
   it("records a vote", async () => {
     comparisonsDAL.recordVote.mockResolvedValueOnce({
       status: "success",
       data: {
         comparisonGroupId: "cmp_1",
         winnerMessageId: "msg_2",
-        rating: "left_better",
+        outcome: "winner",
+      },
+    });
+
+    const { POST } = await import(
+      "../comparisons/[comparisonGroupId]/vote/route"
+    );
+    const response = await POST(
+      createMockRequest("/api/v1/comparisons/cmp_1/vote", {
+        method: "POST",
+        body: {
+          winnerMessageId: "msg_2",
+          outcome: "winner",
+        },
+      }),
+      { params: Promise.resolve({ comparisonGroupId: "cmp_1" }) },
+    );
+
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    const data = unwrapData<{
+      comparisonGroupId: string;
+      winnerMessageId: string;
+      outcome: string;
+    }>(json);
+    expect(data.comparisonGroupId).toBe("cmp_1");
+    expect(comparisonsDAL.recordVote).toHaveBeenCalledWith("user_123", {
+      comparisonGroupId: "cmp_1",
+      winnerMessageId: "msg_2",
+      outcome: "winner",
+    });
+  });
+
+  it("accepts legacy directional ratings and maps them to winner outcomes", async () => {
+    comparisonsDAL.recordVote.mockResolvedValueOnce({
+      status: "success",
+      data: {
+        comparisonGroupId: "cmp_1",
+        winnerMessageId: "msg_2",
+        outcome: "winner",
       },
     });
 
@@ -77,17 +170,10 @@ describe("/api/v1/comparisons", () => {
     );
 
     expect(response.status).toBe(200);
-    const json = await response.json();
-    const data = unwrapData<{
-      comparisonGroupId: string;
-      winnerMessageId: string;
-      rating: string;
-    }>(json);
-    expect(data.comparisonGroupId).toBe("cmp_1");
     expect(comparisonsDAL.recordVote).toHaveBeenCalledWith("user_123", {
       comparisonGroupId: "cmp_1",
       winnerMessageId: "msg_2",
-      rating: "left_better",
+      outcome: "winner",
     });
   });
 

@@ -263,7 +263,7 @@ export class GenerationV2Service {
     userId: string;
     comparisonGroupId: string;
     winnerMessageId?: string | null;
-    rating: "left_better" | "right_better" | "tie" | "both_bad";
+    outcome: "winner" | "tie" | "both_bad";
   }) {
     return this.repository.recordVote(input);
   }

@@ -189,23 +189,37 @@ async function createAssistantSession(input: {
 }
 
 function getRoutingSignal(input: {
-  rating: "left_better" | "right_better" | "tie" | "both_bad";
+  outcome: "winner" | "tie" | "both_bad";
   winnerMessageId?: string | null;
   assistantMessageId: string;
 }) {
-  if (input.rating === "tie") {
+  if (input.outcome === "tie") {
     return "tie";
   }
 
-  if (input.rating === "both_bad") {
+  if (input.outcome === "both_bad") {
     return "both_bad";
   }
 
   if (!input.winnerMessageId) {
-    return input.rating;
+    throw new Error("Winner outcome requires winnerMessageId");
   }
 
   return input.assistantMessageId === input.winnerMessageId ? "win" : "loss";
+}
+
+function normalizeVoteOutcome(
+  rating: "winner" | "left_better" | "right_better" | "tie" | "both_bad",
+) {
+  if (rating === "tie") {
+    return "tie" as const;
+  }
+
+  if (rating === "both_bad") {
+    return "both_bad" as const;
+  }
+
+  return "winner" as const;
 }
 
 export function createGenerationV2Repository(db: PersistenceDb) {
@@ -625,6 +639,143 @@ export function createGenerationV2Repository(db: PersistenceDb) {
             content: response.content,
           })),
         ),
+      };
+    },
+
+    async getComparisonGroupState(comparisonGroupId: string) {
+      const groupedMessages = await db.query.messages.findMany({
+        where: eq(messages.comparisonGroupId, comparisonGroupId),
+        orderBy: (table, { asc: orderAsc }) => [
+          orderAsc(table.createdAt),
+          orderAsc(table.siblingIndex),
+        ],
+      });
+
+      if (groupedMessages.length === 0) {
+        return null;
+      }
+
+      const assistantMessages = groupedMessages.filter(
+        (message) => message.role === "assistant",
+      );
+
+      let userMessage =
+        groupedMessages.find((message) => message.role === "user") ?? null;
+
+      if (!userMessage && assistantMessages[0]) {
+        const parentEdge = await db.query.messageEdges.findFirst({
+          where: eq(messageEdges.childMessageId, assistantMessages[0].id),
+          orderBy: (table, { asc: orderAsc }) => [orderAsc(table.position)],
+        });
+
+        userMessage = parentEdge
+          ? ((await db.query.messages.findFirst({
+              where: eq(messages.id, parentEdge.parentMessageId),
+            })) ?? null)
+          : null;
+      }
+
+      if (!userMessage) {
+        return null;
+      }
+
+      const sessions =
+        assistantMessages.length === 0
+          ? []
+          : await db.query.generationSessions.findMany({
+              where: inArray(
+                generationSessions.assistantMessageId,
+                assistantMessages.map((message) => message.id),
+              ),
+              orderBy: (table, { asc: orderAsc }) => [
+                orderAsc(table.createdAt),
+              ],
+            });
+
+      const requestIds = [
+        ...new Set(sessions.map((session) => session.requestId)),
+      ];
+      const requests =
+        requestIds.length === 0
+          ? []
+          : await db.query.generationRequests.findMany({
+              where: inArray(generationRequests.id, requestIds),
+              orderBy: (table, { desc: orderDesc }) => [
+                orderDesc(table.createdAt),
+              ],
+            });
+
+      const currentRequest = requests[0] ?? null;
+      const activeRequest =
+        currentRequest &&
+        ["pending", "running", "cancelling"].includes(currentRequest.status)
+          ? currentRequest
+          : null;
+
+      const latestVote = await db.query.comparisonVotes.findFirst({
+        where: eq(comparisonVotes.comparisonGroupId, comparisonGroupId),
+        orderBy: (table, { desc: orderDesc }) => [orderDesc(table.votedAt)],
+      });
+
+      return {
+        comparisonGroupId,
+        conversationId: userMessage.conversationId,
+        userMessageId: userMessage.id,
+        status: currentRequest?.status ?? "complete",
+        requestId: activeRequest?.id ?? null,
+        assistantMessagesById: Object.fromEntries(
+          assistantMessages.map((message) => [
+            message.id,
+            {
+              content: message.content,
+              status: message.status,
+              model: message.model,
+            },
+          ]),
+        ) as Record<
+          string,
+          {
+            content: string;
+            status: string;
+            model: string | null;
+          }
+        >,
+        sessionsByMessageId: Object.fromEntries(
+          assistantMessages.map((message) => {
+            const session = sessions.find(
+              (candidate) => candidate.assistantMessageId === message.id,
+            );
+
+            return [
+              message.id,
+              {
+                sessionId: session?.id ?? null,
+                modelId: session?.modelId ?? message.model ?? null,
+                status: session?.status ?? message.status,
+              },
+            ];
+          }),
+        ) as Record<
+          string,
+          {
+            sessionId: string | null;
+            modelId: string | null;
+            status: string;
+          }
+        >,
+        latestVote: latestVote
+          ? {
+              outcome: normalizeVoteOutcome(
+                latestVote.rating as
+                  | "left_better"
+                  | "right_better"
+                  | "tie"
+                  | "both_bad",
+              ),
+              winnerMessageId: latestVote.winnerMessageId,
+              votedAt: latestVote.votedAt,
+            }
+          : null,
       };
     },
 
@@ -1250,15 +1401,19 @@ export function createGenerationV2Repository(db: PersistenceDb) {
       userId: string;
       comparisonGroupId: string;
       winnerMessageId?: string | null;
-      rating: "left_better" | "right_better" | "tie" | "both_bad";
+      outcome: "winner" | "tie" | "both_bad";
     }) {
+      if (input.outcome === "winner" && !input.winnerMessageId) {
+        throw new Error("Winner outcome requires winnerMessageId");
+      }
+
       const [vote] = await db
         .insert(comparisonVotes)
         .values({
           userId: input.userId,
           comparisonGroupId: input.comparisonGroupId,
           winnerMessageId: input.winnerMessageId ?? null,
-          rating: input.rating,
+          rating: input.outcome,
           votedAt: now(),
         })
         .returning();
@@ -1310,12 +1465,12 @@ export function createGenerationV2Repository(db: PersistenceDb) {
               comparisonGroupId: input.comparisonGroupId,
               winnerMessageId: input.winnerMessageId ?? null,
               signal: getRoutingSignal({
-                rating: input.rating,
+                outcome: input.outcome,
                 winnerMessageId: input.winnerMessageId,
                 assistantMessageId: message.id,
               }),
               metadata: {
-                rating: input.rating,
+                outcome: input.outcome,
                 voteId: vote.id,
                 assistantMessageId: message.id,
                 modelId: message.model ?? null,

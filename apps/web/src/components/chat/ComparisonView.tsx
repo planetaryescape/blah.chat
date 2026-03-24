@@ -1,16 +1,12 @@
 "use client";
 
 import { Eye, EyeOff, Sparkles, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMediaQuery } from "usehooks-ts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { useComparisonGroupState } from "@/hooks/useComparisonGroupState";
 import { useSyncedScroll } from "@/hooks/useSyncedScroll";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { analytics } from "@/lib/analytics";
@@ -19,6 +15,7 @@ import { ComparisonPanel } from "./ComparisonPanel";
 import { ConsolidateDialog } from "./ConsolidateDialog";
 
 type ConsolidationMode = "same-chat" | "new-chat";
+type VoteOutcome = "winner" | "tie" | "both_bad";
 
 type MessageWithUser = {
   _id: string;
@@ -40,11 +37,97 @@ interface ComparisonViewProps {
   assistantMessages: MessageWithUser[];
   comparisonGroupId: string;
   showModelNames: boolean;
-  onVote: (winnerId: string, rating: string) => void;
-  onConsolidate: (model: string, mode: ConsolidationMode) => void;
+  onVote: (
+    winnerId: string | undefined,
+    outcome: VoteOutcome,
+  ) => Promise<void> | void;
+  onConsolidate: (
+    model: string,
+    mode: ConsolidationMode,
+  ) => Promise<void> | void;
   onToggleModelNames: () => void;
   onExit?: () => void;
   hideConsolidateButton?: boolean;
+  hideVoteControls?: boolean;
+}
+
+function formatDuration(ms: number | null) {
+  if (ms === null) return "—";
+  if (ms < 1000) return `${ms}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+function isTerminalMessageStatus(status: string) {
+  return ["complete", "stopped", "cancelled", "error"].includes(status);
+}
+
+function isSessionStopping(status?: string | null) {
+  return status === "cancelling";
+}
+
+function isSessionStoppable(status?: string | null) {
+  return status === "pending" || status === "running";
+}
+
+function resolveComparisonMessageStatus(input: {
+  localStatus: string;
+  assistantStatus?: string;
+  sessionStatus?: string | null;
+}) {
+  const baseStatus = input.assistantStatus ?? input.localStatus;
+
+  if (
+    input.sessionStatus &&
+    isTerminalMessageStatus(input.sessionStatus) &&
+    !isTerminalMessageStatus(baseStatus)
+  ) {
+    return input.sessionStatus;
+  }
+
+  if (
+    input.sessionStatus === "cancelling" &&
+    !isTerminalMessageStatus(baseStatus)
+  ) {
+    return input.sessionStatus;
+  }
+
+  return baseStatus;
+}
+
+function mergeAssistantMessageState(
+  message: MessageWithUser,
+  serverState?: {
+    content?: string;
+    status: string;
+    model?: string | null;
+  },
+  sessionState?: {
+    status: string;
+  } | null,
+): MessageWithUser {
+  if (!serverState && !sessionState) {
+    return message;
+  }
+
+  const effectiveStatus = resolveComparisonMessageStatus({
+    localStatus: message.status,
+    assistantStatus: serverState?.status,
+    sessionStatus: sessionState?.status,
+  });
+  const effectiveContent = serverState?.content ?? message.content;
+
+  return {
+    ...message,
+    content: effectiveContent,
+    status: effectiveStatus,
+    model: serverState?.model ?? message.model,
+    partialContent:
+      ["pending", "streaming", "running", "generating", "cancelling"].includes(
+        effectiveStatus,
+      ) && effectiveContent
+        ? effectiveContent
+        : undefined,
+  };
 }
 
 export function ComparisonView({
@@ -56,80 +139,150 @@ export function ComparisonView({
   onToggleModelNames,
   onExit,
   hideConsolidateButton = false,
+  hideVoteControls = false,
 }: ComparisonViewProps) {
   const [syncEnabled, setSyncEnabled] = useState(true);
   const [showConsolidateDialog, setShowConsolidateDialog] = useState(false);
-  const [votedMessageId, setVotedMessageId] = useState<string | undefined>();
+  const [pendingVote, setPendingVote] = useState<{
+    outcome: VoteOutcome;
+    winnerId?: string;
+  } | null>(null);
 
-  // Phase 4: Use new preference hook
   const showStats = useUserPreference("showComparisonStatistics");
-
   const { register } = useSyncedScroll(syncEnabled);
   const isMobile = useMediaQuery("(max-width: 1024px)");
+  const {
+    comparisonGroup,
+    stopGroup,
+    stopSession,
+    refetch,
+    isStoppingGroup,
+    stoppingSessionIds,
+  } = useComparisonGroupState(comparisonGroupId);
 
-  // Sort messages by creation time
-  const sortedMessages = useMemo(() => {
-    return [...assistantMessages].sort((a, b) => a.createdAt - b.createdAt);
-  }, [assistantMessages]);
+  const sortedMessages = useMemo(
+    () =>
+      [...assistantMessages]
+        .map((message) =>
+          mergeAssistantMessageState(
+            message,
+            comparisonGroup?.assistantMessagesById?.[message._id],
+            comparisonGroup?.sessionsByMessageId?.[message._id],
+          ),
+        )
+        .sort((a, b) => a.createdAt - b.createdAt),
+    [
+      assistantMessages,
+      comparisonGroup?.assistantMessagesById,
+      comparisonGroup?.sessionsByMessageId,
+    ],
+  );
 
-  // Calculate aggregate stats
-  const totalCost = useMemo(() => {
-    return assistantMessages.reduce((sum, m) => sum + (m.cost || 0), 0);
-  }, [assistantMessages]);
+  const totalCost = useMemo(
+    () => sortedMessages.reduce((sum, message) => sum + (message.cost || 0), 0),
+    [sortedMessages],
+  );
+  const totalInputTokens = useMemo(
+    () =>
+      sortedMessages.reduce(
+        (sum, message) => sum + (message.inputTokens || 0),
+        0,
+      ),
+    [sortedMessages],
+  );
+  const totalOutputTokens = useMemo(
+    () =>
+      sortedMessages.reduce(
+        (sum, message) => sum + (message.outputTokens || 0),
+        0,
+      ),
+    [sortedMessages],
+  );
+  const generationDurations = useMemo(
+    () =>
+      sortedMessages.map((message) =>
+        !message.generationCompletedAt
+          ? null
+          : message.generationCompletedAt - message.createdAt,
+      ),
+    [sortedMessages],
+  );
 
-  const totalInputTokens = useMemo(() => {
-    return assistantMessages.reduce((sum, m) => sum + (m.inputTokens || 0), 0);
-  }, [assistantMessages]);
-
-  const totalOutputTokens = useMemo(() => {
-    return assistantMessages.reduce((sum, m) => sum + (m.outputTokens || 0), 0);
-  }, [assistantMessages]);
-
-  // Calculate generation durations (ms)
-  const generationDurations = useMemo(() => {
-    return sortedMessages.map((msg) => {
-      if (!msg.generationCompletedAt) return null; // Still generating or pending
-      const duration = msg.generationCompletedAt - msg.createdAt;
-      return duration;
-    });
-  }, [sortedMessages]);
-
-  // Format duration helper
-  const formatDuration = (ms: number | null) => {
-    if (ms === null) return "—";
-    if (ms < 1000) return `${ms}ms`;
-    return `${(ms / 1000).toFixed(1)}s`;
-  };
-
-  const allComplete = assistantMessages.every((m) => m.status === "complete");
-
-  const handleVote = (winnerId: string, messageIndex: number) => {
-    setVotedMessageId(winnerId);
-    // Determine rating based on message position
-    let rating: "left_better" | "right_better" | "tie" | "both_bad";
-    if (sortedMessages.length === 2) {
-      rating = messageIndex === 0 ? "left_better" : "right_better";
-    } else {
-      // For 3-4 models, just mark as winner (could add tie/both_bad buttons)
-      rating = "left_better"; // Placeholder - winner concept
+  const allTerminal = sortedMessages.every((message) =>
+    isTerminalMessageStatus(message.status),
+  );
+  const needsComparisonRefresh = useMemo(() => {
+    if (!comparisonGroup) {
+      return false;
     }
-    onVote(winnerId, rating);
 
-    // Track comparison vote
-    const winnerMessage = sortedMessages.find((m) => m._id === winnerId);
+    return sortedMessages.some((message) => {
+      const serverMessage =
+        comparisonGroup.assistantMessagesById?.[message._id];
+      const sessionState = comparisonGroup.sessionsByMessageId?.[message._id];
+      const effectiveStatus =
+        serverMessage?.status ?? sessionState?.status ?? message.status;
+      const effectiveContent = serverMessage?.content ?? message.content;
+
+      if (!isTerminalMessageStatus(effectiveStatus)) {
+        return true;
+      }
+
+      return effectiveStatus === "complete" && !effectiveContent;
+    });
+  }, [comparisonGroup, sortedMessages]);
+  const displayVote = pendingVote
+    ? {
+        outcome: pendingVote.outcome,
+        winnerMessageId: pendingVote.winnerId ?? null,
+        votedAt: Date.now(),
+      }
+    : (comparisonGroup?.latestVote ?? null);
+  const activeSessions = Object.values(
+    comparisonGroup?.sessionsByMessageId ?? {},
+  ).filter(
+    (session) =>
+      isSessionStoppable(session.status) || isSessionStopping(session.status),
+  );
+
+  useEffect(() => {
+    if (!needsComparisonRefresh) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void refetch();
+    }, 1_500);
+
+    return () => window.clearInterval(intervalId);
+  }, [needsComparisonRefresh, refetch]);
+
+  const trackVote = (outcome: VoteOutcome, winnerId?: string) => {
+    const winnerMessage = sortedMessages.find(
+      (message) => message._id === winnerId,
+    );
     analytics.track("comparison_voted", {
-      rating,
+      outcome,
       winnerModel: winnerMessage?.model,
       modelCount: sortedMessages.length,
       comparisonGroupId,
     });
   };
 
-  const handleConsolidate = (model: string, mode: ConsolidationMode) => {
-    setShowConsolidateDialog(false);
-    onConsolidate(model, mode);
+  const submitVote = async (outcome: VoteOutcome, winnerId?: string) => {
+    setPendingVote({ outcome, winnerId });
+    try {
+      await Promise.resolve(onVote(winnerId, outcome));
+      await refetch();
+      trackVote(outcome, winnerId);
+    } finally {
+      setPendingVote(null);
+    }
+  };
 
-    // Track consolidation
+  const handleConsolidate = async (model: string, mode: ConsolidationMode) => {
+    setShowConsolidateDialog(false);
+    await Promise.resolve(onConsolidate(model, mode));
     analytics.track("consolidation_created", {
       mode,
       model,
@@ -137,85 +290,104 @@ export function ComparisonView({
     });
   };
 
-  // Mobile: Tabs
-  if (isMobile) {
+  const renderOutcomeButtons = (mobile = false) => {
+    if (hideVoteControls || !allTerminal) {
+      return null;
+    }
+
     return (
-      <div className="flex flex-col h-full">
-        <div className="flex items-center justify-between p-3 border-b">
-          {!hideConsolidateButton && (
-            <h3 className="font-medium">
-              Comparing {assistantMessages.length} models
-            </h3>
+      <div className={cn("flex gap-2", mobile ? "flex-col" : "flex-wrap")}>
+        <Button
+          size="sm"
+          variant={displayVote?.outcome === "tie" ? "default" : "outline"}
+          onClick={() => submitVote("tie")}
+          disabled={pendingVote !== null}
+          aria-label="Mark tie"
+          data-testid="comparison-vote-tie"
+        >
+          Mark tie
+        </Button>
+        <Button
+          size="sm"
+          variant={displayVote?.outcome === "both_bad" ? "default" : "outline"}
+          onClick={() => submitVote("both_bad")}
+          disabled={pendingVote !== null}
+          aria-label="Mark both bad"
+          data-testid="comparison-vote-both-bad"
+        >
+          Mark both bad
+        </Button>
+      </div>
+    );
+  };
+
+  const renderHeaderActions = () => (
+    <>
+      {!hideConsolidateButton && (
+        <>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setSyncEnabled((current) => !current)}
+          >
+            Toggle Sync
+          </Button>
+          {activeSessions.length > 0 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => void stopGroup()}
+              disabled={isStoppingGroup}
+              aria-label="Stop comparison"
+              data-testid="comparison-stop-group"
+            >
+              Stop comparison
+            </Button>
           )}
-          <div className="flex items-center gap-1 ml-auto">
-            {!hideConsolidateButton && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={onToggleModelNames}
-                    className="h-8 w-8"
-                  >
-                    {showModelNames ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{showModelNames ? "Hide" : "Show"} model names</p>
-                </TooltipContent>
-              </Tooltip>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onToggleModelNames}
+            className="gap-2"
+          >
+            {showModelNames ? (
+              <>
+                <EyeOff className="w-4 h-4" />
+                Hide Names
+              </>
+            ) : (
+              <>
+                <Eye className="w-4 h-4" />
+                Show Names
+              </>
             )}
-            {onExit && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button size="icon" variant="ghost" onClick={onExit}>
-                    <X className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Exit comparison (Esc)</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
-          </div>
-        </div>
+          </Button>
+        </>
+      )}
+      {onExit && (
+        <Button size="icon" variant="ghost" onClick={onExit}>
+          <X className="w-4 h-4" />
+        </Button>
+      )}
+    </>
+  );
 
-        <Tabs defaultValue={sortedMessages[0]._id} className="flex-1">
-          <TabsList className="w-full justify-start overflow-x-auto sticky top-0 z-10 no-scrollbar px-1">
-            {sortedMessages.map((msg, idx) => (
-              <TabsTrigger
-                key={msg._id}
-                value={msg._id}
-                className="flex-shrink-0 min-w-[100px]"
-              >
-                {showModelNames
-                  ? msg.model?.split(":")[1] || msg.model
-                  : `Model ${idx + 1}`}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+  const renderFooter = (mobile = false) => {
+    const consolidateButton =
+      allTerminal && !hideConsolidateButton ? (
+        <Button
+          onClick={() => setShowConsolidateDialog(true)}
+          variant="secondary"
+          className={cn(mobile ? "w-full" : !showStats ? "ml-auto" : "")}
+          data-testid="comparison-consolidate"
+        >
+          <Sparkles className="w-4 h-4 mr-2" />
+          Consolidate Responses
+        </Button>
+      ) : null;
 
-          {sortedMessages.map((msg, idx) => (
-            <TabsContent key={msg._id} value={msg._id} className="flex-1">
-              <ComparisonPanel
-                message={msg}
-                index={idx}
-                showModelName={showModelNames}
-                showStats={showStats}
-                onVote={() => handleVote(msg._id, idx)}
-                isVoted={votedMessageId === msg._id}
-                hasVoted={votedMessageId !== undefined}
-                duration={generationDurations[idx]}
-              />
-            </TabsContent>
-          ))}
-        </Tabs>
-
-        {/* Footer */}
+    if (mobile) {
+      return (
         <div className="p-3 border-t space-y-2">
           {showStats && (
             <>
@@ -227,44 +399,144 @@ export function ComparisonView({
                 <span className="font-medium">Avg Response Time</span>
                 <span className="font-mono">
                   {formatDuration(
-                    generationDurations.filter((d) => d !== null).length > 0
+                    generationDurations.filter((value) => value !== null)
+                      .length > 0
                       ? generationDurations
-                          .filter((d) => d !== null)
-                          .reduce((a, b) => a! + b!, 0)! /
-                          generationDurations.filter((d) => d !== null).length
+                          .filter((value) => value !== null)
+                          .reduce((sum, value) => sum + value!, 0) /
+                          generationDurations.filter((value) => value !== null)
+                            .length
                       : null,
                   )}
                 </span>
               </div>
             </>
           )}
-          {allComplete && !hideConsolidateButton && (
-            <Button
-              onClick={() => setShowConsolidateDialog(true)}
-              className="w-full"
-              variant="secondary"
-            >
-              <Sparkles className="w-4 h-4 mr-2" />
-              Consolidate Responses
-            </Button>
-          )}
+          {renderOutcomeButtons(true)}
+          {consolidateButton}
         </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center justify-between gap-3 p-3 border-t">
+        {showStats ? (
+          <div className="space-y-1">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium">Total Cost:</span>
+              <span className="font-mono text-lg">${totalCost.toFixed(4)}</span>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {totalInputTokens.toLocaleString()} input +{" "}
+              {totalOutputTokens.toLocaleString()} output tokens
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Avg response:{" "}
+              {formatDuration(
+                generationDurations.filter((value) => value !== null).length > 0
+                  ? generationDurations
+                      .filter((value) => value !== null)
+                      .reduce((sum, value) => sum + value!, 0) /
+                      generationDurations.filter((value) => value !== null)
+                        .length
+                  : null,
+              )}
+            </div>
+          </div>
+        ) : (
+          <div />
+        )}
+        <div className="flex items-center gap-2">
+          {renderOutcomeButtons(false)}
+          {consolidateButton}
+        </div>
+      </div>
+    );
+  };
+
+  if (isMobile) {
+    return (
+      <div className="flex flex-col h-full" data-testid="comparison-view">
+        <div className="flex items-center justify-between p-3 border-b">
+          {!hideConsolidateButton && (
+            <h3 className="font-medium">
+              Comparing {assistantMessages.length} models
+            </h3>
+          )}
+          <div className="flex items-center gap-1 ml-auto">
+            {renderHeaderActions()}
+          </div>
+        </div>
+
+        <Tabs defaultValue={sortedMessages[0]?._id} className="flex-1">
+          <TabsList className="w-full justify-start overflow-x-auto sticky top-0 z-10 no-scrollbar px-1">
+            {sortedMessages.map((message, index) => (
+              <TabsTrigger
+                key={message._id}
+                value={message._id}
+                className="flex-shrink-0 min-w-[100px]"
+              >
+                {showModelNames
+                  ? message.model?.split(":")[1] || message.model
+                  : `Model ${index + 1}`}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          {sortedMessages.map((message, index) => {
+            const sessionState =
+              comparisonGroup?.sessionsByMessageId[message._id] ?? null;
+            const modelName =
+              message.model?.split(":")[1] ||
+              message.model ||
+              `Model ${index + 1}`;
+            const isStopping =
+              !!sessionState?.sessionId &&
+              stoppingSessionIds.includes(sessionState.sessionId);
+
+            return (
+              <TabsContent
+                key={message._id}
+                value={message._id}
+                className="flex-1"
+              >
+                <ComparisonPanel
+                  message={message}
+                  index={index}
+                  showModelName={showModelNames}
+                  showStats={showStats}
+                  onVote={() => void submitVote("winner", message._id)}
+                  isVoted={displayVote?.winnerMessageId === message._id}
+                  hasVoted={!!displayVote}
+                  duration={generationDurations[index]}
+                  showVoteControls={!hideVoteControls && allTerminal}
+                  canStop={isSessionStoppable(sessionState?.status)}
+                  isStopping={
+                    isStopping || isSessionStopping(sessionState?.status)
+                  }
+                  onStop={() => void stopSession(message._id)}
+                  stopLabel={modelName}
+                />
+              </TabsContent>
+            );
+          })}
+        </Tabs>
+
+        {renderFooter(true)}
 
         <ConsolidateDialog
           open={showConsolidateDialog}
           comparisonGroupId={comparisonGroupId}
           messages={sortedMessages}
-          onConfirm={handleConsolidate}
+          onConfirm={(model, mode) => void handleConsolidate(model, mode)}
           onClose={() => setShowConsolidateDialog(false)}
         />
       </div>
     );
   }
 
-  // Desktop: Side-by-side grid
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
+    <div className="flex flex-col h-full" data-testid="comparison-view">
       <div className="flex items-center justify-between p-3 border-b">
         <div className="flex items-center gap-3">
           {!hideConsolidateButton && (
@@ -279,44 +551,10 @@ export function ComparisonView({
           )}
         </div>
         <div className="flex items-center gap-2 ml-auto">
-          {!hideConsolidateButton && (
-            <>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setSyncEnabled(!syncEnabled)}
-              >
-                Toggle Sync
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={onToggleModelNames}
-                className="gap-2"
-              >
-                {showModelNames ? (
-                  <>
-                    <EyeOff className="w-4 h-4" />
-                    Hide Names
-                  </>
-                ) : (
-                  <>
-                    <Eye className="w-4 h-4" />
-                    Show Names
-                  </>
-                )}
-              </Button>
-            </>
-          )}
-          {onExit && (
-            <Button size="icon" variant="ghost" onClick={onExit}>
-              <X className="w-4 h-4" />
-            </Button>
-          )}
+          {renderHeaderActions()}
         </div>
       </div>
 
-      {/* Grid */}
       <div
         className={cn(
           "flex-1 grid gap-4 p-4 overflow-hidden",
@@ -325,65 +563,46 @@ export function ComparisonView({
           assistantMessages.length === 4 && "grid-cols-2 lg:grid-cols-4",
         )}
       >
-        {sortedMessages.map((msg, idx) => (
-          <ComparisonPanel
-            key={msg._id}
-            ref={register}
-            message={msg}
-            index={idx}
-            showModelName={showModelNames}
-            showStats={showStats}
-            onVote={() => handleVote(msg._id, idx)}
-            isVoted={votedMessageId === msg._id}
-            hasVoted={votedMessageId !== undefined}
-            duration={generationDurations[idx]}
-          />
-        ))}
+        {sortedMessages.map((message, index) => {
+          const sessionState =
+            comparisonGroup?.sessionsByMessageId[message._id] ?? null;
+          const modelName =
+            message.model?.split(":")[1] ||
+            message.model ||
+            `Model ${index + 1}`;
+          const isStopping =
+            !!sessionState?.sessionId &&
+            stoppingSessionIds.includes(sessionState.sessionId);
+
+          return (
+            <ComparisonPanel
+              key={message._id}
+              ref={register}
+              message={message}
+              index={index}
+              showModelName={showModelNames}
+              showStats={showStats}
+              onVote={() => void submitVote("winner", message._id)}
+              isVoted={displayVote?.winnerMessageId === message._id}
+              hasVoted={!!displayVote}
+              duration={generationDurations[index]}
+              showVoteControls={!hideVoteControls && allTerminal}
+              canStop={isSessionStoppable(sessionState?.status)}
+              isStopping={isStopping || isSessionStopping(sessionState?.status)}
+              onStop={() => void stopSession(message._id)}
+              stopLabel={modelName}
+            />
+          );
+        })}
       </div>
 
-      {/* Footer */}
-      <div className="flex items-center justify-between p-3 border-t">
-        {showStats && (
-          <div className="space-y-1">
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-medium">Total Cost:</span>
-              <span className="font-mono text-lg">${totalCost.toFixed(4)}</span>
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {totalInputTokens.toLocaleString()} input +{" "}
-              {totalOutputTokens.toLocaleString()} output tokens
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Avg response:{" "}
-              {formatDuration(
-                generationDurations.filter((d) => d !== null).length > 0
-                  ? generationDurations
-                      .filter((d) => d !== null)
-                      .reduce((a, b) => a! + b!, 0)! /
-                      generationDurations.filter((d) => d !== null).length
-                  : null,
-              )}
-            </div>
-          </div>
-        )}
-
-        {allComplete && !hideConsolidateButton && (
-          <Button
-            onClick={() => setShowConsolidateDialog(true)}
-            variant="secondary"
-            className={!showStats ? "ml-auto" : ""}
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            Consolidate Responses
-          </Button>
-        )}
-      </div>
+      {renderFooter(false)}
 
       <ConsolidateDialog
         open={showConsolidateDialog}
         comparisonGroupId={comparisonGroupId}
         messages={sortedMessages}
-        onConfirm={handleConsolidate}
+        onConfirm={(model, mode) => void handleConsolidate(model, mode)}
         onClose={() => setShowConsolidateDialog(false)}
       />
     </div>

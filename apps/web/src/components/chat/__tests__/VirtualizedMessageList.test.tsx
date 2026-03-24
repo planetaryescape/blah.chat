@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const comparisonViewMock = vi.fn();
+
 vi.mock("convex/react", () => ({
   useQuery: vi.fn(() => null),
 }));
@@ -66,7 +68,14 @@ vi.mock("../ChatMessage", () => ({
 }));
 
 vi.mock("../ComparisonView", () => ({
-  ComparisonView: () => <div data-testid="comparison-view" />,
+  ComparisonView: (props: { assistantMessages: Array<{ _id: string }> }) => {
+    comparisonViewMock(props);
+    return (
+      <div data-testid="comparison-view">
+        comparison-count-{props.assistantMessages.length}
+      </div>
+    );
+  },
 }));
 
 vi.mock("../DateSeparator", () => ({
@@ -138,5 +147,61 @@ describe("VirtualizedMessageList", () => {
     expect(
       screen.queryByText("Inactive branch answer"),
     ).not.toBeInTheDocument();
+  });
+
+  it("keeps inactive comparison siblings visible inside the comparison group", () => {
+    render(
+      <VirtualizedMessageList
+        conversationId={"conv-123" as Id<"conversations">}
+        messages={[
+          {
+            ...baseMessage,
+            _id: "msg-user" as Id<"messages">,
+            role: "user",
+            content: "Compare these",
+            status: "complete",
+            comparisonGroupId: "cmp_1",
+            isActiveBranch: true,
+          },
+          {
+            ...baseMessage,
+            _id: "msg-active" as Id<"messages">,
+            role: "assistant",
+            content: "Active model",
+            status: "complete",
+            comparisonGroupId: "cmp_1",
+            createdAt: now + 1,
+            updatedAt: now + 1,
+            _creationTime: now + 1,
+            isActiveBranch: true,
+          },
+          {
+            ...baseMessage,
+            _id: "msg-inactive" as Id<"messages">,
+            role: "assistant",
+            content: "Inactive model",
+            status: "stopped",
+            comparisonGroupId: "cmp_1",
+            createdAt: now + 2,
+            updatedAt: now + 2,
+            _creationTime: now + 2,
+            isActiveBranch: false,
+          },
+        ]}
+        showModelNames={false}
+      />,
+    );
+
+    expect(screen.getByTestId("comparison-view")).toHaveTextContent(
+      "comparison-count-2",
+    );
+    expect(comparisonViewMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assistantMessages: expect.arrayContaining([
+          expect.objectContaining({ _id: "msg-active" }),
+          expect.objectContaining({ _id: "msg-inactive" }),
+        ]),
+      }),
+    );
   });
 });

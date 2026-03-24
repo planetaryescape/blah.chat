@@ -173,8 +173,8 @@ export default function RootLayout({
       <body
         className={`${syne.variable} ${manrope.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
-        <ConvexClerkProvider>
-          <QueryProvider>
+        <QueryProvider>
+          <ConvexClerkProvider>
             <ThemeProvider
               attribute="class"
               defaultTheme="dark"
@@ -191,8 +191,8 @@ export default function RootLayout({
                 </TooltipProvider>
               </MotionProvider>
             </ThemeProvider>
-          </QueryProvider>
-        </ConvexClerkProvider>
+          </ConvexClerkProvider>
+        </QueryProvider>
       </body>
     </html>
   );

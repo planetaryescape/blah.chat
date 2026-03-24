@@ -676,7 +676,7 @@ export const ChatInput = memo(function ChatInput({
     });
     // useEffectEvent callbacks intentionally omitted; this should only rerun on conversation changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationId, isComparisonMode, syncCursorPosition]);
+  }, [conversationId, syncCursorPosition]);
 
   useEffect(() => {
     window.dispatchEvent(new CustomEvent("chat-composer-resize"));

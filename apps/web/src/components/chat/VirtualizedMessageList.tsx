@@ -35,7 +35,10 @@ interface VirtualizedMessageListProps {
   messages: MessageWithUser[];
   conversationId: Id<"conversations">;
   conversation?: MessageConversationContext | null;
-  onVote?: (winnerId: string, rating: string) => void;
+  onVote?: (
+    winnerId: string | undefined,
+    outcome: "winner" | "tie" | "both_bad",
+  ) => void | Promise<void>;
   onConsolidate?: (model: string, mode: "same-chat" | "new-chat") => void;
   onToggleModelNames?: () => void;
   showModelNames: boolean;
@@ -74,7 +77,9 @@ export function VirtualizedMessageList({
     () =>
       messages.filter(
         (message) =>
-          !("isActiveBranch" in message) || message.isActiveBranch !== false,
+          !!message.comparisonGroupId ||
+          !("isActiveBranch" in message) ||
+          message.isActiveBranch !== false,
       ),
     [messages],
   );
@@ -402,7 +407,10 @@ interface MessageItemContentProps {
   isCollaborative?: boolean;
   showModelNames: boolean;
   showMessageStats: boolean;
-  onVote?: (winnerId: string, rating: string) => void;
+  onVote?: (
+    winnerId: string | undefined,
+    outcome: "winner" | "tie" | "both_bad",
+  ) => void | Promise<void>;
   onConsolidate?: (model: string, mode: "same-chat" | "new-chat") => void;
   onToggleModelNames?: () => void;
   conversation?: MessageConversationContext | null;

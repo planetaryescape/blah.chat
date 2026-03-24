@@ -1,7 +1,9 @@
 "use client";
 
+import { Loader2, Square } from "lucide-react";
 import { forwardRef } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { MarkdownContent } from "./MarkdownContent";
 import { VotingControls } from "./VotingControls";
 
@@ -26,6 +28,11 @@ interface ComparisonPanelProps {
   isVoted?: boolean;
   hasVoted?: boolean;
   duration?: number | null;
+  showVoteControls?: boolean;
+  canStop?: boolean;
+  isStopping?: boolean;
+  onStop?: () => void;
+  stopLabel?: string;
 }
 
 export const ComparisonPanel = forwardRef<HTMLDivElement, ComparisonPanelProps>(
@@ -39,6 +46,11 @@ export const ComparisonPanel = forwardRef<HTMLDivElement, ComparisonPanelProps>(
       isVoted,
       hasVoted,
       duration,
+      showVoteControls,
+      canStop,
+      isStopping,
+      onStop,
+      stopLabel,
     },
     ref,
   ) => {
@@ -60,11 +72,29 @@ export const ComparisonPanel = forwardRef<HTMLDivElement, ComparisonPanelProps>(
       >
         {/* Header */}
         <div className="flex flex-col items-start gap-2 p-3 border-b bg-muted/30">
-          <div>
-            {showModelName ? (
-              <Badge variant="secondary">{modelName}</Badge>
-            ) : (
-              <Badge variant="outline">Model {index + 1}</Badge>
+          <div className="flex items-start justify-between gap-2 w-full">
+            <div>
+              {showModelName ? (
+                <Badge variant="secondary">{modelName}</Badge>
+              ) : (
+                <Badge variant="outline">Model {index + 1}</Badge>
+              )}
+            </div>
+            {(canStop || isStopping) && onStop && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={onStop}
+                disabled={isStopping}
+                aria-label={`Stop ${stopLabel || modelName || `model ${index + 1}`}`}
+                data-testid="comparison-stop-session"
+              >
+                {isStopping ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Square className="w-4 h-4 fill-current" />
+                )}
+              </Button>
             )}
           </div>
           {showStats && (
@@ -103,13 +133,13 @@ export const ComparisonPanel = forwardRef<HTMLDivElement, ComparisonPanelProps>(
         </div>
 
         {/* Footer - Voting */}
-        {message.status === "complete" && (
+        {message.status === "complete" && showVoteControls && (
           <div className="p-3 border-t">
             <VotingControls
               onVote={onVote}
               isVoted={isVoted}
               hasVoted={hasVoted}
-              label="This is better"
+              label="Choose winner"
             />
           </div>
         )}

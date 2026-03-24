@@ -1,6 +1,6 @@
 "use client";
 
-import { MODEL_CONFIG } from "@blah-chat/ai/models";
+import { isAutoModel, MODEL_CONFIG } from "@blah-chat/ai/models";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,7 +43,9 @@ export function ConsolidateDialog({
   onConfirm,
   onClose,
 }: ConsolidateDialogProps) {
-  const availableModels = Object.values(MODEL_CONFIG).filter((m) => !m.isLocal);
+  const availableModels = Object.values(MODEL_CONFIG).filter(
+    (model) => !model.isLocal && !isAutoModel(model.id),
+  );
   const [selectedModel, setSelectedModel] = useState<string>(
     availableModels[0]?.id || "",
   );

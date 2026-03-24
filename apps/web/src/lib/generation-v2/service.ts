@@ -303,11 +303,15 @@ export class GenerationV2Service {
   }
 
   async stop(requestId: string) {
+    await this.repository.markRequestCancelling(requestId);
+    await this.repository.markRequestSessionsCancelling(requestId);
     await this.store.setCancelled(requestId, true);
     await this.store.setRequestStatus(requestId, "cancelling");
   }
 
   async stopSession(requestId: string, sessionId: string) {
+    await this.repository.markRequestCancelling(requestId);
+    await this.repository.markSessionCancelling(sessionId);
     await this.store.setSessionCancelled(sessionId, true);
     await this.store.setRequestStatus(requestId, "cancelling");
   }
@@ -318,16 +322,46 @@ export class GenerationV2Service {
     send: (event: string, data: unknown) => Promise<void>,
   ) {
     let cursor = -1;
+    let replayedCanonical = false;
+    let lastCanonicalReplayAtMs = 0;
+    const highestSeqBySession = new Map<string, number>();
+
+    const emitIfNew = async (event: GenerationEvent) => {
+      const highestSeq = highestSeqBySession.get(event.sessionId) ?? -1;
+      if (event.seq <= highestSeq) {
+        return;
+      }
+      highestSeqBySession.set(event.sessionId, event.seq);
+      await send("generation", event);
+    };
 
     while (!signal.aborted) {
       const { events, nextCursor } = await this.store.read(requestId, cursor);
       cursor = nextCursor;
 
       for (const event of events) {
-        await send("generation", event);
+        await emitIfNew(event);
       }
 
-      const status = await this.store.getRequestStatus(requestId);
+      const redisStatus = await this.store.getRequestStatus(requestId);
+      let status = redisStatus;
+      const currentTimeMs = Date.now();
+      const shouldReplayCanonical =
+        !redisStatus &&
+        events.length === 0 &&
+        (!replayedCanonical || currentTimeMs - lastCanonicalReplayAtMs >= 250);
+      if (shouldReplayCanonical) {
+        const replay = await this.repository.getRequestStreamReplay(requestId);
+        if (replay) {
+          for (const event of this.buildCanonicalReplayEvents(replay)) {
+            await emitIfNew(event);
+          }
+          status ??= replay.requestStatus;
+        }
+        replayedCanonical = true;
+        lastCanonicalReplayAtMs = currentTimeMs;
+      }
+
       if (status && terminalStatuses.has(status)) {
         break;
       }
@@ -699,6 +733,7 @@ export class GenerationV2Service {
               session.sessionId,
               session.assistantMessageId,
               resolvedModelId,
+              accumulated,
               sequence,
               sessionStartedAt,
               firstTokenAt,
@@ -840,6 +875,113 @@ export class GenerationV2Service {
     }
   }
 
+  private buildCanonicalReplayEvents(
+    input: NonNullable<
+      Awaited<
+        ReturnType<
+          ReturnType<
+            typeof createGenerationV2Repository
+          >["getRequestStreamReplay"]
+        >
+      >
+    >,
+  ) {
+    const events: GenerationEvent[] = [];
+
+    for (const session of input.sessions) {
+      const checkpoint = session.latestCheckpoint;
+      const message = session.assistantMessage;
+      const checkpointContent = checkpoint?.content ?? "";
+      const canonicalContent = message?.content ?? "";
+      const replayContent = checkpointContent || canonicalContent;
+      const checkpointSeq = checkpoint?.sequence ?? 0;
+
+      if (
+        ["pending", "running", "cancelling"].includes(session.status) &&
+        replayContent
+      ) {
+        events.push({
+          requestId: input.requestId,
+          sessionId: session.sessionId,
+          assistantMessageId: session.assistantMessageId,
+          modelId: session.modelId,
+          seq: checkpointSeq,
+          ts: message?.updatedAt ?? checkpoint?.createdAt ?? this.now(),
+          type: "checkpoint",
+          content: replayContent,
+        });
+        continue;
+      }
+
+      if (session.status === "complete") {
+        events.push({
+          requestId: input.requestId,
+          sessionId: session.sessionId,
+          assistantMessageId: session.assistantMessageId,
+          modelId: session.modelId,
+          seq: checkpoint ? checkpointSeq + 1 : 0,
+          ts: message?.updatedAt ?? checkpoint?.createdAt ?? this.now(),
+          type: "complete",
+          content: canonicalContent,
+        });
+        continue;
+      }
+
+      if (session.status === "cancelled") {
+        if (replayContent) {
+          events.push({
+            requestId: input.requestId,
+            sessionId: session.sessionId,
+            assistantMessageId: session.assistantMessageId,
+            modelId: session.modelId,
+            seq: checkpointSeq,
+            ts: message?.updatedAt ?? checkpoint?.createdAt ?? this.now(),
+            type: "checkpoint",
+            content: replayContent,
+          });
+        }
+        events.push({
+          requestId: input.requestId,
+          sessionId: session.sessionId,
+          assistantMessageId: session.assistantMessageId,
+          modelId: session.modelId,
+          seq: checkpointSeq + 1,
+          ts: message?.updatedAt ?? checkpoint?.createdAt ?? this.now(),
+          type: "cancelled",
+          reason: "stop_requested",
+        });
+        continue;
+      }
+
+      if (session.status === "error") {
+        if (replayContent) {
+          events.push({
+            requestId: input.requestId,
+            sessionId: session.sessionId,
+            assistantMessageId: session.assistantMessageId,
+            modelId: session.modelId,
+            seq: checkpointSeq,
+            ts: message?.updatedAt ?? checkpoint?.createdAt ?? this.now(),
+            type: "checkpoint",
+            content: replayContent,
+          });
+        }
+        events.push({
+          requestId: input.requestId,
+          sessionId: session.sessionId,
+          assistantMessageId: session.assistantMessageId,
+          modelId: session.modelId,
+          seq: checkpointSeq + 1,
+          ts: message?.updatedAt ?? checkpoint?.createdAt ?? this.now(),
+          type: "error",
+          error: "Generation failed",
+        });
+      }
+    }
+
+    return events;
+  }
+
   private async checkpoint(
     requestId: string,
     session: {
@@ -849,7 +991,7 @@ export class GenerationV2Service {
     },
     content: string,
     sequence: number,
-    status: "streaming" | "complete" = "streaming",
+    status: "streaming" | "complete" | "cancelled" = "streaming",
   ) {
     await this.repository.updateAssistantMessage({
       assistantMessageId: session.assistantMessageId,
@@ -880,10 +1022,31 @@ export class GenerationV2Service {
     sessionId: string,
     assistantMessageId: string,
     modelId: string,
+    content: string,
     sequence: number,
     sessionStartedAt: number,
     firstTokenAt: number | null,
   ) {
+    if (content) {
+      await this.checkpoint(
+        requestId,
+        {
+          sessionId,
+          assistantMessageId,
+          modelId,
+        },
+        content,
+        sequence++,
+        "cancelled",
+      );
+    } else {
+      await this.repository.updateAssistantMessage({
+        assistantMessageId,
+        content,
+        status: "cancelled",
+      });
+    }
+
     await this.repository.updateSessionStatus(sessionId, "cancelled");
     const cancelledAt = this.now();
     await this.repository.upsertRoutingOutcome({
@@ -899,11 +1062,6 @@ export class GenerationV2Service {
       metadata: {
         reason: "stop_requested",
       },
-    });
-    await this.repository.updateAssistantMessage({
-      assistantMessageId,
-      content: "",
-      status: "cancelled",
     });
 
     await this.emit(requestId, {

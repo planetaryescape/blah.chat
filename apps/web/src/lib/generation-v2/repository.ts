@@ -913,6 +913,46 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         .where(eq(generationSessions.id, sessionId));
     },
 
+    async markRequestCancelling(requestId: string) {
+      await db
+        .update(generationRequests)
+        .set({
+          status: "cancelling",
+          updatedAt: now(),
+        })
+        .where(eq(generationRequests.id, requestId));
+    },
+
+    async markRequestSessionsCancelling(requestId: string) {
+      await db
+        .update(generationSessions)
+        .set({
+          status: "cancelling",
+          updatedAt: now(),
+        })
+        .where(
+          and(
+            eq(generationSessions.requestId, requestId),
+            sql`${generationSessions.status} not in ('complete', 'cancelled', 'error')`,
+          ),
+        );
+    },
+
+    async markSessionCancelling(sessionId: string) {
+      await db
+        .update(generationSessions)
+        .set({
+          status: "cancelling",
+          updatedAt: now(),
+        })
+        .where(
+          and(
+            eq(generationSessions.id, sessionId),
+            sql`${generationSessions.status} not in ('complete', 'cancelled', 'error')`,
+          ),
+        );
+    },
+
     async updateSessionModel(input: {
       sessionId: string;
       assistantMessageId: string;
@@ -1370,6 +1410,62 @@ export function createGenerationV2Repository(db: PersistenceDb) {
       });
     },
 
+    async getRequestStreamReplay(requestId: string) {
+      const request = await db.query.generationRequests.findFirst({
+        where: eq(generationRequests.id, requestId),
+      });
+      if (!request) {
+        return null;
+      }
+
+      const sessions = await db.query.generationSessions.findMany({
+        where: eq(generationSessions.requestId, requestId),
+        orderBy: (table, { asc: orderAsc }) => [orderAsc(table.createdAt)],
+      });
+      if (sessions.length === 0) {
+        return {
+          requestId,
+          requestStatus: request.status,
+          sessions: [],
+        };
+      }
+
+      const assistantMessages = await db.query.messages.findMany({
+        where: inArray(
+          messages.id,
+          sessions.map((session) => session.assistantMessageId),
+        ),
+      });
+      const assistantMessageById = new Map(
+        assistantMessages.map((message) => [message.id, message]),
+      );
+
+      const latestCheckpoints = await Promise.all(
+        sessions.map((session) =>
+          db.query.generationCheckpoints.findFirst({
+            where: eq(generationCheckpoints.sessionId, session.id),
+            orderBy: (table, { desc: orderDesc }) => [
+              orderDesc(table.sequence),
+            ],
+          }),
+        ),
+      );
+
+      return {
+        requestId,
+        requestStatus: request.status,
+        sessions: sessions.map((session, index) => ({
+          sessionId: session.id,
+          assistantMessageId: session.assistantMessageId,
+          modelId: session.modelId,
+          status: session.status,
+          assistantMessage:
+            assistantMessageById.get(session.assistantMessageId) ?? null,
+          latestCheckpoint: latestCheckpoints[index] ?? null,
+        })),
+      };
+    },
+
     async refreshRequestStatus(requestId: string) {
       const sessions = await db.query.generationSessions.findMany({
         where: eq(generationSessions.requestId, requestId),
@@ -1392,6 +1488,8 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         )
       ) {
         status = "complete";
+      } else if (statuses.some((value) => value === "cancelling")) {
+        status = "cancelling";
       } else if (statuses.every((value) => value === "pending")) {
         status = "pending";
       }

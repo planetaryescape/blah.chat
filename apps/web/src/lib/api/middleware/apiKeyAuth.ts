@@ -9,6 +9,7 @@ export type ApiKeyAuthContext = {
   apiKey: string;
   user: {
     userId: string;
+    clerkId: string;
     email: string;
     name: string;
   };
@@ -54,6 +55,7 @@ export function withApiKeyAuth(handler: ApiKeyAuthenticatedHandler) {
         { key: apiKey },
       )) as {
         userId: string;
+        clerkId: string;
         email: string;
         name: string;
       } | null;
@@ -69,6 +71,7 @@ export function withApiKeyAuth(handler: ApiKeyAuthenticatedHandler) {
         apiKey,
         user: {
           userId: user.userId,
+          clerkId: user.clerkId,
           email: user.email,
           name: user.name,
         },

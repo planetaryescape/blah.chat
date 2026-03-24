@@ -50,10 +50,14 @@ export function ChatView(props: ChatViewProps) {
   const [httpMessages, setHttpMessages] = createSignal<Message[] | null>(null);
   const [draftValue, setDraftValue] = createSignal("");
   const [draftModel, setDraftModel] = createSignal<string | null>(null);
+  const [activeRequestId, setActiveRequestId] = createSignal<string | null>(
+    null,
+  );
 
-  // Subscribe to messages (WebSocket, for real-time updates)
+  // Subscribe to CLI generation-v2 messages.
   const { data: wsMessages, error: messagesError } = useMessages(
     () => props.conversationId,
+    activeRequestId,
   );
 
   // Use WebSocket data when available, fall back to HTTP-loaded messages
@@ -69,6 +73,7 @@ export function ChatView(props: ChatViewProps) {
     try {
       const client = requireClient();
       const apiKey = requireApiKey();
+      setActiveRequestId(null);
       const [conv, msgs] = await Promise.all([
         getConversation(client, apiKey, convId),
         listMessages(client, apiKey, convId),
@@ -131,11 +136,12 @@ export function ChatView(props: ChatViewProps) {
     try {
       const client = requireClient();
       const apiKey = requireApiKey();
-      await sendMessage(client, apiKey, {
+      const result = await sendMessage(client, apiKey, {
         conversationId: props.conversationId,
         content,
         modelId: draftModel() ?? conversation()?.model ?? undefined,
       });
+      setActiveRequestId(result.requestId);
       clearChatDraft(props.conversationId);
       setDraftValue("");
       setDraftModel(conversation()?.model ?? null);

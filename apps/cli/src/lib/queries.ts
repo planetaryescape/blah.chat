@@ -2,19 +2,23 @@
  * API client query wrappers for CLI.
  */
 
-import type { BlahClient } from "@blah-chat/api-client";
-import type { Conversation, Message, Model } from "@blah-chat/api-client/rpc";
+import type {
+  ActiveGeneration,
+  BlahClient,
+  Conversation,
+  Message,
+  Model,
+} from "@blah-chat/api-client";
 import {
   getConversation as getConversationRpc,
   getUserDefaultModel as getUserDefaultModelRpc,
   listConversations as listConversationsRpc,
-  listMessages as listMessagesRpc,
   listModels as listModelsRpc,
   searchConversations as searchConversationsRpc,
 } from "@blah-chat/api-client/rpc";
 import type { Id } from "./types.js";
 
-export type { Conversation, Message, Model };
+export type { ActiveGeneration, Conversation, Message, Model };
 
 export interface ListConversationsOptions {
   limit?: number;
@@ -43,10 +47,18 @@ export async function getConversation(
 
 export async function listMessages(
   client: BlahClient,
-  apiKey: string,
+  _apiKey: string,
   conversationId: Id<"conversations">,
 ): Promise<Message[] | null> {
-  return listMessagesRpc(client, apiKey, conversationId);
+  return client.listCliMessages(conversationId);
+}
+
+export async function getActiveGeneration(
+  client: BlahClient,
+  _apiKey: string,
+  conversationId: Id<"conversations">,
+): Promise<ActiveGeneration | null> {
+  return client.getCliActiveGeneration(conversationId);
 }
 
 export async function listModels(

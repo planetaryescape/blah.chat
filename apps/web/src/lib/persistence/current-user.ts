@@ -8,8 +8,7 @@ export async function ensureCurrentPersistenceUser(expectedClerkId: string) {
     throw new Error("Authenticated user not found");
   }
 
-  const users = createUserRepository(getPersistenceDb());
-  return users.upsertFromClerk({
+  return ensurePersistenceUserFromIdentity({
     clerkId: user.id,
     email: user.primaryEmailAddress?.emailAddress ?? `${user.id}@clerk.local`,
     name:
@@ -18,4 +17,14 @@ export async function ensureCurrentPersistenceUser(expectedClerkId: string) {
       "Anonymous",
     imageUrl: user.imageUrl,
   });
+}
+
+export async function ensurePersistenceUserFromIdentity(input: {
+  clerkId: string;
+  email: string;
+  name: string;
+  imageUrl?: string;
+}) {
+  const users = createUserRepository(getPersistenceDb());
+  return users.upsertFromClerk(input);
 }

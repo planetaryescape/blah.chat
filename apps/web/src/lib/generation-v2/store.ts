@@ -33,9 +33,15 @@ export class UpstashGenerationEventStore implements GenerationEventStore {
 
   async read(requestId: string, cursor = -1) {
     const key = generationEventListKey(requestId);
-    const raw = await this.redis.lrange<string>(key, cursor + 1, -1);
+    const raw = await this.redis.lrange<GenerationEvent | string>(
+      key,
+      cursor + 1,
+      -1,
+    );
     const events = raw.map((value) =>
-      generationEventSchema.parse(JSON.parse(value)),
+      generationEventSchema.parse(
+        typeof value === "string" ? JSON.parse(value) : value,
+      ),
     );
     return {
       events,

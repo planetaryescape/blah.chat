@@ -1,11 +1,12 @@
 import {
-  createNeonDatabase,
+  createPersistenceDatabase,
+  type PersistenceDb,
   parsePersistenceEnv,
 } from "@blah-chat/persistence-postgres";
 
 declare global {
   // eslint-disable-next-line no-var
-  var __blahPersistenceDb: ReturnType<typeof createNeonDatabase> | undefined;
+  var __blahPersistenceDb: PersistenceDb | undefined;
 }
 
 export function getPersistenceDb() {
@@ -14,7 +15,7 @@ export function getPersistenceDb() {
   }
 
   const env = parsePersistenceEnv(process.env);
-  const db = createNeonDatabase(env.databaseUrl);
+  const db = createPersistenceDatabase(env.databaseUrl);
   globalThis.__blahPersistenceDb = db;
   return db;
 }

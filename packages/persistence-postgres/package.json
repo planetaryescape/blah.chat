@@ -33,11 +33,13 @@
     "@upstash/redis": "^1.35.6",
     "drizzle-orm": "^0.44.5",
     "nanoid": "^5.1.6",
+    "pg": "^8.20.0",
     "zod": "^4.2.1"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.3.14",
     "@types/node": "^25.0.10",
+    "@types/pg": "^8.20.0",
     "@vitest/coverage-v8": "^4.0.18",
     "drizzle-kit": "^0.31.5",
     "tsup": "^8.5.0",

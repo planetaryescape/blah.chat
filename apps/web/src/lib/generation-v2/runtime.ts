@@ -1,9 +1,9 @@
 import {
-  createNeonDatabase,
   createRedisClient,
   createTriggerClient,
   parsePersistenceEnv,
 } from "@blah-chat/persistence-postgres";
+import { getPersistenceDb } from "@/lib/persistence/server";
 import { AiSdkGenerationProvider } from "./provider";
 import { GenerationV2Service } from "./service";
 import { UpstashGenerationEventStore } from "./store";
@@ -19,7 +19,7 @@ export function getGenerationV2Service() {
   }
 
   const env = parsePersistenceEnv(process.env);
-  const db = createNeonDatabase(env.databaseUrl);
+  const db = getPersistenceDb();
   const redis = createRedisClient(env);
   const trigger = createTriggerClient(env);
   const store = new UpstashGenerationEventStore(redis);

@@ -3,12 +3,17 @@ import { createR2Client } from "../src/clients/r2";
 import { createAttachmentRepository } from "../src/repositories/attachments";
 import { createConversationRepository } from "../src/repositories/conversations";
 import { createMessageRepository } from "../src/repositories/messages";
+import { createTtsCacheRepository } from "../src/repositories/tts-cache";
 import { createUserRepository } from "../src/repositories/users";
 import {
   buildAttachmentObjectKey,
+  buildCodeExecutionObjectKey,
   buildDraftObjectKey,
+  buildGeneratedAttachmentObjectKey,
+  buildTtsCacheObjectKey,
   createSignedReadUrl,
   createSignedUploadUrl,
+  uploadObject,
 } from "../src/storage";
 import { createTestPersistenceDb } from "../src/testing/pglite";
 
@@ -72,6 +77,47 @@ describe("attachment storage", () => {
     );
   });
 
+  test("builds generated attachment, code execution, and TTS cache keys", () => {
+    const generatedKey = buildGeneratedAttachmentObjectKey({
+      userId: "user_1",
+      conversationId: "conv_1",
+      messageId: "msg_1",
+      fileName: "generated image.png",
+    });
+    const codeExecutionKey = buildCodeExecutionObjectKey({
+      userId: "user_1",
+      conversationId: "conv_1",
+      fileName: "plot.png",
+    });
+    const ttsKey = buildTtsCacheObjectKey({
+      hash: "hash_123",
+      format: "mp3",
+    });
+
+    expect(generatedKey).toBe(
+      "users/user_1/conversations/conv_1/messages/msg_1/generated/123e4567-e89b-12d3-a456-426614174000-generated-image.png",
+    );
+    expect(codeExecutionKey).toBe(
+      "users/user_1/conversations/conv_1/tool-outputs/code-execution/123e4567-e89b-12d3-a456-426614174000-plot.png",
+    );
+    expect(ttsKey).toBe("cache/tts/hash_123.mp3");
+  });
+
+  test("uploads bytes directly to R2", async () => {
+    const send = vi.fn().mockResolvedValue({});
+    const client = { send } as unknown as ReturnType<typeof createR2Client>;
+
+    await uploadObject({
+      client,
+      bucket: "blah-chat-prod",
+      key: "users/user_1/drafts/upload.bin",
+      body: new Uint8Array([1, 2, 3]),
+      contentType: "application/octet-stream",
+    });
+
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
   test("persists attachment metadata against a message", async () => {
     const db = await createTestPersistenceDb();
     const users = createUserRepository(db);
@@ -107,6 +153,10 @@ describe("attachment storage", () => {
       name: "report.pdf",
       mimeType: "application/pdf",
       size: 42_000,
+      metadata: {
+        prompt: "Summarize this image",
+        width: 1024,
+      },
     });
     const listed = await attachments.listByMessage({
       messageId: message.id,
@@ -114,7 +164,36 @@ describe("attachment storage", () => {
     });
 
     expect(created.bucket).toBe("blah-chat-prod");
+    expect(created.metadata).toEqual({
+      prompt: "Summarize this image",
+      width: 1024,
+    });
     expect(listed).toHaveLength(1);
     expect(listed[0]?.key).toContain("report.pdf");
+    expect(listed[0]?.metadata).toEqual({
+      prompt: "Summarize this image",
+      width: 1024,
+    });
+  });
+
+  test("stores and updates TTS cache rows", async () => {
+    const db = await createTestPersistenceDb();
+    const repo = createTtsCacheRepository(db);
+
+    const created = await repo.upsert({
+      hash: "hash_123",
+      bucket: "blah-chat-prod",
+      key: "cache/tts/hash_123.mp3",
+      text: "Hello world",
+      voice: "aura-asteria-en",
+      speed: 1,
+      format: "mp3",
+    });
+    const fetched = await repo.getByHash("hash_123");
+
+    expect(created.bucket).toBe("blah-chat-prod");
+    expect(created.key).toBe("cache/tts/hash_123.mp3");
+    expect(fetched?.hash).toBe("hash_123");
+    expect(fetched?.lastAccessedAt).toBeGreaterThanOrEqual(created.createdAt);
   });
 });

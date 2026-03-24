@@ -13,8 +13,13 @@ export const executeCode = internalAction({
     code: v.string(),
     language: v.union(v.literal("python"), v.literal("javascript")),
     timeout: v.optional(v.number()),
+    userId: v.id("users"),
+    conversationId: v.id("conversations"),
   },
-  handler: async (_ctx, { code, language, timeout = 30 }) => {
+  handler: async (
+    _ctx,
+    { code, language, timeout = 30, userId, conversationId },
+  ) => {
     try {
       // Get the app URL from environment
       const appUrl =
@@ -38,6 +43,8 @@ export const executeCode = internalAction({
           code,
           language,
           timeout: Math.min(timeout, 60),
+          userId,
+          conversationId,
         }),
       });
 

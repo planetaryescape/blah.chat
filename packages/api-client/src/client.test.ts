@@ -593,6 +593,71 @@ describe("BlahClient generation request APIs", () => {
     );
   });
 
+  it("requests signed upload urls through the REST files route", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          status: "success",
+          sys: { entity: "file.upload", id: "users/u1/conversations/c1/a.png" },
+          data: {
+            uploadUrl: "https://r2.example/upload/a.png",
+            storageId: "users/u1/conversations/c1/a.png",
+            method: "PUT",
+          },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const client = createBlahClient({
+      baseUrl: "https://example.com",
+      getAccessToken: async () => "token_123",
+      fetch: fetchMock,
+    });
+
+    const result = await (
+      client as unknown as {
+        createFileUploadUrl: (payload: {
+          conversationId?: string;
+          fileName: string;
+          contentType: string;
+        }) => Promise<{
+          uploadUrl: string;
+          storageId: string;
+          method: string;
+        }>;
+      }
+    ).createFileUploadUrl({
+      conversationId: "conv_1",
+      fileName: "a.png",
+      contentType: "image/png",
+    });
+
+    expect(result).toEqual({
+      uploadUrl: "https://r2.example/upload/a.png",
+      storageId: "users/u1/conversations/c1/a.png",
+      method: "PUT",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.com/api/v1/files/upload-url",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Bearer token_123",
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({
+          conversationId: "conv_1",
+          fileName: "a.png",
+          contentType: "image/png",
+        }),
+      }),
+    );
+  });
+
   it("starts image generation through the REST actions route", async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
       new Response(

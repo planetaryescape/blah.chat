@@ -10,6 +10,7 @@
     "./convex/_generated/api": "./convex/_generated/api.js",
     "./convex/_generated/dataModel": "./convex/_generated/dataModel.d.ts",
     "./documentExtractionPrompts": "./convex/documentExtractionPrompts.ts",
+    "./imageGenerationPrompt": "./convex/imageGenerationPrompt.ts",
     "./memoryExtractionPrompt": "./convex/memoryExtractionPrompt.ts",
     "./titleGenerationPrompt": "./convex/titleGenerationPrompt.ts",
     "./tokenCounting": "./convex/tokenCounting.ts"

@@ -59,6 +59,27 @@ export interface TaskSourceContext {
   confidence?: number;
 }
 
+export interface AttachmentMetadata {
+  width?: number;
+  height?: number;
+  duration?: number;
+  prompt?: string;
+  model?: string;
+  generationTime?: number;
+  totalTime?: number;
+  cost?: number;
+}
+
+export type UsageFeature =
+  | "chat"
+  | "notes"
+  | "tasks"
+  | "files"
+  | "memory"
+  | "smart_assistant";
+
+export type UsageOperationType = "text" | "tts" | "stt" | "image" | "embedding";
+
 export const users = pgTable("users", {
   id: text("id").primaryKey().$defaultFn(id),
   clerkId: text("clerk_id").notNull().unique(),
@@ -153,11 +174,81 @@ export const attachments = pgTable("attachments", {
   name: text("name").notNull(),
   mimeType: text("mime_type").notNull(),
   size: bigint("size", { mode: "number" }).notNull(),
+  metadata: jsonb("metadata").$type<AttachmentMetadata>(),
   extractedText: text("extracted_text"),
   extractionError: text("extraction_error"),
   extractedAt: bigint("extracted_at", { mode: "number" }),
   createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(now),
 });
+
+export const ttsCache = pgTable(
+  "tts_cache",
+  {
+    hash: text("hash").primaryKey(),
+    bucket: text("bucket").notNull(),
+    key: text("key").notNull(),
+    text: text("text").notNull(),
+    voice: text("voice").notNull(),
+    speed: doublePrecision("speed").notNull(),
+    format: text("format").notNull(),
+    createdAt: bigint("created_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+    lastAccessedAt: bigint("last_accessed_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+  },
+  (table) => ({
+    byKey: uniqueIndex("tts_cache_by_key").on(table.bucket, table.key),
+  }),
+);
+
+export const usageRecords = pgTable(
+  "usage_records",
+  {
+    id: text("id").primaryKey().$defaultFn(id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    date: text("date").notNull(),
+    model: text("model").notNull(),
+    conversationId: text("conversation_id").references(() => conversations.id, {
+      onDelete: "set null",
+    }),
+    feature: text("feature").$type<UsageFeature>(),
+    operationType: text("operation_type").$type<UsageOperationType>(),
+    inputTokens: bigint("input_tokens", { mode: "number" })
+      .notNull()
+      .default(0),
+    outputTokens: bigint("output_tokens", { mode: "number" })
+      .notNull()
+      .default(0),
+    reasoningTokens: bigint("reasoning_tokens", { mode: "number" }),
+    cost: doublePrecision("cost").notNull(),
+    messageCount: bigint("message_count", { mode: "number" })
+      .notNull()
+      .default(1),
+    isByok: boolean("is_byok"),
+    createdAt: bigint("created_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+  },
+  (table) => ({
+    byUser: index("usage_records_by_user").on(table.userId),
+    byUserDate: index("usage_records_by_user_date").on(
+      table.userId,
+      table.date,
+    ),
+    byUserDateModel: index("usage_records_by_user_date_model").on(
+      table.userId,
+      table.date,
+      table.model,
+    ),
+    byConversation: index("usage_records_by_conversation").on(
+      table.conversationId,
+    ),
+  }),
+);
 
 export const messageToolCalls = pgTable(
   "message_tool_calls",

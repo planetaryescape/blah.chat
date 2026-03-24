@@ -68,9 +68,39 @@ CREATE TABLE attachments (
   name text NOT NULL,
   mime_type text NOT NULL,
   size bigint NOT NULL,
+  metadata jsonb,
   extracted_text text,
   extraction_error text,
   extracted_at bigint,
+  created_at bigint NOT NULL
+);
+
+CREATE TABLE tts_cache (
+  hash text PRIMARY KEY,
+  bucket text NOT NULL,
+  key text NOT NULL,
+  text text NOT NULL,
+  voice text NOT NULL,
+  speed double precision NOT NULL,
+  format text NOT NULL,
+  created_at bigint NOT NULL,
+  last_accessed_at bigint NOT NULL
+);
+
+CREATE TABLE usage_records (
+  id text PRIMARY KEY,
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  date text NOT NULL,
+  model text NOT NULL,
+  conversation_id text REFERENCES conversations(id) ON DELETE SET NULL,
+  feature text,
+  operation_type text,
+  input_tokens bigint NOT NULL DEFAULT 0,
+  output_tokens bigint NOT NULL DEFAULT 0,
+  reasoning_tokens bigint,
+  cost double precision NOT NULL,
+  message_count bigint NOT NULL DEFAULT 1,
+  is_byok boolean,
   created_at bigint NOT NULL
 );
 

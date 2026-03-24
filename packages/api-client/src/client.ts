@@ -255,31 +255,38 @@ export class BlahClient {
     );
   }
 
-  async listMessages(conversationId: string): Promise<Message[]> {
-    const result = await this.client.GET(
-      "/api/v1/conversations/{id}/messages",
-      {
-        headers: await this.authHeaders("bearer"),
-        params: {
-          path: {
-            id: conversationId,
-          },
-        },
-      },
-    );
+  private async fetchMessageList(
+    path: string,
+    mode: "bearer" | "api-key",
+  ): Promise<Message[]> {
+    const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
+      method: "GET",
+      headers: await this.authHeaders(mode),
+    });
 
-    const payload = (result.data ?? result.error) as unknown;
+    const payload = (await response.json()) as unknown;
     if (!Array.isArray(payload)) {
-      throw new BlahSDKError(
-        "Malformed messages response",
-        result.response.status,
-      );
+      throw new BlahSDKError("Malformed messages response", response.status);
     }
 
     return payload.map((item) => {
       const envelope = this.toEnvelope<Message>(item);
-      return unwrapEnvelope(envelope, result.response.status);
+      return unwrapEnvelope(envelope, response.status);
     });
+  }
+
+  async listMessages(conversationId: string): Promise<Message[]> {
+    return this.fetchMessageList(
+      `/api/v1/conversations/${encodeURIComponent(conversationId)}/messages`,
+      "bearer",
+    );
+  }
+
+  async listCliMessages(conversationId: string): Promise<Message[]> {
+    return this.fetchMessageList(
+      `/api/v1/cli/conversations/${encodeURIComponent(conversationId)}/messages`,
+      "api-key",
+    );
   }
 
   async searchMessages(payload: {
@@ -613,6 +620,20 @@ export class BlahClient {
     );
   }
 
+  async sendCliMessage(
+    conversationId: string,
+    payload: Pick<SendMessagePayload, "content" | "modelId">,
+  ): Promise<GenerationRequest> {
+    return this.fetchEnvelope<GenerationRequest>(
+      `/api/v1/cli/conversations/${encodeURIComponent(conversationId)}/messages`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "api-key",
+    );
+  }
+
   async getMessage(messageId: string): Promise<Message> {
     const result = await this.client.GET("/api/v1/messages/{id}", {
       headers: await this.authHeaders("bearer"),
@@ -701,17 +722,15 @@ export class BlahClient {
     );
   }
 
-  async getActiveGeneration(
-    conversationId: string,
+  private async fetchActiveGeneration(
+    path: string,
+    mode: "bearer" | "api-key",
   ): Promise<ActiveGeneration | null> {
-    const authHeaders = await this.authHeaders("bearer");
-    const response = await this.fetchImpl(
-      `${this.baseUrl}/api/v1/conversations/${encodeURIComponent(conversationId)}/active-generation`,
-      {
-        method: "GET",
-        headers: authHeaders,
-      },
-    );
+    const authHeaders = await this.authHeaders(mode);
+    const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
+      method: "GET",
+      headers: authHeaders,
+    });
 
     if (response.status === 404) {
       return null;
@@ -722,55 +741,67 @@ export class BlahClient {
     return unwrapEnvelope(envelope, response.status);
   }
 
+  async getActiveGeneration(
+    conversationId: string,
+  ): Promise<ActiveGeneration | null> {
+    return this.fetchActiveGeneration(
+      `/api/v1/conversations/${encodeURIComponent(conversationId)}/active-generation`,
+      "bearer",
+    );
+  }
+
+  async getCliActiveGeneration(
+    conversationId: string,
+  ): Promise<ActiveGeneration | null> {
+    return this.fetchActiveGeneration(
+      `/api/v1/cli/conversations/${encodeURIComponent(conversationId)}/active-generation`,
+      "api-key",
+    );
+  }
+
+  private streamGenerationWithMode(
+    path: string,
+    mode: "bearer" | "api-key",
+    options: SSEStreamOptions = {},
+  ): AsyncGenerator<SSEEvent<GenerationStreamEvent>, void, undefined> {
+    return streamSSE<GenerationStreamEvent>(`${this.baseUrl}${path}`, {
+      ...options,
+      headers: {
+        ...(this.options.headers || {}),
+        ...(options.headers || {}),
+      },
+      fetch: async (input, init) => {
+        const authHeaders = await this.authHeaders(mode);
+        return this.fetchImpl(input, {
+          ...init,
+          headers: {
+            ...(init?.headers || {}),
+            ...authHeaders,
+          },
+        });
+      },
+    });
+  }
+
   streamGeneration(
     requestId: string,
     options: SSEStreamOptions = {},
   ): AsyncGenerator<SSEEvent<GenerationStreamEvent>, void, undefined> {
-    return streamSSE<GenerationStreamEvent>(
-      `${this.baseUrl}/api/v1/generations/${encodeURIComponent(requestId)}/stream`,
-      {
-        ...options,
-        headers: {
-          ...(this.options.headers || {}),
-          ...(options.headers || {}),
-        },
-        fetch: async (input, init) => {
-          const authHeaders = await this.authHeaders("bearer");
-          return this.fetchImpl(input, {
-            ...init,
-            headers: {
-              ...(init?.headers || {}),
-              ...authHeaders,
-            },
-          });
-        },
-      },
+    return this.streamGenerationWithMode(
+      `/api/v1/generations/${encodeURIComponent(requestId)}/stream`,
+      "bearer",
+      options,
     );
   }
 
-  streamCliMessages(
-    conversationId: string,
+  streamCliGeneration(
+    requestId: string,
     options: SSEStreamOptions = {},
-  ): AsyncGenerator<SSEEvent<{ messages: Message[] }>, void, undefined> {
-    return streamSSE<{ messages: Message[] }>(
-      `${this.baseUrl}/api/v1/cli/messages/stream/${conversationId}`,
-      {
-        ...options,
-        headers: {
-          ...(this.options.headers || {}),
-          ...(options.headers || {}),
-        },
-        fetch: async (input, init) => {
-          const authHeaders = await this.authHeaders("api-key");
-          return this.fetchImpl(input, {
-            ...init,
-            headers: {
-              ...(init?.headers || {}),
-              ...authHeaders,
-            },
-          });
-        },
-      },
+  ): AsyncGenerator<SSEEvent<GenerationStreamEvent>, void, undefined> {
+    return this.streamGenerationWithMode(
+      `/api/v1/cli/generations/${encodeURIComponent(requestId)}/stream`,
+      "api-key",
+      options,
     );
   }
 }

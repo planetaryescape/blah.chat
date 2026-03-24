@@ -206,6 +206,7 @@ export const validate = query({
 
     return {
       userId: user._id,
+      clerkId: user.clerkId,
       email: user.email,
       name: user.name,
     };

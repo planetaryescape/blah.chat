@@ -2,6 +2,82 @@ import { describe, expect, it, vi } from "vitest";
 import { createBlahClient } from "./client";
 
 describe("BlahClient generation request APIs", () => {
+  it("sends CLI messages through the Postgres generation request route", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          status: "success",
+          sys: {
+            entity: "generationRequest",
+            id: "req_cli_1",
+          },
+          data: {
+            requestId: "req_cli_1",
+            conversationId: "conv_cli_1",
+            userMessageId: "msg_user_cli_1",
+            assistantMessageIds: ["msg_assistant_cli_1"],
+            modelIds: ["openai:gpt-5-mini"],
+            streamUrl: "/api/v1/cli/generations/req_cli_1/stream",
+            stopUrl: "/api/v1/generations/req_cli_1/stop",
+            status: "pending",
+          },
+        }),
+        {
+          status: 202,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const client = createBlahClient({
+      baseUrl: "https://example.com",
+      apiKey: "blah_cli_token",
+      fetch: fetchMock,
+    });
+
+    const result = await (
+      client as unknown as {
+        sendCliMessage: (
+          conversationId: string,
+          payload: { content: string; modelId?: string },
+        ) => Promise<{
+          requestId: string;
+          conversationId: string;
+          streamUrl: string;
+        }>;
+      }
+    ).sendCliMessage("conv_cli_1", {
+      content: "Hello from CLI",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    expect(result).toEqual({
+      requestId: "req_cli_1",
+      conversationId: "conv_cli_1",
+      userMessageId: "msg_user_cli_1",
+      assistantMessageIds: ["msg_assistant_cli_1"],
+      modelIds: ["openai:gpt-5-mini"],
+      streamUrl: "/api/v1/cli/generations/req_cli_1/stream",
+      stopUrl: "/api/v1/generations/req_cli_1/stop",
+      status: "pending",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.com/api/v1/cli/conversations/conv_cli_1/messages",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Bearer blah_cli_token",
+          "x-api-key": "blah_cli_token",
+        }),
+        body: JSON.stringify({
+          content: "Hello from CLI",
+          modelId: "openai:gpt-5-mini",
+        }),
+      }),
+    );
+  });
+
   it("sends messages through the generation request envelope", async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
       new Response(
@@ -95,6 +171,65 @@ describe("BlahClient generation request APIs", () => {
         method: "GET",
         headers: expect.objectContaining({
           Authorization: "Bearer token_123",
+        }),
+      }),
+    );
+  });
+
+  it("reads CLI active generation through the Postgres route", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          status: "success",
+          sys: {
+            entity: "generation",
+            id: "req_cli_1",
+          },
+          data: {
+            conversationId: "conv_cli_1",
+            requestId: "req_cli_1",
+            streamUrl: "/api/v1/cli/generations/req_cli_1/stream",
+            status: "cancelling",
+          },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const client = createBlahClient({
+      baseUrl: "https://example.com",
+      apiKey: "blah_cli_token",
+      fetch: fetchMock,
+    });
+
+    const result = await (
+      client as unknown as {
+        getCliActiveGeneration: (conversationId: string) => Promise<{
+          requestId: string | null;
+          streamUrl: string | null;
+          status: string | null;
+          conversationId: string;
+        } | null>;
+      }
+    ).getCliActiveGeneration("conv_cli_1");
+
+    expect(result).toEqual({
+      conversationId: "conv_cli_1",
+      requestId: "req_cli_1",
+      streamUrl: "/api/v1/cli/generations/req_cli_1/stream",
+      status: "cancelling",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.com/api/v1/cli/conversations/conv_cli_1/active-generation",
+      expect.objectContaining({
+        method: "GET",
+        headers: expect.objectContaining({
+          Authorization: "Bearer blah_cli_token",
+          "x-api-key": "blah_cli_token",
         }),
       }),
     );
@@ -713,5 +848,62 @@ describe("BlahClient generation request APIs", () => {
       event: "generation",
       data: generationEvent,
     });
+  });
+
+  it("streams CLI generation SSE events from a request stream", async () => {
+    const generationEvent = {
+      type: "checkpoint",
+      requestId: "req_cli_1",
+      sessionId: "sess_cli_1",
+      assistantMessageId: "msg_assistant_cli_1",
+      modelId: "openai:gpt-5-mini",
+      seq: 2,
+      ts: 456,
+      content: "Hello from CLI",
+    };
+
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(
+        `event: generation\ndata: ${JSON.stringify(generationEvent)}\n\n`,
+        {
+          status: 200,
+          headers: { "Content-Type": "text/event-stream" },
+        },
+      ),
+    );
+
+    const client = createBlahClient({
+      baseUrl: "https://example.com",
+      apiKey: "blah_cli_token",
+      fetch: fetchMock,
+    });
+
+    const iterator = (
+      client as unknown as {
+        streamCliGeneration: (
+          requestId: string,
+        ) => AsyncGenerator<{ data: unknown; event: string }, void, undefined>;
+      }
+    ).streamCliGeneration("req_cli_1");
+
+    const next = await iterator.next();
+
+    expect(next.done).toBe(false);
+    expect(next.value).toEqual({
+      event: "generation",
+      data: generationEvent,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.com/api/v1/cli/generations/req_cli_1/stream",
+      expect.objectContaining({
+        method: "GET",
+        headers: expect.objectContaining({
+          Accept: "text/event-stream",
+          Authorization: "Bearer blah_cli_token",
+          "x-api-key": "blah_cli_token",
+        }),
+      }),
+    );
   });
 });

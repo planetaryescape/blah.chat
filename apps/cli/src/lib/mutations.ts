@@ -2,7 +2,7 @@
  * API client mutation wrappers for CLI.
  */
 
-import type { BlahClient } from "@blah-chat/api-client";
+import type { BlahClient, GenerationRequest } from "@blah-chat/api-client";
 import type { Id } from "./types.js";
 
 export interface SendMessageArgs {
@@ -11,9 +11,12 @@ export interface SendMessageArgs {
   modelId?: string;
 }
 
-export interface SendMessageResult {
+export type SendMessageResult = GenerationRequest & {
+  requestId: Id<"generationRequests">;
+  conversationId: Id<"conversations">;
   userMessageId: Id<"messages">;
-}
+  assistantMessageIds: Id<"messages">[];
+};
 
 export interface CreateConversationArgs {
   title?: string;
@@ -29,11 +32,10 @@ export async function sendMessage(
   _apiKey: string,
   args: SendMessageArgs,
 ): Promise<SendMessageResult> {
-  return client.cliRpc("sendMessage", {
-    conversationId: args.conversationId,
+  return client.sendCliMessage(args.conversationId, {
     content: args.content,
     modelId: args.modelId,
-  });
+  }) as Promise<SendMessageResult>;
 }
 
 export async function createConversation(

@@ -31,8 +31,8 @@ Execution rules:
 
 Execution status:
 
-- Complete: 5 / 17 phases
-- In progress: 7 / 17 phases
+- Complete: 6 / 17 phases
+- In progress: 6 / 17 phases
 - Not started: 5 / 17 phases
 
 Phase status snapshot:
@@ -44,7 +44,7 @@ Phase status snapshot:
 | 03 | Complete | Audited on `codex/postgres-rewrite`: missing rewrite tables, indexes, PGlite bootstrap, and generated Drizzle migration artifacts are now present and test-validated |
 | 04 | Complete | Audited on `codex/postgres-rewrite`: Clerk-only auth + JIT Postgres user creation now works across conversations, preferences, webhook sync, and the user DAL; only the isolated non-`v1` legacy callback remains on Convex auth by design |
 | 05 | In progress | Audited REST coverage is now green for create/get/update/delete/archive/pin/star plus branch edit/regenerate/delete/switch flows; remaining parity work is narrower follow-up surface audit |
-| 06 | In progress | Chat attachment upload/read path moved to R2 + Postgres; other blob flows still pending |
+| 06 | Complete | Live blob flows now write/read through R2 + Postgres across chat attachments, generated images, code-exec images, web TTS cache, and mobile upload/STT paths; remaining legacy Convex blob modules are cold cleanup for phase 16 |
 | 07 | Complete | Audited on `codex/postgres-rewrite`: single-model generation now has durable Redis→Postgres resume fallback, durable stop semantics that preserve partial assistant text, and CLI chat send/resume/stream cut over to API-key Postgres generation-v2 routes |
 | 08 | In progress | Backend comparison runtime exists; more UI/app-surface parity still pending |
 | 09 | In progress | Web send/replay now preserves branch context + client ids, refresh can discover active requests, the shared SDK now exposes request-stream APIs, and mobile HTTP mode can resume/stream generation events; durable offline replay parity and broader mobile surface audit still remain |

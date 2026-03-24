@@ -60,23 +60,25 @@ export const bookmarksDAL = {
 
     let created: Array<{ id: string; messageId: string }> = [];
     if (toInsert.length > 0) {
-      created = await db
-        .insert(bookmarks)
-        .values(
-          toInsert.map((row) => ({
-            userId: user.id,
-            messageId: row.messageId,
-            conversationId: row.conversationId,
-            note: validated.note,
-            tags: validated.tags ?? [],
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-          })),
-        )
-        .returning({
-          id: bookmarks.id,
-          messageId: bookmarks.messageId,
-        });
+      created = (
+        await db
+          .insert(bookmarks)
+          .values(
+            toInsert.map((row) => ({
+              userId: user.id,
+              messageId: row.messageId,
+              conversationId: row.conversationId,
+              note: validated.note,
+              tags: validated.tags ?? [],
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+            })),
+          )
+          .returning()
+      ).map((bookmark) => ({
+        id: bookmark.id,
+        messageId: bookmark.messageId,
+      }));
     }
 
     const bookmarkIds = ownedMessages.flatMap((row) => {

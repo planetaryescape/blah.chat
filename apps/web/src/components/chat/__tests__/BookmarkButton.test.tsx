@@ -27,8 +27,8 @@ import { BookmarkButton } from "../BookmarkButton";
 
 describe("BookmarkButton", () => {
   const defaultProps = {
-    messageId: "msg-123" as Id<"messages">,
-    conversationId: "conv-123" as Id<"conversations">,
+    messageId: "msg123" as Id<"messages">,
+    conversationId: "conv123" as Id<"conversations">,
   };
 
   beforeEach(() => {
@@ -62,5 +62,16 @@ describe("BookmarkButton", () => {
     expect(screen.getByText(/add bookmark/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/note/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/tags/i)).toBeInTheDocument();
+  });
+
+  it("does not render for postgres rewrite ids", () => {
+    render(
+      <BookmarkButton
+        messageId="Xjtnpfv9cM_HkeEKc9OjL"
+        conversationId="WRBHYWzRJwMeRigUQqMnq"
+      />,
+    );
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 });

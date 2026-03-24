@@ -18,6 +18,7 @@ import { useConversationActions } from "@/hooks/useConversationActions";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useNewChat } from "@/hooks/useNewChat";
 import { createActionItems } from "@/lib/command-palette-actions";
+import { getConvexConversationIdFromPath } from "@/lib/utils/chatRouteIds";
 import { DeleteConversationDialog } from "./sidebar/DeleteConversationDialog";
 import { RenameDialog } from "./sidebar/RenameDialog";
 
@@ -42,9 +43,9 @@ export function CommandPalette() {
   const { startNewChat } = useNewChat();
   const features = useFeatureToggles();
 
-  const conversationId = pathname?.startsWith("/chat/")
-    ? (pathname.split("/")[2] as Id<"conversations">)
-    : null;
+  const conversationId =
+    (getConvexConversationIdFromPath(pathname) as Id<"conversations"> | null) ??
+    null;
 
   const currentConversation = useQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)

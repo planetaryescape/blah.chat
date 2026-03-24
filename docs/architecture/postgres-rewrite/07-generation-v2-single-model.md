@@ -1,6 +1,7 @@
 # Phase 7: Generation V2 Single Model
 
-Status: in progress as of March 16, 2026.
+Status: complete as of March 24, 2026.
+
 Implemented:
 - Postgres-backed `generation_request` + `generation_session` creation
 - Redis-backed event log
@@ -10,9 +11,16 @@ Implemented:
 - targeted Vitest coverage for complete/stop flows
 - main web chat read/send/stop loop moved onto the new REST + SSE path
 - active streaming UI no longer uses `useStreamBuffer`
-Still pending for full phase closure:
-- complete non-primary app-surface migration to the new generation runtime
-- finish broader cutover and production hardening for the single-model path
+- Postgres-backed resume fallback when Redis live state is absent
+- durable `cancelling` stop intent in Postgres without DB polling in the hot loop
+- canonical stopped-message preservation with final checkpoint replay
+- CLI chat send/list/active-generation/request-stream cut over to the generation-v2 runtime via API-key routes
+
+Phase close notes:
+
+- Mobile/offline parity remained in phase 9 as planned.
+- Comparison mode remained phase 8 scope.
+- Old CLI Convex chat RPC and legacy CLI message SSE route remain intentionally undeleted until phase 16.
 
 ## Goal
 
@@ -94,17 +102,19 @@ Worker path:
 
 ## Verification
 
-- measure TTFT
-- measure visible tokens/sec
-- refresh during generation
-- stop during generation
-- finish and reload completed message
+- targeted runtime tests cover refresh during generation with Redis-empty replay
+- targeted runtime tests cover stop during generation with canonical partial-text replay after reconnect
+- route/auth tests cover create/stream/stop plus owner isolation on generation routes
+- API-key CLI route tests cover send, active-generation discovery, and request-stream resume
+- shared SDK tests cover CLI generation request envelope, active-generation lookup, and request-stream consumption
+- CLI typecheck is green after request-stream cutover
 
 ## Done Criteria
 
 - single-model generation feels materially faster
 - stop works without per-chunk DB reads
 - resume is reliable
+- primary web and CLI single-model chat surfaces are on the new runtime
 
 ## What Comes Next
 

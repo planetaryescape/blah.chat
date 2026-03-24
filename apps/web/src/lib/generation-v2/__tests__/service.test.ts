@@ -993,6 +993,363 @@ export const greet = (name: string) => \`hi \${name}\`;
     expect(events.events.at(-1)?.type).toBe("cancelled");
   });
 
+  it("replays the latest Postgres checkpoint when the live event log is unavailable", async () => {
+    const db = await createTestPersistenceDb();
+    const conversations = createConversationRepository(db);
+    const writeStore = new MemoryGenerationEventStore();
+    const service = new GenerationV2Service(
+      db,
+      writeStore,
+      new FakeGenerationProvider({
+        "openai:gpt-5-mini": ["Hello", " world"],
+      }),
+      async () => {},
+      (() => {
+        let time = 8_000;
+        return () => {
+          time += 250;
+          return time;
+        };
+      })(),
+    );
+
+    const user = await service.repository.upsertUser({
+      clerkId: "user_resume_checkpoint",
+      email: "resume-checkpoint@example.com",
+      name: "Resume Checkpoint User",
+    });
+    const conversation = await conversations.create({
+      userId: user.id,
+      title: "Resume checkpoint",
+      model: "openai:gpt-5-mini",
+    });
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_resume_checkpoint",
+        email: "resume-checkpoint@example.com",
+        name: "Resume Checkpoint User",
+      },
+      conversationId: conversation.id,
+      content: "Resume me",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    const bundle = await service.repository.getRequestBundle(started.requestId);
+    const session = bundle?.sessions[0];
+    expect(session).toBeTruthy();
+
+    await service.repository.updateRequestStatus(started.requestId, "running");
+    await service.repository.updateSessionStatus(session!.sessionId, "running");
+    await service.repository.updateAssistantMessage({
+      assistantMessageId: session!.assistantMessageId,
+      content: "partial checkpoint",
+      status: "streaming",
+    });
+    await service.repository.insertCheckpoint({
+      sessionId: session!.sessionId,
+      content: "partial checkpoint",
+      sequence: 7,
+    });
+
+    const replayService = new GenerationV2Service(
+      db,
+      new MemoryGenerationEventStore(),
+      new FakeGenerationProvider({}),
+      async () => {},
+      () => 9_999,
+    );
+    const sent: Array<{ event: string; data: unknown }> = [];
+    const abortController = new AbortController();
+
+    await replayService.streamToSse(
+      started.requestId,
+      abortController.signal,
+      async (event, data) => {
+        sent.push({ event, data });
+        abortController.abort();
+      },
+    );
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toEqual({
+      event: "generation",
+      data: expect.objectContaining({
+        type: "checkpoint",
+        requestId: started.requestId,
+        sessionId: session!.sessionId,
+        assistantMessageId: session!.assistantMessageId,
+        modelId: "openai:gpt-5-mini",
+        content: "partial checkpoint",
+      }),
+    });
+  });
+
+  it("persists cancelling intent before a stopped request finishes", async () => {
+    const db = await createTestPersistenceDb();
+    const conversations = createConversationRepository(db);
+    const service = new GenerationV2Service(
+      db,
+      new MemoryGenerationEventStore(),
+      new FakeGenerationProvider({}),
+      async () => {},
+    );
+
+    const user = await service.repository.upsertUser({
+      clerkId: "user_durable_stop",
+      email: "durable-stop@example.com",
+      name: "Durable Stop User",
+    });
+    const conversation = await conversations.create({
+      userId: user.id,
+      title: "Durable stop",
+      model: "openai:gpt-5-mini",
+    });
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_durable_stop",
+        email: "durable-stop@example.com",
+        name: "Durable Stop User",
+      },
+      conversationId: conversation.id,
+      content: "Stop me",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    await service.stop(started.requestId);
+
+    const replay = await service.repository.getRequestStreamReplay(
+      started.requestId,
+    );
+
+    expect(replay?.requestStatus).toBe("cancelling");
+    expect(replay?.sessions.map((session) => session.status)).toEqual([
+      "cancelling",
+    ]);
+  });
+
+  it("preserves partial assistant content and checkpoints when a request is stopped", async () => {
+    const db = await createTestPersistenceDb();
+    const conversations = createConversationRepository(db);
+    const store = new MemoryGenerationEventStore();
+    const service = new GenerationV2Service(
+      db,
+      store,
+      new StoppableGenerationProvider(),
+      async (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    );
+
+    const user = await service.repository.upsertUser({
+      clerkId: "user_stop_partial",
+      email: "stop-partial@example.com",
+      name: "Stop Partial User",
+    });
+    const conversation = await conversations.create({
+      userId: user.id,
+      title: "Stop partial",
+      model: "openai:gpt-5-mini",
+    });
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_stop_partial",
+        email: "stop-partial@example.com",
+        name: "Stop Partial User",
+      },
+      conversationId: conversation.id,
+      content: "Say hi",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    const bundle = await service.repository.getRequestBundle(started.requestId);
+    const session = bundle?.sessions[0];
+    expect(session).toBeTruthy();
+
+    const processing = service.process(started.requestId);
+    await service.stop(started.requestId);
+    await processing;
+
+    const assistants = await service.repository.getAssistantMessagesForRequest(
+      started.requestId,
+    );
+    const checkpoints = await service.repository.listCheckpoints(
+      session!.sessionId,
+    );
+
+    expect(assistants[0]).toMatchObject({
+      id: session!.assistantMessageId,
+      status: "cancelled",
+      content: "hello ",
+    });
+    expect(checkpoints.at(-1)).toMatchObject({
+      sessionId: session!.sessionId,
+      content: "hello ",
+    });
+  });
+
+  it("replays stopped partial content from canonical state after reconnect", async () => {
+    const db = await createTestPersistenceDb();
+    const conversations = createConversationRepository(db);
+    const store = new MemoryGenerationEventStore();
+    const service = new GenerationV2Service(
+      db,
+      store,
+      new StoppableGenerationProvider(),
+      async (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    );
+
+    const user = await service.repository.upsertUser({
+      clerkId: "user_stop_replay",
+      email: "stop-replay@example.com",
+      name: "Stop Replay User",
+    });
+    const conversation = await conversations.create({
+      userId: user.id,
+      title: "Stop replay",
+      model: "openai:gpt-5-mini",
+    });
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_stop_replay",
+        email: "stop-replay@example.com",
+        name: "Stop Replay User",
+      },
+      conversationId: conversation.id,
+      content: "Say hi",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    const processing = service.process(started.requestId);
+    await service.stop(started.requestId);
+    await processing;
+
+    const replayService = new GenerationV2Service(
+      db,
+      new MemoryGenerationEventStore(),
+      new FakeGenerationProvider({}),
+      async () => {},
+      () => 9_999,
+    );
+    const sent: Array<{ event: string; data: unknown }> = [];
+    const abortController = new AbortController();
+
+    await replayService.streamToSse(
+      started.requestId,
+      abortController.signal,
+      async (event, data) => {
+        sent.push({ event, data });
+        if (
+          typeof data === "object" &&
+          data &&
+          "type" in data &&
+          data.type === "cancelled"
+        ) {
+          abortController.abort();
+        }
+      },
+    );
+
+    expect(sent).toHaveLength(2);
+    expect(sent[0]).toEqual({
+      event: "generation",
+      data: expect.objectContaining({
+        type: "checkpoint",
+        requestId: started.requestId,
+        content: "hello ",
+      }),
+    });
+    expect(sent[1]).toEqual({
+      event: "generation",
+      data: expect.objectContaining({
+        type: "cancelled",
+        requestId: started.requestId,
+      }),
+    });
+  });
+
+  it("reaches terminal cancelled state via canonical fallback when Redis stays unavailable", async () => {
+    const db = await createTestPersistenceDb();
+    const conversations = createConversationRepository(db);
+    const service = new GenerationV2Service(
+      db,
+      new MemoryGenerationEventStore(),
+      new StoppableGenerationProvider(),
+      async (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    );
+
+    const user = await service.repository.upsertUser({
+      clerkId: "user_stop_terminal_replay",
+      email: "stop-terminal-replay@example.com",
+      name: "Stop Terminal Replay User",
+    });
+    const conversation = await conversations.create({
+      userId: user.id,
+      title: "Stop terminal replay",
+      model: "openai:gpt-5-mini",
+    });
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_stop_terminal_replay",
+        email: "stop-terminal-replay@example.com",
+        name: "Stop Terminal Replay User",
+      },
+      conversationId: conversation.id,
+      content: "Say hi",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    const replayService = new GenerationV2Service(
+      db,
+      new MemoryGenerationEventStore(),
+      new FakeGenerationProvider({}),
+      async (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+      () => 9_999,
+    );
+    const sent: Array<{ event: string; data: unknown }> = [];
+    const abortController = new AbortController();
+
+    const processing = service.process(started.requestId);
+    await service.stop(started.requestId);
+
+    const streamPromise = replayService.streamToSse(
+      started.requestId,
+      abortController.signal,
+      async (event, data) => {
+        sent.push({ event, data });
+        if (
+          typeof data === "object" &&
+          data &&
+          "type" in data &&
+          data.type === "cancelled"
+        ) {
+          abortController.abort();
+        }
+      },
+    );
+
+    await processing;
+
+    const completion = await Promise.race([
+      streamPromise.then(() => "done"),
+      new Promise((resolve) => setTimeout(() => resolve("timeout"), 1200)),
+    ]);
+
+    expect(completion).toBe("done");
+    expect(
+      sent.some((entry) => {
+        return (
+          typeof entry.data === "object" &&
+          entry.data !== null &&
+          "type" in entry.data &&
+          entry.data.type === "cancelled"
+        );
+      }),
+    ).toBe(true);
+  });
+
   it("creates sibling assistant sessions for comparison mode and completes all of them", async () => {
     const db = await createTestPersistenceDb();
     const conversations = createConversationRepository(db);

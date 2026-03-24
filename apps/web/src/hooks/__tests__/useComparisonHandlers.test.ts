@@ -45,12 +45,12 @@ describe("useComparisonHandlers", () => {
     );
 
     await act(async () => {
-      await result.current.handleVote("msg_1", "left_better");
+      await result.current.handleVote("msg_1", "winner");
     });
 
     expect(mockPost).toHaveBeenCalledWith("/api/v1/comparisons/cmp_1/vote", {
       winnerMessageId: "msg_1",
-      rating: "left_better",
+      outcome: "winner",
     });
   });
 

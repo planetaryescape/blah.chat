@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { useApiClient } from "@/lib/api/client";
 
-type VoteRating = "left_better" | "right_better" | "tie" | "both_bad";
+type VoteOutcome = "winner" | "tie" | "both_bad";
 type ConsolidationMode = "same-chat" | "new-chat";
 
 interface ComparisonMessage {
@@ -20,7 +20,10 @@ interface UseComparisonHandlersOptions {
 }
 
 interface UseComparisonHandlersReturn {
-  handleVote: (winnerId: string, rating: string) => Promise<void>;
+  handleVote: (
+    winnerId: string | undefined,
+    outcome: VoteOutcome,
+  ) => Promise<void>;
   handleConsolidate: (model: string, mode: ConsolidationMode) => Promise<void>;
 }
 
@@ -32,10 +35,12 @@ export function useComparisonHandlers({
   const apiClient = useApiClient();
 
   const handleVote = useCallback(
-    async (winnerId: string, rating: string) => {
-      const msg = messages?.find(
-        (message) => !message._optimistic && message._id === winnerId,
-      );
+    async (winnerId: string | undefined, outcome: VoteOutcome) => {
+      const msg =
+        messages?.find(
+          (message) => !message._optimistic && message._id === winnerId,
+        ) ?? messages?.find((message) => !!message.comparisonGroupId);
+
       if (!msg?.comparisonGroupId) {
         return;
       }
@@ -44,7 +49,7 @@ export function useComparisonHandlers({
         `/api/v1/comparisons/${msg.comparisonGroupId}/vote`,
         {
           winnerMessageId: winnerId,
-          rating: rating as VoteRating,
+          outcome,
         },
       );
     },

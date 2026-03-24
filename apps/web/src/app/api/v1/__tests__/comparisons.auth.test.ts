@@ -58,7 +58,7 @@ vi.mock("@/lib/generation-v2/runtime", () => ({
         userId: string;
         comparisonGroupId: string;
         winnerMessageId?: string | null;
-        rating: "left_better" | "right_better" | "tie" | "both_bad";
+        outcome: "winner" | "tie" | "both_bad";
       }) => repository.recordVote(input),
       getOriginalResponses: async (consolidatedMessageId: string) =>
         repository.listOriginalResponses(consolidatedMessageId),
@@ -110,7 +110,9 @@ describe("comparison auth with Clerk + Postgres", () => {
     });
   });
 
-  async function seedComparison() {
+  async function seedComparison(
+    modelIds = ["openai:gpt-5", "anthropic:claude-sonnet-4"],
+  ) {
     const repository = createGenerationV2Repository(db);
     const user = await repository.upsertUser({
       clerkId: "clerk_phase8",
@@ -132,7 +134,7 @@ describe("comparison auth with Clerk + Postgres", () => {
       },
       conversationId: conversation.id,
       content: "Compare these answers",
-      models: ["openai:gpt-5", "anthropic:claude-sonnet-4"],
+      models: modelIds,
     });
     const bundle = await repository.getRequestBundle(
       started.requestId,
@@ -216,6 +218,74 @@ describe("comparison auth with Clerk + Postgres", () => {
     expect(getTokenMock).not.toHaveBeenCalled();
   });
 
+  it("returns comparison group state with active request, child sessions, and latest vote", async () => {
+    const { comparisonGroupId, started, assistantMessages, repository, user } =
+      await seedComparison();
+
+    await repository.recordVote({
+      userId: user.id,
+      comparisonGroupId,
+      winnerMessageId: assistantMessages[1]?.id,
+      outcome: "winner",
+    });
+
+    const { GET } = await import("../comparisons/[comparisonGroupId]/route");
+    const response = await GET(
+      createMockRequest(`/api/v1/comparisons/${comparisonGroupId}`),
+      { params: Promise.resolve({ comparisonGroupId }) },
+    );
+
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    const data = unwrapData<{
+      comparisonGroupId: string;
+      requestId?: string | null;
+      status: string;
+      sessionsByMessageId: Record<
+        string,
+        { sessionId: string; modelId: string; status: string }
+      >;
+      assistantMessagesById: Record<
+        string,
+        { content?: string; status: string; model?: string | null }
+      >;
+      latestVote?: {
+        outcome: string;
+        winnerMessageId?: string | null;
+        votedAt: number;
+      } | null;
+    }>(json);
+
+    expect(data.comparisonGroupId).toBe(comparisonGroupId);
+    expect(data.requestId).toBe(started.requestId);
+    expect(data.status).toBe("pending");
+    expect(Object.keys(data.sessionsByMessageId)).toEqual(
+      assistantMessages.map((message) => message.id),
+    );
+    expect(data.sessionsByMessageId[assistantMessages[0]!.id]).toMatchObject({
+      modelId: assistantMessages[0]?.model,
+      status: "pending",
+    });
+    expect(data.assistantMessagesById).toEqual(
+      Object.fromEntries(
+        assistantMessages.map((message) => [
+          message.id,
+          {
+            status: message.status,
+            model: message.model,
+            ...(message.content ? { content: message.content } : {}),
+          },
+        ]),
+      ),
+    );
+    expect(data.latestVote).toMatchObject({
+      outcome: "winner",
+      winnerMessageId: assistantMessages[1]?.id,
+    });
+    expect(typeof data.latestVote?.votedAt).toBe("number");
+    expect(getTokenMock).not.toHaveBeenCalled();
+  });
+
   it("records a vote, starts same-chat consolidation, and lists original responses", async () => {
     const { assistantMessages, comparisonGroupId } = await seedComparison();
     const winnerMessageId = assistantMessages[0]?.id;
@@ -235,7 +305,7 @@ describe("comparison auth with Clerk + Postgres", () => {
         method: "POST",
         body: {
           winnerMessageId,
-          rating: "left_better",
+          outcome: "winner",
         },
       }),
       { params: Promise.resolve({ comparisonGroupId }) },
@@ -247,12 +317,12 @@ describe("comparison auth with Clerk + Postgres", () => {
       unwrapData<{
         comparisonGroupId: string;
         winnerMessageId?: string | null;
-        rating: string;
+        outcome: string;
       }>(voteJson),
     ).toMatchObject({
       comparisonGroupId,
       winnerMessageId,
-      rating: "left_better",
+      outcome: "winner",
     });
 
     const feedbackRows = await db
@@ -309,6 +379,103 @@ describe("comparison auth with Clerk + Postgres", () => {
       assistantMessages.map((message) => message.id),
     );
     expect(getTokenMock).not.toHaveBeenCalled();
+  });
+
+  it("records a winner for a 3-model comparison and logs one win plus two losses", async () => {
+    const { assistantMessages, comparisonGroupId } = await seedComparison([
+      "openai:gpt-5",
+      "anthropic:claude-sonnet-4",
+      "google:gemini-2.5-pro",
+    ]);
+    const winnerMessageId = assistantMessages[2]?.id;
+
+    const { POST: vote } = await import(
+      "../comparisons/[comparisonGroupId]/vote/route"
+    );
+
+    const voteResponse = await vote(
+      createMockRequest(`/api/v1/comparisons/${comparisonGroupId}/vote`, {
+        method: "POST",
+        body: {
+          winnerMessageId,
+          outcome: "winner",
+        },
+      }),
+      { params: Promise.resolve({ comparisonGroupId }) },
+    );
+
+    expect(voteResponse.status).toBe(200);
+
+    const feedbackRows = await db
+      .select()
+      .from(routingFeedback)
+      .where(eq(routingFeedback.comparisonGroupId, comparisonGroupId));
+
+    expect(feedbackRows).toHaveLength(3);
+    expect(feedbackRows.map((row) => row.signal).sort()).toEqual([
+      "loss",
+      "loss",
+      "win",
+    ]);
+    expect(
+      feedbackRows.find((row) => row.signal === "win")?.winnerMessageId,
+    ).toBe(winnerMessageId);
+  });
+
+  it("records tie outcomes for all models in routing feedback", async () => {
+    const { comparisonGroupId } = await seedComparison();
+
+    const { POST: vote } = await import(
+      "../comparisons/[comparisonGroupId]/vote/route"
+    );
+
+    const voteResponse = await vote(
+      createMockRequest(`/api/v1/comparisons/${comparisonGroupId}/vote`, {
+        method: "POST",
+        body: {
+          outcome: "tie",
+        },
+      }),
+      { params: Promise.resolve({ comparisonGroupId }) },
+    );
+
+    expect(voteResponse.status).toBe(200);
+
+    const feedbackRows = await db
+      .select()
+      .from(routingFeedback)
+      .where(eq(routingFeedback.comparisonGroupId, comparisonGroupId));
+
+    expect(feedbackRows).toHaveLength(2);
+    expect(feedbackRows.every((row) => row.signal === "tie")).toBe(true);
+  });
+
+  it("records both-bad outcomes for all models in routing feedback", async () => {
+    const { comparisonGroupId } = await seedComparison();
+
+    const { POST: vote } = await import(
+      "../comparisons/[comparisonGroupId]/vote/route"
+    );
+
+    const voteResponse = await vote(
+      createMockRequest(`/api/v1/comparisons/${comparisonGroupId}/vote`, {
+        method: "POST",
+        body: {
+          outcome: "both_bad",
+        },
+      }),
+      { params: Promise.resolve({ comparisonGroupId }) },
+    );
+
+    expect(voteResponse.status).toBe(200);
+
+    const feedbackRows = await db
+      .select()
+      .from(routingFeedback)
+      .where(eq(routingFeedback.comparisonGroupId, comparisonGroupId));
+
+    expect(feedbackRows).toHaveLength(2);
+    expect(feedbackRows.every((row) => row.signal === "both_bad")).toBe(true);
   });
 
   it("creates a new-chat consolidation conversation and exposes its seeded thread", async () => {

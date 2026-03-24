@@ -1,13 +1,16 @@
 # Phase 6: Blob Storage On R2
 
-Status: in progress as of March 16, 2026.
+Status: complete as of March 23, 2026.
 Completed work:
 - signed upload/read path implemented for chat attachments
-- attachment metadata persisted in Postgres
-- main web chat send flow now stores new attachment bytes outside Convex storage
-Still pending for full phase closure:
-- migrate remaining blob flows such as other uploads and generated media
-- remove legacy Convex storage assumptions outside the migrated chat path
+- attachment metadata persisted in Postgres, including optional media metadata
+- direct R2 write helpers and canonical object-key builders added for generated media, code-exec output, and TTS cache objects
+- Trigger `generate-image` now writes bytes to R2 and attachment metadata plus usage records to Postgres without the legacy Convex bridge
+- code-execution image output now stores directly in R2 and returns same-origin `/api/v1/files/...` URLs
+- web `/tts` now runs from the app, caches in Postgres + R2, and no longer depends on Convex storage ids
+- mobile attachment upload and mobile STT upload now request REST upload URLs and write directly to R2
+- mobile defaults to `http-sse`; forced Convex transport disables attachment/STT blob entry points instead of creating mixed storage state
+- legacy Convex blob modules remain only as cold cleanup work for phase 16
 
 ## Goal
 
@@ -73,11 +76,16 @@ R2 stores the bytes only.
 - attach to message
 - read back from signed URL
 - render in chat
+- generate assistant images and persist attachment metadata
+- render code-execution plots from R2-backed file URLs
+- synthesize TTS on miss and redirect to signed R2 reads on hit
+- upload mobile attachments and STT recordings through REST upload URLs
 
 ## Done Criteria
 
-- all new blob writes use R2
-- attachment metadata is canonical in Postgres
+- all live blob writes use R2
+- attachment and cache metadata are canonical in Postgres where metadata exists
+- no live user/runtime path depends on Convex `_storage` ids
 
 ## What Comes Next
 

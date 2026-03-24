@@ -71,54 +71,73 @@ const SEED_MODELS: ModelSeedData[] = [
     provider: "openai",
     name: "GPT-5",
     description:
-      "Flagship GPT-5 with advanced reasoning and multimodal capabilities",
-    contextWindow: 200000,
-    inputCost: 2.5,
-    outputCost: 10.0,
-    cachedInputCost: 0.25,
+      "Chat-optimized GPT-5.3 model used in ChatGPT for everyday conversations and general use.",
+    contextWindow: 128000,
+    inputCost: 1.75,
+    outputCost: 14.0,
+    cachedInputCost: 0.175,
+    capabilities: ["vision", "function-calling"],
+    actualModelId: "gpt-5.3-chat-latest",
+    knowledgeCutoff: "August 31, 2025",
+    userFriendlyDescription:
+      "Routes to GPT-5.3 Chat. Best OpenAI chat model for natural conversation, help, and general-purpose work.",
+    bestFor: "General chat, conversational UX, everyday assistance",
+    status: "active",
+  },
+  {
+    modelId: "openai:gpt-5.4-pro",
+    provider: "openai",
+    name: "GPT-5.4 Pro",
+    description:
+      "Highest-capability GPT-5.4 variant for the hardest reasoning and professional tasks.",
+    contextWindow: 1047576,
+    inputCost: 30.0,
+    outputCost: 180.0,
     capabilities: ["thinking", "vision", "function-calling"],
     reasoningConfig: JSON.stringify({
       type: "openai-reasoning-effort",
-      effortMapping: { low: "low", medium: "medium", high: "high" },
+      effortMapping: { low: "medium", medium: "high", high: "xhigh" },
       summaryLevel: "detailed",
       useResponsesAPI: true,
     }),
-    knowledgeCutoff: "April 2025",
+    knowledgeCutoff: "August 31, 2025",
     userFriendlyDescription:
-      "Most powerful GPT-5. Handles the most complex tasks with advanced reasoning, vision, and deep thinking.",
-    bestFor: "Complex reasoning, research, advanced multimodal tasks",
+      "Most capable GPT-5.4 variant. Use when quality matters more than speed or cost.",
+    bestFor: "Hardest reasoning, expert analysis, premium high-stakes work",
     status: "active",
   },
   {
     modelId: "openai:gpt-5-mini",
     provider: "openai",
     name: "GPT-5 Mini",
-    description: "Compact GPT-5 variant balancing cost and performance",
-    contextWindow: 200000,
-    inputCost: 0.15,
-    outputCost: 0.6,
-    cachedInputCost: 0.015,
-    capabilities: ["vision", "function-calling"],
-    knowledgeCutoff: "April 2025",
+    description:
+      "Fast, efficient GPT-5 model balancing reasoning quality and cost.",
+    contextWindow: 400000,
+    inputCost: 0.25,
+    outputCost: 2.0,
+    cachedInputCost: 0.025,
+    capabilities: ["thinking", "vision", "function-calling"],
+    knowledgeCutoff: "May 31, 2024",
     userFriendlyDescription:
-      "Fast and affordable. Great balance of performance and cost for everyday tasks.",
-    bestFor: "General purpose, high-volume applications, cost-conscious use",
+      "Fast and affordable. Best GPT-5 balance for everyday chat, extraction, and tool use.",
+    bestFor: "General purpose, structured output, cost-conscious high volume",
     status: "active",
   },
   {
     modelId: "openai:gpt-5-nano",
     provider: "openai",
     name: "GPT-5 Nano",
-    description: "Smallest, fastest GPT-5 variant for simple queries",
-    contextWindow: 200000,
-    inputCost: 0.04,
-    outputCost: 0.16,
-    cachedInputCost: 0.004,
-    capabilities: ["function-calling"],
-    knowledgeCutoff: "April 2025",
+    description:
+      "Smallest, fastest GPT-5 variant for cheap classification and summarization.",
+    contextWindow: 400000,
+    inputCost: 0.05,
+    outputCost: 0.4,
+    cachedInputCost: 0.005,
+    capabilities: ["thinking", "vision", "function-calling"],
+    knowledgeCutoff: "May 31, 2024",
     userFriendlyDescription:
-      "Lightning-fast and ultra-cheap. Perfect for simple questions and high-volume applications.",
-    bestFor: "Simple queries, maximum speed, ultra-low cost",
+      "Lightning-fast and ultra-cheap. Best for lightweight tool use, routing, and summarization.",
+    bestFor: "Summaries, classification, routing, ultra-low-cost tasks",
     status: "active",
   },
   // GPT-5.1 Series
@@ -745,6 +764,57 @@ const SEED_MODELS: ModelSeedData[] = [
     status: "active",
   },
   {
+    modelId: "openrouter:glm-5",
+    provider: "zai",
+    name: "GLM 5",
+    description:
+      "Z.ai flagship open-source model for complex systems design and long-horizon agent workflows.",
+    contextWindow: 80000,
+    inputCost: 0.72,
+    outputCost: 2.3,
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "z-ai/glm-5",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "Z.ai flagship for expert agent workflows. Strong at large programming tasks and autonomous execution.",
+    bestFor: "Complex coding, agentic workflows, long-horizon planning",
+    status: "active",
+  },
+  {
+    modelId: "openrouter:minimax-m2.7",
+    provider: "minimax",
+    name: "MiniMax M2.7",
+    description:
+      "Next-generation MiniMax model for autonomous productivity and multi-agent collaboration.",
+    contextWindow: 204800,
+    inputCost: 0.3,
+    outputCost: 1.2,
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "minimax/minimax-m2.7",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "Next-gen MiniMax agent. Strong at live debugging, root-cause analysis, and long workflows.",
+    bestFor: "Agentic tasks, debugging, document generation, long workflows",
+    status: "active",
+  },
+  {
+    modelId: "openrouter:minimax-m2.5-free",
+    provider: "minimax",
+    name: "MiniMax M2.5 Free",
+    description:
+      "Free MiniMax productivity model with strong coding, office-work, and planning performance.",
+    contextWindow: 196608,
+    inputCost: 0,
+    outputCost: 0,
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "minimax/minimax-m2.5:free",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "Free MiniMax model for coding and productivity tasks with optional reasoning.",
+    bestFor: "Cost-conscious coding, productivity tasks, planning",
+    status: "active",
+  },
+  {
     modelId: "openrouter:gemini-2.0-flash-exp",
     provider: "google",
     name: "Gemini 2.0 Flash Exp",
@@ -779,37 +849,51 @@ const SEED_PROFILES: Array<{
       creative: 90,
       factual: 88,
       analysis: 94,
-      conversation: 85,
+      conversation: 90,
       multimodal: 90,
       research: 80,
     },
   },
   {
-    modelId: "openai:gpt-5-mini",
-    qualityScore: 82,
+    modelId: "openai:gpt-5.4-pro",
+    qualityScore: 99,
     categoryScores: {
-      coding: 80,
-      reasoning: 75,
-      creative: 82,
-      factual: 85,
-      analysis: 78,
+      coding: 96,
+      reasoning: 99,
+      creative: 94,
+      factual: 94,
+      analysis: 99,
       conversation: 88,
-      multimodal: 80,
-      research: 70,
+      multimodal: 94,
+      research: 88,
+    },
+  },
+  {
+    modelId: "openai:gpt-5-mini",
+    qualityScore: 84,
+    categoryScores: {
+      coding: 81,
+      reasoning: 79,
+      creative: 83,
+      factual: 86,
+      analysis: 80,
+      conversation: 89,
+      multimodal: 82,
+      research: 72,
     },
   },
   {
     modelId: "openai:gpt-5-nano",
-    qualityScore: 70,
+    qualityScore: 72,
     categoryScores: {
-      coding: 65,
-      reasoning: 55,
-      creative: 70,
-      factual: 80,
-      analysis: 60,
-      conversation: 85,
-      multimodal: 50,
-      research: 55,
+      coding: 67,
+      reasoning: 60,
+      creative: 71,
+      factual: 81,
+      analysis: 63,
+      conversation: 86,
+      multimodal: 58,
+      research: 58,
     },
   },
   {
@@ -1075,10 +1159,10 @@ export const seedModels = internalMutation({
       }
     }
 
-    // Insert models
+    // Insert or update models
     let insertedModels = 0;
+    let updatedModels = 0;
     for (const model of SEED_MODELS) {
-      // Check if model already exists
       const existing = await ctx.db
         .query("models")
         .withIndex("by_modelId", (q) => q.eq("modelId", model.modelId))
@@ -1091,11 +1175,18 @@ export const seedModels = internalMutation({
           updatedAt: now,
         });
         insertedModels++;
+      } else {
+        await ctx.db.patch(existing._id, {
+          ...model,
+          updatedAt: now,
+        });
+        updatedModels++;
       }
     }
 
-    // Insert model profiles
+    // Insert or update model profiles
     let insertedProfiles = 0;
+    let updatedProfiles = 0;
     for (const profile of SEED_PROFILES) {
       const existing = await ctx.db
         .query("modelProfiles")
@@ -1110,6 +1201,13 @@ export const seedModels = internalMutation({
           updatedAt: now,
         });
         insertedProfiles++;
+      } else {
+        await ctx.db.patch(existing._id, {
+          qualityScore: profile.qualityScore,
+          categoryScores: JSON.stringify(profile.categoryScores),
+          updatedAt: now,
+        });
+        updatedProfiles++;
       }
     }
 
@@ -1126,7 +1224,9 @@ export const seedModels = internalMutation({
 
     return {
       modelsInserted: insertedModels,
+      modelsUpdated: updatedModels,
       profilesInserted: insertedProfiles,
+      profilesUpdated: updatedProfiles,
       configInserted,
       totalModels: SEED_MODELS.length,
       totalProfiles: SEED_PROFILES.length,

@@ -46,10 +46,10 @@ export const ROUTE_BINS: Record<RouteLabel, ModelBin> = {
     description: "Large documents, long conversations",
     primary: [
       "google:gemini-2.5-pro",
-      "openai:gpt-5.2",
+      "openai:gpt-5",
       "google:gemini-2.5-flash",
     ],
-    fallbacks: ["openai:gpt-5.1", "meta:llama-4-scout"],
+    fallbacks: ["openai:gpt-5.4-pro", "meta:llama-4-scout"],
     constraints: {
       requiresLongContext: true,
       minContextWindow: 128000,
@@ -70,7 +70,7 @@ export const ROUTE_BINS: Record<RouteLabel, ModelBin> = {
   creative_writing: {
     label: "creative_writing",
     description: "Stories, copy, brainstorming",
-    primary: ["anthropic:claude-sonnet-4", "openai:gpt-5.1", "openai:gpt-5.2"],
+    primary: ["anthropic:claude-sonnet-4", "openai:gpt-5", "openai:gpt-5-mini"],
     fallbacks: ["openai:gpt-5-mini", "google:gemini-2.5-pro"],
   },
 
@@ -78,7 +78,7 @@ export const ROUTE_BINS: Record<RouteLabel, ModelBin> = {
     label: "research",
     description: "Web search, fact-checking",
     primary: ["perplexity:sonar-pro", "perplexity:sonar"],
-    fallbacks: ["openai:gpt-5.1", "google:gemini-2.5-pro"],
+    fallbacks: ["openai:gpt-5", "google:gemini-2.5-pro"],
   },
 
   vision: {
@@ -86,7 +86,7 @@ export const ROUTE_BINS: Record<RouteLabel, ModelBin> = {
     description: "Image analysis, visual content",
     primary: [
       "google:gemini-2.5-pro",
-      "openai:gpt-5.1",
+      "openai:gpt-5",
       "anthropic:claude-sonnet-4",
     ],
     fallbacks: ["openai:gpt-5-mini", "google:gemini-2.5-flash"],
@@ -98,7 +98,11 @@ export const ROUTE_BINS: Record<RouteLabel, ModelBin> = {
   reasoning_complex: {
     label: "reasoning_complex",
     description: "Math, logic, high-stakes",
-    primary: ["openai:gpt-5.2", "openai:gpt-5.1", "anthropic:claude-sonnet-4"],
+    primary: [
+      "openai:gpt-5.4-pro",
+      "openai:gpt-5",
+      "anthropic:claude-sonnet-4",
+    ],
     fallbacks: ["deepseek:deepseek-r1", "google:gemini-2.5-pro"],
     constraints: {
       requiresReasoning: true,

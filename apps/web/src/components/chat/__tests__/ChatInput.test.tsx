@@ -211,4 +211,32 @@ describe("ChatInput", () => {
 
     expect(onAttachmentsChange).toHaveBeenCalledWith([]);
   });
+
+  it("does not exit comparison mode when props update after starting comparison", async () => {
+    const onExitComparison = vi.fn();
+
+    const { rerender } = render(
+      <ChatInput
+        {...defaultProps}
+        isComparisonMode={false}
+        selectedModels={[]}
+        onStartComparison={vi.fn()}
+        onExitComparison={onExitComparison}
+      />,
+    );
+
+    rerender(
+      <ChatInput
+        {...defaultProps}
+        isComparisonMode={true}
+        selectedModels={["openai:gpt-4o", "openai:gpt-4o-mini"]}
+        onStartComparison={vi.fn()}
+        onExitComparison={onExitComparison}
+      />,
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(onExitComparison).not.toHaveBeenCalled();
+  });
 });

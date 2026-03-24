@@ -44,6 +44,7 @@ export function MessageConsolidationToggle({
         size="sm"
         onClick={onToggle}
         className="gap-2 text-xs"
+        data-testid="original-responses-toggle"
       >
         <ChevronDown
           className={cn(
@@ -65,6 +66,7 @@ export function MessageConsolidationToggle({
             onConsolidate={() => {}}
             onToggleModelNames={() => {}}
             hideConsolidateButton={true}
+            hideVoteControls={true}
           />
         </div>
       )}

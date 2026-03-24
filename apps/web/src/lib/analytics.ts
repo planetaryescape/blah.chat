@@ -134,7 +134,7 @@ interface AnalyticsEvent {
     hadActiveComparison?: boolean;
   };
   comparison_voted: {
-    rating: "left_better" | "right_better" | "tie" | "both_bad";
+    outcome: "winner" | "tie" | "both_bad";
     winnerModel?: string;
     modelCount?: number;
     comparisonGroupId?: string;

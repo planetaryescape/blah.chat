@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const regenerateMutate = vi.fn();
+const useRestQueryMock = vi.fn();
 
 // Mock Convex hooks BEFORE importing component
 vi.mock("convex/react", () => ({
@@ -17,11 +18,7 @@ vi.mock("@tanstack/react-query", async () => {
 
   return {
     ...actual,
-    useQuery: vi.fn(() => ({
-      data: undefined,
-      isLoading: false,
-      error: null,
-    })),
+    useQuery: (...args: unknown[]) => useRestQueryMock(...args),
   };
 });
 
@@ -87,6 +84,25 @@ const baseMessage = {
 describe("ChatMessage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useRestQueryMock.mockImplementation(
+      (options?: { queryKey?: unknown[] }) => {
+        const queryKey = options?.queryKey ?? [];
+
+        if (queryKey[0] === "message" && queryKey[2] === "original-responses") {
+          return {
+            data: undefined,
+            isLoading: false,
+            error: null,
+          };
+        }
+
+        return {
+          data: undefined,
+          isLoading: false,
+          error: null,
+        };
+      },
+    );
   });
 
   it("renders user message content", () => {
@@ -238,5 +254,88 @@ describe("ChatMessage", () => {
     // Model name should be visible in stats
     expect(screen.getByLabelText("Assistant message")).toBeInTheDocument();
     expect(screen.getByText("Complete response")).toBeInTheDocument();
+  });
+
+  it("rehydrates original responses for a same-chat consolidated message after remount", () => {
+    const originalResponses = [
+      {
+        sys: { entity: "message", id: "msg-original-1" },
+        data: {
+          ...baseMessage,
+          _id: "msg-original-1",
+          role: "assistant" as const,
+          content: "Original answer one",
+          status: "complete" as const,
+          model: "openai:gpt-5",
+          isConsolidation: false,
+        },
+      },
+      {
+        sys: { entity: "message", id: "msg-original-2" },
+        data: {
+          ...baseMessage,
+          _id: "msg-original-2",
+          role: "assistant" as const,
+          content: "Original answer two",
+          status: "complete" as const,
+          model: "anthropic:claude-sonnet-4",
+          isConsolidation: false,
+        },
+      },
+    ];
+
+    useRestQueryMock.mockImplementation(
+      (options?: { queryKey?: unknown[] }) => {
+        const queryKey = options?.queryKey ?? [];
+
+        if (queryKey[0] === "message" && queryKey[2] === "original-responses") {
+          return {
+            data: originalResponses,
+            isLoading: false,
+            error: null,
+          };
+        }
+
+        return {
+          data: undefined,
+          isLoading: false,
+          error: null,
+        };
+      },
+    );
+
+    const message = {
+      ...baseMessage,
+      role: "assistant" as const,
+      content: "Merged answer",
+      status: "complete" as const,
+      model: "openai:gpt-5-mini",
+      isConsolidation: true,
+    };
+
+    const firstRender = render(<ChatMessage message={message} />);
+    expect(
+      screen.getByRole("button", {
+        name: /show original 2 responses/i,
+      }),
+    ).toBeInTheDocument();
+
+    firstRender.unmount();
+
+    render(<ChatMessage message={message} />);
+
+    const toggle = screen.getByRole("button", {
+      name: /show original 2 responses/i,
+    });
+    fireEvent.click(toggle);
+
+    expect(screen.getByText("Original answer one")).toBeInTheDocument();
+    expect(screen.getByText("Original answer two")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /choose winner/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /consolidate responses/i }),
+    ).not.toBeInTheDocument();
   });
 });

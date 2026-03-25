@@ -3,14 +3,13 @@
 import type { ModelConfig } from "@blah-chat/ai/models";
 import { DEFAULT_MODEL_ID } from "@blah-chat/ai/operational-models";
 import { isValidModel } from "@blah-chat/ai/utils";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import { useApiClient } from "@/lib/api/client";
 import { useUserPreference } from "./useUserPreference";
 
 interface UseChatModelOptions {
-  conversationId: Id<"conversations"> | undefined;
+  conversationId: string | undefined;
   /** Models record from database (optional - for validation) */
   models?: Record<string, ModelConfig>;
 }

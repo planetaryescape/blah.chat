@@ -1,13 +1,22 @@
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
 import { useCallback, useEffect, useState } from "react";
+import { useSDKClient } from "@/lib/api/sdkClient";
 import type { OptimisticMessage } from "@/types/optimistic";
 
-type Message = Doc<"messages"> | OptimisticMessage;
+interface ConversationLike {
+  model?: string | null;
+}
+
+interface MessageLike {
+  role: string;
+  status?: string;
+  _creationTime?: number;
+  createdAt?: number;
+}
+
+type Message = MessageLike | OptimisticMessage;
 
 interface UseModelRecommendationOptions {
-  conversation: Doc<"conversations"> | null | undefined;
+  conversation: ConversationLike | null | undefined;
   messages: Message[] | undefined;
   onModelChange: (modelId: string) => Promise<void>;
 }
@@ -26,8 +35,7 @@ export function useModelRecommendation({
   const [switchedModelId, setSwitchedModelId] = useState<string | null>(null);
   const [switchedModelAt, setSwitchedModelAt] = useState<number | null>(null);
 
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const updatePreferences = useMutation(api.users.updatePreferences);
+  const sdk = useSDKClient();
 
   // Switch to recommended model
   const handleSwitchModel = useCallback(
@@ -49,14 +57,10 @@ export function useModelRecommendation({
   const handleSetAsDefault = useCallback(async () => {
     if (!switchedModelId) return;
 
-    await updatePreferences({
-      preferences: {
-        defaultModel: switchedModelId,
-      },
-    });
+    await sdk.updatePreference("defaultModel", switchedModelId);
 
     setShowSetDefaultPrompt(false);
-  }, [switchedModelId, updatePreferences]);
+  }, [switchedModelId, sdk]);
 
   // Show set-as-default prompt after first successful generation with switched model
   useEffect(() => {
@@ -68,7 +72,8 @@ export function useModelRecommendation({
         lastMessage.role === "assistant" &&
         lastMessage.status === "complete" &&
         conversation?.model === switchedModelId &&
-        lastMessage._creationTime > switchedModelAt
+        (lastMessage as MessageLike).createdAt &&
+        ((lastMessage as MessageLike).createdAt ?? 0) > switchedModelAt
       ) {
         // Show prompt after a brief delay (2 seconds)
         const timer = setTimeout(() => {

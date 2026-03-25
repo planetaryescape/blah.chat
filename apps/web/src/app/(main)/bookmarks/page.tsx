@@ -1,7 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
 import { Bookmark, LayoutGrid, List, Search } from "lucide-react";
 import { Suspense, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -13,15 +11,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
+import { useRemoveBookmark } from "@/lib/hooks/mutations/useBookmarkMutations";
+import { useBookmarks } from "@/lib/hooks/queries/useBookmarks";
 
 export const dynamic = "force-dynamic";
 
 function BookmarksPageContent() {
-  // All hooks MUST be at the top, before any early returns
   const { showBookmarks, isLoading } = useFeatureToggles();
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const bookmarks = useQuery(api.bookmarks.list);
-  const removeBookmark = useMutation(api.bookmarks.remove);
+  const { data: bookmarks } = useBookmarks();
+  const removeBookmarkMutation = useRemoveBookmark();
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
 
@@ -30,10 +28,9 @@ function BookmarksPageContent() {
     if (!searchQuery) return bookmarks;
 
     const query = searchQuery.toLowerCase();
-    return bookmarks.filter((bookmark: any) => {
-      const messageContent = bookmark.message?.content.toLowerCase() || "";
-      const conversationTitle =
-        bookmark.conversation?.title.toLowerCase() || "";
+    return bookmarks.filter((bookmark) => {
+      const messageContent = bookmark.messagePreview?.toLowerCase() || "";
+      const conversationTitle = bookmark.conversationTitle?.toLowerCase() || "";
       const note = bookmark.note?.toLowerCase() || "";
       const tags = bookmark.tags?.join(" ").toLowerCase() || "";
 
@@ -46,14 +43,14 @@ function BookmarksPageContent() {
     });
   }, [bookmarks, searchQuery]);
 
-  // Handler defined alongside hooks (uses removeBookmark from hook)
-  const handleRemove = async (id: string) => {
-    try {
-      await removeBookmark({ bookmarkId: id as any });
-      toast.success("Bookmark removed");
-    } catch (_error) {
-      toast.error("Failed to remove bookmark");
-    }
+  const handleRemove = (id: string) => {
+    removeBookmarkMutation.mutate(
+      { bookmarkId: id },
+      {
+        onSuccess: () => toast.success("Bookmark removed"),
+        onError: () => toast.error("Failed to remove bookmark"),
+      },
+    );
   };
 
   // Show loading while preferences are being fetched

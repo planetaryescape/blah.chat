@@ -78,6 +78,58 @@ describe("BlahClient generation request APIs", () => {
     );
   });
 
+  it("fetches current user through the user/me route", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          status: "success",
+          sys: { entity: "user", id: "usr_1" },
+          data: {
+            _id: "usr_1",
+            clerkId: "clerk_123",
+            email: "test@example.com",
+            name: "Test User",
+            imageUrl: "https://example.com/avatar.png",
+            createdAt: 1000,
+            updatedAt: 2000,
+          },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const client = createBlahClient({
+      baseUrl: "https://example.com",
+      getAccessToken: async () => "token_123",
+      fetch: fetchMock,
+    });
+
+    const result = await client.getCurrentUser();
+
+    expect(result).toEqual({
+      _id: "usr_1",
+      clerkId: "clerk_123",
+      email: "test@example.com",
+      name: "Test User",
+      imageUrl: "https://example.com/avatar.png",
+      createdAt: 1000,
+      updatedAt: 2000,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.com/api/v1/user/me",
+      expect.objectContaining({
+        method: "GET",
+        headers: expect.objectContaining({
+          Authorization: "Bearer token_123",
+        }),
+      }),
+    );
+  });
+
   it("sends messages through the generation request envelope", async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
       new Response(
@@ -967,6 +1019,184 @@ describe("BlahClient generation request APIs", () => {
           Accept: "text/event-stream",
           Authorization: "Bearer blah_cli_token",
           "x-api-key": "blah_cli_token",
+        }),
+      }),
+    );
+  });
+
+  it("calls note auto-tag and share routes through bearer-auth endpoints", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            status: "success",
+            sys: { entity: "note", id: "note_1" },
+            data: {
+              appliedTags: ["react", "mobile"],
+            },
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            status: "success",
+            sys: { entity: "note", id: "note_1" },
+            data: {
+              _id: "note_1",
+              title: "Offline mobile rewrite",
+              content: "body",
+              isPinned: false,
+              tags: ["react"],
+              suggestedTags: [],
+              shareId: "share_1",
+              isPublic: true,
+              shareExpiresAt: 123,
+              createdAt: 1,
+              updatedAt: 2,
+            },
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            status: "success",
+            sys: { entity: "note", id: "note_1" },
+            data: {
+              _id: "note_1",
+              title: "Offline mobile rewrite",
+              content: "body",
+              isPinned: false,
+              tags: ["react"],
+              suggestedTags: [],
+              shareId: "share_1",
+              isPublic: false,
+              shareExpiresAt: 123,
+              createdAt: 1,
+              updatedAt: 2,
+            },
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
+      );
+
+    const client = createBlahClient({
+      baseUrl: "https://example.com",
+      getAccessToken: async () => "token_123",
+      fetch: fetchMock,
+    });
+
+    await expect(client.autoTagNote("note_1")).resolves.toEqual({
+      appliedTags: ["react", "mobile"],
+    });
+
+    await expect(
+      client.createNoteShare("note_1", {
+        password: "secret",
+        expiresIn: 7,
+      }),
+    ).resolves.toMatchObject({
+      _id: "note_1",
+      shareId: "share_1",
+      isPublic: true,
+    });
+
+    await expect(
+      client.toggleNoteShare("note_1", {
+        isActive: false,
+      }),
+    ).resolves.toMatchObject({
+      _id: "note_1",
+      isPublic: false,
+    });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "https://example.com/api/v1/notes/note_1/auto-tag",
+      expect.objectContaining({
+        method: "POST",
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "https://example.com/api/v1/notes/note_1/share",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          password: "secret",
+          expiresIn: 7,
+        }),
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      "https://example.com/api/v1/notes/note_1/share",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({
+          isActive: false,
+        }),
+      }),
+    );
+  });
+
+  it("tracks sidebar analytics through the rewrite-native route", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          status: "success",
+          sys: { entity: "analytics" },
+          data: {
+            captured: true,
+          },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const client = createBlahClient({
+      baseUrl: "https://example.com",
+      getAccessToken: async () => "token_123",
+      fetch: fetchMock,
+    });
+
+    await expect(
+      client.trackSidebarEvent(
+        "sidebar_action",
+        { action: "pin", projectId: "project_1" },
+        "conv_1",
+      ),
+    ).resolves.toEqual({
+      captured: true,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.com/api/v1/analytics/sidebar",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          event: "sidebar_action",
+          metadata: {
+            action: "pin",
+            projectId: "project_1",
+          },
+          resourceId: "conv_1",
         }),
       }),
     );

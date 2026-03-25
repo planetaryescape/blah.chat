@@ -6,8 +6,6 @@ import {
   getModelsByProvider,
   isValidModel,
 } from "@blah-chat/ai/utils";
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
 import { Clock, Pin } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -30,13 +28,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useUserPreference } from "@/hooks/useUserPreference";
+import { useSDKClient } from "@/lib/api/sdkClient";
 import { useModels } from "@/lib/models/repository";
 
 export function DefaultModelSettings() {
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const _user = useQuery(api.users.getCurrentUser);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const updatePrefs = useMutation(api.users.updatePreferences);
+  const sdk = useSDKClient();
   const hasInitialized = useRef(false);
 
   // Use models from database
@@ -67,9 +63,9 @@ export function DefaultModelSettings() {
       // Auto-save the system default
       hasInitialized.current = true;
       setSelectedModel(DEFAULT_MODEL_ID);
-      updatePrefs({ preferences: { defaultModel: DEFAULT_MODEL_ID } });
+      sdk.updatePreference("defaultModel", DEFAULT_MODEL_ID);
     }
-  }, [prefDefaultModel, updatePrefs, dbModels]);
+  }, [prefDefaultModel, sdk, dbModels]);
 
   // Sync selection mode when hook value changes
   useEffect(() => {
@@ -79,7 +75,7 @@ export function DefaultModelSettings() {
   const handleModelChange = async (modelId: string) => {
     setSelectedModel(modelId);
     try {
-      await updatePrefs({ preferences: { defaultModel: modelId } });
+      await sdk.updatePreference("defaultModel", modelId);
       toast.success("Default model updated");
     } catch {
       toast.error("Failed to update");
@@ -90,7 +86,7 @@ export function DefaultModelSettings() {
   const handleModeChange = async (mode: "fixed" | "recent") => {
     setSelectionMode(mode);
     try {
-      await updatePrefs({ preferences: { newChatModelSelection: mode } });
+      await sdk.updatePreference("newChatModelSelection", mode);
       toast.success(
         mode === "fixed"
           ? "New chats will use your default model"

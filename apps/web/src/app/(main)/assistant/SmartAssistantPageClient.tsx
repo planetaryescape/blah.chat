@@ -57,9 +57,9 @@ export default function SmartAssistantPage() {
   const [meetingDate, setMeetingDate] = useState<Date>(new Date());
 
   // Actions
-  // @ts-ignore - Type depth exceeded
   const extractFromMeeting = useAction(
-    api.ai.meetingExtraction.extractFromMeeting as any,
+    // @ts-expect-error - Type depth exceeded with 85+ Convex modules
+    api.ai.meetingExtraction.extractFromMeeting,
   );
   // @ts-ignore - Type depth exceeded
   const createTask = useMutation(api.tasks.create);

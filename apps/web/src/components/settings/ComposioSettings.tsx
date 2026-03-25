@@ -1,6 +1,6 @@
 "use client";
 
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
+import type { ComposioConnection } from "@blah-chat/api-client";
 import {
   INTEGRATION_CATEGORIES,
   INTEGRATIONS,
@@ -50,7 +50,6 @@ import {
 import { useComposioOAuth } from "@/hooks/useComposioOAuth";
 import { cn } from "@/lib/utils";
 
-type ComposioConnection = Doc<"composioConnections">;
 type StatusFilter = "all" | "connected" | "needs_attention";
 
 export function ComposioSettings() {

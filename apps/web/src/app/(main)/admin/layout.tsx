@@ -1,7 +1,6 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
-import { useConvexAuth } from "convex/react";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
@@ -13,24 +12,25 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated, isLoading } = useConvexAuth();
+  const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const { user, isLoaded: userLoaded } = useUser();
   const isAdmin =
     (user?.publicMetadata as { isAdmin?: boolean })?.isAdmin === true;
   const router = useRouter();
+  const isLoading = !authLoaded || !userLoaded;
 
   useEffect(() => {
-    if (isLoading || !userLoaded) return;
-    if (!isAuthenticated) {
+    if (isLoading) return;
+    if (!isSignedIn) {
       router.push("/sign-in");
       return;
     }
     if (!isAdmin) {
       router.push("/");
     }
-  }, [isAuthenticated, isLoading, userLoaded, isAdmin, router]);
+  }, [isSignedIn, isLoading, isAdmin, router]);
 
-  if (isLoading || !userLoaded) {
+  if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -38,7 +38,7 @@ export default function AdminLayout({
     );
   }
 
-  if (!isAuthenticated || !isAdmin) {
+  if (!isSignedIn || !isAdmin) {
     return null;
   }
 

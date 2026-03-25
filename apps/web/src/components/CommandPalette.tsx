@@ -1,9 +1,8 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import type { Conversation } from "@blah-chat/api-client";
+import { useQuery } from "@tanstack/react-query";
 import { Command } from "cmdk";
-import { useAction, useQuery } from "convex/react";
 import { Archive, Loader2, MessageSquare, Pin, Search } from "lucide-react";
 import { matchSorter } from "match-sorter";
 import { usePathname, useRouter } from "next/navigation";
@@ -17,17 +16,23 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useConversationActions } from "@/hooks/useConversationActions";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useNewChat } from "@/hooks/useNewChat";
+import { useSDKClient } from "@/lib/api/sdkClient";
 import { createActionItems } from "@/lib/command-palette-actions";
-import { getConvexConversationIdFromPath } from "@/lib/utils/chatRouteIds";
 import { DeleteConversationDialog } from "./sidebar/DeleteConversationDialog";
 import { RenameDialog } from "./sidebar/RenameDialog";
+
+function getConversationIdFromPath(
+  pathname: string | null | undefined,
+): string | null {
+  if (!pathname?.startsWith("/chat/")) return null;
+  const conversationId = pathname.split("/")[2];
+  return conversationId || null;
+}
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<Doc<"conversations">[]>(
-    [],
-  );
+  const [searchResults, setSearchResults] = useState<Conversation[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showRename, setShowRename] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
@@ -35,30 +40,32 @@ export function CommandPalette() {
   const pathname = usePathname();
   const { setTheme } = useTheme();
   const _listRef = useRef<HTMLDivElement>(null);
-  // @ts-ignore - Type depth exceeded with Convex modules
-  const conversations = useQuery(api.conversations.list, {});
-  const hybridSearchAction = useAction(
-    api.conversations.hybridSearch.hybridSearch,
-  );
+  const sdk = useSDKClient();
   const { startNewChat } = useNewChat();
   const features = useFeatureToggles();
 
-  const conversationId =
-    (getConvexConversationIdFromPath(pathname) as Id<"conversations"> | null) ??
-    null;
+  const conversationId = getConversationIdFromPath(pathname);
 
-  const currentConversation = useQuery(
-    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-    api.conversations.get,
-    conversationId ? { conversationId } : "skip",
-  );
+  const { data: conversationsList } = useQuery({
+    queryKey: ["command-palette-conversations"],
+    queryFn: async () => {
+      const result = await sdk.listConversations({ limit: 100 });
+      return result.items;
+    },
+    staleTime: 30_000,
+  });
+
+  const { data: currentConversation } = useQuery({
+    queryKey: ["conversation", conversationId],
+    enabled: !!conversationId,
+    queryFn: () => sdk.getConversationById(conversationId!),
+  });
 
   const conversationActions = useConversationActions(
-    conversationId,
+    conversationId as any,
     "command_palette",
   );
 
-  // Keyboard shortcut to open
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
@@ -70,7 +77,6 @@ export function CommandPalette() {
     return () => document.removeEventListener("keydown", down);
   }, []);
 
-  // Clear search on close
   useEffect(() => {
     if (!open) {
       setSearchQuery("");
@@ -78,7 +84,6 @@ export function CommandPalette() {
     }
   }, [open]);
 
-  // Debounced hybrid search
   useEffect(() => {
     if (!searchQuery.trim()) {
       setSearchResults([]);
@@ -88,12 +93,23 @@ export function CommandPalette() {
     const timer = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const results = await hybridSearchAction({
+        const messages = await sdk.searchMessages({
           query: searchQuery,
           limit: 20,
-          includeArchived: false,
         });
-        setSearchResults(results);
+        const seen = new Set<string>();
+        const conversationResults: Conversation[] = [];
+        for (const msg of messages) {
+          const cId = msg.conversationId;
+          if (cId && !seen.has(cId)) {
+            seen.add(cId);
+            conversationResults.push({
+              _id: cId,
+              title: msg.conversationTitle ?? undefined,
+            } as Conversation);
+          }
+        }
+        setSearchResults(conversationResults);
       } catch (error) {
         console.error("Search failed:", error);
         setSearchResults([]);
@@ -103,7 +119,7 @@ export function CommandPalette() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, hybridSearchAction]);
+  }, [searchQuery, sdk]);
 
   const handleNewChat = () => {
     startNewChat();
@@ -126,8 +142,8 @@ export function CommandPalette() {
         handleNewChat,
         handleNavigate,
         handleTheme,
-        conversationId,
-        conversation: currentConversation,
+        conversationId: conversationId as any,
+        conversation: currentConversation as any,
         onRename: () => {
           setShowRename(true);
           setOpen(false);
@@ -148,7 +164,7 @@ export function CommandPalette() {
         },
         onToggleStar: async () => {
           await conversationActions.handleToggleStar(
-            currentConversation?.starred || false,
+            (currentConversation as any)?.starred || false,
           );
           setOpen(false);
         },
@@ -184,13 +200,13 @@ export function CommandPalette() {
     if (searchQuery.trim()) {
       return { pinned: [], recent: searchResults, archived: [] };
     }
-    if (!conversations) return { pinned: [], recent: [], archived: [] };
+    if (!conversationsList) return { pinned: [], recent: [], archived: [] };
     return {
-      pinned: conversations.filter((c: any) => c.pinned && !c.archived),
-      recent: conversations.filter((c: any) => !c.pinned && !c.archived),
-      archived: conversations.filter((c: any) => c.archived),
+      pinned: conversationsList.filter((c: any) => c.pinned && !c.archived),
+      recent: conversationsList.filter((c: any) => !c.pinned && !c.archived),
+      archived: conversationsList.filter((c: any) => c.archived),
     };
-  }, [conversations, searchQuery, searchResults]);
+  }, [conversationsList, searchQuery, searchResults]);
 
   const actionsByGroup = useMemo(
     () => ({
@@ -239,7 +255,7 @@ export function CommandPalette() {
 
                 <CommandConversationGroup
                   heading="Pinned"
-                  conversations={groupedConversations.pinned}
+                  conversations={groupedConversations.pinned as any}
                   icon={Pin}
                   onSelect={handleNavigate}
                 />
@@ -250,14 +266,14 @@ export function CommandPalette() {
                       ? "Search Results"
                       : "Recent Conversations"
                   }
-                  conversations={groupedConversations.recent}
+                  conversations={groupedConversations.recent as any}
                   icon={MessageSquare}
                   onSelect={handleNavigate}
                 />
 
                 <CommandConversationGroup
                   heading="Archived"
-                  conversations={groupedConversations.archived}
+                  conversations={groupedConversations.archived as any}
                   icon={Archive}
                   onSelect={handleNavigate}
                 />
@@ -281,7 +297,7 @@ export function CommandPalette() {
       {currentConversation && (
         <>
           <RenameDialog
-            conversation={currentConversation}
+            conversation={currentConversation as any}
             open={showRename}
             onOpenChange={setShowRename}
           />
@@ -289,7 +305,7 @@ export function CommandPalette() {
             open={showDelete}
             onOpenChange={setShowDelete}
             onConfirm={conversationActions.handleDelete}
-            conversationTitle={currentConversation.title}
+            conversationTitle={currentConversation.title ?? undefined}
           />
         </>
       )}

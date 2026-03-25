@@ -1,11 +1,11 @@
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import {
-  type StarterSuggestion,
-  type StarterSuggestionsResponse,
-  VISIBLE_SUGGESTION_COUNT,
-} from "@blah-chat/shared";
-import { useAction, useQuery } from "convex/react";
+import type {
+  StarterSuggestion,
+  StarterSuggestionsResponse,
+} from "@blah-chat/api-client";
+import { VISIBLE_SUGGESTION_COUNT } from "@blah-chat/shared";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef } from "react";
+import { useSDKClient } from "@/lib/api/sdkClient";
 
 const FALLBACK_SUGGESTIONS: StarterSuggestion[] = [
   {
@@ -51,16 +51,25 @@ function getSessionCycle(): number {
 }
 
 export function useStarterSuggestions() {
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const data = useQuery((api as any).chatSuggestions.getForCurrentUser) as
-    | StarterSuggestionsResponse
-    | undefined;
+  const sdk = useSDKClient();
+  const queryClient = useQueryClient();
 
-  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
-  const refresh = useAction((api as any).chatSuggestions.refreshForCurrentUser);
+  const { data } = useQuery<StarterSuggestionsResponse>({
+    queryKey: ["starter-suggestions"],
+    queryFn: () => sdk.getStarterSuggestions(),
+    staleTime: 60_000,
+  });
+
+  const refreshMutation = useMutation({
+    mutationFn: (payload: { force?: boolean }) =>
+      sdk.refreshStarterSuggestions(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["starter-suggestions"] });
+    },
+  });
+
   const refreshKeyRef = useRef<string | null>(null);
 
-  // Stable cycle index per hook mount — incremented once in sessionStorage
   const cycleRef = useRef<number | null>(null);
   if (cycleRef.current === null) {
     cycleRef.current = getSessionCycle();
@@ -76,8 +85,8 @@ export function useStarterSuggestions() {
     if (refreshKeyRef.current === refreshKey) return;
 
     refreshKeyRef.current = refreshKey;
-    refresh({ force: false }).catch(() => {});
-  }, [data?.generatedAt, data?.needsRefresh, data?.source, refresh]);
+    refreshMutation.mutate({ force: false });
+  }, [data?.generatedAt, data?.needsRefresh, data?.source]);
 
   const pool =
     data?.suggestions && data.suggestions.length > 0

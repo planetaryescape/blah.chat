@@ -1,62 +1,31 @@
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { UserButton, useAuth } from "@clerk/nextjs";
-import { useQuery } from "convex/react";
+import { useAuth, useUser } from "@clerk/nextjs";
 import {
   Bookmark,
   CheckSquare,
   FileText,
   FolderKanban,
-  Ghost,
   Mic,
-  MoreHorizontal,
   NotebookPen,
-  Plus,
   Search,
   Settings,
-  Shield,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Logo } from "@/components/brand/Logo";
 import { NewIncognitoDialog } from "@/components/chat/NewIncognitoDialog";
-import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
-import { ProjectFilter } from "@/components/projects/ProjectFilter";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { PrefetchableLink } from "@/components/ui/prefetchable-link";
 import { Separator } from "@/components/ui/separator";
-import { ShortcutBadge } from "@/components/ui/shortcut-badge";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from "@/components/ui/sidebar";
+import { Sidebar, useSidebar } from "@/components/ui/sidebar";
 import { useListKeyboardNavigation } from "@/hooks/useListKeyboardNavigation";
 import { useNewChat } from "@/hooks/useNewChat";
 import { useRestConversationSync } from "@/hooks/useRestConversationSync";
+import { useUserPreference } from "@/hooks/useUserPreference";
 import { useBulkConversationCrud } from "@/lib/hooks/mutations/useBulkConversationCrud";
-import { cn } from "@/lib/utils";
-import { BulkActionBar } from "./BulkActionBar";
 import { BulkDeleteDialog } from "./BulkDeleteDialog";
-import { ConversationList } from "./ConversationList";
-import { ConversationListSkeleton } from "./ConversationListSkeleton";
 import { ConversationPrefetcher } from "./ConversationPrefetcher";
+import { SidebarConversationSection } from "./SidebarConversationSection";
+import { SidebarHeaderContent } from "./SidebarHeaderContent";
+import { SidebarNavigationFooter } from "./SidebarNavigationFooter";
 
 const MENU_ITEMS = [
   { icon: Search, label: "Search", href: "/search", featureKey: null },
@@ -100,7 +69,6 @@ const MENU_ITEMS = [
 ];
 
 const RECENT_CONVERSATION_CUTOFF = Date.now() - 7 * 24 * 60 * 60 * 1000;
-type SidebarMenuItemConfig = (typeof MENU_ITEMS)[number];
 type SidebarConversation = {
   _id: string;
   updatedAt: number;
@@ -120,63 +88,44 @@ interface SidebarFeatures {
 }
 
 interface SidebarBulkMutations {
-  bulkDelete: (args: {
-    conversationIds: Id<"conversations">[];
-  }) => Promise<unknown>;
-  bulkArchive: (args: {
-    conversationIds: Id<"conversations">[];
-  }) => Promise<unknown>;
-  bulkPin: (args: {
-    conversationIds: Id<"conversations">[];
-  }) => Promise<unknown>;
-  bulkUnpin: (args: {
-    conversationIds: Id<"conversations">[];
-  }) => Promise<unknown>;
-  bulkStar: (args: {
-    conversationIds: Id<"conversations">[];
-  }) => Promise<unknown>;
-  bulkUnstar: (args: {
-    conversationIds: Id<"conversations">[];
-  }) => Promise<unknown>;
+  bulkDelete: (args: { conversationIds: string[] }) => Promise<unknown>;
+  bulkArchive: (args: { conversationIds: string[] }) => Promise<unknown>;
+  bulkPin: (args: { conversationIds: string[] }) => Promise<unknown>;
+  bulkUnpin: (args: { conversationIds: string[] }) => Promise<unknown>;
+  bulkStar: (args: { conversationIds: string[] }) => Promise<unknown>;
+  bulkUnstar: (args: { conversationIds: string[] }) => Promise<unknown>;
   bulkAutoRename: (args: {
-    conversationIds: Id<"conversations">[];
+    conversationIds: string[];
   }) => Promise<Array<{ success: boolean }>>;
 }
 
 function useSidebarFeatureVisibility(isMobile: boolean) {
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const rawAdvancedSettings = useQuery(api.users.getUserPreferencesByCategory, {
-    category: "advanced",
-  });
+  const showNotes = useUserPreference("showNotes");
+  const showTemplates = useUserPreference("showTemplates");
+  const showProjects = useUserPreference("showProjects");
+  const showBookmarks = useUserPreference("showBookmarks");
+  const showTasks = useUserPreference("showTasks");
+  const showSmartAssistant = useUserPreference("showSmartAssistant");
 
   const sidebarFeatures = useMemo<SidebarFeatures>(() => {
-    const isLoading = rawAdvancedSettings === undefined;
-    const isNotAuthenticated = rawAdvancedSettings === null;
-
-    if (isLoading || isNotAuthenticated) {
-      return {
-        showNotes: false,
-        showTemplates: false,
-        showProjects: false,
-        showBookmarks: false,
-        showSlides: false,
-        showTasks: false,
-        showSmartAssistant: false,
-        isLoading: true,
-      };
-    }
-
     return {
-      showNotes: rawAdvancedSettings.showNotes ?? true,
-      showTemplates: rawAdvancedSettings.showTemplates ?? true,
-      showProjects: rawAdvancedSettings.showProjects ?? true,
-      showBookmarks: rawAdvancedSettings.showBookmarks ?? true,
-      showSlides: rawAdvancedSettings.showSlides ?? false,
-      showTasks: rawAdvancedSettings.showTasks ?? true,
-      showSmartAssistant: rawAdvancedSettings.showSmartAssistant ?? true,
+      showNotes: showNotes ?? true,
+      showTemplates: showTemplates ?? true,
+      showProjects: showProjects ?? true,
+      showBookmarks: showBookmarks ?? true,
+      showSlides: false,
+      showTasks: showTasks ?? true,
+      showSmartAssistant: showSmartAssistant ?? true,
       isLoading: false,
     };
-  }, [rawAdvancedSettings]);
+  }, [
+    showNotes,
+    showTemplates,
+    showProjects,
+    showBookmarks,
+    showTasks,
+    showSmartAssistant,
+  ]);
 
   const visibleMenuItems = useMemo(
     () =>
@@ -241,7 +190,7 @@ function useSidebarBulkActions(
   const handleBulkDelete = async () => {
     try {
       await bulkDelete({
-        conversationIds: selectedIds as Id<"conversations">[],
+        conversationIds: selectedIds as string[],
       });
       toast.success(`Deleted ${selectedIds.length} conversations`);
       setSelectedIds([]);
@@ -254,7 +203,7 @@ function useSidebarBulkActions(
   const handleBulkArchive = async () => {
     try {
       await bulkArchive({
-        conversationIds: selectedIds as Id<"conversations">[],
+        conversationIds: selectedIds as string[],
       });
       toast.success(`Archived ${selectedIds.length} conversations`);
       setSelectedIds([]);
@@ -275,12 +224,12 @@ function useSidebarBulkActions(
     try {
       if (allPinned) {
         await bulkUnpin({
-          conversationIds: selectedIds as Id<"conversations">[],
+          conversationIds: selectedIds as string[],
         });
         toast.success(`Unpinned ${selectedIds.length} conversations`);
       } else {
         await bulkPin({
-          conversationIds: selectedIds as Id<"conversations">[],
+          conversationIds: selectedIds as string[],
         });
         toast.success(`Pinned ${selectedIds.length} conversations`);
       }
@@ -302,12 +251,12 @@ function useSidebarBulkActions(
     try {
       if (allStarred) {
         await bulkUnstar({
-          conversationIds: selectedIds as Id<"conversations">[],
+          conversationIds: selectedIds as string[],
         });
         toast.success(`Unstarred ${selectedIds.length} conversations`);
       } else {
         await bulkStar({
-          conversationIds: selectedIds as Id<"conversations">[],
+          conversationIds: selectedIds as string[],
         });
         toast.success(`Starred ${selectedIds.length} conversations`);
       }
@@ -321,7 +270,7 @@ function useSidebarBulkActions(
     try {
       toast.info("Generating titles...");
       const results = await bulkAutoRename({
-        conversationIds: selectedIds as Id<"conversations">[],
+        conversationIds: selectedIds as string[],
       });
       toast.success(
         `Renamed ${results.filter((result) => result.success).length} conversations`,
@@ -351,9 +300,7 @@ export function AppSidebar() {
 
   // Local-first: Convex syncs to Dexie, reads from cache (instant)
   const { conversations: rawConversations, isLoading: conversationsLoading } =
-    useRestConversationSync(
-      (projectFilter as Id<"projects"> | "none" | undefined) || undefined,
-    );
+    useRestConversationSync((projectFilter as any) || undefined);
 
   const conversations = rawConversations;
   const bulkCrud = useBulkConversationCrud();
@@ -373,8 +320,9 @@ export function AppSidebar() {
   const { startNewChat } = useNewChat();
   const { isLoaded: isAuthLoaded } = useAuth();
 
-  // Check if current user is admin
-  const isAdmin = useQuery(api.admin.isCurrentUserAdmin);
+  const { user: clerkUser } = useUser();
+  const isAdmin =
+    (clerkUser?.publicMetadata as { isAdmin?: boolean })?.isAdmin === true;
   const { displayedItems, overflowItems, sidebarFeatures } =
     useSidebarFeatureVisibility(isMobile);
   const {
@@ -392,11 +340,11 @@ export function AppSidebar() {
     conversations as SidebarConversation[] | undefined,
     {
       bulkArchive: ({ conversationIds }) =>
-        bulkCrud.archiveMany({ conversationIds }),
+        bulkCrud.archiveMany({ conversationIds: conversationIds as any }),
       bulkAutoRename: ({ conversationIds }) =>
-        bulkCrud.autoRenameMany({ conversationIds }),
+        bulkCrud.autoRenameMany({ conversationIds: conversationIds as any }),
       bulkDelete: ({ conversationIds }) =>
-        bulkCrud.deleteMany({ conversationIds }),
+        bulkCrud.deleteMany({ conversationIds: conversationIds as any }),
       bulkPin: ({ conversationIds }) =>
         bulkCrud.setPinned(
           (conversations ?? []).filter((conversation) =>
@@ -514,307 +462,5 @@ export function AppSidebar() {
         <ConversationPrefetcher key={id} conversationId={id} />
       ))}
     </Sidebar>
-  );
-}
-
-function SidebarHeaderContent({
-  onNewChat,
-  onOpenIncognito,
-}: {
-  onNewChat: () => void;
-  onOpenIncognito: () => void;
-}) {
-  return (
-    <SidebarHeader className="pt-6 px-1.5 group-data-[collapsible=icon]:px-2">
-      <div className="flex items-center justify-between px-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
-        <PrefetchableLink
-          href="/app"
-          className="hidden group-data-[collapsible=icon]:hidden sm:block hover:opacity-80 transition-opacity"
-        >
-          <Logo size="md" />
-        </PrefetchableLink>
-        <PrefetchableLink
-          href="/app"
-          className="group-data-[collapsible=icon]:block hidden hover:opacity-80 transition-opacity"
-        >
-          <Logo size="sm" showText={false} />
-        </PrefetchableLink>
-        <div className="sm:hidden">
-          <PrefetchableLink
-            href="/app"
-            className="transition-opacity hover:opacity-80"
-          >
-            <Logo size="sm" />
-          </PrefetchableLink>
-        </div>
-      </div>
-
-      <div className="mt-4 group-data-[collapsible=icon]:hidden flex gap-2">
-        <Button
-          onClick={onNewChat}
-          className="flex-1 px-2.5 py-2.5 bg-sidebar-accent hover:bg-sidebar-accent/80 text-sidebar-foreground border border-sidebar-border shadow-sm transition-all duration-200 justify-between h-9 cursor-pointer"
-          data-tour="new-chat"
-        >
-          <span className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            New Chat
-          </span>
-          <div className="hidden sm:flex">
-            <ShortcutBadge keys={["Alt", "N"]} />
-          </div>
-        </Button>
-        <Button
-          onClick={onOpenIncognito}
-          className="p-0 transition-all duration-200 border shadow-sm cursor-pointer h-9 w-9 shrink-0 bg-sidebar-accent hover:bg-sidebar-accent/80 text-violet-400 border-sidebar-border "
-          title="New Incognito Chat (Shift+Alt+N)"
-        >
-          <Ghost className="w-4 h-4" />
-        </Button>
-      </div>
-    </SidebarHeader>
-  );
-}
-
-function SidebarConversationSection({
-  conversations,
-  conversationsLoading,
-  projectFilter,
-  selectedId,
-  selectedIds,
-  showProjects,
-  onChangeProjectFilter,
-  onClearSelection,
-  onClearBulkSelection,
-  onDeleteSelection,
-  onArchiveSelection,
-  onPinSelection,
-  onStarSelection,
-  onAutoRenameSelection,
-  onToggleSelection,
-}: {
-  conversations: any[];
-  conversationsLoading: boolean;
-  projectFilter: string | null;
-  selectedId: string | null;
-  selectedIds: string[];
-  showProjects: boolean;
-  onChangeProjectFilter: (value: string | null) => void;
-  onClearSelection: () => void;
-  onClearBulkSelection: () => void;
-  onDeleteSelection: () => void;
-  onArchiveSelection: () => void;
-  onPinSelection: () => void;
-  onStarSelection: () => void;
-  onAutoRenameSelection: () => void;
-  onToggleSelection: (id: string) => void;
-}) {
-  return (
-    <SidebarContent className="flex flex-col gap-0">
-      <SidebarGroup className="group-data-[collapsible=icon]:hidden shrink-0 py-0">
-        <SidebarGroupLabel>Conversations</SidebarGroupLabel>
-        {showProjects && (
-          <ProjectFilter
-            value={projectFilter}
-            onChange={onChangeProjectFilter}
-          />
-        )}
-      </SidebarGroup>
-
-      <div className="flex-1 min-h-0 overflow-hidden">
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden h-full pt-0">
-          <SidebarGroupContent className="h-full overflow-y-auto">
-            {conversationsLoading ? (
-              <ConversationListSkeleton />
-            ) : (
-              <>
-                {selectedIds.length > 0 && (
-                  <div className="sticky top-0 z-10 px-2 pb-2 bg-sidebar">
-                    <BulkActionBar
-                      selectedCount={selectedIds.length}
-                      onClearSelection={onClearBulkSelection}
-                      onDelete={onDeleteSelection}
-                      onArchive={onArchiveSelection}
-                      onPin={onPinSelection}
-                      onUnpin={() => {}}
-                      onStar={onStarSelection}
-                      onUnstar={() => {}}
-                      onAutoRename={onAutoRenameSelection}
-                      className="w-full border shadow-sm"
-                    />
-                  </div>
-                )}
-                <ConversationList
-                  conversations={conversations}
-                  selectedId={selectedId}
-                  onClearSelection={onClearSelection}
-                  selectedIds={selectedIds}
-                  onToggleSelection={onToggleSelection}
-                />
-                <div className="mt-2">
-                  <div className="px-2 pb-2 text-[10px] text-muted-foreground hidden sm:block">
-                    Tip: Right-click to select
-                  </div>
-                  <kbd className="hidden sm:inline-flex px-2 text-[9px] opacity-60">
-                    ⌘1,⌘2... to jump to conversations
-                  </kbd>
-                </div>
-              </>
-            )}
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </div>
-    </SidebarContent>
-  );
-}
-
-function SidebarNavigationFooter({
-  displayedItems,
-  overflowItems,
-  isAdmin,
-  isAuthLoaded,
-  isMobile,
-  pathname,
-  onNavigate,
-}: {
-  displayedItems: SidebarMenuItemConfig[];
-  overflowItems: SidebarMenuItemConfig[];
-  isAdmin: boolean;
-  isAuthLoaded: boolean;
-  isMobile: boolean;
-  pathname: string;
-  onNavigate: () => void;
-}) {
-  return (
-    <SidebarFooter className="pb-4">
-      <SidebarMenu>
-        {displayedItems.map((item) => {
-          const isActive =
-            pathname === item.href || pathname.startsWith(`${item.href}/`);
-          return (
-            <SidebarMenuItem key={item.href}>
-              <SidebarMenuButton
-                asChild
-                tooltip={item.label}
-                isActive={isActive}
-                className="p-2.5"
-                {...(item.href === "/projects" && {
-                  "data-tour": "projects",
-                })}
-              >
-                <PrefetchableLink href={item.href} onClick={onNavigate}>
-                  <item.icon className="w-4 h-4" />
-                  <span>{item.label}</span>
-                </PrefetchableLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          );
-        })}
-
-        {isMobile && overflowItems.length > 0 && (
-          <SidebarOverflowMenu
-            items={overflowItems}
-            pathname={pathname}
-            onNavigate={onNavigate}
-          />
-        )}
-
-        {isAdmin && (
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              tooltip="Admin Dashboard"
-              isActive={pathname.startsWith("/admin")}
-            >
-              <PrefetchableLink
-                href="/admin/feedback"
-                className="text-amber-500 hover:text-amber-400"
-              >
-                <Shield className="w-4 h-4" />
-                <span>Admin Dashboard</span>
-              </PrefetchableLink>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        )}
-      </SidebarMenu>
-      <SidebarUserControls isAuthLoaded={isAuthLoaded} />
-    </SidebarFooter>
-  );
-}
-
-function SidebarOverflowMenu({
-  items,
-  pathname,
-  onNavigate,
-}: {
-  items: SidebarMenuItemConfig[];
-  pathname: string;
-  onNavigate: () => void;
-}) {
-  return (
-    <SidebarMenuItem>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <SidebarMenuButton tooltip="More">
-            <MoreHorizontal className="w-4 h-4" />
-            <span>More</span>
-          </SidebarMenuButton>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          side="right"
-          align="end"
-          className="w-48 bg-sidebar border-sidebar-border"
-        >
-          {items.map((item) => {
-            const isActive =
-              pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return (
-              <DropdownMenuItem key={item.href} asChild>
-                <PrefetchableLink
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-2 cursor-pointer",
-                    isActive &&
-                      "bg-sidebar-accent text-sidebar-accent-foreground font-medium",
-                  )}
-                  onClick={onNavigate}
-                >
-                  <item.icon className="w-4 h-4 text-muted-foreground" />
-                  <span>{item.label}</span>
-                </PrefetchableLink>
-              </DropdownMenuItem>
-            );
-          })}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </SidebarMenuItem>
-  );
-}
-
-function SidebarUserControls({ isAuthLoaded }: { isAuthLoaded: boolean }) {
-  return (
-    <>
-      <div className="px-2 pt-2 group-data-[collapsible=icon]:hidden min-h-10">
-        <div className="flex items-center justify-between">
-          {isAuthLoaded && <SidebarUserButton />}
-          <ThemeSwitcher />
-        </div>
-      </div>
-      <div className="hidden group-data-[collapsible=icon]:flex justify-center pt-2">
-        {isAuthLoaded && <SidebarUserButton />}
-      </div>
-    </>
-  );
-}
-
-function SidebarUserButton() {
-  return (
-    <UserButton
-      afterSignOutUrl="/sign-in"
-      appearance={{
-        elements: {
-          userButtonPopoverCard: { pointerEvents: "initial" },
-        },
-      }}
-    />
   );
 }

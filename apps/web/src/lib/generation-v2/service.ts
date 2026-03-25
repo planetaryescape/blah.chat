@@ -47,6 +47,7 @@ const DEFAULT_FALLBACK_MODEL_ID =
 const DEFAULT_POLICY_HISTORY_WINDOW = 50;
 
 interface GenerationV2BackgroundTasks {
+  embedMessage?: (messageId: string) => Promise<void>;
   autoTitleConversation?: (conversationId: string) => Promise<void>;
   analyzeModelFit?: (input: {
     conversationId: string;
@@ -703,6 +704,11 @@ export class GenerationV2Service {
         type: "complete",
         content: accumulated,
       });
+
+      // Embed the completed assistant message for search
+      this.backgroundTasks
+        .embedMessage?.(session.assistantMessageId)
+        .catch(() => {});
     } catch (error) {
       if (abortController.signal.aborted) {
         return;

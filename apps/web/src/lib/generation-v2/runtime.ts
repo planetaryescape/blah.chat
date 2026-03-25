@@ -32,6 +32,9 @@ export function getGenerationV2Service() {
     undefined,
     undefined,
     {
+      embedMessage: async (messageId: string) => {
+        await trigger.triggerTask("embed-message", { messageId });
+      },
       autoTitleConversation: async (conversationId: string) => {
         await trigger.triggerTask("generate-title", { conversationId });
       },

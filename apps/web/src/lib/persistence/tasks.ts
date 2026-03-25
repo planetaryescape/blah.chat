@@ -1,4 +1,8 @@
-import { tasks } from "@blah-chat/persistence-postgres";
+import {
+  createTriggerClient,
+  parsePersistenceEnv,
+  tasks,
+} from "@blah-chat/persistence-postgres";
 import { and, desc, eq } from "drizzle-orm";
 import { NotFoundError } from "@/lib/api/errors";
 import { ensureCurrentPersistenceUser } from "./current-user";
@@ -164,6 +168,10 @@ export async function createTask(
     throw new Error("Failed to create task");
   }
 
+  // Fire-and-forget embedding generation
+  const trigger = createTriggerClient(parsePersistenceEnv(process.env));
+  trigger.triggerTask("embed-task", { taskId: task.id }).catch(() => {});
+
   return toApiProjectTask(task);
 }
 
@@ -238,6 +246,12 @@ export async function updateTask(
 
   if (!updated) {
     throw new Error("Failed to update task");
+  }
+
+  // Re-embed on title/description change
+  if (input.title !== undefined || input.description !== undefined) {
+    const trigger = createTriggerClient(parsePersistenceEnv(process.env));
+    trigger.triggerTask("embed-task", { taskId: updated.id }).catch(() => {});
   }
 
   return toApiProjectTask(updated);

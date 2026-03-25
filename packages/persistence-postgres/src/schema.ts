@@ -11,6 +11,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
+import { vectorType } from "./vector-type";
 
 const now = () => Date.now();
 const id = () => nanoid();
@@ -51,6 +52,26 @@ export interface KnowledgeSourceVideoMetadata {
   duration?: number;
   channel?: string;
   thumbnailUrl?: string;
+}
+
+export interface StarterSuggestionRecord {
+  id: string;
+  text: string;
+  icon: "sparkles" | "brain" | "zap" | "penLine";
+}
+
+export interface StarterSuggestionsCacheRecord {
+  suggestions: StarterSuggestionRecord[];
+  needsRefresh: boolean;
+  generatedAt: number;
+  source: "cache" | "fallback";
+}
+
+export interface ByokValidationTimestamps {
+  vercelGateway?: number;
+  openRouter?: number;
+  groq?: number;
+  deepgram?: number;
 }
 
 export interface TaskSourceContext {
@@ -472,6 +493,176 @@ export const knowledgeSources = pgTable(
   }),
 );
 
+export const projects = pgTable(
+  "projects",
+  {
+    id: text("id").primaryKey().$defaultFn(id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    systemPrompt: text("system_prompt"),
+    isTemplate: boolean("is_template").notNull().default(false),
+    createdFrom: text("created_from"),
+    createdAt: bigint("created_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+    updatedAt: bigint("updated_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+  },
+  (table) => ({
+    byUser: index("projects_by_user").on(table.userId),
+    byUserTemplate: index("projects_by_user_template").on(
+      table.userId,
+      table.isTemplate,
+    ),
+  }),
+);
+
+export const templates = pgTable(
+  "templates",
+  {
+    id: text("id").primaryKey().$defaultFn(id),
+    userId: text("user_id").references(() => users.id, {
+      onDelete: "cascade",
+    }),
+    name: text("name").notNull(),
+    prompt: text("prompt").notNull(),
+    description: text("description"),
+    category: text("category").notNull(),
+    isBuiltIn: boolean("is_built_in").notNull().default(false),
+    isPublic: boolean("is_public").notNull().default(false),
+    usageCount: bigint("usage_count", { mode: "number" }).notNull().default(0),
+    createdAt: bigint("created_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+    updatedAt: bigint("updated_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+  },
+  (table) => ({
+    byUser: index("templates_by_user").on(table.userId),
+    byCategory: index("templates_by_category").on(
+      table.category,
+      table.isBuiltIn,
+    ),
+  }),
+);
+
+export const starterSuggestionCaches = pgTable(
+  "starter_suggestion_caches",
+  {
+    id: text("id").primaryKey().$defaultFn(id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    suggestions: jsonb("suggestions")
+      .$type<StarterSuggestionRecord[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    needsRefresh: boolean("needs_refresh").notNull().default(false),
+    generatedAt: bigint("generated_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+    source: text("source").notNull().default("cache"),
+    createdAt: bigint("created_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+    updatedAt: bigint("updated_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+  },
+  (table) => ({
+    byUser: uniqueIndex("starter_suggestion_caches_by_user").on(table.userId),
+  }),
+);
+
+export const cliApiKeys = pgTable(
+  "cli_api_keys",
+  {
+    id: text("id").primaryKey().$defaultFn(id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    keyHash: text("key_hash").notNull(),
+    keyPrefix: text("key_prefix").notNull(),
+    name: text("name").notNull(),
+    lastUsedAt: bigint("last_used_at", { mode: "number" }),
+    createdAt: bigint("created_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+    revokedAt: bigint("revoked_at", { mode: "number" }),
+  },
+  (table) => ({
+    byUser: index("cli_api_keys_by_user").on(table.userId),
+    byKeyHash: uniqueIndex("cli_api_keys_by_key_hash").on(table.keyHash),
+  }),
+);
+
+export const userApiKeys = pgTable(
+  "user_api_keys",
+  {
+    id: text("id").primaryKey().$defaultFn(id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    byokEnabled: boolean("byok_enabled").notNull().default(false),
+    encryptedVercelGatewayKey: text("encrypted_vercel_gateway_key"),
+    encryptedOpenRouterKey: text("encrypted_open_router_key"),
+    encryptedGroqKey: text("encrypted_groq_key"),
+    encryptedDeepgramKey: text("encrypted_deepgram_key"),
+    encryptionIVs: text("encryption_ivs"),
+    authTags: text("auth_tags"),
+    lastValidated: jsonb("last_validated").$type<ByokValidationTimestamps>(),
+    createdAt: bigint("created_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+    updatedAt: bigint("updated_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+  },
+  (table) => ({
+    byUser: uniqueIndex("user_api_keys_by_user").on(table.userId),
+  }),
+);
+
+export const composioConnections = pgTable(
+  "composio_connections",
+  {
+    id: text("id").primaryKey().$defaultFn(id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    composioConnectionId: text("composio_connection_id").notNull(),
+    integrationId: text("integration_id").notNull(),
+    integrationName: text("integration_name").notNull(),
+    status: text("status").notNull(),
+    scopes: text("scopes").array().notNull().default(sql`ARRAY[]::text[]`),
+    oauthState: text("oauth_state"),
+    oauthStateExpiresAt: bigint("oauth_state_expires_at", { mode: "number" }),
+    connectedAt: bigint("connected_at", { mode: "number" }),
+    lastUsedAt: bigint("last_used_at", { mode: "number" }),
+    lastError: text("last_error"),
+    createdAt: bigint("created_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+    updatedAt: bigint("updated_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+  },
+  (table) => ({
+    byUser: index("composio_connections_by_user").on(table.userId),
+    byUserIntegration: uniqueIndex(
+      "composio_connections_by_user_integration",
+    ).on(table.userId, table.integrationId),
+    byConnection: uniqueIndex("composio_connections_by_connection_id").on(
+      table.composioConnectionId,
+    ),
+  }),
+);
+
 export const notes = pgTable(
   "notes",
   {
@@ -492,7 +683,15 @@ export const notes = pgTable(
     ),
     projectId: text("project_id"),
     tags: text("tags").array().notNull().default(sql`ARRAY[]::text[]`),
+    suggestedTags: text("suggested_tags")
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::text[]`),
     isPinned: boolean("is_pinned").notNull().default(false),
+    shareId: text("share_id"),
+    isPublic: boolean("is_public").notNull().default(false),
+    sharePassword: text("share_password"),
+    shareExpiresAt: bigint("share_expires_at", { mode: "number" }),
     createdAt: bigint("created_at", { mode: "number" })
       .notNull()
       .$defaultFn(now),
@@ -508,6 +707,7 @@ export const notes = pgTable(
     ),
     byProject: index("notes_by_project").on(table.projectId),
     bySourceMessage: index("notes_by_source_message").on(table.sourceMessageId),
+    byShareId: uniqueIndex("notes_by_share_id").on(table.shareId),
   }),
 );
 
@@ -845,7 +1045,7 @@ export const messageEmbeddings = pgTable(
       onDelete: "set null",
     }),
     content: text("content").notNull(),
-    embedding: jsonb("embedding").$type<number[]>().notNull(),
+    embedding: vectorType(1536)("embedding").notNull(),
     searchDocument: text("search_document"),
     createdAt: bigint("created_at", { mode: "number" })
       .notNull()
@@ -877,7 +1077,7 @@ export const memoryEmbeddings = pgTable(
     }),
     content: text("content").notNull(),
     category: text("category"),
-    embedding: jsonb("embedding").$type<number[]>().notNull(),
+    embedding: vectorType(1536)("embedding").notNull(),
     searchDocument: text("search_document"),
     metadata: jsonb("metadata").$type<Record<string, unknown>>(),
     createdAt: bigint("created_at", { mode: "number" })
@@ -904,7 +1104,7 @@ export const taskEmbeddings = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     taskKey: text("task_key").notNull(),
     content: text("content").notNull(),
-    embedding: jsonb("embedding").$type<number[]>().notNull(),
+    embedding: vectorType(1536)("embedding").notNull(),
     searchDocument: text("search_document"),
     metadata: jsonb("metadata").$type<Record<string, unknown>>(),
     createdAt: bigint("created_at", { mode: "number" })
@@ -929,7 +1129,7 @@ export const noteEmbeddings = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     noteKey: text("note_key").notNull(),
     content: text("content").notNull(),
-    embedding: jsonb("embedding").$type<number[]>().notNull(),
+    embedding: vectorType(1536)("embedding").notNull(),
     searchDocument: text("search_document"),
     metadata: jsonb("metadata").$type<Record<string, unknown>>(),
     createdAt: bigint("created_at", { mode: "number" })
@@ -961,7 +1161,7 @@ export const fileChunks = pgTable(
     chunkIndex: bigint("chunk_index", { mode: "number" }).notNull(),
     content: text("content").notNull(),
     searchDocument: text("search_document"),
-    embedding: jsonb("embedding").$type<number[]>(),
+    embedding: vectorType(1536)("embedding"),
     metadata: jsonb("metadata").$type<Record<string, unknown>>(),
     createdAt: bigint("created_at", { mode: "number" })
       .notNull()
@@ -989,7 +1189,7 @@ export const knowledgeChunks = pgTable(
     chunkIndex: bigint("chunk_index", { mode: "number" }).notNull(),
     content: text("content").notNull(),
     searchDocument: text("search_document"),
-    embedding: jsonb("embedding").$type<number[]>(),
+    embedding: vectorType(1536)("embedding"),
     metadata: jsonb("metadata").$type<Record<string, unknown>>(),
     createdAt: bigint("created_at", { mode: "number" })
       .notNull()
@@ -1011,7 +1211,7 @@ export const routingExamples = pgTable(
     routeLabel: text("route_label").notNull(),
     complexity: text("complexity"),
     source: text("source").notNull().default("seed"),
-    embedding: jsonb("embedding").$type<number[]>(),
+    embedding: vectorType(1536)("embedding"),
     metadata: jsonb("metadata").$type<Record<string, unknown>>(),
     createdAt: bigint("created_at", { mode: "number" })
       .notNull()

@@ -43,6 +43,27 @@
       "when": 1774276800172,
       "tag": "0005_violet_obadiah_stane",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1774347300000,
+      "tag": "0006_phase9_mobile_rewrite",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1774370492204,
+      "tag": "0007_cool_ricochet",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1774508400000,
+      "tag": "0008_phase11_pgvector_fts",
+      "breakpoints": true
     }
   ]
 }

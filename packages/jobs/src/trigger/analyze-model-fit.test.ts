@@ -1,3 +1,4 @@
+import { MODEL_CONFIG } from "@blah-chat/ai/models";
 import {
   createConversationRepository,
   createMessageRepository,
@@ -72,13 +73,23 @@ describe("analyzeModelFitForConversation", () => {
       where: (table, { eq }) => eq(table.id, conversation.id),
     });
 
+    const currentModel = MODEL_CONFIG["openai:gpt-5"];
+    const suggestedModel = MODEL_CONFIG["openai:gpt-5-mini"];
+    const currentAvg =
+      (currentModel.pricing.input + currentModel.pricing.output) / 2;
+    const suggestedAvg =
+      (suggestedModel.pricing.input + suggestedModel.pricing.output) / 2;
+    const expectedPercentSaved = Math.round(
+      ((currentAvg - suggestedAvg) / currentAvg) * 100,
+    );
+
     expect(updatedConversation?.modelRecommendation).toEqual({
       suggestedModelId: "openai:gpt-5-mini",
       currentModelId: "openai:gpt-5",
       reasoning:
         "The request is straightforward summarization and does not need the premium model.",
       estimatedSavings: {
-        percentSaved: 94,
+        percentSaved: expectedPercentSaved,
       },
       createdAt: 123,
       dismissed: false,

@@ -64,6 +64,13 @@
       "when": 1774508400000,
       "tag": "0008_phase11_pgvector_fts",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1774417173058,
+      "tag": "0009_short_jackal",
+      "breakpoints": true
     }
   ]
 }

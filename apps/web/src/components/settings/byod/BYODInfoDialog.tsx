@@ -27,24 +27,22 @@ export function BYODInfoDialog({ open, onOpenChange }: BYODInfoDialogProps) {
             About Bring Your Own Database
           </DialogTitle>
           <DialogDescription>
-            Complete data ownership with your own Convex instance
+            Complete data ownership with your own Neon Postgres instance
           </DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="max-h-[60vh] pr-4">
           <div className="space-y-6">
-            {/* What is BYOD */}
             <section className="space-y-2">
               <h3 className="font-semibold">What is BYOD?</h3>
               <p className="text-sm text-muted-foreground">
                 BYOD (Bring Your Own Database) lets you store your personal data
-                on your own Convex instance instead of blah.chat&apos;s servers.
-                Your conversations, messages, memories, files, and projects are
+                on your own Neon Postgres instance instead of blah.chat&apos;s
+                servers. Your conversations, messages, notes, and files are
                 stored in a database you control.
               </p>
             </section>
 
-            {/* Why use BYOD */}
             <section className="space-y-2">
               <h3 className="font-semibold">Why use BYOD?</h3>
               <ul className="text-sm text-muted-foreground space-y-1.5">
@@ -52,34 +50,33 @@ export function BYODInfoDialog({ open, onOpenChange }: BYODInfoDialogProps) {
                   <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                   <span>
                     <strong>Data ownership</strong> — Your data lives in your
-                    database, export anytime
+                    Postgres database
                   </span>
                 </li>
                 <li className="flex gap-2">
                   <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                   <span>
                     <strong>Privacy</strong> — Only you have access to your
-                    stored conversations
+                    conversations
                   </span>
                 </li>
                 <li className="flex gap-2">
                   <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                   <span>
-                    <strong>Portability</strong> — If blah.chat shuts down, your
-                    data persists
+                    <strong>Portability</strong> — Standard Postgres, export
+                    anytime with pg_dump
                   </span>
                 </li>
                 <li className="flex gap-2">
                   <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                   <span>
-                    <strong>Direct access</strong> — Query your data directly
-                    via Convex dashboard
+                    <strong>Direct access</strong> — Query your data with any
+                    SQL client
                   </span>
                 </li>
               </ul>
             </section>
 
-            {/* How it works */}
             <section className="space-y-2">
               <h3 className="font-semibold">How it works</h3>
               <div className="text-sm text-muted-foreground space-y-2">
@@ -90,35 +87,30 @@ export function BYODInfoDialog({ open, onOpenChange }: BYODInfoDialogProps) {
                       Main database (blah.chat)
                     </span>
                     <p className="text-xs">
-                      User accounts, settings, preferences, templates, admin
-                      data
+                      User accounts, settings, preferences, usage tracking
                     </p>
                   </div>
                   <div>
                     <span className="font-medium text-foreground">
-                      Your database (BYOD)
+                      Your database (Neon)
                     </span>
                     <p className="text-xs">
-                      Conversations, messages, memories, files, projects, notes,
-                      tasks
+                      Conversations, messages, notes, files, projects, bookmarks
                     </p>
                   </div>
                 </div>
                 <p>
-                  When you send a message, it flows through blah.chat for AI
-                  processing, then gets stored on your Convex instance.
-                  blah.chat never persists your conversation content on its
-                  servers.
+                  Schema migrations are applied automatically to your Neon
+                  instance when updates are released.
                 </p>
               </div>
             </section>
 
-            {/* What you need */}
             <section className="space-y-2">
               <h3 className="font-semibold">What you need</h3>
               <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
                 <li>
-                  <strong>Convex account</strong> — Free tier works fine
+                  <strong>Neon account</strong> — Free tier works fine
                   <Button
                     variant="link"
                     size="sm"
@@ -126,173 +118,57 @@ export function BYODInfoDialog({ open, onOpenChange }: BYODInfoDialogProps) {
                     asChild
                   >
                     <a
-                      href="https://convex.dev"
+                      href="https://neon.tech"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      convex.dev{" "}
+                      neon.tech{" "}
                       <ExternalLink className="h-3 w-3 ml-0.5 inline" />
                     </a>
                   </Button>
                 </li>
                 <li>
-                  <strong>New Convex project</strong> — Create one specifically
-                  for blah.chat
+                  <strong>New Neon project</strong> — Create one for blah.chat
                 </li>
                 <li>
-                  <strong>Deploy key</strong> — Found in Convex Dashboard →
-                  Settings → Deploy Key
+                  <strong>Connection string</strong> — Copy from Neon Console →
+                  Connection Details
                 </li>
               </ol>
             </section>
 
-            {/* Setup steps */}
             <section className="space-y-2">
               <h3 className="font-semibold">Setup steps</h3>
               <ol className="text-sm text-muted-foreground space-y-1.5 list-decimal list-inside">
-                <li>Create a new project at dashboard.convex.dev</li>
-                <li>Go to Settings → Deploy Key and copy it</li>
+                <li>Create a new project at console.neon.tech</li>
+                <li>Copy the connection string from the dashboard</li>
+                <li>Paste it in the form and click Connect</li>
                 <li>
-                  Copy your deployment URL (e.g.,
-                  https://your-project.convex.cloud)
+                  Migrations run automatically — your database is ready in
+                  seconds
                 </li>
-                <li>
-                  Enter both in the form and click &quot;Save & Continue&quot;
-                </li>
-                <li>Download the schema package (ZIP file)</li>
-                <li>
-                  Unzip and run{" "}
-                  <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">
-                    bunx convex deploy
-                  </code>{" "}
-                  in the folder
-                </li>
-                <li>Click &quot;Verify Deployment&quot; to confirm setup</li>
-                <li>Done! Your data will now be stored on your instance</li>
               </ol>
             </section>
 
-            {/* Cost implications */}
-            <section className="space-y-2">
-              <h3 className="font-semibold">Cost implications</h3>
-              <div className="text-sm text-muted-foreground">
-                <p>
-                  With BYOD, <strong>you pay for your own Convex usage</strong>.
-                  Convex offers a generous free tier that&apos;s sufficient for
-                  most personal use:
-                </p>
-                <ul className="mt-2 space-y-1 list-disc list-inside">
-                  <li>1M function calls/month</li>
-                  <li>1GB database storage</li>
-                  <li>1GB file storage</li>
-                </ul>
-                <p className="mt-2">
-                  Check{" "}
-                  <a
-                    href="https://convex.dev/pricing"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline"
-                  >
-                    Convex pricing
-                  </a>{" "}
-                  for details. Heavy usage may require their paid plan.
-                </p>
-              </div>
-            </section>
-
-            {/* What happens when disconnecting */}
-            <section className="space-y-2">
-              <h3 className="font-semibold">Disconnecting BYOD</h3>
-              <p className="text-sm text-muted-foreground">
-                When you disconnect, you choose what happens to your data:
-              </p>
-              <ul className="text-sm text-muted-foreground space-y-1.5 mt-2">
-                <li className="flex gap-2">
-                  <span className="font-medium text-foreground">Keep:</span>
-                  <span>
-                    Data stays on your instance, accessible via Convex dashboard
-                  </span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="font-medium text-foreground">Migrate:</span>
-                  <span>Move data back to blah.chat servers (coming soon)</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="font-medium text-foreground">Delete:</span>
-                  <span>
-                    Permanently remove from your instance (coming soon)
-                  </span>
-                </li>
-              </ul>
-            </section>
-
-            {/* Connection issues */}
-            <section className="space-y-2">
-              <h3 className="font-semibold">Connection issues</h3>
-              <p className="text-sm text-muted-foreground">
-                If your database becomes unreachable, blah.chat will block the
-                app to protect data integrity. You&apos;ll see a connection
-                error screen with options to:
-              </p>
-              <ul className="text-sm text-muted-foreground space-y-1 mt-2 list-disc list-inside">
-                <li>Retry the connection</li>
-                <li>Update your credentials</li>
-                <li>Check Convex status page</li>
-              </ul>
-              <p className="text-sm text-muted-foreground mt-2">
-                We run health checks every 6 hours to detect issues early.
-              </p>
-            </section>
-
-            {/* Schema Updates */}
-            <section className="space-y-2">
-              <h3 className="font-semibold">Schema updates</h3>
-              <p className="text-sm text-muted-foreground">
-                When blah.chat releases schema updates, you&apos;ll see a
-                notification banner. To update:
-              </p>
-              <ol className="text-sm text-muted-foreground space-y-1 mt-2 list-decimal list-inside">
-                <li>Download the new schema package from Settings</li>
-                <li>
-                  Run{" "}
-                  <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">
-                    bunx convex deploy
-                  </code>{" "}
-                  again
-                </li>
-                <li>Click &quot;Verify&quot; to confirm the update</li>
-              </ol>
-              <p className="text-sm text-muted-foreground mt-2">
-                We&apos;ll also send you an email when updates are available.
-              </p>
-            </section>
-
-            {/* Limitations */}
-            <section className="space-y-2">
-              <h3 className="font-semibold">Current limitations</h3>
-              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                <li>
-                  Schema updates require manual re-deployment (CLI command)
-                </li>
-                <li>
-                  File storage currently stays on blah.chat (migration planned)
-                </li>
-                <li>
-                  You must maintain an active connection for the app to work
-                </li>
-              </ul>
-            </section>
-
-            {/* Security */}
             <section className="space-y-2">
               <h3 className="font-semibold">Security</h3>
               <p className="text-sm text-muted-foreground">
-                Your deploy key is encrypted with AES-256-GCM before storage and
-                never logged. Only encrypted credentials are stored, and
-                decryption happens server-side when needed for database
-                operations.
+                Your connection string is encrypted with AES-256-GCM before
+                storage and never logged. Decryption only happens server-side
+                when needed for database operations.
               </p>
+            </section>
+
+            <section className="space-y-2">
+              <h3 className="font-semibold">Current limitations</h3>
+              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                <li>Only Neon Postgres is supported in v1</li>
+                <li>File storage stays on blah.chat</li>
+                <li>
+                  You must maintain an active connection for the app to work
+                </li>
+                <li>New setup starts fresh (no data migration from main DB)</li>
+              </ul>
             </section>
           </div>
         </ScrollArea>

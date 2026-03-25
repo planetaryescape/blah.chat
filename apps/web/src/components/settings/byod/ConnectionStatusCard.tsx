@@ -20,7 +20,7 @@ export function ConnectionStatusCard({ config }: ConnectionStatusCardProps) {
               Connected
             </Badge>
           ),
-          message: "Your database is connected and working.",
+          message: "Your Neon database is connected and working.",
         };
       case "pending":
         return {
@@ -50,9 +50,10 @@ export function ConnectionStatusCard({ config }: ConnectionStatusCardProps) {
   };
 
   const status = getStatusDisplay();
-  const lastTest = config.lastConnectionTest
-    ? new Date(config.lastConnectionTest).toLocaleString()
+  const lastCheck = config.lastHealthCheck
+    ? new Date(config.lastHealthCheck).toLocaleString()
     : "Never";
+  const latency = config.healthLatencyMs ? `${config.healthLatencyMs}ms` : null;
 
   return (
     <Card>
@@ -67,9 +68,10 @@ export function ConnectionStatusCard({ config }: ConnectionStatusCardProps) {
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground">{status.message}</p>
-        <p className="text-xs text-muted-foreground mt-2">
-          Last checked: {lastTest}
-        </p>
+        <div className="flex gap-4 text-xs text-muted-foreground mt-2">
+          <span>Last checked: {lastCheck}</span>
+          {latency && <span>Latency: {latency}</span>}
+        </div>
       </CardContent>
     </Card>
   );

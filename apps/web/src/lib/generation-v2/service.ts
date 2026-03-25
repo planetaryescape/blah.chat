@@ -8,6 +8,17 @@ import {
   SEED_EXAMPLES,
 } from "@blah-chat/auto-router";
 import {
+  buildComparisonStats,
+  buildLatestHealthMap as buildLatestHealthMapEngine,
+  buildOutcomeStats as buildOutcomeStatsEngine,
+  selectCandidate,
+} from "@blah-chat/auto-router/policy-engine";
+import {
+  type CandidateInput,
+  DEFAULT_POLICY_WEIGHTS as ENGINE_DEFAULT_WEIGHTS,
+  type PolicyWeights,
+} from "@blah-chat/auto-router/types";
+import {
   conversations,
   type PersistenceDb,
 } from "@blah-chat/persistence-postgres";
@@ -34,19 +45,6 @@ const DEFAULT_FALLBACK_MODEL_ID =
   Object.keys(ROUTER_MODEL_CONFIG).find((modelId) => modelId !== "auto") ??
   "openai:gpt-5-mini";
 const DEFAULT_POLICY_HISTORY_WINDOW = 50;
-const DEFAULT_POLICY_WEIGHTS = {
-  binRank: 0.4,
-  successRate: 2,
-  errorRate: 1.5,
-  cancelRate: 0.75,
-  latencySeconds: 0.15,
-  ttftSeconds: 0.15,
-  costScore: 1,
-  speedScore: 0.5,
-  stickyBonus: 1.25,
-  degradedPenalty: 1.5,
-  downPenalty: 4,
-} as const;
 
 interface GenerationV2BackgroundTasks {
   autoTitleConversation?: (conversationId: string) => Promise<void>;
@@ -110,99 +108,6 @@ function getCandidateModelIds(input: {
   );
 
   return candidates.length > 0 ? candidates : [DEFAULT_FALLBACK_MODEL_ID];
-}
-
-function buildOutcomeStats(
-  rows: Array<{
-    selectedModelId: string;
-    status: string;
-    latencyMs: number | null;
-    ttftMs: number | null;
-    costUsd: number | null;
-  }>,
-) {
-  const grouped = new Map<
-    string,
-    {
-      total: number;
-      complete: number;
-      error: number;
-      cancelled: number;
-      latencyTotal: number;
-      latencyCount: number;
-      ttftTotal: number;
-      ttftCount: number;
-      costTotal: number;
-      costCount: number;
-    }
-  >();
-
-  for (const row of rows) {
-    const current = grouped.get(row.selectedModelId) ?? {
-      total: 0,
-      complete: 0,
-      error: 0,
-      cancelled: 0,
-      latencyTotal: 0,
-      latencyCount: 0,
-      ttftTotal: 0,
-      ttftCount: 0,
-      costTotal: 0,
-      costCount: 0,
-    };
-    current.total += 1;
-    if (row.status === "complete") current.complete += 1;
-    if (row.status === "error") current.error += 1;
-    if (row.status === "cancelled") current.cancelled += 1;
-    if (typeof row.latencyMs === "number") {
-      current.latencyTotal += row.latencyMs;
-      current.latencyCount += 1;
-    }
-    if (typeof row.ttftMs === "number") {
-      current.ttftTotal += row.ttftMs;
-      current.ttftCount += 1;
-    }
-    if (typeof row.costUsd === "number") {
-      current.costTotal += row.costUsd;
-      current.costCount += 1;
-    }
-    grouped.set(row.selectedModelId, current);
-  }
-
-  return grouped;
-}
-
-function buildLatestHealthMap(
-  rows: Array<{
-    provider: string;
-    modelId: string | null;
-    status: string;
-  }>,
-  candidateModelIds: string[],
-) {
-  const latest = new Map<string, { status: string }>();
-
-  for (const modelId of candidateModelIds) {
-    const provider = providerFromModelId(modelId);
-    const exact = rows.find((row) => row.modelId === modelId);
-    const providerLevel = rows.find(
-      (row) => row.modelId === null && row.provider === provider,
-    );
-    const match = exact ?? providerLevel;
-    if (match) {
-      latest.set(modelId, { status: match.status });
-    }
-  }
-
-  return latest;
-}
-
-function getNumericWeight(
-  weights: Record<string, unknown>,
-  key: keyof typeof DEFAULT_POLICY_WEIGHTS,
-) {
-  const value = weights[key];
-  return typeof value === "number" ? value : DEFAULT_POLICY_WEIGHTS[key];
 }
 
 function mapPromptMessages(
@@ -494,18 +399,24 @@ export class GenerationV2Service {
       ),
       currentContextTokens: undefined,
     });
-    const [recentOutcomes, recentHealth] = await Promise.all([
-      this.repository.listRecentRoutingOutcomes(
-        candidateModelIds,
-        historyWindow,
-      ),
-      this.repository.listRecentProviderHealth(),
-    ]);
-    const outcomeStats = buildOutcomeStats(recentOutcomes);
-    const healthByModelId = buildLatestHealthMap(
+    const [recentOutcomes, recentHealth, recentComparisonFeedback] =
+      await Promise.all([
+        this.repository.listRecentRoutingOutcomes(
+          candidateModelIds,
+          historyWindow,
+        ),
+        this.repository.listRecentProviderHealth(),
+        this.repository.listRecentComparisonFeedback(
+          candidateModelIds,
+          historyWindow,
+        ),
+      ]);
+    const outcomeStats = buildOutcomeStatsEngine(recentOutcomes);
+    const healthByModelId = buildLatestHealthMapEngine(
       recentHealth,
       candidateModelIds,
     );
+    const comparisonStats = buildComparisonStats(recentComparisonFeedback);
     const maxAverageCost = Math.max(
       ...candidateModelIds.map((candidateModelId) => {
         const config = ROUTER_MODEL_CONFIG[candidateModelId];
@@ -517,97 +428,74 @@ export class GenerationV2Service {
       typeof context.costBias === "number" ? context.costBias : 50;
     const speedBias =
       typeof context.speedBias === "number" ? context.speedBias : 50;
-    const rankedCandidates = candidateModelIds
-      .map((candidateModelId, index) => {
-        const config = ROUTER_MODEL_CONFIG[candidateModelId];
-        const stats = outcomeStats.get(candidateModelId);
-        const health = healthByModelId.get(candidateModelId);
-        const averageCost = config
-          ? (config.pricing.input + config.pricing.output) / 2
-          : maxAverageCost;
-        const costScore = 1 - averageCost / maxAverageCost;
-        const speedScore = config?.hostOrder?.some(
-          (host) => host === "groq" || host === "cerebras",
-        )
-          ? 1
-          : 0;
-        const successRate = stats ? stats.complete / stats.total : 0.5;
-        const errorRate = stats ? stats.error / stats.total : 0;
-        const cancelRate = stats ? stats.cancelled / stats.total : 0;
-        const avgLatencySeconds =
-          stats && stats.latencyCount > 0
-            ? stats.latencyTotal / stats.latencyCount / 1_000
-            : 0;
-        const avgTtftSeconds =
-          stats && stats.ttftCount > 0
-            ? stats.ttftTotal / stats.ttftCount / 1_000
-            : 0;
-        const stickyBonus =
-          context.previousModelId === candidateModelId &&
-          context.previousRouteLabel === routeLabel
-            ? getNumericWeight(weights, "stickyBonus")
-            : 0;
-        const isSticky = stickyBonus > 0;
-        const healthPenalty =
-          health?.status === "down"
-            ? getNumericWeight(weights, "downPenalty")
-            : health?.status === "degraded"
-              ? getNumericWeight(weights, "degradedPenalty")
-              : 0;
-        const score =
-          (candidateModelIds.length - index) *
-            getNumericWeight(weights, "binRank") +
-          successRate * getNumericWeight(weights, "successRate") -
-          errorRate * getNumericWeight(weights, "errorRate") -
-          cancelRate * getNumericWeight(weights, "cancelRate") -
-          avgLatencySeconds * getNumericWeight(weights, "latencySeconds") -
-          avgTtftSeconds * getNumericWeight(weights, "ttftSeconds") +
-          costScore *
-            ((costBias - 50) / 50) *
-            getNumericWeight(weights, "costScore") +
-          speedScore *
-            ((speedBias - 50) / 50) *
-            getNumericWeight(weights, "speedScore") +
-          stickyBonus -
-          healthPenalty;
 
+    const resolvedWeights: PolicyWeights = {
+      ...ENGINE_DEFAULT_WEIGHTS,
+      ...Object.fromEntries(
+        Object.entries(weights).filter(([, v]) => typeof v === "number"),
+      ),
+    };
+
+    const candidates: CandidateInput[] = candidateModelIds.map(
+      (candidateModelId, index) => {
+        const config = ROUTER_MODEL_CONFIG[candidateModelId];
         return {
           modelId: candidateModelId,
-          provider: providerFromModelId(candidateModelId),
-          score,
-          features: {
-            routeLabel,
-            binIndex: index,
-            successRate,
-            errorRate,
-            cancelRate,
-            avgLatencySeconds,
-            avgTtftSeconds,
-            costScore,
-            speedScore,
-            isSticky,
-            stickyBonus,
-            healthStatus: health?.status ?? "unknown",
-          } satisfies Record<string, unknown>,
+          binIndex: index,
+          pricing: config?.pricing ?? {
+            input: maxAverageCost,
+            output: maxAverageCost,
+          },
+          hostOrder: config?.hostOrder,
+          outcomeStats: outcomeStats.get(candidateModelId),
+          health: healthByModelId.get(candidateModelId),
+          comparisonStats: comparisonStats.get(candidateModelId),
         };
-      })
-      .sort((left, right) => right.score - left.score)
-      .map((candidate, index) => ({
-        ...candidate,
-        rank: index + 1,
-      }));
-    const topCandidate = rankedCandidates[0];
+      },
+    );
+
+    const isComparisonMode =
+      input.bundle.sessions && input.bundle.sessions.length > 1;
+    const engineResult = selectCandidate(
+      candidates,
+      {
+        routeLabel,
+        weights: resolvedWeights,
+        costBias,
+        speedBias,
+        previousModelId: context.previousModelId ?? undefined,
+        previousRouteLabel: context.previousRouteLabel ?? undefined,
+        totalCandidates: candidateModelIds.length,
+        maxAverageCost,
+      },
+      {
+        fallbackModelId: DEFAULT_FALLBACK_MODEL_ID,
+        isComparisonMode: !!isComparisonMode,
+        shadow: true,
+      },
+    );
+
+    const topCandidate = engineResult.rankedCandidates[0];
 
     return {
-      selectedModelId: topCandidate?.modelId ?? DEFAULT_FALLBACK_MODEL_ID,
+      selectedModelId: engineResult.selectedModelId,
       routeLabel,
       policyId: policy.id,
-      candidateScores: rankedCandidates,
+      candidateScores: engineResult.rankedCandidates.map((c) => ({
+        modelId: c.modelId,
+        provider: c.provider,
+        score: c.score,
+        rank: c.rank,
+        features: {
+          ...c.features,
+          explanation: c.explanation,
+        } satisfies Record<string, unknown>,
+      })),
       reasoning:
         resolvedRouteLabel.routerMode === "hard_rules"
           ? `Hard rule matched: ${resolvedRouteLabel.hardRuleMatched}`
           : resolvedRouteLabel.routerMode === "classifier_v1"
-            ? `Classifier selected ${routeLabel}; scored ${rankedCandidates.length} candidates.`
+            ? `Classifier selected ${routeLabel}; scored ${engineResult.rankedCandidates.length} candidates.${engineResult.isExploration ? " (exploration pick)" : ""}`
             : "Classifier unavailable; used fallback_default scoring.",
       details: {
         source: "generation_v2",
@@ -618,8 +506,10 @@ export class GenerationV2Service {
         topSimilarityScore: resolvedRouteLabel.topSimilarityScore,
         secondRouteLabel: resolvedRouteLabel.secondRouteLabel,
         secondSimilarityScore: resolvedRouteLabel.secondSimilarityScore,
-        candidateModels: rankedCandidates.map((candidate) => candidate.modelId),
-        candidatesConsidered: rankedCandidates.length,
+        candidateModels: engineResult.rankedCandidates.map((c) => c.modelId),
+        candidatesConsidered: engineResult.rankedCandidates.length,
+        isExploration: engineResult.isExploration,
+        shadowModelId: engineResult.shadowModelId ?? null,
         isSticky:
           topCandidate && typeof topCandidate.features.isSticky === "boolean"
             ? topCandidate.features.isSticky
@@ -627,6 +517,7 @@ export class GenerationV2Service {
         attachmentTypes: context.attachmentTypes,
         previousModelId: context.previousModelId,
         previousRouteLabel: context.previousRouteLabel,
+        engineExplanation: engineResult.explanation,
       } satisfies Record<string, unknown>,
     };
   }
@@ -767,6 +658,10 @@ export class GenerationV2Service {
         "complete",
       );
       const completedAt = this.now();
+      const usage = await this.provider.getUsage?.({
+        requestId: bundle.requestId,
+        sessionId: session.sessionId,
+      });
       await this.repository.upsertRoutingOutcome({
         decisionId: routingDecision.id,
         requestId: bundle.requestId,
@@ -777,6 +672,10 @@ export class GenerationV2Service {
             ? null
             : Math.max(0, firstTokenAt - sessionStartedAt),
         latencyMs: Math.max(0, completedAt - sessionStartedAt),
+        totalTokens: usage?.totalTokens ?? null,
+        inputTokens: usage?.inputTokens ?? null,
+        outputTokens: usage?.outputTokens ?? null,
+        costUsd: usage?.costUsd ?? null,
       });
       await this.persistToolCallsIfPresent({
         requestId: bundle.requestId,

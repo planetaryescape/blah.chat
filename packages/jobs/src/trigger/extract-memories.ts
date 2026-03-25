@@ -22,12 +22,13 @@ import {
   createNeonDatabase,
   memoryEmbeddings,
   type PersistenceDb,
+  serializeVector,
   userPreferences,
 } from "@blah-chat/persistence-postgres";
 import { PREFERENCE_DEFAULTS } from "@blah-chat/shared/preferences";
 import { task } from "@trigger.dev/sdk";
 import { embedMany, generateObject } from "ai";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 const EXPIRATION_MS = {
@@ -95,30 +96,6 @@ function getDatabaseUrl() {
   }
 
   return databaseUrl;
-}
-
-function cosineSimilarity(left: number[], right: number[]) {
-  if (left.length === 0 || left.length !== right.length) {
-    return 0;
-  }
-
-  let dot = 0;
-  let leftNorm = 0;
-  let rightNorm = 0;
-
-  for (let index = 0; index < left.length; index += 1) {
-    const leftValue = left[index] ?? 0;
-    const rightValue = right[index] ?? 0;
-    dot += leftValue * rightValue;
-    leftNorm += leftValue * leftValue;
-    rightNorm += rightValue * rightValue;
-  }
-
-  if (leftNorm === 0 || rightNorm === 0) {
-    return 0;
-  }
-
-  return dot / (Math.sqrt(leftNorm) * Math.sqrt(rightNorm));
 }
 
 function formatExistingMemories(
@@ -344,14 +321,6 @@ export async function extractMemoriesForConversation(
     const extractedAt = now();
     const sourceMessageId =
       extractionWindow[extractionWindow.length - 1]?.id ?? null;
-    const existingEmbeddings = existingMemories.filter(
-      (
-        memory,
-      ): memory is (typeof existingMemories)[number] & {
-        embedding: number[];
-      } => Array.isArray(memory.embedding) && memory.embedding.length > 0,
-    );
-
     let storedCount = 0;
 
     for (let index = 0; index < qualityFacts.length; index += 1) {
@@ -362,12 +331,16 @@ export async function extractMemoriesForConversation(
         continue;
       }
 
-      const isDuplicate = existingEmbeddings.some(
-        (memory: (typeof existingEmbeddings)[number]) =>
-          cosineSimilarity(memory.embedding, embedding) > SIMILARITY_THRESHOLD,
+      // Check for duplicate via pgvector cosine distance
+      const vecLiteral = serializeVector(embedding);
+      const duplicateCheck = await db.execute(
+        sql`SELECT 1 FROM memory_embeddings
+            WHERE user_id = ${conversation.userId}
+              AND (1 - (embedding <=> ${sql.raw(`'${vecLiteral}'::vector`)})) > ${SIMILARITY_THRESHOLD}
+            LIMIT 1`,
       );
 
-      if (isDuplicate) {
+      if (duplicateCheck.rows.length > 0) {
         continue;
       }
 
@@ -404,10 +377,6 @@ export async function extractMemoriesForConversation(
         throw new Error("Failed to persist extracted memory");
       }
 
-      existingEmbeddings.push({
-        ...stored,
-        embedding,
-      });
       storedCount += 1;
     }
 

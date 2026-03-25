@@ -26,5 +26,15 @@ describe("drizzle migrations", () => {
     );
     expect(allMigrations.join("\n")).toContain('CREATE TABLE "notes"');
     expect(allMigrations.join("\n")).toContain('CREATE TABLE "tasks"');
+    expect(allMigrations.join("\n")).toContain('CREATE TABLE "projects"');
+    expect(allMigrations.join("\n")).toContain('CREATE TABLE "templates"');
+    expect(allMigrations.join("\n")).toContain(
+      'CREATE TABLE "starter_suggestion_caches"',
+    );
+    expect(allMigrations.join("\n")).toContain('CREATE TABLE "cli_api_keys"');
+    expect(allMigrations.join("\n")).toContain('CREATE TABLE "user_api_keys"');
+    expect(allMigrations.join("\n")).toContain(
+      'CREATE TABLE "composio_connections"',
+    );
   });
 });

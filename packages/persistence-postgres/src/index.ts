@@ -13,4 +13,6 @@ export * from "./repositories/tts-cache";
 export * from "./repositories/usage";
 export * from "./repositories/users";
 export * from "./schema";
+export * from "./search-utils";
 export * from "./storage";
+export * from "./vector-type";

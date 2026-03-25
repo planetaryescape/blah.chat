@@ -2,6 +2,8 @@ import { PGlite } from "@electric-sql/pglite";
 import { createPgliteDatabase } from "../db";
 
 const bootstrapSql = `
+CREATE EXTENSION IF NOT EXISTS vector;
+
 CREATE TABLE users (
   id text PRIMARY KEY,
   clerk_id text NOT NULL UNIQUE,
@@ -208,6 +210,87 @@ CREATE TABLE knowledge_sources (
   updated_at bigint NOT NULL
 );
 
+CREATE TABLE projects (
+  id text PRIMARY KEY,
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  description text,
+  system_prompt text,
+  is_template boolean NOT NULL DEFAULT false,
+  created_from text,
+  created_at bigint NOT NULL,
+  updated_at bigint NOT NULL
+);
+
+CREATE TABLE templates (
+  id text PRIMARY KEY,
+  user_id text REFERENCES users(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  prompt text NOT NULL,
+  description text,
+  category text NOT NULL,
+  is_built_in boolean NOT NULL DEFAULT false,
+  is_public boolean NOT NULL DEFAULT false,
+  usage_count bigint NOT NULL DEFAULT 0,
+  created_at bigint NOT NULL,
+  updated_at bigint NOT NULL
+);
+
+CREATE TABLE starter_suggestion_caches (
+  id text PRIMARY KEY,
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  suggestions jsonb NOT NULL DEFAULT '[]'::jsonb,
+  needs_refresh boolean NOT NULL DEFAULT false,
+  generated_at bigint NOT NULL,
+  source text NOT NULL DEFAULT 'cache',
+  created_at bigint NOT NULL,
+  updated_at bigint NOT NULL
+);
+
+CREATE TABLE cli_api_keys (
+  id text PRIMARY KEY,
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  key_hash text NOT NULL UNIQUE,
+  key_prefix text NOT NULL,
+  name text NOT NULL,
+  last_used_at bigint,
+  created_at bigint NOT NULL,
+  revoked_at bigint
+);
+
+CREATE TABLE user_api_keys (
+  id text PRIMARY KEY,
+  user_id text NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  byok_enabled boolean NOT NULL DEFAULT false,
+  encrypted_vercel_gateway_key text,
+  encrypted_open_router_key text,
+  encrypted_groq_key text,
+  encrypted_deepgram_key text,
+  encryption_ivs text,
+  auth_tags text,
+  last_validated jsonb,
+  created_at bigint NOT NULL,
+  updated_at bigint NOT NULL
+);
+
+CREATE TABLE composio_connections (
+  id text PRIMARY KEY,
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  composio_connection_id text NOT NULL UNIQUE,
+  integration_id text NOT NULL,
+  integration_name text NOT NULL,
+  status text NOT NULL,
+  scopes text[] NOT NULL DEFAULT ARRAY[]::text[],
+  oauth_state text,
+  oauth_state_expires_at bigint,
+  connected_at bigint,
+  last_used_at bigint,
+  last_error text,
+  created_at bigint NOT NULL,
+  updated_at bigint NOT NULL,
+  UNIQUE (user_id, integration_id)
+);
+
 CREATE TABLE notes (
   id text PRIMARY KEY,
   user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -217,7 +300,12 @@ CREATE TABLE notes (
   source_conversation_id text REFERENCES conversations(id) ON DELETE SET NULL,
   project_id text,
   tags text[] NOT NULL DEFAULT ARRAY[]::text[],
+  suggested_tags text[] NOT NULL DEFAULT ARRAY[]::text[],
   is_pinned boolean NOT NULL DEFAULT false,
+  share_id text,
+  is_public boolean NOT NULL DEFAULT false,
+  share_password text,
+  share_expires_at bigint,
   created_at bigint NOT NULL,
   updated_at bigint NOT NULL
 );
@@ -383,11 +471,13 @@ CREATE TABLE message_embeddings (
   conversation_id text NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
   user_id text REFERENCES users(id) ON DELETE SET NULL,
   content text NOT NULL,
-  embedding jsonb NOT NULL,
+  embedding vector NOT NULL,
   search_document text,
+  search_tsv tsvector GENERATED ALWAYS AS (to_tsvector('english', coalesce(search_document, content))) STORED,
   created_at bigint NOT NULL,
   updated_at bigint NOT NULL
 );
+CREATE INDEX message_embeddings_fts ON message_embeddings USING gin(search_tsv);
 
 CREATE TABLE memory_embeddings (
   id text PRIMARY KEY,
@@ -396,36 +486,42 @@ CREATE TABLE memory_embeddings (
   source_message_id text REFERENCES messages(id) ON DELETE SET NULL,
   content text NOT NULL,
   category text,
-  embedding jsonb NOT NULL,
+  embedding vector NOT NULL,
   search_document text,
+  search_tsv tsvector GENERATED ALWAYS AS (to_tsvector('english', coalesce(search_document, content))) STORED,
   metadata jsonb,
   created_at bigint NOT NULL,
   updated_at bigint NOT NULL
 );
+CREATE INDEX memory_embeddings_fts ON memory_embeddings USING gin(search_tsv);
 
 CREATE TABLE task_embeddings (
   id text PRIMARY KEY,
   user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   task_key text NOT NULL,
   content text NOT NULL,
-  embedding jsonb NOT NULL,
+  embedding vector NOT NULL,
   search_document text,
+  search_tsv tsvector GENERATED ALWAYS AS (to_tsvector('english', coalesce(search_document, content))) STORED,
   metadata jsonb,
   created_at bigint NOT NULL,
   updated_at bigint NOT NULL
 );
+CREATE INDEX task_embeddings_fts ON task_embeddings USING gin(search_tsv);
 
 CREATE TABLE note_embeddings (
   id text PRIMARY KEY,
   user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   note_key text NOT NULL,
   content text NOT NULL,
-  embedding jsonb NOT NULL,
+  embedding vector NOT NULL,
   search_document text,
+  search_tsv tsvector GENERATED ALWAYS AS (to_tsvector('english', coalesce(search_document, content))) STORED,
   metadata jsonb,
   created_at bigint NOT NULL,
   updated_at bigint NOT NULL
 );
+CREATE INDEX note_embeddings_fts ON note_embeddings USING gin(search_tsv);
 
 CREATE TABLE file_chunks (
   id text PRIMARY KEY,
@@ -435,10 +531,12 @@ CREATE TABLE file_chunks (
   chunk_index bigint NOT NULL,
   content text NOT NULL,
   search_document text,
-  embedding jsonb,
+  search_tsv tsvector GENERATED ALWAYS AS (to_tsvector('english', coalesce(search_document, content))) STORED,
+  embedding vector,
   metadata jsonb,
   created_at bigint NOT NULL
 );
+CREATE INDEX file_chunks_fts ON file_chunks USING gin(search_tsv);
 
 CREATE TABLE knowledge_chunks (
   id text PRIMARY KEY,
@@ -448,10 +546,12 @@ CREATE TABLE knowledge_chunks (
   chunk_index bigint NOT NULL,
   content text NOT NULL,
   search_document text,
-  embedding jsonb,
+  search_tsv tsvector GENERATED ALWAYS AS (to_tsvector('english', coalesce(search_document, content))) STORED,
+  embedding vector,
   metadata jsonb,
   created_at bigint NOT NULL
 );
+CREATE INDEX knowledge_chunks_fts ON knowledge_chunks USING gin(search_tsv);
 
 CREATE TABLE routing_examples (
   id text PRIMARY KEY,
@@ -459,14 +559,15 @@ CREATE TABLE routing_examples (
   route_label text NOT NULL,
   complexity text,
   source text NOT NULL DEFAULT 'seed',
-  embedding jsonb,
+  embedding vector,
   metadata jsonb,
   created_at bigint NOT NULL
 );
 `;
 
 export async function createTestPersistenceDb() {
-  const client = new PGlite();
+  const { vector } = await import("@electric-sql/pglite/vector");
+  const client = new PGlite({ extensions: { vector } });
   await client.exec(bootstrapSql);
   return createPgliteDatabase(client);
 }

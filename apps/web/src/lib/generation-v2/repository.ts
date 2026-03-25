@@ -45,6 +45,8 @@ const DEFAULT_ROUTING_POLICY_CONFIG = {
     stickyBonus: 1.25,
     degradedPenalty: 1.5,
     downPenalty: 4,
+    comparisonWinRate: 1.0,
+    explorationRate: 0.05,
   },
 } as const;
 
@@ -1319,6 +1321,35 @@ export function createGenerationV2Repository(db: PersistenceDb) {
       });
     },
 
+    async listRecentComparisonFeedback(modelIds: string[], limit = 200) {
+      if (modelIds.length === 0) {
+        return [];
+      }
+
+      return db
+        .select({
+          modelId: routingDecisions.selectedModelId,
+          signal: routingFeedback.signal,
+        })
+        .from(routingFeedback)
+        .innerJoin(
+          routingOutcomes,
+          eq(routingOutcomes.id, routingFeedback.outcomeId),
+        )
+        .innerJoin(
+          routingDecisions,
+          eq(routingDecisions.id, routingOutcomes.decisionId),
+        )
+        .where(
+          and(
+            inArray(routingDecisions.selectedModelId, modelIds),
+            inArray(routingFeedback.signal, ["win", "loss", "tie"]),
+          ),
+        )
+        .orderBy(desc(routingFeedback.createdAt))
+        .limit(limit);
+    },
+
     async upsertRoutingOutcome(input: {
       decisionId: string;
       requestId: string;
@@ -1326,6 +1357,10 @@ export function createGenerationV2Repository(db: PersistenceDb) {
       status: "complete" | "cancelled" | "error";
       ttftMs?: number | null;
       latencyMs?: number | null;
+      totalTokens?: number | null;
+      inputTokens?: number | null;
+      outputTokens?: number | null;
+      costUsd?: number | null;
       metadata?: Record<string, unknown>;
     }) {
       const existing = await db.query.routingOutcomes.findFirst({
@@ -1341,6 +1376,10 @@ export function createGenerationV2Repository(db: PersistenceDb) {
             status: input.status,
             ttftMs: input.ttftMs ?? null,
             latencyMs: input.latencyMs ?? null,
+            totalTokens: input.totalTokens ?? null,
+            inputTokens: input.inputTokens ?? null,
+            outputTokens: input.outputTokens ?? null,
+            costUsd: input.costUsd ?? null,
             metadata: input.metadata ?? null,
           })
           .where(eq(routingOutcomes.id, existing.id))
@@ -1362,6 +1401,10 @@ export function createGenerationV2Repository(db: PersistenceDb) {
           status: input.status,
           ttftMs: input.ttftMs ?? null,
           latencyMs: input.latencyMs ?? null,
+          totalTokens: input.totalTokens ?? null,
+          inputTokens: input.inputTokens ?? null,
+          outputTokens: input.outputTokens ?? null,
+          costUsd: input.costUsd ?? null,
           metadata: input.metadata ?? null,
           createdAt: now(),
         })
@@ -1372,6 +1415,30 @@ export function createGenerationV2Repository(db: PersistenceDb) {
       }
 
       return outcome;
+    },
+
+    async recordRegenerationFeedback(assistantMessageId: string) {
+      const session = await db.query.generationSessions.findFirst({
+        where: eq(generationSessions.assistantMessageId, assistantMessageId),
+      });
+      if (!session) return null;
+
+      const outcome = await db.query.routingOutcomes.findFirst({
+        where: eq(routingOutcomes.generationSessionId, session.id),
+      });
+      if (!outcome) return null;
+
+      const [feedback] = await db
+        .insert(routingFeedback)
+        .values({
+          outcomeId: outcome.id,
+          signal: "regenerated",
+          metadata: { assistantMessageId },
+          createdAt: now(),
+        })
+        .returning();
+
+      return feedback ?? null;
     },
 
     async listMessages(conversationId: string) {

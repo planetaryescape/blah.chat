@@ -125,3 +125,132 @@ export const DEFAULT_CLASSIFIER_CONFIG: ClassifierConfig = {
   topK: 5,
   fallbackEnabled: true,
 };
+
+// ============================================================================
+// Policy Engine Types
+// ============================================================================
+
+export interface PolicyWeights {
+  binRank: number;
+  successRate: number;
+  errorRate: number;
+  cancelRate: number;
+  latencySeconds: number;
+  ttftSeconds: number;
+  costScore: number;
+  speedScore: number;
+  stickyBonus: number;
+  degradedPenalty: number;
+  downPenalty: number;
+  comparisonWinRate: number;
+  explorationRate: number;
+}
+
+export const DEFAULT_POLICY_WEIGHTS: PolicyWeights = {
+  binRank: 0.4,
+  successRate: 2,
+  errorRate: 1.5,
+  cancelRate: 0.75,
+  latencySeconds: 0.15,
+  ttftSeconds: 0.15,
+  costScore: 1,
+  speedScore: 0.5,
+  stickyBonus: 1.25,
+  degradedPenalty: 1.5,
+  downPenalty: 4,
+  comparisonWinRate: 1.0,
+  explorationRate: 0.05,
+};
+
+export interface OutcomeStats {
+  total: number;
+  complete: number;
+  error: number;
+  cancelled: number;
+  latencyTotal: number;
+  latencyCount: number;
+  ttftTotal: number;
+  ttftCount: number;
+  costTotal: number;
+  costCount: number;
+}
+
+export type ProviderHealthStatus = "healthy" | "degraded" | "down" | "unknown";
+
+export interface ProviderHealth {
+  status: ProviderHealthStatus;
+}
+
+export interface ComparisonStats {
+  wins: number;
+  losses: number;
+  ties: number;
+  total: number;
+}
+
+export interface CandidateInput {
+  modelId: string;
+  binIndex: number;
+  pricing: { input: number; output: number };
+  hostOrder?: string[];
+  outcomeStats?: OutcomeStats;
+  health?: ProviderHealth;
+  comparisonStats?: ComparisonStats;
+  toolSuccessRate?: number;
+}
+
+export interface ScoringContext {
+  routeLabel: RouteLabel;
+  weights: PolicyWeights;
+  costBias: number;
+  speedBias: number;
+  previousModelId?: string;
+  previousRouteLabel?: string;
+  totalCandidates: number;
+  maxAverageCost: number;
+}
+
+export interface ScoreComponent {
+  name: string;
+  rawValue: number;
+  weight: number;
+  contribution: number;
+}
+
+export interface ScoreExplanation {
+  components: ScoreComponent[];
+  totalScore: number;
+}
+
+export interface CandidateFeatures {
+  routeLabel: RouteLabel;
+  binIndex: number;
+  successRate: number;
+  errorRate: number;
+  cancelRate: number;
+  avgLatencySeconds: number;
+  avgTtftSeconds: number;
+  costScore: number;
+  speedScore: number;
+  isSticky: boolean;
+  stickyBonus: number;
+  healthStatus: string;
+  comparisonWinRate: number;
+}
+
+export interface ScoredCandidate {
+  modelId: string;
+  provider: string;
+  score: number;
+  rank: number;
+  features: CandidateFeatures;
+  explanation: ScoreExplanation;
+}
+
+export interface PolicyEngineResult {
+  rankedCandidates: ScoredCandidate[];
+  selectedModelId: string;
+  isExploration: boolean;
+  explanation: string;
+  shadowModelId?: string;
+}

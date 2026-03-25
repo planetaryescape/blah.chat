@@ -1,7 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useQuery } from "convex/react";
 import { Database, HelpCircle, Plus, Settings2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -13,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useBYODConfig } from "@/lib/hooks/queries/useBYODConfig";
 import {
   BYODConfigForm,
   BYODInfoDialog,
@@ -26,12 +25,8 @@ export function BYODSettings() {
   const [showDisconnect, setShowDisconnect] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
 
-  // Query BYOD config
-  // @ts-ignore - Type depth exceeded with complex Convex query (94+ modules)
-  const config = useQuery(api.byod.credentials.getConfig);
-  const isLoading = config === undefined;
-  const _isConnected = config?.connectionStatus === "connected";
-  const hasConfig = config !== null;
+  const { config, isLoading, mutate } = useBYODConfig();
+  const hasConfig = config !== null && config !== undefined;
 
   if (isLoading) {
     return <BYODSettingsSkeleton />;
@@ -44,7 +39,8 @@ export function BYODSettings() {
         <div>
           <h2 className="text-lg font-semibold">Bring Your Own Database</h2>
           <p className="text-sm text-muted-foreground">
-            Store your conversations and data on your own Convex instance.
+            Store your conversations and data on your own Neon Postgres
+            instance.
           </p>
         </div>
         <Button
@@ -70,8 +66,8 @@ export function BYODSettings() {
               Connect Your Database
             </CardTitle>
             <CardDescription>
-              Use your own Convex instance to store your data. You maintain full
-              control and can export anytime.
+              Use your own Neon Postgres instance to store your data. You
+              maintain full control and can export anytime.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -79,7 +75,8 @@ export function BYODSettings() {
               <BYODConfigForm
                 onSuccess={() => {
                   setShowConfigForm(false);
-                  toast.success("BYOD configured successfully!");
+                  mutate();
+                  toast.success("Neon database connected!");
                 }}
                 onCancel={() => setShowConfigForm(false)}
               />
@@ -88,9 +85,9 @@ export function BYODSettings() {
                 <div className="rounded-lg bg-muted/50 p-4">
                   <h4 className="font-medium mb-2">Before you start</h4>
                   <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>1. Create a Convex account at convex.dev</li>
-                    <li>2. Create a new project for blah.chat</li>
-                    <li>3. Get your deploy key from Settings → Deploy Key</li>
+                    <li>1. Create a Neon account at neon.tech</li>
+                    <li>2. Create a new project</li>
+                    <li>3. Copy your connection string from the dashboard</li>
                   </ul>
                 </div>
                 <Button onClick={() => setShowConfigForm(true)}>
@@ -122,7 +119,7 @@ export function BYODSettings() {
                   variant="outline"
                   onClick={() => setShowConfigForm(true)}
                 >
-                  Update Credentials
+                  Update Connection
                 </Button>
                 <Button
                   variant="destructive"
@@ -136,13 +133,13 @@ export function BYODSettings() {
         </>
       )}
 
-      {/* Update Credentials Form */}
+      {/* Update Connection Form */}
       {hasConfig && showConfigForm && (
         <Card>
           <CardHeader>
-            <CardTitle>Update Credentials</CardTitle>
+            <CardTitle>Update Connection</CardTitle>
             <CardDescription>
-              Update your Convex deployment URL or deploy key.
+              Update your Neon connection string.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -150,7 +147,8 @@ export function BYODSettings() {
               isUpdate
               onSuccess={() => {
                 setShowConfigForm(false);
-                toast.success("Credentials updated successfully!");
+                mutate();
+                toast.success("Connection updated!");
               }}
               onCancel={() => setShowConfigForm(false)}
             />
@@ -162,6 +160,7 @@ export function BYODSettings() {
       <DisconnectDialog
         open={showDisconnect}
         onOpenChange={setShowDisconnect}
+        onDisconnected={() => mutate()}
       />
 
       {/* Info Dialog */}
@@ -169,8 +168,6 @@ export function BYODSettings() {
     </div>
   );
 }
-
-// ===== Skeleton =====
 
 function BYODSettingsSkeleton() {
   return (

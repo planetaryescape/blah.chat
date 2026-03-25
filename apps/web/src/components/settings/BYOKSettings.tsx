@@ -1,7 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import {
   AlertCircle,
   CheckCircle2,
@@ -34,6 +33,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { useSDKClient } from "@/lib/api/sdkClient";
 
 type KeyType = "vercelGateway" | "openRouter" | "groq" | "deepgram";
 
@@ -232,16 +232,12 @@ function ApiKeyCard({
 }
 
 export function BYOKSettings() {
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const config = useQuery(api.byok.credentials.getConfig);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const enableByok = useMutation(api.byok.credentials.enable);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const disableByok = useMutation(api.byok.credentials.disable);
-  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
-  const saveApiKey = useAction(api.byok.saveCredentials.saveApiKey);
-  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
-  const removeApiKey = useAction(api.byok.saveCredentials.removeApiKey);
+  const sdk = useSDKClient();
+  const { data: config, refetch: refetchConfig } = useQuery({
+    queryKey: ["byok-config"],
+    queryFn: () => sdk.getByokConfig(),
+    staleTime: 10_000,
+  });
 
   const [showDisableDialog, setShowDisableDialog] = useState(false);
 
@@ -252,7 +248,8 @@ export function BYOKSettings() {
         return;
       }
       try {
-        await enableByok();
+        await sdk.enableByok();
+        await refetchConfig();
         toast.success("BYOK enabled! Using your own API keys now.");
       } catch (error: unknown) {
         toast.error(getErrorMessage(error, "Failed to enable BYOK"));
@@ -264,7 +261,8 @@ export function BYOKSettings() {
 
   const confirmDisable = async () => {
     try {
-      await disableByok();
+      await sdk.disableByok();
+      await refetchConfig();
       toast.success("BYOK disabled. Using platform keys now.");
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, "Failed to disable BYOK"));
@@ -350,10 +348,14 @@ export function BYOKSettings() {
           keyType="vercelGateway"
           hasKey={config?.hasVercelGatewayKey ?? false}
           lastValidated={config?.lastValidated?.vercelGateway}
-          onSave={(key) =>
-            saveApiKey({ keyType: "vercelGateway", apiKey: key })
-          }
-          onRemove={() => removeApiKey({ keyType: "vercelGateway" })}
+          onSave={async (key) => {
+            await sdk.saveByokApiKey({ keyType: "vercelGateway", apiKey: key });
+            await refetchConfig();
+          }}
+          onRemove={async () => {
+            await sdk.removeByokApiKey({ keyType: "vercelGateway" });
+            await refetchConfig();
+          }}
         />
       </div>
 
@@ -373,24 +375,42 @@ export function BYOKSettings() {
           keyType="openRouter"
           hasKey={config?.hasOpenRouterKey ?? false}
           lastValidated={config?.lastValidated?.openRouter}
-          onSave={(key) => saveApiKey({ keyType: "openRouter", apiKey: key })}
-          onRemove={() => removeApiKey({ keyType: "openRouter" })}
+          onSave={async (key) => {
+            await sdk.saveByokApiKey({ keyType: "openRouter", apiKey: key });
+            await refetchConfig();
+          }}
+          onRemove={async () => {
+            await sdk.removeByokApiKey({ keyType: "openRouter" });
+            await refetchConfig();
+          }}
         />
 
         <ApiKeyCard
           keyType="groq"
           hasKey={config?.hasGroqKey ?? false}
           lastValidated={config?.lastValidated?.groq}
-          onSave={(key) => saveApiKey({ keyType: "groq", apiKey: key })}
-          onRemove={() => removeApiKey({ keyType: "groq" })}
+          onSave={async (key) => {
+            await sdk.saveByokApiKey({ keyType: "groq", apiKey: key });
+            await refetchConfig();
+          }}
+          onRemove={async () => {
+            await sdk.removeByokApiKey({ keyType: "groq" });
+            await refetchConfig();
+          }}
         />
 
         <ApiKeyCard
           keyType="deepgram"
           hasKey={config?.hasDeepgramKey ?? false}
           lastValidated={config?.lastValidated?.deepgram}
-          onSave={(key) => saveApiKey({ keyType: "deepgram", apiKey: key })}
-          onRemove={() => removeApiKey({ keyType: "deepgram" })}
+          onSave={async (key) => {
+            await sdk.saveByokApiKey({ keyType: "deepgram", apiKey: key });
+            await refetchConfig();
+          }}
+          onRemove={async () => {
+            await sdk.removeByokApiKey({ keyType: "deepgram" });
+            await refetchConfig();
+          }}
         />
       </div>
 

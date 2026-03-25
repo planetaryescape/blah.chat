@@ -58,7 +58,7 @@ export default function SmartAssistantPage() {
 
   // Actions
   const extractFromMeeting = useAction(
-    // @ts-expect-error - Type depth exceeded with 85+ Convex modules
+    // @ts-ignore - Type depth exceeded with 85+ Convex modules
     api.ai.meetingExtraction.extractFromMeeting,
   );
   // @ts-ignore - Type depth exceeded

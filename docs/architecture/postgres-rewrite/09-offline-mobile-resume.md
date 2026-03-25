@@ -1,12 +1,12 @@
 # Phase 9: Offline Mobile Resume
 
-Status: in progress as of March 16, 2026.
+Status: complete as of March 24, 2026.
 Completed work:
-- migrated web chat path still uses local cache and local-first message sync
-- new generation runtime supports Redis log plus Postgres checkpoints for resume-oriented transport
-Still pending for full phase closure:
-- migrate mobile onto the new transport model
-- complete offline replay and resume parity across all surfaces
+- durable local queue + settled-message cache on the rewrite stack
+- mobile HTTP/SSE streaming with resume-oriented active-generation state
+- reconnect replay + foreground resume via NetInfo/AppState lifecycle bridge
+- grouped comparison replay and branch-aware queue payloads on mobile
+- rewrite-native mobile support for note auto-tag/share and sidebar analytics
 
 ## Goal
 
@@ -78,6 +78,17 @@ Queue records must store enough to fully replay the send:
 - refresh during single-model generation
 - refresh during comparison generation
 - validate mobile foreground reconnect flow
+
+### Verified By
+
+- `apps/mobile`: `bun run test:run` -> 5 files, 13 tests passed
+- `apps/mobile`: `bun run typecheck` -> passed
+- `apps/web`: `bun run test:run src/app/api/v1/__tests__/notes-tasks.auth.test.ts src/app/api/v1/__tests__/notes-sharing.auth.test.ts src/app/api/v1/__tests__/sidebar-analytics.auth.test.ts` -> 3 files, 4 tests passed
+- `apps/web`: `bun run typecheck` -> passed
+- `packages/api-client`: `bunx vitest run src/client.test.ts` -> 1 file, 19 tests passed
+- `packages/api-client`: `bun run typecheck` -> passed
+- `packages/persistence-postgres`: `bunx vitest run __tests__/schema.test.ts __tests__/migrations.test.ts` -> 2 files, 3 tests passed
+- `packages/persistence-postgres`: `bun run typecheck` -> passed
 
 ## Done Criteria
 

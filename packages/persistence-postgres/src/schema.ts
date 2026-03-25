@@ -1315,6 +1315,109 @@ export const userPreferencesRelations = relations(
   }),
 );
 
+// ---------------------------------------------------------------------------
+// BYOD Neon – Phase 13
+// ---------------------------------------------------------------------------
+
+export const byodNeonConfigs = pgTable(
+  "byod_neon_configs",
+  {
+    id: text("id").primaryKey().$defaultFn(id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" })
+      .unique(),
+    encryptedConnectionString: text("encrypted_connection_string").notNull(),
+    encryptionIv: text("encryption_iv").notNull(),
+    authTag: text("auth_tag").notNull(),
+    neonProjectId: text("neon_project_id"),
+    connectionStatus: text("connection_status").notNull().default("pending"),
+    connectionError: text("connection_error"),
+    lastHealthCheck: bigint("last_health_check", { mode: "number" }),
+    healthLatencyMs: bigint("health_latency_ms", { mode: "number" }),
+    consecutiveFailures: bigint("consecutive_failures", { mode: "number" })
+      .notNull()
+      .default(0),
+    schemaVersion: bigint("schema_version", { mode: "number" })
+      .notNull()
+      .default(0),
+    migrationStatus: text("migration_status").notNull().default("pending"),
+    migrationError: text("migration_error"),
+    lastMigrationAt: bigint("last_migration_at", { mode: "number" }),
+    createdAt: bigint("created_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+    updatedAt: bigint("updated_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+  },
+  (t) => [
+    index("byod_neon_configs_connection_status_idx").on(t.connectionStatus),
+    index("byod_neon_configs_migration_status_idx").on(t.migrationStatus),
+  ],
+);
+
+export const byodMigrationLogs = pgTable(
+  "byod_migration_logs",
+  {
+    id: text("id").primaryKey().$defaultFn(id),
+    configId: text("config_id")
+      .notNull()
+      .references(() => byodNeonConfigs.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    migrationIndex: bigint("migration_index", { mode: "number" }).notNull(),
+    migrationTag: text("migration_tag").notNull(),
+    status: text("status").notNull().default("running"),
+    error: text("error"),
+    durationMs: bigint("duration_ms", { mode: "number" }),
+    startedAt: bigint("started_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+    completedAt: bigint("completed_at", { mode: "number" }),
+    createdAt: bigint("created_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+  },
+  (t) => [
+    index("byod_migration_logs_config_id_idx").on(t.configId),
+    uniqueIndex("byod_migration_logs_config_tag_uniq").on(
+      t.configId,
+      t.migrationTag,
+    ),
+  ],
+);
+
+export const byodNeonConfigsRelations = relations(
+  byodNeonConfigs,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [byodNeonConfigs.userId],
+      references: [users.id],
+    }),
+    migrationLogs: many(byodMigrationLogs),
+  }),
+);
+
+export const byodMigrationLogsRelations = relations(
+  byodMigrationLogs,
+  ({ one }) => ({
+    config: one(byodNeonConfigs, {
+      fields: [byodMigrationLogs.configId],
+      references: [byodNeonConfigs.id],
+    }),
+    user: one(users, {
+      fields: [byodMigrationLogs.userId],
+      references: [users.id],
+    }),
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// Inferred types
+// ---------------------------------------------------------------------------
+
 export type User = typeof users.$inferSelect;
 export type Conversation = typeof conversations.$inferSelect;
 export type Message = typeof messages.$inferSelect;
@@ -1326,3 +1429,5 @@ export type FeedbackEntry = typeof feedbackEntries.$inferSelect;
 export type SourceMetadata = typeof sourceMetadata.$inferSelect;
 export type MessageSource = typeof messageSources.$inferSelect;
 export type KnowledgeSource = typeof knowledgeSources.$inferSelect;
+export type ByodNeonConfig = typeof byodNeonConfigs.$inferSelect;
+export type ByodMigrationLog = typeof byodMigrationLogs.$inferSelect;

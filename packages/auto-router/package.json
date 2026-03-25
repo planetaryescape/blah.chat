@@ -75,6 +75,14 @@
     "./registry": {
       "types": "./dist/registry.d.ts",
       "import": "./dist/registry.js"
+    },
+    "./policy-engine": {
+      "types": "./dist/policy-engine.d.ts",
+      "import": "./dist/policy-engine.js"
+    },
+    "./exploration": {
+      "types": "./dist/exploration.d.ts",
+      "import": "./dist/exploration.js"
     }
   },
   "files": [
@@ -87,7 +95,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup src/index.ts src/core.ts src/profiles.ts src/prompts.ts src/types.ts src/bins.ts src/hard-rules.ts src/classifier.ts src/bin-selector.ts src/examples.ts src/router.ts src/embedding.ts src/registry.ts --format esm --dts --clean",
+    "build": "tsup src/index.ts src/core.ts src/profiles.ts src/prompts.ts src/types.ts src/bins.ts src/hard-rules.ts src/classifier.ts src/bin-selector.ts src/examples.ts src/router.ts src/embedding.ts src/registry.ts src/policy-engine.ts src/exploration.ts --format esm --dts --clean",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run",

@@ -1,6 +1,6 @@
 # Phase 11: Search Embeddings Memory
 
-Status: in progress as of March 23, 2026.
+Status: complete as of March 25, 2026.
 
 ## Goal
 
@@ -71,7 +71,22 @@ Embedding generation and reindexing should run in Trigger tasks, not inside user
 - project knowledge/file surfaces are on Postgres-backed routes
 - project notes/tasks now have Postgres tables, generated Drizzle migration coverage, project-scoped REST routes, and web project-page hooks/UI on the new stack
 - global `/notes` and `/tasks` now use top-level Postgres REST routes, hooks, and dedicated workspaces instead of the old Convex cache/dashboard surfaces
+- pgvector extension enabled; all 7 embedding tables migrated from jsonb to native `vector(1536)` type with HNSW indexes
+- tsvector generated columns + GIN indexes on 6 entity tables for Postgres-native full-text search
+- hybrid search (message + memory) rewritten to use SQL-level `<=>` cosine distance and `search_tsv @@ plainto_tsquery` instead of application-level scoring
+- shared search utilities (`mergeByRrf`, `cosineSimilarity`, `serializeVector`) extracted to `@blah-chat/persistence-postgres`
+- Drizzle `customType` for pgvector `vector(N)` column type
+- Trigger jobs for embedding generation: `embed-message`, `embed-note`, `embed-task` (+ existing `embed-file`, `extract-memories`)
+- `extract-memories` dedup upgraded from JS-level cosine similarity to SQL-level `<=>` operator
+- backfill infrastructure: `backfill-message-embeddings`, `backfill-note-embeddings`, `backfill-task-embeddings` Trigger tasks
+- note/task creation and update automatically trigger embedding generation
+- message embedding triggered on generation completion via `GenerationV2Service` background tasks
+- PGlite test bootstrap loads vector extension for real pgvector test coverage
+- migration `0008_phase11_pgvector_fts.sql` covers all schema changes
 
 ## What Comes Next
 
-Remaining phase-11 work is now broader embedding/retrieval parity, not note/task CRUD surface migration.
+Phase 11 embedding/retrieval infrastructure is complete. Remaining work:
+- run backfill tasks against production data to populate embeddings for existing entities
+- compare search quality before/after with sampled queries
+- monitor HNSW index performance under load

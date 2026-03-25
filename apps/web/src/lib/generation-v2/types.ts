@@ -33,6 +33,13 @@ export interface GenerationProviderStreamInput {
   signal?: AbortSignal;
 }
 
+export interface GenerationUsage {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  costUsd?: number;
+}
+
 export interface GenerationProvider {
   streamText(
     input: GenerationProviderStreamInput,
@@ -45,6 +52,10 @@ export interface GenerationProvider {
     requestId: string;
     sessionId: string;
   }): Promise<GenerationSource[]>;
+  getUsage?(input: {
+    requestId: string;
+    sessionId: string;
+  }): Promise<GenerationUsage | null>;
 }
 
 export interface GenerationEventStore {

@@ -6,6 +6,7 @@ import type {
   GenerationProvider,
   GenerationSource,
   GenerationToolCall,
+  GenerationUsage,
 } from "./types";
 
 function toModelMessages(messages: GenerationPromptMessage[]) {
@@ -23,6 +24,10 @@ export class AiSdkGenerationProvider implements GenerationProvider {
   private readonly toolCallsBySession = new Map<
     string,
     Map<string, GenerationToolCall>
+  >();
+  private readonly usagePromises = new Map<
+    string,
+    Promise<GenerationUsage | null>
   >();
 
   private getSessionKey(input: { requestId: string; sessionId: string }) {
@@ -179,6 +184,24 @@ export class AiSdkGenerationProvider implements GenerationProvider {
     });
     const sessionKey = this.getSessionKey(input);
     this.toolCallsBySession.set(sessionKey, new Map());
+    this.usagePromises.set(
+      sessionKey,
+      (async () => {
+        try {
+          const usage = await result.usage;
+          if (!usage) return null;
+          const inputTokens = usage.inputTokens ?? 0;
+          const outputTokens = usage.outputTokens ?? 0;
+          return {
+            inputTokens,
+            outputTokens,
+            totalTokens: inputTokens + outputTokens,
+          };
+        } catch {
+          return null;
+        }
+      })(),
+    );
     this.sourcePromises.set(
       sessionKey,
       (async () => {
@@ -290,5 +313,15 @@ export class AiSdkGenerationProvider implements GenerationProvider {
     const sources = (await this.sourcePromises.get(sessionKey)) ?? [];
     this.sourcePromises.delete(sessionKey);
     return sources;
+  }
+
+  async getUsage(input: {
+    requestId: string;
+    sessionId: string;
+  }): Promise<GenerationUsage | null> {
+    const sessionKey = this.getSessionKey(input);
+    const usage = (await this.usagePromises.get(sessionKey)) ?? null;
+    this.usagePromises.delete(sessionKey);
+    return usage;
   }
 }

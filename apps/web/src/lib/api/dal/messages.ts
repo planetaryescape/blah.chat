@@ -397,6 +397,11 @@ export const messagesDAL = {
       modelId,
     });
 
+    // Record routing feedback: user was unhappy with original response
+    repo.recordRegenerationFeedback(message.id).catch(() => {
+      // Non-critical: don't block regeneration if feedback recording fails
+    });
+
     return {
       status: "success" as const,
       sys: {

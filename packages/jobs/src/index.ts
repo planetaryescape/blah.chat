@@ -5,6 +5,11 @@ export type {
   backfillNoteEmbeddingsTask,
   backfillTaskEmbeddingsTask,
 } from "./trigger/backfill-embeddings";
+export type { byodHealthCheckTask } from "./trigger/byod-health-check";
+export type {
+  byodMigrationOnDemandTask,
+  byodMigrationScheduleTask,
+} from "./trigger/byod-run-migrations";
 export type { checkHealthTask } from "./trigger/check-health";
 export type { checkProviderHealthTask } from "./trigger/check-provider-health";
 export type { cleanupStaleGenerationSessionsTask } from "./trigger/cleanup-stale-generation-sessions";

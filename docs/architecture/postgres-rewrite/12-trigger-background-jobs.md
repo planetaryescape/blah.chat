@@ -1,6 +1,6 @@
 # Phase 12: Trigger Background Jobs
 
-Status: in progress as of March 22, 2026.
+Status: complete as of March 25, 2026.
 
 ## Goal
 
@@ -41,6 +41,15 @@ By this point the core runtime, router, and retrieval systems are already define
 - `apps/web/src/app/api/v1/trigger/[taskId]/route.ts` has been removed; Trigger no longer hops through the web app to reach Convex task handlers
 - the earlier canonical-stack compatibility holdouts `analyze-model-fit`, `auto-triage-feedback`, `embed-file`, `enrich-source-metadata`, and `process-source` now have the required Postgres/REST-backed surfaces, so they are no longer blocking phase-12 cutover on the main chat/knowledge path
 - remaining work is now narrower: schedule/backfill cleanup and legacy-domain surfaces outside the canonical rewrite path still need later-phase migration
+- `packages/jobs/src/trigger/recover-stuck-messages.ts` now runs every 2 minutes to fail messages stuck in pending/generating >10 minutes, replacing the `recover-stuck-messages` Convex cron
+- `packages/jobs/src/trigger/cleanup-stale-generation-sessions.ts` now runs every 5 minutes to fail pending generation sessions >60s old, replacing the `cleanup-stale-generation-locks` Convex cron
+- `packages/jobs/src/trigger/check-health.ts` now pings Postgres and Trigger API directly instead of routing through the legacy Convex HTTP bridge
+- `packages/jobs/src/trigger/mark-expired-memories.ts` now runs daily at 3 AM UTC to hard-delete memories with expiresAt >90 days old, replacing the `mark-expired-memories` Convex cron
+- `packages/jobs/src/trigger/extract-inactive-conversations.ts` now runs every 15 minutes to enqueue memory extraction for idle conversations, replacing the `extract-inactive-conversations` Convex cron
+- `packages/jobs/src/trigger/cleanup-stale-incognito.ts` now runs hourly at :30 to delete incognito conversations inactive >24h, replacing the `cleanup-stale-incognito` Convex cron
+- `packages/jobs/src/trigger/telemetry-heartbeat.ts` now runs daily at 2 AM UTC to send anonymous instance metrics, replacing the `telemetry-heartbeat` Convex cron
+- `docs/architecture/postgres-rewrite/12-job-ownership-map.md` documents explicit ownership of all Trigger tasks (scheduled and on-demand)
+- 3 Convex crons not migrated (no Postgres equivalent): `cleanup-expired-jobs`, `cleanup-old-notifications`, `calculate-user-rankings`
 
 ## Good Trigger Candidates
 

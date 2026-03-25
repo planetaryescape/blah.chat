@@ -1,92 +1,21 @@
 import { EMBEDDING_MODEL } from "@blah-chat/ai/operational-models";
 import {
   conversations,
+  mergeByRrf,
   messageEmbeddings,
   messages,
+  type PersistenceDb,
+  serializeVector,
 } from "@blah-chat/persistence-postgres";
 import { embed } from "ai";
-import { and, eq } from "drizzle-orm";
+import { and, eq, gte, lte, sql } from "drizzle-orm";
 import { ensureCurrentPersistenceUser } from "./current-user";
 import { toApiMessage } from "./mappers";
 import { getPersistenceDb } from "./server";
 
-function tokenize(value: string) {
-  return value
-    .toLowerCase()
-    .split(/[^a-z0-9]+/i)
-    .map((token) => token.trim())
-    .filter(Boolean);
-}
-
-function scoreTextMatch(queryTokens: string[], text: string) {
-  if (queryTokens.length === 0) {
-    return 0;
-  }
-
-  const haystack = text.toLowerCase();
-  let score = 0;
-  for (const token of queryTokens) {
-    if (haystack.includes(token)) {
-      score += 1;
-    }
-  }
-
-  return score / queryTokens.length;
-}
-
-function cosineSimilarity(left: number[], right: number[]) {
-  if (left.length === 0 || left.length !== right.length) {
-    return 0;
-  }
-
-  let dot = 0;
-  let leftNorm = 0;
-  let rightNorm = 0;
-
-  for (let index = 0; index < left.length; index += 1) {
-    const leftValue = left[index] ?? 0;
-    const rightValue = right[index] ?? 0;
-    dot += leftValue * rightValue;
-    leftNorm += leftValue * leftValue;
-    rightNorm += rightValue * rightValue;
-  }
-
-  if (leftNorm === 0 || rightNorm === 0) {
-    return 0;
-  }
-
-  return dot / (Math.sqrt(leftNorm) * Math.sqrt(rightNorm));
-}
-
-function mergeByRrf<T extends { id: string }>(
-  textResults: Array<T>,
-  vectorResults: Array<T>,
-  limit: number,
-) {
-  const k = 60;
-  const scores = new Map<string, { item: T; score: number }>();
-
-  textResults.forEach((item, index) => {
-    scores.set(item.id, {
-      item,
-      score: 1 / (k + index + 1),
-    });
-  });
-
-  vectorResults.forEach((item, index) => {
-    const existing = scores.get(item.id);
-    const score = 1 / (k + index + 1);
-    if (existing) {
-      existing.score += score;
-      return;
-    }
-    scores.set(item.id, { item, score });
-  });
-
-  return Array.from(scores.values())
-    .sort((left, right) => right.score - left.score)
-    .slice(0, limit)
-    .map((entry) => entry.item);
+export interface SearchDependencies {
+  db?: PersistenceDb;
+  embedQuery?: (query: string) => Promise<number[]>;
 }
 
 export async function searchMessages(
@@ -99,83 +28,89 @@ export async function searchMessages(
     dateTo?: number;
     messageType?: "user" | "assistant";
   },
+  dependencies: SearchDependencies = {},
 ) {
-  const db = getPersistenceDb();
+  const db = dependencies.db ?? getPersistenceDb();
+  const embedQueryFn =
+    dependencies.embedQuery ??
+    (async (query: string) => {
+      const { embedding } = await embed({
+        model: EMBEDDING_MODEL,
+        value: query,
+      });
+      return embedding;
+    });
+
   const user = await ensureCurrentPersistenceUser(clerkUserId);
-  const rows = await db
+  const searchLimit = Math.min(input.limit * 3, 100);
+
+  // Build shared WHERE conditions
+  const conditions = [eq(conversations.userId, user.id)];
+  if (input.conversationId) {
+    conditions.push(eq(messages.conversationId, input.conversationId));
+  }
+  if (input.messageType) {
+    conditions.push(eq(messages.role, input.messageType));
+  }
+  if (input.dateFrom !== undefined) {
+    conditions.push(gte(messages.createdAt, input.dateFrom));
+  }
+  if (input.dateTo !== undefined) {
+    conditions.push(lte(messages.createdAt, input.dateTo));
+  }
+
+  // Full-text search via tsvector
+  const textResults = await db
     .select({
       message: messages,
       conversationTitle: conversations.title,
-      searchDocument: messageEmbeddings.searchDocument,
-      embedding: messageEmbeddings.embedding,
     })
-    .from(messages)
+    .from(messageEmbeddings)
+    .innerJoin(messages, eq(messages.id, messageEmbeddings.messageId))
     .innerJoin(conversations, eq(conversations.id, messages.conversationId))
-    .leftJoin(messageEmbeddings, eq(messageEmbeddings.messageId, messages.id))
     .where(
       and(
-        eq(conversations.userId, user.id),
-        input.conversationId
-          ? eq(messages.conversationId, input.conversationId)
-          : undefined,
-        input.messageType ? eq(messages.role, input.messageType) : undefined,
+        sql`"message_embeddings"."search_tsv" @@ plainto_tsquery('english', ${input.query})`,
+        ...conditions,
       ),
-    );
+    )
+    .orderBy(
+      sql`ts_rank("message_embeddings"."search_tsv", plainto_tsquery('english', ${input.query})) DESC`,
+    )
+    .limit(searchLimit);
 
-  const filteredRows = rows.filter((row) => {
-    if (
-      input.dateFrom !== undefined &&
-      row.message.createdAt < input.dateFrom
-    ) {
-      return false;
-    }
-    if (input.dateTo !== undefined && row.message.createdAt > input.dateTo) {
-      return false;
-    }
-    return true;
-  });
+  // Vector similarity search
+  let vectorResults: typeof textResults = [];
+  try {
+    const queryEmbedding = await embedQueryFn(input.query);
+    const vecLiteral = serializeVector(queryEmbedding);
 
-  const queryTokens = tokenize(input.query);
-  const textRanked = filteredRows
-    .map((row) => ({
-      ...row,
-      id: row.message.id,
-      textScore: scoreTextMatch(
-        queryTokens,
-        row.searchDocument ?? row.message.content,
-      ),
-    }))
-    .filter((row) => row.textScore > 0)
-    .sort((left, right) => right.textScore - left.textScore);
-
-  let vectorRanked: Array<(typeof textRanked)[number]> = [];
-  const embeddedCandidates = filteredRows.filter(
-    (row): row is typeof row & { embedding: number[] } =>
-      Array.isArray(row.embedding) && row.embedding.length > 0,
-  );
-
-  if (embeddedCandidates.length > 0) {
-    try {
-      const { embedding: queryEmbedding } = await embed({
-        model: EMBEDDING_MODEL,
-        value: input.query,
-      });
-
-      vectorRanked = embeddedCandidates
-        .map((row) => ({
-          ...row,
-          id: row.message.id,
-          textScore: 0,
-          vectorScore: cosineSimilarity(queryEmbedding, row.embedding),
-        }))
-        .filter((row) => row.vectorScore > 0)
-        .sort((left, right) => right.vectorScore - left.vectorScore);
-    } catch {
-      vectorRanked = [];
-    }
+    vectorResults = await db
+      .select({
+        message: messages,
+        conversationTitle: conversations.title,
+      })
+      .from(messageEmbeddings)
+      .innerJoin(messages, eq(messages.id, messageEmbeddings.messageId))
+      .innerJoin(conversations, eq(conversations.id, messages.conversationId))
+      .where(and(...conditions))
+      .orderBy(sql`"message_embeddings"."embedding" <=> ${vecLiteral}::vector`)
+      .limit(searchLimit);
+  } catch {
+    vectorResults = [];
   }
 
-  const merged = mergeByRrf(textRanked, vectorRanked, input.limit);
+  // RRF merge
+  const textWithId = textResults.map((r) => ({
+    ...r,
+    id: r.message.id,
+  }));
+  const vectorWithId = vectorResults.map((r) => ({
+    ...r,
+    id: r.message.id,
+  }));
+
+  const merged = mergeByRrf(textWithId, vectorWithId, input.limit);
   return merged.map((row) => ({
     ...toApiMessage(row.message),
     conversationTitle: row.conversationTitle,

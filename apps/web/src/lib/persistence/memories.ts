@@ -3,94 +3,19 @@ import {
   conversations,
   createTriggerClient,
   memoryEmbeddings,
+  mergeByRrf,
   messages,
   parsePersistenceEnv,
+  serializeVector,
 } from "@blah-chat/persistence-postgres";
 import { embed } from "ai";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { ensureCurrentPersistenceUser } from "./current-user";
 import { getPersistenceDb } from "./server";
 
 type MemoryRow = typeof memoryEmbeddings.$inferSelect;
 
 export type MemorySortBy = "date" | "importance" | "confidence";
-
-function tokenize(value: string) {
-  return value
-    .toLowerCase()
-    .split(/[^a-z0-9]+/i)
-    .map((token) => token.trim())
-    .filter(Boolean);
-}
-
-function scoreTextMatch(queryTokens: string[], text: string) {
-  if (queryTokens.length === 0) {
-    return 0;
-  }
-
-  const haystack = text.toLowerCase();
-  let score = 0;
-  for (const token of queryTokens) {
-    if (haystack.includes(token)) {
-      score += 1;
-    }
-  }
-
-  return score / queryTokens.length;
-}
-
-function cosineSimilarity(left: number[], right: number[]) {
-  if (left.length === 0 || left.length !== right.length) {
-    return 0;
-  }
-
-  let dot = 0;
-  let leftNorm = 0;
-  let rightNorm = 0;
-
-  for (let index = 0; index < left.length; index += 1) {
-    const leftValue = left[index] ?? 0;
-    const rightValue = right[index] ?? 0;
-    dot += leftValue * rightValue;
-    leftNorm += leftValue * leftValue;
-    rightNorm += rightValue * rightValue;
-  }
-
-  if (leftNorm === 0 || rightNorm === 0) {
-    return 0;
-  }
-
-  return dot / (Math.sqrt(leftNorm) * Math.sqrt(rightNorm));
-}
-
-function mergeByRrf<T extends { id: string }>(
-  textResults: Array<T>,
-  vectorResults: Array<T>,
-) {
-  const k = 60;
-  const scores = new Map<string, { item: T; score: number }>();
-
-  textResults.forEach((item, index) => {
-    scores.set(item.id, {
-      item,
-      score: 1 / (k + index + 1),
-    });
-  });
-
-  vectorResults.forEach((item, index) => {
-    const existing = scores.get(item.id);
-    const score = 1 / (k + index + 1);
-    if (existing) {
-      existing.score += score;
-      return;
-    }
-    scores.set(item.id, { item, score });
-  });
-
-  return Array.from(scores.values())
-    .sort((left, right) => right.score - left.score)
-    .map((entry) => entry.item);
-}
 
 function getMemoryMetadata(memory: MemoryRow) {
   const metadata =
@@ -187,60 +112,54 @@ export async function listMemories(
   }
 
   const searchQuery = input.searchQuery.trim();
-  const queryTokens = tokenize(searchQuery);
-  const textRanked = rows
-    .map((row) => ({
-      ...row,
-      id: row.id,
-      textScore: scoreTextMatch(queryTokens, row.searchDocument ?? row.content),
-    }))
-    .filter((row) => row.textScore > 0)
-    .sort((left, right) => right.textScore - left.textScore);
+  const searchLimit = Math.min(limit * 3, 200);
 
-  let vectorRanked: Array<(typeof textRanked)[number]> = [];
-  const embeddedCandidates = rows.filter(
-    (row): row is MemoryRow & { embedding: number[] } =>
-      Array.isArray(row.embedding) && row.embedding.length > 0,
-  );
+  const baseConditions = [
+    eq(memoryEmbeddings.userId, user.id),
+    ...(input.category ? [eq(memoryEmbeddings.category, input.category)] : []),
+  ];
 
-  if (embeddedCandidates.length > 0) {
-    try {
-      const { embedding: queryEmbedding } = await embed({
-        model: EMBEDDING_MODEL,
-        value: searchQuery,
-      });
+  // Full-text search via tsvector
+  const textResults = await db
+    .select()
+    .from(memoryEmbeddings)
+    .where(
+      and(
+        sql`"memory_embeddings"."search_tsv" @@ plainto_tsquery('english', ${searchQuery})`,
+        ...baseConditions,
+      ),
+    )
+    .orderBy(
+      sql`ts_rank("memory_embeddings"."search_tsv", plainto_tsquery('english', ${searchQuery})) DESC`,
+    )
+    .limit(searchLimit);
 
-      vectorRanked = embeddedCandidates
-        .map((row) => ({
-          ...row,
-          id: row.id,
-          textScore: 0,
-          vectorScore: cosineSimilarity(queryEmbedding, row.embedding),
-        }))
-        .filter((row) => row.vectorScore > 0)
-        .sort((left, right) => right.vectorScore - left.vectorScore);
-    } catch {
-      vectorRanked = [];
-    }
+  // Vector similarity search
+  let vectorResults: MemoryRow[] = [];
+  try {
+    const { embedding: queryEmbedding } = await embed({
+      model: EMBEDDING_MODEL,
+      value: searchQuery,
+    });
+    const vecLiteral = serializeVector(queryEmbedding);
+
+    vectorResults = await db
+      .select()
+      .from(memoryEmbeddings)
+      .where(and(...baseConditions))
+      .orderBy(sql`"memory_embeddings"."embedding" <=> ${vecLiteral}::vector`)
+      .limit(searchLimit);
+  } catch {
+    vectorResults = [];
   }
 
-  const merged = mergeByRrf(textRanked, vectorRanked);
-  const mergedRows = merged.map((row) => {
-    const {
-      id: _id,
-      textScore: _textScore,
-      vectorScore: _vectorScore,
-      ...rest
-    } = row as typeof row & {
-      id: string;
-      textScore?: number;
-      vectorScore?: number;
-    };
+  const textWithId = textResults.map((r) => ({ ...r, id: r.id }));
+  const vectorWithId = vectorResults.map((r) => ({ ...r, id: r.id }));
+  const merged = mergeByRrf(textWithId, vectorWithId, limit);
 
-    return rest as MemoryRow;
-  });
-
-  return sortMemories(mergedRows, sortBy).slice(0, limit).map(toApiMemory);
+  return sortMemories(merged as MemoryRow[], sortBy)
+    .slice(0, limit)
+    .map(toApiMemory);
 }
 
 export async function createMemory(

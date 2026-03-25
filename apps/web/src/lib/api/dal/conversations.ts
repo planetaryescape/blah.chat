@@ -387,4 +387,43 @@ export const conversationsDAL = {
 
     return formatEntity(toApiConversation(updated), "conversation", updated.id);
   },
+
+  cleanupEmpty: async (userId: string, keepOne: boolean) => {
+    const db = getPersistenceDb();
+    const user = await ensureCurrentPersistenceUser(userId);
+
+    // Get all non-archived conversations for the user
+    const userConversations = await db.query.conversations.findMany({
+      where: and(
+        eq(conversations.userId, user.id),
+        eq(conversations.archived, false),
+      ),
+      orderBy: [desc(conversations.updatedAt)],
+    });
+
+    // Find empty conversations (0 messages)
+    const emptyConversations: typeof userConversations = [];
+    for (const conv of userConversations) {
+      const [stats] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(messages)
+        .where(eq(messages.conversationId, conv.id));
+      if ((stats?.count ?? 0) === 0) {
+        emptyConversations.push(conv);
+      }
+    }
+
+    // If keepOne, skip the most recent empty conversation
+    const toDelete = keepOne ? emptyConversations.slice(1) : emptyConversations;
+
+    for (const conv of toDelete) {
+      await db.delete(conversations).where(eq(conversations.id, conv.id));
+    }
+
+    return formatEntity(
+      { deletedCount: toDelete.length },
+      "maintenance",
+      "cleanup",
+    );
+  },
 };

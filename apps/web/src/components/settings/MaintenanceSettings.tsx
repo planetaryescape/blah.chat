@@ -1,7 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useMutation } from "convex/react";
 import { Loader2, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -15,18 +13,17 @@ import {
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { useSDKClient } from "@/lib/api/sdkClient";
 
 export function MaintenanceSettings() {
+  const sdk = useSDKClient();
   const [isCleaningUp, setIsCleaningUp] = useState(false);
   const [deleteAll, setDeleteAll] = useState(false);
-  const cleanupEmptyConversations = useMutation(
-    api.conversations.cleanupEmptyConversations,
-  );
 
   const handleCleanup = async () => {
     setIsCleaningUp(true);
     try {
-      const result = await cleanupEmptyConversations({
+      const result = await sdk.cleanupEmptyConversations({
         keepOne: !deleteAll,
       });
       toast.success(

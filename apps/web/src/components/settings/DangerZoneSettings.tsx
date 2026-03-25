@@ -1,8 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import { useClerk } from "@clerk/nextjs";
-import { useAction, useMutation } from "convex/react";
 import { AlertTriangle, Download, Loader2, Trash2, UserX } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -24,31 +22,30 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useSDKClient } from "@/lib/api/sdkClient";
 
 export function DangerZoneSettings() {
   const { signOut } = useClerk();
+  const sdk = useSDKClient();
 
   // Export
   const [isExporting, setIsExporting] = useState(false);
-  const exportMyData = useAction(api.users.exportMyData);
 
   // Delete data
   const [isDeleteDataOpen, setIsDeleteDataOpen] = useState(false);
   const [deleteDataConfirmation, setDeleteDataConfirmation] = useState("");
   const [isDeletingData, setIsDeletingData] = useState(false);
-  const deleteMyData = useMutation(api.users.deleteMyData);
 
   // Delete account
   const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
   const [deleteAccountConfirmation, setDeleteAccountConfirmation] =
     useState("");
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
-  const deleteMyAccount = useMutation(api.users.deleteMyAccount);
 
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      const data = await exportMyData();
+      const data = await sdk.exportUserData();
       const blob = new Blob([JSON.stringify(data, null, 2)], {
         type: "application/json",
       });
@@ -74,7 +71,7 @@ export function DangerZoneSettings() {
 
     setIsDeletingData(true);
     try {
-      await deleteMyData({ confirmationText: deleteDataConfirmation });
+      await sdk.deleteUserData({ confirmationText: deleteDataConfirmation });
       toast.success("All your data has been deleted");
       setIsDeleteDataOpen(false);
       setDeleteDataConfirmation("");
@@ -91,7 +88,9 @@ export function DangerZoneSettings() {
 
     setIsDeletingAccount(true);
     try {
-      await deleteMyAccount({ confirmationText: deleteAccountConfirmation });
+      await sdk.deleteUserAccount({
+        confirmationText: deleteAccountConfirmation,
+      });
       toast.success("Your account has been deleted");
       await signOut({ redirectUrl: "/" });
     } catch (error) {

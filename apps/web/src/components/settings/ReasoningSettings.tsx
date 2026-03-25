@@ -1,7 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -15,12 +13,12 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useUserPreference } from "@/hooks/useUserPreference";
+import { useSDKClient } from "@/lib/api/sdkClient";
+import { useCurrentUser } from "@/lib/hooks/queries/useCurrentUser";
 
 export function ReasoningSettings() {
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const user = useQuery(api.users.getCurrentUser);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const updatePreferences = useMutation(api.users.updatePreferences);
+  const { data: user } = useCurrentUser();
+  const sdk = useSDKClient();
 
   // Phase 4: Use new preference hook for source of truth
   const prefReasoning = useUserPreference("reasoning");
@@ -46,14 +44,10 @@ export function ReasoningSettings() {
   const handleShowByDefaultChange = async (checked: boolean) => {
     setShowByDefault(checked);
     try {
-      await updatePreferences({
-        preferences: {
-          reasoning: {
-            showByDefault: checked,
-            autoExpand,
-            showDuringStreaming,
-          },
-        } as any,
+      await sdk.updatePreference("reasoning", {
+        showByDefault: checked,
+        autoExpand,
+        showDuringStreaming,
       });
       toast.success("Reasoning display settings saved!");
     } catch (error) {
@@ -65,14 +59,10 @@ export function ReasoningSettings() {
   const handleAutoExpandChange = async (checked: boolean) => {
     setAutoExpand(checked);
     try {
-      await updatePreferences({
-        preferences: {
-          reasoning: {
-            showByDefault,
-            autoExpand: checked,
-            showDuringStreaming,
-          },
-        } as any,
+      await sdk.updatePreference("reasoning", {
+        showByDefault,
+        autoExpand: checked,
+        showDuringStreaming,
       });
       toast.success("Reasoning display settings saved!");
     } catch (error) {
@@ -84,14 +74,10 @@ export function ReasoningSettings() {
   const handleShowDuringStreamingChange = async (checked: boolean) => {
     setShowDuringStreaming(checked);
     try {
-      await updatePreferences({
-        preferences: {
-          reasoning: {
-            showByDefault,
-            autoExpand,
-            showDuringStreaming: checked,
-          },
-        } as any,
+      await sdk.updatePreference("reasoning", {
+        showByDefault,
+        autoExpand,
+        showDuringStreaming: checked,
       });
       toast.success("Reasoning display settings saved!");
     } catch (error) {

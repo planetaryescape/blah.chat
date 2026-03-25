@@ -1,6 +1,6 @@
 "use client";
 
-import { useConvexAuth } from "convex/react";
+import { useAuth } from "@clerk/nextjs";
 import { Ghost, Keyboard, MoreHorizontal, Plus, Search } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useState } from "react";
@@ -137,7 +137,8 @@ export default function MainLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated, isLoading } = useConvexAuth();
+  const { isSignedIn: isAuthenticated, isLoaded } = useAuth();
+  const isLoading = !isLoaded;
   const pathname = usePathname();
   const isAdminRoute = pathname.startsWith("/admin");
 

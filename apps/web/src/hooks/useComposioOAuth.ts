@@ -1,17 +1,8 @@
-/**
- * Hook for managing Composio OAuth flow
- *
- * Handles popup-based OAuth with fallback to redirect flow.
- * Listens for postMessage from callback page to detect completion.
- */
-
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useAction, useQuery } from "convex/react";
+import type { ComposioConnection } from "@blah-chat/api-client";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-
-type ComposioConnection = Doc<"composioConnections">;
+import { useSDKClient } from "@/lib/api/sdkClient";
 
 type ConnectionStatus = "idle" | "connecting" | "success" | "error";
 
@@ -28,17 +19,31 @@ export function useComposioOAuth(options: UseComposioOAuthOptions = {}) {
   const popupRef = useRef<Window | null>(null);
   const pendingIntegrationRef = useRef<string | null>(null);
 
-  // @ts-ignore - Type depth exceeded with Convex modules
-  const initiateConnection = useAction(api.composio.oauth.initiateConnection);
-  // @ts-ignore - Type depth exceeded with Convex modules
-  const revokeConnection = useAction(api.composio.oauth.revokeConnection);
-  // @ts-ignore - Type depth exceeded with Convex modules
-  const connections = useQuery(api.composio.connections.listConnections, {});
+  const sdk = useSDKClient();
+  const queryClient = useQueryClient();
+
+  const { data: connections, isLoading: connectionsLoading } = useQuery({
+    queryKey: ["composio-connections"],
+    queryFn: () => sdk.listComposioConnections(),
+    staleTime: 15_000,
+  });
+
+  const initiateMutation = useMutation({
+    mutationFn: (payload: { integrationId: string; redirectUrl: string }) =>
+      sdk.initiateComposioConnection(payload),
+  });
+
+  const revokeMutation = useMutation({
+    mutationFn: (payload: { integrationId: string }) =>
+      sdk.revokeComposioConnection(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["composio-connections"] });
+    },
+  });
 
   // Listen for OAuth callback messages
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      // Only accept messages from our origin
       if (event.origin !== window.location.origin) return;
       if (event.data?.type !== "composio-oauth-callback") return;
 
@@ -51,6 +56,7 @@ export function useComposioOAuth(options: UseComposioOAuthOptions = {}) {
           onSuccess?.(pendingIntegrationRef.current);
           toast.success("Integration connected successfully");
         }
+        queryClient.invalidateQueries({ queryKey: ["composio-connections"] });
       } else {
         setStatus("error");
         setError(callbackError || "Connection failed");
@@ -58,11 +64,9 @@ export function useComposioOAuth(options: UseComposioOAuthOptions = {}) {
         toast.error(callbackError || "Failed to connect integration");
       }
 
-      // Clean up CSRF state cookie
       document.cookie =
         "composio_oauth_state=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
-      // Clean up
       pendingIntegrationRef.current = null;
       if (popupRef.current && !popupRef.current.closed) {
         popupRef.current.close();
@@ -72,15 +76,14 @@ export function useComposioOAuth(options: UseComposioOAuthOptions = {}) {
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [onSuccess, onError]);
+  }, [onSuccess, onError, queryClient]);
 
-  // Poll for popup close (in case user closes it manually)
+  // Poll for popup close
   useEffect(() => {
     if (status !== "connecting" || !popupRef.current) return;
 
     const interval = setInterval(() => {
       if (popupRef.current?.closed) {
-        // User closed popup without completing OAuth
         setStatus("idle");
         setError(null);
         pendingIntegrationRef.current = null;
@@ -92,9 +95,6 @@ export function useComposioOAuth(options: UseComposioOAuthOptions = {}) {
     return () => clearInterval(interval);
   }, [status]);
 
-  /**
-   * Connect to an integration
-   */
   const connect = useCallback(
     async (integrationId: string) => {
       setStatus("connecting");
@@ -102,11 +102,9 @@ export function useComposioOAuth(options: UseComposioOAuthOptions = {}) {
       pendingIntegrationRef.current = integrationId;
 
       try {
-        // Build callback URL
         const callbackUrl = `${window.location.origin}/api/composio/callback`;
 
-        // Start OAuth flow
-        const result = await initiateConnection({
+        const result = await initiateMutation.mutateAsync({
           integrationId,
           redirectUrl: callbackUrl,
         });
@@ -115,14 +113,11 @@ export function useComposioOAuth(options: UseComposioOAuthOptions = {}) {
           throw new Error("No redirect URL returned");
         }
 
-        // SECURITY: Store CSRF state in cookie for validation
         if (result.state) {
-          // Set cookie with secure flags (10 min expiry to match backend)
           const expires = new Date(Date.now() + 10 * 60 * 1000).toUTCString();
           document.cookie = `composio_oauth_state=${result.state}; path=/; expires=${expires}; SameSite=Lax${window.location.protocol === "https:" ? "; Secure" : ""}`;
         }
 
-        // Try popup flow first
         const width = 600;
         const height = 700;
         const left = window.screenX + (window.outerWidth - width) / 2;
@@ -138,7 +133,6 @@ export function useComposioOAuth(options: UseComposioOAuthOptions = {}) {
           popupRef.current = popup;
           popup.focus();
         } else {
-          // Popup blocked - fall back to redirect
           window.location.href = result.redirectUrl;
         }
       } catch (err) {
@@ -151,16 +145,13 @@ export function useComposioOAuth(options: UseComposioOAuthOptions = {}) {
         pendingIntegrationRef.current = null;
       }
     },
-    [initiateConnection, onError],
+    [initiateMutation, onError],
   );
 
-  /**
-   * Disconnect from an integration
-   */
   const disconnect = useCallback(
     async (integrationId: string) => {
       try {
-        await revokeConnection({ integrationId });
+        await revokeMutation.mutateAsync({ integrationId });
         toast.success("Integration disconnected");
       } catch (err) {
         const errorMessage =
@@ -169,12 +160,9 @@ export function useComposioOAuth(options: UseComposioOAuthOptions = {}) {
         throw err;
       }
     },
-    [revokeConnection],
+    [revokeMutation],
   );
 
-  /**
-   * Check if an integration is connected
-   */
   const isConnected = useCallback(
     (integrationId: string) => {
       return connections?.some(
@@ -185,9 +173,6 @@ export function useComposioOAuth(options: UseComposioOAuthOptions = {}) {
     [connections],
   );
 
-  /**
-   * Get connection for an integration
-   */
   const getConnection = useCallback(
     (integrationId: string) => {
       return connections?.find(
@@ -197,9 +182,6 @@ export function useComposioOAuth(options: UseComposioOAuthOptions = {}) {
     [connections],
   );
 
-  /**
-   * Reset status to idle
-   */
   const reset = useCallback(() => {
     setStatus("idle");
     setError(null);
@@ -207,13 +189,11 @@ export function useComposioOAuth(options: UseComposioOAuthOptions = {}) {
   }, []);
 
   return {
-    // State
     status,
     error,
     connections: connections ?? [],
-    isLoading: connections === undefined,
+    isLoading: connectionsLoading,
 
-    // Actions
     connect,
     disconnect,
     isConnected,

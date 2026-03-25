@@ -81,23 +81,15 @@ export function detectDevicePlatform(): DevicePlatform {
 /**
  * Determine data fetching strategy
  *
- * Strategy:
- * - Web desktop: Convex WebSocket (real-time, bidirectional)
- * - Mobile: SSE (battery-optimized) with polling fallback
+ * Post-cutover: all surfaces use SSE/REST (Postgres-backed).
+ * Manual override via localStorage "blah_data_strategy" for rollback.
  *
  * Returns:
- * - "convex": Use Convex WebSocket (web desktop)
- * - "sse": Use Server-Sent Events (mobile, battery-optimized)
+ * - "sse": Use Server-Sent Events + REST API (default for all surfaces)
  * - "polling": Use HTTP polling (fallback if SSE fails - handled in hooks)
+ * - "convex": Legacy, only reachable via manual override for rollback
  */
 export function getDataFetchingStrategy(): DataFetchingStrategy {
-  const platform = detectDevicePlatform();
-
-  if (platform === "web") {
-    return "convex";
-  }
-
-  // Mobile: prefer SSE, polling fallback handled in hooks
   return "sse";
 }
 

@@ -1,7 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -26,6 +24,8 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useUserPreference } from "@/hooks/useUserPreference";
+import { useSDKClient } from "@/lib/api/sdkClient";
+import { useCurrentUser } from "@/lib/hooks/queries/useCurrentUser";
 
 type BaseStyleAndTone =
   | "default"
@@ -77,12 +77,8 @@ const STYLE_OPTIONS: {
 ];
 
 export function CustomInstructionsForm() {
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const user = useQuery(api.users.getCurrentUser);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const updateCustomInstructions = useMutation(
-    api.users.updateCustomInstructions,
-  );
+  const { data: user } = useCurrentUser();
+  const sdk = useSDKClient();
 
   // Phase 4: Use new preference hook for source of truth
   const prefCustomInstructions = useUserPreference("customInstructions");
@@ -129,7 +125,7 @@ export function CustomInstructionsForm() {
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      await updateCustomInstructions({
+      await sdk.updatePreference("customInstructions", {
         aboutUser,
         responseStyle,
         enabled,

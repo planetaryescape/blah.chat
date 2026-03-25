@@ -1,7 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import {
   Check,
@@ -32,14 +31,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { useSDKClient } from "@/lib/api/sdkClient";
 
 export function CliApiKeysSettings() {
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const keys = useQuery(api.cliAuth.list);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const createKey = useMutation(api.cliAuth.create);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const revokeKey = useMutation(api.cliAuth.revoke);
+  const sdk = useSDKClient();
+  const queryClient = useQueryClient();
+  const { data: keys, isLoading: keysLoading } = useQuery({
+    queryKey: ["cli-api-keys"],
+    queryFn: () => sdk.listCliApiKeys(),
+    staleTime: 10_000,
+  });
   const [creating, setCreating] = useState(false);
   const [newKey, setNewKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -52,8 +53,9 @@ export function CliApiKeysSettings() {
   const handleCreate = async () => {
     setCreating(true);
     try {
-      const result = await createKey();
+      const result = await sdk.createCliApiKey();
       setNewKey(result.key);
+      await queryClient.invalidateQueries({ queryKey: ["cli-api-keys"] });
       toast.success("API key created");
     } catch (_err) {
       toast.error("Failed to create key");
@@ -80,8 +82,8 @@ export function CliApiKeysSettings() {
 
     setRevoking(confirmRevoke.id);
     try {
-      // @ts-ignore - Type depth
-      await revokeKey({ keyId: confirmRevoke.id as any });
+      await sdk.revokeCliApiKey(confirmRevoke.id);
+      await queryClient.invalidateQueries({ queryKey: ["cli-api-keys"] });
       toast.success("API key revoked");
       setConfirmRevoke(null);
     } catch (_err) {
@@ -91,7 +93,7 @@ export function CliApiKeysSettings() {
     }
   };
 
-  if (keys === undefined) {
+  if (keysLoading || !keys) {
     return (
       <Card>
         <CardHeader>

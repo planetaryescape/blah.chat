@@ -1,8 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useAction } from "convex/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Brain,
@@ -18,6 +16,7 @@ import { toast } from "sonner";
 import { CreateNoteDialog } from "@/components/notes/CreateNoteDialog";
 import { SummarizePopover } from "@/components/notes/SummarizePopover";
 import { useSelection } from "@/contexts/SelectionContext";
+import { useSDKClient } from "@/lib/api/sdkClient";
 
 interface MenuAction {
   id: string;
@@ -44,13 +43,10 @@ export function SelectionContextMenu() {
   const [summaryText, setSummaryText] = useState("");
   const [selectedTextForSummary, setSelectedTextForSummary] = useState("");
   const [popoverPosition, setPopoverPosition] = useState({ top: 0, left: 0 });
-  const [currentMessageId, setCurrentMessageId] =
-    useState<Id<"messages"> | null>(null);
+  const [currentMessageId, setCurrentMessageId] = useState<string | null>(null);
 
-  // @ts-ignore - Type depth exceeded with 94+ Convex modules
-  const createMemoryFromSelection = useAction(
-    api.memories.createMemoryFromSelection,
-  );
+  const sdk = useSDKClient();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     setMounted(true);
@@ -174,7 +170,7 @@ export function SelectionContextMenu() {
     setSelectedTextForSummary(selection.text);
 
     // Store current message ID and open popover
-    setCurrentMessageId(selection.messageId as Id<"messages">);
+    setCurrentMessageId(selection.messageId ?? null);
     setSummaryText("");
     setShowSummarizePopover(true);
 
@@ -215,10 +211,11 @@ export function SelectionContextMenu() {
   const handleAddToMemory = async () => {
     try {
       toast.info("Adding to memory...");
-      await createMemoryFromSelection({
+      await sdk.createMemory({
         content: selection.text,
-        sourceMessageId: selection.messageId as Id<"messages">,
+        category: "context",
       });
+      queryClient.invalidateQueries({ queryKey: ["memories"] });
       toast.success("Added to memory");
       clearSelection();
     } catch (error) {

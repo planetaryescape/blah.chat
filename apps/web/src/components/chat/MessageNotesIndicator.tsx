@@ -1,13 +1,11 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useQuery } from "convex/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronRight, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { isConvexMessageId } from "@/lib/utils/chatRouteIds";
+import { useNotesByMessage } from "@/lib/hooks/queries/useNotes";
 
 interface MessageNotesIndicatorProps {
   messageId: string;
@@ -19,19 +17,12 @@ export function MessageNotesIndicator({
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Check if this is a temporary optimistic message (not yet persisted)
   const isTempMessage =
     typeof messageId === "string" && messageId.startsWith("temp-");
-  const convexMessageId = isConvexMessageId(messageId) ? messageId : null;
-  const shouldSkipNotes = isTempMessage || !convexMessageId;
+  const shouldSkipNotes = isTempMessage;
 
-  // Postgres rewrite message ids are not valid Convex document ids.
-  const notes = useQuery(
-    api.notes.getNotesFromMessage,
-    shouldSkipNotes ? "skip" : { messageId: convexMessageId },
-  );
+  const { data: notes } = useNotesByMessage(shouldSkipNotes ? null : messageId);
 
-  // Don't reserve space - most messages don't have notes
   if (shouldSkipNotes || !notes || notes.length === 0) {
     return null;
   }

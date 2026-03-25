@@ -6,13 +6,26 @@ import type {
   ActiveGeneration,
   ApiEnvelope,
   BackgroundJob,
+  Bookmark,
+  ByokConfig,
+  CliApiKey,
+  CliApiKeyCreateResult,
   CliRpcMethodMap,
+  ComposioConnection,
   Conversation,
   GenerationRequest,
   GenerationStreamEvent,
+  KnowledgeSource,
   Memory,
   Message,
+  Note,
+  Project,
+  ProjectStats,
+  StarterSuggestionsResponse,
+  Task,
+  Template,
   ThinkingEffort,
+  User,
 } from "./types";
 
 interface RequestResult<TData = unknown, TError = unknown> {
@@ -130,6 +143,30 @@ export class BlahClient {
     return unwrapEnvelope(envelope, result.response.status);
   }
 
+  private async fetchEntityList<T>(
+    path: string,
+    mode: "bearer" | "api-key",
+  ): Promise<T[]> {
+    const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
+      method: "GET",
+      headers: await this.authHeaders(mode),
+    });
+
+    const payload = (await response.json()) as unknown;
+    const envelope = this.toEnvelope<Array<{ data: T }>>(payload);
+    const items = unwrapEnvelope<Array<{ data: T }>>(envelope, response.status);
+
+    if (!Array.isArray(items)) {
+      throw new BlahSDKError(
+        "Malformed list response",
+        response.status,
+        "MALFORMED_RESPONSE",
+      );
+    }
+
+    return items.map((item) => item.data);
+  }
+
   private async fetchEnvelope<T>(
     path: string,
     init: RequestInit,
@@ -160,6 +197,14 @@ export class BlahClient {
     const result = await this.client.GET("/api/v1/health");
     return this.unwrapFromResult<Record<string, unknown>>(
       result as RequestResult,
+    );
+  }
+
+  async getCurrentUser(): Promise<User> {
+    return this.fetchEnvelope<User>(
+      "/api/v1/user/me",
+      { method: "GET" },
+      "bearer",
     );
   }
 
@@ -345,6 +390,93 @@ export class BlahClient {
       {
         method: "POST",
         body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async listBookmarks(): Promise<Bookmark[]> {
+    return this.fetchEntityList<Bookmark>("/api/v1/bookmarks", "bearer");
+  }
+
+  async getBookmarkByMessage(messageId: string): Promise<Bookmark | null> {
+    const searchParams = new URLSearchParams({ messageId });
+    const response = await this.fetchImpl(
+      `${this.baseUrl}/api/v1/bookmarks/by-message?${searchParams.toString()}`,
+      {
+        method: "GET",
+        headers: await this.authHeaders("bearer"),
+      },
+    );
+
+    if (response.status === 404) {
+      return null;
+    }
+
+    const payload = (await response.json()) as unknown;
+    const envelope = this.toEnvelope<Bookmark>(payload);
+    return unwrapEnvelope(envelope, response.status);
+  }
+
+  async createBookmark(payload: {
+    messageId: string;
+    conversationId: string;
+    note?: string;
+    tags?: string[];
+  }): Promise<Bookmark> {
+    return this.fetchEnvelope<Bookmark>(
+      "/api/v1/bookmarks",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async updateBookmark(
+    bookmarkId: string,
+    payload: { note?: string; tags?: string[] },
+  ): Promise<Bookmark> {
+    return this.fetchEnvelope<Bookmark>(
+      `/api/v1/bookmarks/${encodeURIComponent(bookmarkId)}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async deleteBookmark(
+    bookmarkId: string,
+  ): Promise<{ deleted: boolean; bookmarkId: string }> {
+    return this.fetchEnvelope<{ deleted: boolean; bookmarkId: string }>(
+      `/api/v1/bookmarks/${encodeURIComponent(bookmarkId)}`,
+      {
+        method: "DELETE",
+      },
+      "bearer",
+    );
+  }
+
+  async addBookmarkTag(bookmarkId: string, tag: string): Promise<Bookmark> {
+    return this.fetchEnvelope<Bookmark>(
+      `/api/v1/bookmarks/${encodeURIComponent(bookmarkId)}/tags`,
+      {
+        method: "POST",
+        body: JSON.stringify({ tag }),
+      },
+      "bearer",
+    );
+  }
+
+  async removeBookmarkTag(bookmarkId: string, tag: string): Promise<Bookmark> {
+    return this.fetchEnvelope<Bookmark>(
+      `/api/v1/bookmarks/${encodeURIComponent(bookmarkId)}/tags`,
+      {
+        method: "DELETE",
+        body: JSON.stringify({ tag }),
       },
       "bearer",
     );
@@ -670,6 +802,566 @@ export class BlahClient {
     return this.unwrapFromResult<Message>(result as RequestResult);
   }
 
+  async editMessage(
+    messageId: string,
+    payload: { content: string; modelId?: string },
+  ): Promise<GenerationRequest> {
+    return this.fetchEnvelope<GenerationRequest>(
+      `/api/v1/messages/${encodeURIComponent(messageId)}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async deleteMessage(
+    messageId: string,
+  ): Promise<{ deleted: boolean; messageId: string }> {
+    return this.fetchEnvelope<{ deleted: boolean; messageId: string }>(
+      `/api/v1/messages/${encodeURIComponent(messageId)}`,
+      {
+        method: "DELETE",
+      },
+      "bearer",
+    );
+  }
+
+  async regenerateMessage(
+    messageId: string,
+    payload: { modelId?: string } = {},
+  ): Promise<GenerationRequest> {
+    return this.fetchEnvelope<GenerationRequest>(
+      `/api/v1/messages/${encodeURIComponent(messageId)}/regenerate`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async switchConversationBranch(
+    conversationId: string,
+    targetMessageId: string,
+  ): Promise<{ conversationId: string; activeLeafMessageId: string }> {
+    return this.fetchEnvelope<{
+      conversationId: string;
+      activeLeafMessageId: string;
+    }>(
+      `/api/v1/conversations/${encodeURIComponent(conversationId)}/switch-branch`,
+      {
+        method: "POST",
+        body: JSON.stringify({ targetMessageId }),
+      },
+      "bearer",
+    );
+  }
+
+  async listProjects(): Promise<Project[]> {
+    return this.fetchEntityList<Project>("/api/v1/projects", "bearer");
+  }
+
+  async getProject(projectId: string): Promise<Project> {
+    return this.fetchEnvelope<Project>(
+      `/api/v1/projects/${encodeURIComponent(projectId)}`,
+      {
+        method: "GET",
+      },
+      "bearer",
+    );
+  }
+
+  async getProjectStats(projectId: string): Promise<ProjectStats> {
+    return this.fetchEnvelope<ProjectStats>(
+      `/api/v1/projects/${encodeURIComponent(projectId)}/stats`,
+      {
+        method: "GET",
+      },
+      "bearer",
+    );
+  }
+
+  async listTemplates(params: { category?: string } = {}): Promise<Template[]> {
+    const searchParams = new URLSearchParams();
+    if (params.category) {
+      searchParams.set("category", params.category);
+    }
+
+    return this.fetchEntityList<Template>(
+      `/api/v1/templates${searchParams.size ? `?${searchParams.toString()}` : ""}`,
+      "bearer",
+    );
+  }
+
+  async getStarterSuggestions(): Promise<StarterSuggestionsResponse> {
+    return this.fetchEnvelope<StarterSuggestionsResponse>(
+      "/api/v1/starter-suggestions",
+      {
+        method: "GET",
+      },
+      "bearer",
+    );
+  }
+
+  async refreshStarterSuggestions(
+    payload: { force?: boolean } = {},
+  ): Promise<StarterSuggestionsResponse> {
+    return this.fetchEnvelope<StarterSuggestionsResponse>(
+      "/api/v1/starter-suggestions/refresh",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async listNotes(params: { projectId?: string | null } = {}): Promise<Note[]> {
+    const searchParams = new URLSearchParams();
+    if (params.projectId !== undefined) {
+      searchParams.set("projectId", params.projectId ?? "");
+    }
+
+    return this.fetchEntityList<Note>(
+      `/api/v1/notes${searchParams.size ? `?${searchParams.toString()}` : ""}`,
+      "bearer",
+    );
+  }
+
+  async getNote(noteId: string): Promise<Note> {
+    return this.fetchEnvelope<Note>(
+      `/api/v1/notes/${encodeURIComponent(noteId)}`,
+      {
+        method: "GET",
+      },
+      "bearer",
+    );
+  }
+
+  async createNote(payload: {
+    title?: string;
+    content?: string;
+    tags?: string[];
+    isPinned?: boolean;
+    projectId?: string | null;
+    sourceMessageId?: string;
+    sourceConversationId?: string;
+  }): Promise<Note> {
+    return this.fetchEnvelope<Note>(
+      "/api/v1/notes",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async updateNote(
+    noteId: string,
+    payload: {
+      title?: string;
+      content?: string;
+      tags?: string[];
+      isPinned?: boolean;
+      projectId?: string | null;
+      suggestedTags?: string[];
+      shareId?: string | null;
+      isPublic?: boolean;
+      shareExpiresAt?: number | null;
+    },
+  ): Promise<Note> {
+    return this.fetchEnvelope<Note>(
+      `/api/v1/notes/${encodeURIComponent(noteId)}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async deleteNote(
+    noteId: string,
+  ): Promise<{ deleted: boolean; noteId: string }> {
+    return this.fetchEnvelope<{ deleted: boolean; noteId: string }>(
+      `/api/v1/notes/${encodeURIComponent(noteId)}`,
+      {
+        method: "DELETE",
+      },
+      "bearer",
+    );
+  }
+
+  async autoTagNote(noteId: string): Promise<{ appliedTags: string[] }> {
+    return this.fetchEnvelope<{ appliedTags: string[] }>(
+      `/api/v1/notes/${encodeURIComponent(noteId)}/auto-tag`,
+      {
+        method: "POST",
+      },
+      "bearer",
+    );
+  }
+
+  async createNoteShare(
+    noteId: string,
+    payload: {
+      password?: string;
+      expiresIn?: number;
+    },
+  ): Promise<Note> {
+    return this.fetchEnvelope<Note>(
+      `/api/v1/notes/${encodeURIComponent(noteId)}/share`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async toggleNoteShare(
+    noteId: string,
+    payload: {
+      isActive: boolean;
+    },
+  ): Promise<Note> {
+    return this.fetchEnvelope<Note>(
+      `/api/v1/notes/${encodeURIComponent(noteId)}/share`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async trackSidebarEvent(
+    event:
+      | "sidebar_open"
+      | "sidebar_search"
+      | "sidebar_select_conversation"
+      | "sidebar_action",
+    metadata?: Record<string, unknown>,
+    resourceId?: string,
+  ): Promise<{ captured: boolean }> {
+    return this.fetchEnvelope<{ captured: boolean }>(
+      "/api/v1/analytics/sidebar",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          event,
+          metadata,
+          resourceId,
+        }),
+      },
+      "bearer",
+    );
+  }
+
+  async listTasks(params: { projectId?: string | null } = {}): Promise<Task[]> {
+    const searchParams = new URLSearchParams();
+    if (params.projectId !== undefined) {
+      searchParams.set("projectId", params.projectId ?? "");
+    }
+
+    return this.fetchEntityList<Task>(
+      `/api/v1/tasks${searchParams.size ? `?${searchParams.toString()}` : ""}`,
+      "bearer",
+    );
+  }
+
+  async createTask(payload: {
+    title: string;
+    description?: string;
+    status?:
+      | "suggested"
+      | "confirmed"
+      | "in_progress"
+      | "completed"
+      | "cancelled";
+    urgency?: "low" | "medium" | "high" | "urgent";
+    deadline?: number;
+    deadlineSource?: string;
+    tags?: string[];
+    projectId?: string | null;
+  }): Promise<Task> {
+    return this.fetchEnvelope<Task>(
+      "/api/v1/tasks",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async updateTask(
+    taskId: string,
+    payload: {
+      title?: string;
+      description?: string;
+      status?:
+        | "suggested"
+        | "confirmed"
+        | "in_progress"
+        | "completed"
+        | "cancelled";
+      urgency?: "low" | "medium" | "high" | "urgent";
+      deadline?: number;
+      deadlineSource?: string;
+      tags?: string[];
+    },
+  ): Promise<Task> {
+    return this.fetchEnvelope<Task>(
+      `/api/v1/tasks/${encodeURIComponent(taskId)}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async deleteTask(
+    taskId: string,
+  ): Promise<{ deleted: boolean; taskId: string }> {
+    return this.fetchEnvelope<{ deleted: boolean; taskId: string }>(
+      `/api/v1/tasks/${encodeURIComponent(taskId)}`,
+      {
+        method: "DELETE",
+      },
+      "bearer",
+    );
+  }
+
+  async listKnowledgeSources(
+    params: { projectId?: string | null } = {},
+  ): Promise<KnowledgeSource[]> {
+    const searchParams = new URLSearchParams();
+    if (params.projectId !== undefined) {
+      searchParams.set("projectId", params.projectId ?? "");
+    }
+
+    return this.fetchEntityList<KnowledgeSource>(
+      `/api/v1/knowledge/sources${searchParams.size ? `?${searchParams.toString()}` : ""}`,
+      "bearer",
+    );
+  }
+
+  async createKnowledgeSource(
+    payload:
+      | {
+          type: "file";
+          title: string;
+          projectId?: string | null;
+          storageId: string;
+          mimeType: string;
+          size: number;
+        }
+      | {
+          type: "text";
+          title: string;
+          projectId?: string | null;
+          content: string;
+        }
+      | {
+          type: "web" | "youtube";
+          title: string;
+          projectId?: string | null;
+          url: string;
+        },
+  ): Promise<KnowledgeSource> {
+    return this.fetchEnvelope<KnowledgeSource>(
+      "/api/v1/knowledge/sources",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async deleteKnowledgeSource(
+    sourceId: string,
+  ): Promise<{ deleted: boolean; sourceId: string }> {
+    return this.fetchEnvelope<{ deleted: boolean; sourceId: string }>(
+      `/api/v1/knowledge/sources/${encodeURIComponent(sourceId)}`,
+      {
+        method: "DELETE",
+      },
+      "bearer",
+    );
+  }
+
+  async listCliApiKeys(): Promise<CliApiKey[]> {
+    return this.fetchEntityList<CliApiKey>("/api/v1/cli/api-keys", "bearer");
+  }
+
+  async createCliApiKey(
+    payload: { name?: string } = {},
+  ): Promise<CliApiKeyCreateResult> {
+    return this.fetchEnvelope<CliApiKeyCreateResult>(
+      "/api/v1/cli/api-keys",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async revokeCliApiKey(
+    keyId: string,
+  ): Promise<{ revoked: boolean; keyId: string }> {
+    return this.fetchEnvelope<{ revoked: boolean; keyId: string }>(
+      `/api/v1/cli/api-keys/${encodeURIComponent(keyId)}`,
+      {
+        method: "DELETE",
+      },
+      "bearer",
+    );
+  }
+
+  async getByokConfig(): Promise<ByokConfig | null> {
+    const response = await this.fetchImpl(`${this.baseUrl}/api/v1/byok`, {
+      method: "GET",
+      headers: await this.authHeaders("bearer"),
+    });
+
+    if (response.status === 404) {
+      return null;
+    }
+
+    const payload = (await response.json()) as unknown;
+    const envelope = this.toEnvelope<ByokConfig | null>(payload);
+    return unwrapEnvelope(envelope, response.status);
+  }
+
+  async saveByokApiKey(payload: {
+    keyType: "vercelGateway" | "openRouter" | "groq" | "deepgram";
+    apiKey: string;
+    skipValidation?: boolean;
+  }): Promise<{ success: boolean }> {
+    return this.fetchEnvelope<{ success: boolean }>(
+      "/api/v1/byok/keys",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async removeByokApiKey(payload: {
+    keyType: "vercelGateway" | "openRouter" | "groq" | "deepgram";
+  }): Promise<{ success: boolean }> {
+    return this.fetchEnvelope<{ success: boolean }>(
+      "/api/v1/byok/keys",
+      {
+        method: "DELETE",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async enableByok(): Promise<{ success: boolean }> {
+    return this.fetchEnvelope<{ success: boolean }>(
+      "/api/v1/byok/enable",
+      {
+        method: "POST",
+      },
+      "bearer",
+    );
+  }
+
+  async disableByok(): Promise<{ success: boolean }> {
+    return this.fetchEnvelope<{ success: boolean }>(
+      "/api/v1/byok/disable",
+      {
+        method: "POST",
+      },
+      "bearer",
+    );
+  }
+
+  async listComposioConnections(): Promise<ComposioConnection[]> {
+    return this.fetchEntityList<ComposioConnection>(
+      "/api/v1/integrations/composio",
+      "bearer",
+    );
+  }
+
+  async initiateComposioConnection(payload: {
+    integrationId: string;
+    redirectUrl: string;
+  }): Promise<{ redirectUrl?: string; connectionId: string; state?: string }> {
+    return this.fetchEnvelope<{
+      redirectUrl?: string;
+      connectionId: string;
+      state?: string;
+    }>(
+      "/api/v1/integrations/composio",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async revokeComposioConnection(payload: {
+    integrationId: string;
+  }): Promise<{ success: boolean }> {
+    return this.fetchEnvelope<{ success: boolean }>(
+      "/api/v1/integrations/composio",
+      {
+        method: "DELETE",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async exportUserData(): Promise<Record<string, unknown>> {
+    return this.fetchEnvelope<Record<string, unknown>>(
+      "/api/v1/user/export",
+      {
+        method: "GET",
+      },
+      "bearer",
+    );
+  }
+
+  async deleteUserData(payload: {
+    confirmationText: string;
+  }): Promise<{ success: boolean }> {
+    return this.fetchEnvelope<{ success: boolean }>(
+      "/api/v1/user/delete-data",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async deleteUserAccount(payload: {
+    confirmationText: string;
+  }): Promise<{ success: boolean }> {
+    return this.fetchEnvelope<{ success: boolean }>(
+      "/api/v1/user/delete-account",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
   async getPreferences(key?: string): Promise<Record<string, unknown>> {
     const result = await this.client.GET("/api/v1/preferences", {
       headers: await this.authHeaders("bearer"),
@@ -699,6 +1391,19 @@ export class BlahClient {
 
     return this.unwrapFromResult<{ key: string; value: unknown }>(
       result as RequestResult,
+    );
+  }
+
+  async cleanupEmptyConversations(payload: {
+    keepOne?: boolean;
+  }): Promise<{ deletedCount: number }> {
+    return this.fetchEnvelope<{ deletedCount: number }>(
+      "/api/v1/conversations/cleanup-empty",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
     );
   }
 

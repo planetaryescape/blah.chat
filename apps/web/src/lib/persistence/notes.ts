@@ -19,7 +19,7 @@ import {
   ForbiddenError,
   NotFoundError,
 } from "@/lib/api/errors";
-import { buildAutoTagPrompt } from "../../../../../packages/backend/convex/lib/prompts/operational/tagExtraction";
+import { buildAutoTagPrompt } from "@/lib/prompts/operational";
 import { ensureCurrentPersistenceUser } from "./current-user";
 import { getPersistenceDb } from "./server";
 

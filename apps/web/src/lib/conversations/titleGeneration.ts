@@ -11,7 +11,7 @@ import {
 } from "@blah-chat/persistence-postgres";
 import { generateText } from "ai";
 import { asc, eq } from "drizzle-orm";
-import { CONVERSATION_TITLE_PROMPT } from "../../../../../packages/backend/convex/lib/prompts/operational/titleGeneration";
+import { CONVERSATION_TITLE_PROMPT } from "@/lib/prompts/operational";
 
 const MAX_TRANSCRIPT_CHARS = 16_000;
 

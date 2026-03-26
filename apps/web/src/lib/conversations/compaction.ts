@@ -13,7 +13,7 @@ import { nanoid } from "nanoid";
 import {
   buildCompactionPrompt,
   CONVERSATION_COMPACTION_PROMPT,
-} from "../../../../../packages/backend/convex/lib/prompts/operational/conversationCompaction";
+} from "@/lib/prompts/operational";
 
 const MAX_TRANSCRIPT_CHARS = 16000;
 

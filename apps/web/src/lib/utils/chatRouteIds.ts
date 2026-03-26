@@ -1,24 +1,24 @@
-const CONVEX_DOCUMENT_ID_PATTERN = /^[a-z0-9]+$/;
+const LEGACY_DOCUMENT_ID_PATTERN = /^[a-z0-9]+$/;
 
-export function isConvexDocumentId(
+export function isLegacyDocumentId(
   id: string | null | undefined,
 ): id is string {
-  return !!id && CONVEX_DOCUMENT_ID_PATTERN.test(id);
+  return !!id && LEGACY_DOCUMENT_ID_PATTERN.test(id);
 }
 
-export function isConvexConversationId(
+export function isLegacyConversationId(
   conversationId: string | null | undefined,
 ): conversationId is string {
-  return isConvexDocumentId(conversationId);
+  return isLegacyDocumentId(conversationId);
 }
 
-export function isConvexMessageId(
+export function isLegacyMessageId(
   messageId: string | null | undefined,
 ): messageId is string {
-  return isConvexDocumentId(messageId);
+  return isLegacyDocumentId(messageId);
 }
 
-export function getConvexConversationIdFromPath(
+export function getLegacyConversationIdFromPath(
   pathname: string | null | undefined,
 ): string | null {
   if (!pathname?.startsWith("/chat/")) {
@@ -30,5 +30,5 @@ export function getConvexConversationIdFromPath(
     return null;
   }
 
-  return isConvexConversationId(conversationId) ? conversationId : null;
+  return isLegacyConversationId(conversationId) ? conversationId : null;
 }

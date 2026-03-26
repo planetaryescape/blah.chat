@@ -24,14 +24,14 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { analytics } from "@/lib/analytics";
-import { isConvexConversationId } from "@/lib/utils/chatRouteIds";
+import { isLegacyConversationId } from "@/lib/utils/chatRouteIds";
 
 interface ShareDialogProps {
   conversationId: string;
 }
 
 export function ShareDialog({ conversationId }: ShareDialogProps) {
-  const validConversationId = isConvexConversationId(conversationId)
+  const validConversationId = isLegacyConversationId(conversationId)
     ? (conversationId as string)
     : null;
 

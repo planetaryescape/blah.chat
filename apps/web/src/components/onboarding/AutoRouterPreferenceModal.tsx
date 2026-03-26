@@ -1,8 +1,7 @@
 "use client";
 
 import { getModelsByProvider } from "@blah-chat/ai/utils";
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
+
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -29,13 +28,16 @@ import { useModels } from "@/lib/models/repository";
 type SelectionMode = "auto" | "manual" | null;
 
 export function AutoRouterPreferenceModal() {
-  const prefState = useQuery(
-    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-    api.users.getUserPreferenceState,
-    { key: "autoRouterEnabled" },
-  );
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const updatePreferences = useMutation(api.users.updatePreferences);
+  // TODO: Phase G - needs preferences REST route
+  const prefState: any = { exists: true };
+
+  const updatePreferences = async (args: any) => {
+    await fetch("/api/v1/preferences", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(args),
+    });
+  }; // TODO: Phase G
 
   const [selection, setSelection] = useState<SelectionMode>(null);
   const [manualModel, setManualModel] = useState<string>("");

@@ -20,6 +20,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useApiClient } from "@/lib/api/client";
+// TODO: Phase 15 - need REST routes: POST /api/v1/notes/:id/tags and DELETE /api/v1/notes/:id/tags
 import { getTagLabel, normalizeTag, validateTag } from "@/lib/utils/tagUtils";
 
 interface MinimalTagInputProps {

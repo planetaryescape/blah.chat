@@ -1,13 +1,12 @@
 "use client";
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { File, MessageSquare, NotebookPen } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useProjectSurfaceStats } from "@/hooks/useProjectSurfaceStats";
 import { cn } from "@/lib/utils";
 
 interface ProjectStatsProps {
-  projectId: Id<"projects">;
+  projectId: string;
 }
 
 export function ProjectStats({ projectId }: ProjectStatsProps) {

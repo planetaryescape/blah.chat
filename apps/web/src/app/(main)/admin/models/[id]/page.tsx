@@ -1,7 +1,6 @@
 "use client";
 
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import {
   AlertTriangle,
@@ -49,18 +48,6 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-
-// Lazy load API to avoid type depth issues
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _modelsApi: any = null;
-function getModelsApi() {
-  if (!_modelsApi) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { api } = require("@blah-chat/backend/convex/_generated/api");
-    _modelsApi = api.models;
-  }
-  return _modelsApi;
-}
 
 const PROVIDERS = [
   "openai",
@@ -128,28 +115,40 @@ export default function ModelDetailPage({
   const isNew = modelId === "new";
   const router = useRouter();
 
-  // @ts-ignore - Type depth exceeded
-  const model = useQuery(
-    getModelsApi().queries.getByDbId,
-    isNew ? "skip" : { id: modelId as Id<"models"> },
-  ) as Doc<"models"> | null | undefined;
+  // TODO: Phase G - needs /api/v1/admin/models/:id REST route
+  const { data: model } = useQuery({
+    queryKey: ["admin", "model", modelId],
+    queryFn: async () => {
+      const res = await fetch(`/api/v1/admin/models/${modelId}`);
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data ?? null;
+    },
+    enabled: !isNew,
+  });
 
-  // @ts-ignore - Type depth exceeded
-  const history = useQuery(
-    getModelsApi().queries.getHistory,
-    isNew || !model ? "skip" : { modelId: model.modelId, limit: 10 },
-  ) as Doc<"modelHistory">[] | undefined;
+  const { data: history } = useQuery({
+    queryKey: ["admin", "model-history", model?.modelId],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/v1/admin/models/${model?.modelId}/history?limit=10`,
+      );
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data ?? [];
+    },
+    enabled: !isNew && !!model,
+  });
 
-  // @ts-ignore - Type depth exceeded
-  const updateMutation = useMutation(getModelsApi().mutations.update);
-  // @ts-ignore - Type depth exceeded
-  const createMutation = useMutation(getModelsApi().mutations.create);
-  // @ts-ignore - Type depth exceeded
-  const deprecateMutation = useMutation(getModelsApi().mutations.deprecate);
-  // @ts-ignore - Type depth exceeded
-  const reactivateMutation = useMutation(getModelsApi().mutations.reactivate);
-  // @ts-ignore - Type depth exceeded
-  const removeMutation = useMutation(getModelsApi().mutations.remove);
+  // TODO: Phase G - needs admin model mutation REST routes
+  const _saveMutation = async (method: string, url: string, body: any) => {
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error("Failed");
+  };
 
   const [formData, setFormData] = useState<ModelFormData>({
     modelId: "",
@@ -234,57 +233,66 @@ export default function ModelDetailPage({
     setIsSaving(true);
     try {
       if (isNew) {
-        await createMutation({
-          modelId: formData.modelId,
-          provider: formData.provider as any,
-          name: formData.name,
-          description: formData.description || undefined,
-          contextWindow: formData.contextWindow,
-          inputCost: formData.inputCost,
-          outputCost: formData.outputCost,
-          cachedInputCost: formData.cachedInputCost,
-          reasoningCost: formData.reasoningCost,
-          capabilities: formData.capabilities as any[],
-          status: formData.status as any,
-          isPro: formData.isPro,
-          isInternalOnly: formData.isInternalOnly,
-          isExperimental: formData.isExperimental,
-          speedTier: (formData.speedTier as any) || undefined,
-          gateway: (formData.gateway as any) || undefined,
-          hostOrder: formData.hostOrder,
-          actualModelId: formData.actualModelId,
-          knowledgeCutoff: formData.knowledgeCutoff,
-          userFriendlyDescription: formData.userFriendlyDescription,
-          bestFor: formData.bestFor,
-          benchmarks: formData.benchmarks,
-          reasoningConfig: formData.reasoningConfig,
+        // TODO: Phase G - needs POST /api/v1/admin/models
+        await fetch("/api/v1/admin/models", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            modelId: formData.modelId,
+            provider: formData.provider as any,
+            name: formData.name,
+            description: formData.description || undefined,
+            contextWindow: formData.contextWindow,
+            inputCost: formData.inputCost,
+            outputCost: formData.outputCost,
+            cachedInputCost: formData.cachedInputCost,
+            reasoningCost: formData.reasoningCost,
+            capabilities: formData.capabilities as any[],
+            status: formData.status as any,
+            isPro: formData.isPro,
+            isInternalOnly: formData.isInternalOnly,
+            isExperimental: formData.isExperimental,
+            speedTier: (formData.speedTier as any) || undefined,
+            gateway: (formData.gateway as any) || undefined,
+            hostOrder: formData.hostOrder,
+            actualModelId: formData.actualModelId,
+            knowledgeCutoff: formData.knowledgeCutoff,
+            userFriendlyDescription: formData.userFriendlyDescription,
+            bestFor: formData.bestFor,
+            benchmarks: formData.benchmarks,
+            reasoningConfig: formData.reasoningConfig,
+          }),
         });
         toast.success("Model created");
         router.push("/admin/models");
       } else {
-        await updateMutation({
-          id: modelId as Id<"models">,
-          name: formData.name,
-          description: formData.description || undefined,
-          contextWindow: formData.contextWindow,
-          inputCost: formData.inputCost,
-          outputCost: formData.outputCost,
-          cachedInputCost: formData.cachedInputCost,
-          reasoningCost: formData.reasoningCost,
-          capabilities: formData.capabilities as any[],
-          status: formData.status as any,
-          isPro: formData.isPro,
-          isInternalOnly: formData.isInternalOnly,
-          isExperimental: formData.isExperimental,
-          speedTier: (formData.speedTier as any) || undefined,
-          gateway: (formData.gateway as any) || undefined,
-          hostOrder: formData.hostOrder,
-          actualModelId: formData.actualModelId,
-          knowledgeCutoff: formData.knowledgeCutoff,
-          userFriendlyDescription: formData.userFriendlyDescription,
-          bestFor: formData.bestFor,
-          benchmarks: formData.benchmarks,
-          reasoningConfig: formData.reasoningConfig,
+        // TODO: Phase G - needs PATCH /api/v1/admin/models/:id
+        await fetch(`/api/v1/admin/models/${modelId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: formData.name,
+            description: formData.description || undefined,
+            contextWindow: formData.contextWindow,
+            inputCost: formData.inputCost,
+            outputCost: formData.outputCost,
+            cachedInputCost: formData.cachedInputCost,
+            reasoningCost: formData.reasoningCost,
+            capabilities: formData.capabilities as any[],
+            status: formData.status as any,
+            isPro: formData.isPro,
+            isInternalOnly: formData.isInternalOnly,
+            isExperimental: formData.isExperimental,
+            speedTier: (formData.speedTier as any) || undefined,
+            gateway: (formData.gateway as any) || undefined,
+            hostOrder: formData.hostOrder,
+            actualModelId: formData.actualModelId,
+            knowledgeCutoff: formData.knowledgeCutoff,
+            userFriendlyDescription: formData.userFriendlyDescription,
+            bestFor: formData.bestFor,
+            benchmarks: formData.benchmarks,
+            reasoningConfig: formData.reasoningConfig,
+          }),
         });
         toast.success("Model updated");
         setIsDirty(false);
@@ -294,32 +302,39 @@ export default function ModelDetailPage({
     } finally {
       setIsSaving(false);
     }
-  }, [isNew, formData, createMutation, updateMutation, modelId, router]);
+  }, [isNew, formData, modelId, router]);
 
   const handleDeprecate = useCallback(async () => {
     if (!model) return;
     try {
-      await deprecateMutation({ id: model._id });
+      // TODO: Phase G
+      await fetch(`/api/v1/admin/models/${model._id}/deprecate`, {
+        method: "POST",
+      });
       toast.success("Model deprecated");
     } catch (error: any) {
       toast.error(error.message || "Failed to deprecate");
     }
-  }, [model, deprecateMutation]);
+  }, [model]);
 
   const handleReactivate = useCallback(async () => {
     if (!model) return;
     try {
-      await reactivateMutation({ id: model._id });
+      // TODO: Phase G
+      await fetch(`/api/v1/admin/models/${model._id}/reactivate`, {
+        method: "POST",
+      });
       toast.success("Model reactivated");
     } catch (error: any) {
       toast.error(error.message || "Failed to reactivate");
     }
-  }, [model, reactivateMutation]);
+  }, [model]);
 
   const executeDelete = useCallback(async () => {
     if (!model) return;
     try {
-      await removeMutation({ id: model._id });
+      // TODO: Phase G
+      await fetch(`/api/v1/admin/models/${model._id}`, { method: "DELETE" });
       toast.success("Model deleted");
       router.push("/admin/models");
     } catch (error: any) {
@@ -327,7 +342,7 @@ export default function ModelDetailPage({
     } finally {
       setShowDeleteConfirm(false);
     }
-  }, [model, removeMutation, router]);
+  }, [model, router]);
 
   if (!isNew && model === undefined) {
     return (
@@ -820,7 +835,7 @@ export default function ModelDetailPage({
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {history.map((h) => (
+                    {history.map((h: any) => (
                       <div key={h._id} className="border-l-2 pl-4 py-2">
                         <div className="flex items-center gap-2">
                           <Badge variant="outline">{h.changeType}</Badge>
@@ -841,7 +856,7 @@ export default function ModelDetailPage({
                         )}
                         {h.changes && h.changes.length > 0 && (
                           <div className="mt-2 text-sm">
-                            {h.changes.map((c, i) => (
+                            {h.changes.map((c: any, i: any) => (
                               <div key={i} className="text-muted-foreground">
                                 <span className="font-mono">{c.field}</span>:{" "}
                                 <span className="text-red-500 line-through">

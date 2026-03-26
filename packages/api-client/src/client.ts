@@ -863,6 +863,13 @@ export class BlahClient {
     return this.fetchEntityList<Project>("/api/v1/projects", "bearer");
   }
 
+  async listProjectTemplates(): Promise<Project[]> {
+    return this.fetchEntityList<Project>(
+      "/api/v1/projects?templates=true",
+      "bearer",
+    );
+  }
+
   async getProject(projectId: string): Promise<Project> {
     return this.fetchEnvelope<Project>(
       `/api/v1/projects/${encodeURIComponent(projectId)}`,

@@ -1,8 +1,7 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import { TourProvider, useTour } from "@reactour/tour";
-import { useMutation, useQuery } from "convex/react";
+
 import { useCallback, useEffect, useRef } from "react";
 import { useDarkMode } from "@/hooks/useDarkMode";
 
@@ -158,10 +157,14 @@ const TOUR_STEPS = [
 export function OnboardingTour({ children }: { children: React.ReactNode }) {
   const { isDarkMode, isLoaded: themeLoaded } = useDarkMode();
 
-  // @ts-ignore - TypeScript recursion limit with 85+ Convex modules
-  const onboarding = useQuery(api.onboarding.getOnboardingState);
-  const initializeOnboarding = useMutation(api.onboarding.initializeOnboarding);
-  const completeTour = useMutation(api.onboarding.completeTour);
+  // TODO: Phase G - needs onboarding REST routes or new table
+  const onboarding: any = { tourCompleted: true, tourSkipped: false };
+  const initializeOnboarding = async () => {
+    /* TODO: Phase G */
+  };
+  const completeTour = async (_args: any) => {
+    /* TODO: Phase G */
+  };
 
   const hasCompletedRef = useRef(false);
 

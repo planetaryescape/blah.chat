@@ -1,7 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Crown, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -18,10 +17,32 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
 export function FeaturesSettings() {
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const settings = useQuery(api.adminSettings.get);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const updateSettings = useMutation(api.adminSettings.update);
+  // TODO: Phase G - needs /api/v1/admin/settings REST route
+  const { data: settings } = useQuery({
+    queryKey: ["admin", "settings"],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/admin/settings");
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data ?? null;
+    },
+  });
+
+  const queryClient = useQueryClient();
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (data: Record<string, any>) => {
+      const res = await fetch("/api/v1/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to save settings");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
+    },
+  });
 
   const [proModelsEnabled, setProModelsEnabled] = useState(false);
   const [tier1DailyLimit, setTier1DailyLimit] = useState(1);
@@ -39,7 +60,7 @@ export function FeaturesSettings() {
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      await updateSettings({
+      await updateSettingsMutation.mutateAsync({
         proModelsEnabled,
         tier1DailyProModelLimit: tier1DailyLimit,
         tier2MonthlyProModelLimit: tier2MonthlyLimit,

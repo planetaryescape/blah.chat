@@ -1,5 +1,9 @@
 "use client";
 
+// TODO: Phase G - This provider still uses Convex for real-time subscriptions.
+// Once all queries/mutations are migrated to REST, this can be replaced with
+// just ClerkProvider + React Query provider. Keep for now as migration bridge.
+
 import { ClerkProvider, useAuth } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
 import { ConvexReactClient } from "convex/react";

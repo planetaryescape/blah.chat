@@ -1,6 +1,5 @@
 "use client";
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { ExternalLink, NotebookPen } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +10,7 @@ export function ProjectNotes({
   projectId,
   notes,
 }: {
-  projectId: Id<"projects">;
+  projectId: string;
   notes: any[];
 }) {
   if (notes.length === 0) {

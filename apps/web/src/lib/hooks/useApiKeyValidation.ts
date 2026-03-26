@@ -1,6 +1,7 @@
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useAction, useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { useApiClient } from "@/lib/api/client";
+import { useSDKClient } from "@/lib/api/sdkClient";
 
 type AvailabilityData = {
   stt: {
@@ -17,6 +18,14 @@ type AvailabilityData = {
   };
   isProduction: boolean;
 };
+
+interface ByokConfig {
+  byokEnabled: boolean;
+  hasVercelGatewayKey: boolean;
+  hasOpenRouterKey: boolean;
+  hasGroqKey: boolean;
+  hasDeepgramKey: boolean;
+}
 
 // Gateway to BYOK key field mapping
 const GATEWAY_KEY_MAP: Record<
@@ -40,20 +49,34 @@ const GATEWAY_MESSAGES: Record<string, string> = {
 };
 
 export function useApiKeyValidation() {
-  // @ts-ignore - Type depth exceeded with complex Convex action (94+ modules)
-  const getAvailability = useAction(api.settings.apiKeys.getApiKeyAvailability);
-  // @ts-ignore - Type depth exceeded with complex Convex query (94+ modules)
-  const byokConfig = useQuery(api.byok.credentials.getConfig);
+  const apiClient = useApiClient();
+  const sdk = useSDKClient();
 
   const [availability, setAvailability] = useState<AvailabilityData | null>(
     null,
   );
   const [loading, setLoading] = useState(true);
 
+  // Fetch BYOK config via SDK
+  const { data: byokConfig } = useQuery<ByokConfig | null>({
+    queryKey: ["byok-config"],
+    queryFn: async () => {
+      try {
+        return await sdk.getByokConfig();
+      } catch {
+        return null;
+      }
+    },
+    staleTime: 30_000,
+  });
+
+  // TODO: Phase 15 - need REST route for API key availability check
   useEffect(() => {
     const fetchAvailability = async () => {
       try {
-        const result = await getAvailability({});
+        const result = await apiClient.get<AvailabilityData>(
+          "/api/v1/settings/api-key-availability",
+        );
         setAvailability(result);
       } catch (error) {
         console.error("Failed to fetch API key availability:", error);
@@ -63,7 +86,7 @@ export function useApiKeyValidation() {
     };
 
     fetchAvailability();
-  }, [getAvailability]);
+  }, [apiClient]);
 
   // BYOK helper: check if a gateway is disabled due to missing BYOK key
   const isModelDisabledByByok = (gateway: string): boolean => {

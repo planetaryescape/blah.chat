@@ -1,8 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
 import { X } from "lucide-react";
 import type { editor } from "monaco-editor";
 import { useCallback, useRef } from "react";
@@ -13,7 +10,7 @@ import { ConflictDialog, mergeContents } from "./ConflictDialog";
 import { VersionHistoryPanel } from "./VersionHistoryPanel";
 
 interface CanvasPanelProps {
-  documentId: Id<"canvasDocuments">;
+  documentId: string;
   onClose: () => void;
 }
 
@@ -22,10 +19,13 @@ export function CanvasPanel({ documentId, onClose }: CanvasPanelProps) {
   const { pendingConflict, setPendingConflict, showHistoryPanel } =
     useCanvasContext();
 
-  // @ts-ignore - Type depth exceeded
-  const document = useQuery(api.canvas.documents.get, { documentId });
-  // @ts-ignore - Type depth exceeded
-  const updateContent = useMutation(api.canvas.documents.updateContent);
+  // TODO: Phase G - Canvas has no Postgres table yet. Stub with empty data.
+  const document: any = null;
+  void documentId;
+
+  const updateContent = async (_args: any) => {
+    /* TODO: Phase G - Canvas stub */
+  };
 
   const handleConflictResolve = useCallback(
     async (choice: "user" | "ai" | "merge") => {
@@ -114,7 +114,7 @@ export function CanvasPanel({ documentId, onClose }: CanvasPanelProps) {
       {/* Version History Panel (conditional) */}
       {showHistoryPanel && (
         <div className="w-64 shrink-0">
-          <VersionHistoryPanel documentId={documentId} />
+          <VersionHistoryPanel documentId={documentId as any} />
         </div>
       )}
 

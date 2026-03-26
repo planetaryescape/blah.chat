@@ -1,8 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
 import type { editor } from "monaco-editor";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -27,7 +24,7 @@ const Editor = dynamic(
 );
 
 interface CanvasEditorProps {
-  document: Doc<"canvasDocuments">;
+  document: any;
   onEditorReady?: (editor: editor.IStandaloneCodeEditor) => void;
   onDelete?: () => void;
 }
@@ -38,8 +35,9 @@ export function CanvasEditor({
   onDelete,
 }: CanvasEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-  // @ts-ignore - Type depth exceeded
-  const updateContent = useMutation(api.canvas.documents.updateContent);
+
+  // TODO: Phase G - Canvas has no Postgres table yet
+  const updateContent = async (_args: any) => {};
 
   // Local content for immediate UI
   const [localContent, setLocalContent] = useState(document.content);

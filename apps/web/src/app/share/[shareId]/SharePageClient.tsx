@@ -1,8 +1,7 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import { useAuth } from "@clerk/nextjs";
-import { useAction, useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   AlertCircle,
@@ -69,12 +68,21 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
   const [forkError, setForkError] = useState("");
 
   // Get current user to check ownership
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const currentUser = useQuery(api.users.getCurrentUser);
+
+  // TODO: Phase G - use useCurrentUser hook
+  const currentUser: any = null;
 
   // Try conversation share first
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const conversationShare = useQuery(api.shares.get, { shareId });
+
+  const { data: conversationShare } = useQuery({
+    queryKey: ["share", shareId],
+    queryFn: async () => {
+      const res = await fetch(`/api/v1/shares/${shareId}`);
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data ?? null;
+    },
+  });
 
   useEffect(() => {
     if (conversationShare !== null) {
@@ -158,14 +166,38 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
     setPublicNote(payload.data);
   }
 
-  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
-  const verifyConversationShare = useAction(api.shares.verify);
+  const verifyConversationShare = async (args: any) => {
+    const res = await fetch("/api/v1/shares/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(args),
+    });
+    if (!res.ok) throw new Error("Verification failed");
+  }; // TODO: Phase G
 
   // Fork actions
-  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
-  const forkPrivate = useAction(api.shares.forkPrivate);
-  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
-  const forkCollaborative = useAction(api.shares.forkCollaborative);
+
+  const forkPrivate = async (args: any) => {
+    const res = await fetch("/api/v1/shares/fork-private", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(args),
+    });
+    if (!res.ok) throw new Error("Failed to fork");
+    const json = await res.json();
+    return json.data;
+  }; // TODO: Phase G
+
+  const forkCollaborative = async (args: any) => {
+    const res = await fetch("/api/v1/shares/fork-collaborative", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(args),
+    });
+    if (!res.ok) throw new Error("Failed");
+    const json = await res.json();
+    return json.data;
+  }; // TODO: Phase G
 
   // Use the appropriate share
   const share = entityType === "note" ? noteShare : conversationShare;
@@ -178,16 +210,28 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
     share.userId === currentUser._id;
 
   // Use public queries for shared content (no auth required)
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const conversation = useQuery(
-    api.shares.getSharedConversation,
-    verified && entityType === "conversation" ? { shareId } : "skip",
-  );
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const messages = useQuery(
-    api.shares.getSharedMessages,
-    verified && entityType === "conversation" ? { shareId } : "skip",
-  );
+
+  const { data: conversation } = useQuery({
+    queryKey: ["shared-conversation", shareId, verified],
+    queryFn: async () => {
+      const res = await fetch(`/api/v1/shares/${shareId}/conversation`);
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data ?? null;
+    },
+    enabled: verified && entityType === "conversation",
+  });
+
+  const { data: messages } = useQuery({
+    queryKey: ["shared-messages", shareId, verified],
+    queryFn: async () => {
+      const res = await fetch(`/api/v1/shares/${shareId}/messages`);
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data ?? null;
+    },
+    enabled: verified && entityType === "conversation",
+  });
 
   // Auto-verify shares that don't require password
   useEffect(() => {

@@ -1,11 +1,16 @@
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { fetchMutation, fetchQuery } from "convex/nextjs";
 import { type NextRequest, NextResponse } from "next/server";
 import { osisToDisplay } from "@/lib/bible/utils";
 import { formatEntity, formatErrorEntity } from "@/lib/utils/formatEntity";
 
+// Simple in-memory cache for bible verses (replaces Convex cache)
+// TODO: Phase 15 - migrate to Postgres or Redis cache
+const verseCache = new Map<
+  string,
+  { reference: string; text: string; version: string }
+>();
+
 /**
- * Bible verse API with shared Convex cache
+ * Bible verse API with in-memory cache
  * Falls back to bible-api.com (free, no auth, public domain)
  * Default: World English Bible (WEB) - modern English, public domain
  */
@@ -21,9 +26,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Check shared Convex cache first
-    // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-    const cached = await fetchQuery(api.bible.getCachedVerse, { osis: ref });
+    // Check in-memory cache first
+    const cached = verseCache.get(ref);
     if (cached) {
       return NextResponse.json(
         formatEntity(
@@ -71,16 +75,8 @@ export async function GET(request: NextRequest) {
     const reference = data.reference || osisToDisplay(ref);
     const versionUpper = data.translation_id?.toUpperCase() || "WEB";
 
-    // Save to shared cache (fire-and-forget)
-    // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-    fetchMutation(api.bible.setCachedVerse, {
-      osis: ref,
-      reference,
-      text,
-      version: versionUpper,
-    }).catch(() => {
-      // Ignore cache write failures
-    });
+    // Save to in-memory cache
+    verseCache.set(ref, { reference, text, version: versionUpper });
 
     return NextResponse.json(
       formatEntity(

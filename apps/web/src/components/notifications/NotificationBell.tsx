@@ -1,8 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import { Bell, X } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -16,13 +13,20 @@ import { cn } from "@/lib/utils";
 
 export function NotificationBell() {
   const router = useRouter();
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const unreadCount = useQuery(api.notifications.getUnreadCount);
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const notifications = useQuery(api.notifications.list, { limit: 10 });
-  const markRead = useMutation(api.notifications.markRead);
-  const markAllRead = useMutation(api.notifications.markAllRead);
-  const dismiss = useMutation(api.notifications.dismiss);
+
+  // TODO: Phase G - needs notifications REST routes or new table
+  const unreadCount = 0;
+
+  const notifications: any[] = [];
+  const markRead = async (_args: any) => {
+    /* TODO: Phase G */
+  };
+  const markAllRead = async () => {
+    /* TODO: Phase G */
+  };
+  const dismiss = async (_args: any) => {
+    /* TODO: Phase G */
+  };
 
   const handleNotificationClick = async (
     notification: NonNullable<typeof notifications>[number],
@@ -68,7 +72,7 @@ export function NotificationBell() {
               No notifications
             </div>
           ) : (
-            notifications.map((n: Doc<"notifications">) => (
+            notifications.map((n: any) => (
               <div
                 key={n._id}
                 className={cn(

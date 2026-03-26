@@ -1,6 +1,5 @@
 "use client";
 
-import { useMutation } from "convex/react";
 import {
   AlertCircle,
   Loader2,
@@ -28,18 +27,6 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { useRouterConfig } from "@/lib/models";
 
-// Lazy load API to avoid type depth issues
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _modelsApi: any = null;
-function getModelsApi() {
-  if (!_modelsApi) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { api } = require("@blah-chat/backend/convex/_generated/api");
-    _modelsApi = api.models;
-  }
-  return _modelsApi;
-}
-
 const DEFAULT_CONFIG = {
   contextBuffer: 1.2,
   longContextThreshold: 128000,
@@ -63,10 +50,18 @@ function AutoRouterSkeleton() {
 
 function _AutoRouterPageContent() {
   const config = useRouterConfig();
-  // @ts-ignore - Type depth exceeded
-  const updateConfigMutation = useMutation(
-    getModelsApi().mutations.updateRouterConfig,
-  );
+
+  // TODO: Phase G - needs /api/v1/admin/auto-router/config REST route
+  const updateConfigMutation = {
+    mutateAsync: async (data: any) => {
+      const res = await fetch("/api/v1/admin/auto-router/config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed");
+    },
+  };
 
   const [formData, setFormData] = useState(DEFAULT_CONFIG);
   const [isDirty, setIsDirty] = useState(false);
@@ -101,7 +96,7 @@ function _AutoRouterPageContent() {
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
-      await updateConfigMutation({
+      await updateConfigMutation.mutateAsync({
         contextBuffer: formData.contextBuffer,
         longContextThreshold: formData.longContextThreshold,
         classifierConfidenceThreshold: formData.classifierConfidenceThreshold,

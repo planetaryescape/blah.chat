@@ -1,7 +1,7 @@
-import { BUILT_IN_TEMPLATES } from "@blah-chat/backend/convex/lib/prompts/templates/builtIn";
 import { templates } from "@blah-chat/persistence-postgres";
 import { and, desc, eq, or, sql } from "drizzle-orm";
 import { NotFoundError } from "@/lib/api/errors";
+import { BUILT_IN_TEMPLATES } from "./builtInTemplates";
 import { ensureCurrentPersistenceUser } from "./current-user";
 import { getPersistenceDb } from "./server";
 

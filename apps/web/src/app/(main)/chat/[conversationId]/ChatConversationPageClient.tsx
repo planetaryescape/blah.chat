@@ -2,7 +2,6 @@
 
 import { MODEL_CONFIG } from "@blah-chat/ai/models";
 import { getModelConfig } from "@blah-chat/ai/utils";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { parseAsBoolean, useQueryState } from "nuqs";
@@ -53,7 +52,7 @@ import type { ChatWidth } from "@/lib/utils/chatWidth";
 function ChatPageContent({
   params,
 }: {
-  params: Promise<{ conversationId: Id<"conversations"> }>;
+  params: Promise<{ conversationId: string }>;
 }) {
   const unwrappedParams = use(params);
   const conversationId = unwrappedParams.conversationId;
@@ -63,7 +62,7 @@ function ChatPageContent({
   const highlightMessageId = searchParams.get("messageId") ?? undefined;
   const projectFilter = searchParams.get("project");
   const { conversations: filteredConversations } = useRestConversationSync(
-    (projectFilter as Id<"projects"> | "none" | null) ?? undefined,
+    (projectFilter as string | "none" | null) ?? undefined,
   );
   const { documentId, setDocumentId } = useCanvasContext();
 
@@ -726,7 +725,7 @@ function ChatPageContent({
 export default function ChatPage({
   params,
 }: {
-  params: Promise<{ conversationId: Id<"conversations"> }>;
+  params: Promise<{ conversationId: string }>;
 }) {
   return <ChatPageContent params={params} />;
 }

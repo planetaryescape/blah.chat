@@ -77,7 +77,6 @@ vi.mock("@/lib/query/keys", () => ({
 }));
 
 // Import AFTER mocks
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { toast } from "sonner";
 import { messageQueue } from "@/lib/offline/messageQueue";
 import { useSendMessage } from "../useSendMessage";
@@ -87,7 +86,7 @@ const mockToast = vi.mocked(toast);
 const mockMessageQueue = vi.mocked(messageQueue);
 
 describe("useSendMessage", () => {
-  const conversationId = "conv-123" as Id<"conversations">;
+  const conversationId = "conv-123" as string;
 
   beforeEach(() => {
     vi.clearAllMocks();

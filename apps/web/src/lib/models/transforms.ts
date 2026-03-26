@@ -6,9 +6,8 @@
 
 import type { ModelConfig } from "@blah-chat/ai/models";
 import type { ReasoningConfig } from "@blah-chat/ai/reasoning";
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 
-type DbModel = Doc<"models">;
+type DbModel = any;
 
 /**
  * Safely parse JSON with fallback to undefined

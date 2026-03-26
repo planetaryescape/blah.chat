@@ -4,15 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const useQueryMock = vi.fn();
 const useActionMock = vi.fn();
 
-vi.mock("@blah-chat/backend/convex/_generated/api", () => ({
-  api: {
-    chatSuggestions: {
-      getForCurrentUser: {},
-      refreshForCurrentUser: {},
-    },
-  },
-}));
-
 vi.mock("convex/react", () => ({
   useQuery: (...args: unknown[]) => useQueryMock(...args),
   useAction: (...args: unknown[]) => useActionMock(...args),

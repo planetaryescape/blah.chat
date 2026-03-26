@@ -1,6 +1,5 @@
 "use client";
 
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +18,7 @@ export function RenameDialog({
   open,
   onOpenChange,
 }: {
-  conversation: Doc<"conversations">;
+  conversation: any;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {

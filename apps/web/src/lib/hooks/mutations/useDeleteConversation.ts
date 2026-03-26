@@ -1,11 +1,10 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useApiClient } from "@/lib/api/client";
 import { queryKeys } from "@/lib/query/keys";
 
 interface DeleteConversationArgs {
-  conversationId: Id<"conversations">;
+  conversationId: string;
 }
 
 export function useDeleteConversation() {

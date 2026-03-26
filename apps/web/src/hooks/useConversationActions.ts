@@ -1,6 +1,5 @@
 "use client";
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -14,7 +13,7 @@ import {
 } from "@/lib/hooks/mutations";
 
 export function useConversationActions(
-  conversationId: Id<"conversations"> | null,
+  conversationId: string | null,
   source: "command_palette" | "header_menu",
 ) {
   const router = useRouter();

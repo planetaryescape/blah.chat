@@ -1,4 +1,3 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { useNewChat } from "@/hooks/useNewChat";
@@ -11,7 +10,7 @@ export function useKeyboardShortcuts() {
   const { startNewChat } = useNewChat();
   const projectFilter = searchParams.get("project");
   const { conversations: filteredConversations } = useRestConversationSync(
-    (projectFilter as Id<"projects"> | "none" | null) ?? undefined,
+    (projectFilter as string | "none" | null) ?? undefined,
   );
 
   // Extract conversationId from pathname (e.g., /chat/xyz123)

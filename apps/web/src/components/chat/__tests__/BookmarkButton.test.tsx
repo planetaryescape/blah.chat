@@ -21,14 +21,13 @@ vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 // Import AFTER mocks
 import { BookmarkButton } from "../BookmarkButton";
 
 describe("BookmarkButton", () => {
   const defaultProps = {
-    messageId: "msg123" as Id<"messages">,
-    conversationId: "conv123" as Id<"conversations">,
+    messageId: "msg123" as string,
+    conversationId: "conv123" as string,
   };
 
   beforeEach(() => {

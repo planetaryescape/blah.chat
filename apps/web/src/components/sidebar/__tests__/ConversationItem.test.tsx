@@ -66,7 +66,6 @@ vi.mock("@/components/ui/sidebar", () => ({
   useSidebar: () => ({ setOpenMobile: vi.fn(), isMobile: false }),
 }));
 
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 // Import AFTER mocks
 import { ConversationItem } from "../ConversationItem";
 
@@ -80,13 +79,11 @@ vi.mock("next/navigation", async () => {
   };
 });
 
-const createConversation = (
-  overrides: Partial<Doc<"conversations">> = {},
-): Doc<"conversations"> =>
+const createConversation = (overrides: Partial<any> = {}): any =>
   ({
-    _id: "conv-123" as Id<"conversations">,
+    _id: "conv-123" as string,
     _creationTime: Date.now(),
-    userId: "user-123" as Id<"users">,
+    userId: "user-123" as string,
     title: "Test Conversation",
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -95,7 +92,7 @@ const createConversation = (
     starred: false,
     archived: false,
     ...overrides,
-  }) as Doc<"conversations">;
+  }) as any;
 
 describe("ConversationItem", () => {
   beforeEach(() => {

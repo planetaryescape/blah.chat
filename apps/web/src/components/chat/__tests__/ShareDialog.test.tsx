@@ -35,11 +35,10 @@ Object.assign(navigator, {
 });
 
 // Import AFTER mocks
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { ShareDialog } from "../ShareDialog";
 
 describe("ShareDialog", () => {
-  const conversationId = "conv123" as Id<"conversations">;
+  const conversationId = "conv123" as string;
 
   beforeEach(() => {
     vi.clearAllMocks();

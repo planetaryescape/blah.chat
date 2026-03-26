@@ -1,6 +1,5 @@
 "use client";
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { formatDistanceToNow } from "date-fns";
 import { Bot, Clock, Loader2, Undo2, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ import { useCanvasHistory } from "@/hooks/useCanvasHistory";
 import { cn } from "@/lib/utils";
 
 interface VersionHistoryPanelProps {
-  documentId: Id<"canvasDocuments">;
+  documentId: string;
 }
 
 export function VersionHistoryPanel({ documentId }: VersionHistoryPanelProps) {

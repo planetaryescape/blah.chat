@@ -21,11 +21,10 @@ vi.mock("convex/react", () => ({
 }));
 
 // Import AFTER mocks
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useCanvasHistory } from "../useCanvasHistory";
 
 describe("useCanvasHistory", () => {
-  const documentId = "doc-123" as Id<"canvasDocuments">;
+  const documentId = "doc-123" as string;
 
   beforeEach(() => {
     vi.clearAllMocks();

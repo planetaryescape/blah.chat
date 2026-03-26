@@ -1,4 +1,3 @@
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import type { editor } from "monaco-editor";
 import { useCallback, useEffect, useRef } from "react";
 import { computeDiff, type DiffResult } from "@/lib/canvas/diff";
@@ -19,7 +18,7 @@ interface DiffTrackerResult {
  */
 export function useCanvasDiffTracker(
   editorRef: React.RefObject<editor.IStandaloneCodeEditor | null>,
-  document: Doc<"canvasDocuments"> | null | undefined,
+  document: any | null | undefined,
 ) {
   const baseContentRef = useRef<string>("");
   const lastSyncedVersionRef = useRef<number>(0);

@@ -1,4 +1,3 @@
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { NextRequest } from "next/server";
 import { getConvexClient } from "@/lib/api/convex";
 import { withApiKeyAuth } from "@/lib/api/middleware/apiKeyAuth";
@@ -30,13 +29,10 @@ async function handler(
   const { conversationId } = (await params) as { conversationId: string };
   const convex = getConvexClient();
 
-  const initialMessages = (await (convex.query as any)(
-    api.cliAuth.listMessages,
-    {
-      apiKey,
-      conversationId,
-    },
-  )) as any[] | null;
+  const initialMessages = (await (convex.query as any)("cliAuth:listMessages", {
+    apiKey,
+    conversationId,
+  })) as any[] | null;
 
   if (!initialMessages) {
     return new Response("Not found", { status: 404 });
@@ -59,13 +55,10 @@ async function handler(
       async () => {
         if (isClosed()) return null;
 
-        const messages = (await (convex.query as any)(
-          api.cliAuth.listMessages,
-          {
-            apiKey,
-            conversationId,
-          },
-        )) as any[] | null;
+        const messages = (await (convex.query as any)("cliAuth:listMessages", {
+          apiKey,
+          conversationId,
+        })) as any[] | null;
 
         if (!messages) {
           return { messages: [] };
@@ -95,5 +88,5 @@ async function handler(
   }
 }
 
-export const GET = withErrorHandling(withApiKeyAuth(handler));
+export const GET = withErrorHandling(withApiKeyAuth(handler)) as any;
 export const dynamic = "force-dynamic";

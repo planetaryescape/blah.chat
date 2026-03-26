@@ -1,6 +1,5 @@
 "use client";
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { formatDistanceToNow } from "date-fns";
 import { domAnimation, LazyMotion, m } from "framer-motion";
 import { Loader2 } from "lucide-react";
@@ -17,8 +16,8 @@ import { SearchResultSkeletonList } from "./SearchResultSkeleton";
 
 interface SearchResultsProps {
   results: Array<{
-    _id: Id<"messages">;
-    conversationId: Id<"conversations">;
+    _id: string;
+    conversationId: string;
     conversationTitle?: string | null;
     role: "user" | "assistant" | "system";
     content: string;
@@ -32,9 +31,9 @@ interface SearchResultsProps {
   onClearFilters?: () => void;
   // Bulk selection props
   selectedCount?: number;
-  isSelected?: (id: Id<"messages">) => boolean;
-  toggleSelection?: (id: Id<"messages">) => void;
-  selectAll?: (ids: Id<"messages">[]) => void;
+  isSelected?: (id: string) => boolean;
+  toggleSelection?: (id: string) => void;
+  selectAll?: (ids: string[]) => void;
   clearSelection?: () => void;
   onRefresh?: () => void;
 }
@@ -216,7 +215,7 @@ function SearchResultCard({
   query: string;
   index: number;
   isSelected: boolean;
-  onToggleSelection: (id: Id<"messages">) => void;
+  onToggleSelection: (id: string) => void;
 }) {
   // Highlight query terms in content without injecting HTML
   const highlightedContent = highlightText(message.content, query);

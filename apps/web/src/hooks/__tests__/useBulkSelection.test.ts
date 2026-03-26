@@ -1,4 +1,3 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { useBulkSelection } from "../useBulkSelection";
@@ -18,7 +17,7 @@ describe("useBulkSelection", () => {
   it("toggle adds and removes from selection", () => {
     const { result } = renderHook(() => useBulkSelection());
 
-    const msgId = "msg-1" as Id<"messages">;
+    const msgId = "msg-1" as string;
 
     // Add
     act(() => {
@@ -38,7 +37,7 @@ describe("useBulkSelection", () => {
   it("selectAll replaces entire set", () => {
     const { result } = renderHook(() => useBulkSelection());
 
-    const ids = ["msg-1", "msg-2", "msg-3"] as Id<"messages">[];
+    const ids = ["msg-1", "msg-2", "msg-3"] as string[];
 
     act(() => {
       result.current.selectAll(ids);
@@ -51,8 +50,8 @@ describe("useBulkSelection", () => {
   it("isSelected checks membership", () => {
     const { result } = renderHook(() => useBulkSelection());
 
-    const msgId = "msg-1" as Id<"messages">;
-    const otherId = "msg-2" as Id<"messages">;
+    const msgId = "msg-1" as string;
+    const otherId = "msg-2" as string;
 
     act(() => {
       result.current.toggleSelection(msgId);

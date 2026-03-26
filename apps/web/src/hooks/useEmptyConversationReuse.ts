@@ -1,6 +1,5 @@
 "use client";
 
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useCallback } from "react";
 import { cache } from "@/lib/cache";
@@ -21,7 +20,7 @@ export function useEmptyConversationReuse() {
     [],
   );
 
-  const findEmptyConversation = useCallback((): Doc<"conversations"> | null => {
+  const findEmptyConversation = useCallback((): any | null => {
     if (!conversations?.length) return null;
 
     // Sort by lastMessageAt (most recent first)

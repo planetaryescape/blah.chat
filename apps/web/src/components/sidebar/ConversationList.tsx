@@ -1,4 +1,3 @@
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { ConversationItem } from "./ConversationItem";
 
 export function ConversationList({
@@ -8,7 +7,7 @@ export function ConversationList({
   selectedIds = [],
   onToggleSelection,
 }: {
-  conversations: Doc<"conversations">[];
+  conversations: any[];
   selectedId?: string | null;
   onClearSelection?: () => void;
   selectedIds?: string[];

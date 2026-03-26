@@ -1,6 +1,5 @@
 "use client";
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle, X } from "lucide-react";
 import { useEffect } from "react";
@@ -12,7 +11,7 @@ interface Props {
   modelName: string;
   onSetDefault: () => void;
   onDismiss: () => void;
-  conversationId: Id<"conversations">;
+  conversationId: string;
 }
 
 export function SetDefaultModelPrompt({

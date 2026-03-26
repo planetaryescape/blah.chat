@@ -76,12 +76,11 @@ vi.mock("@/lib/api/sdkClient", () => ({
   }),
 }));
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 // Import component AFTER mocks
 import { ChatInput } from "../ChatInput";
 
 const defaultProps = {
-  conversationId: "test-conversation-id" as Id<"conversations">,
+  conversationId: "test-conversation-id" as string,
   isGenerating: false,
   selectedModel: "openai:gpt-4o",
   onModelChange: vi.fn(),

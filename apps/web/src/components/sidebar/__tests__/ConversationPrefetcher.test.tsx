@@ -17,7 +17,6 @@ vi.mock("@/lib/cache", () => ({
   },
 }));
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { ConversationPrefetcher } from "../ConversationPrefetcher";
 
 describe("ConversationPrefetcher", () => {
@@ -55,11 +54,7 @@ describe("ConversationPrefetcher", () => {
   });
 
   it("warms the local cache through REST routes", async () => {
-    render(
-      <ConversationPrefetcher
-        conversationId={"conv_1" as Id<"conversations">}
-      />,
-    );
+    render(<ConversationPrefetcher conversationId={"conv_1" as string} />);
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(

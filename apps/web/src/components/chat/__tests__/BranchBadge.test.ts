@@ -1,8 +1,7 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { describe, expect, it } from "vitest";
 import { summarizeBranches } from "../BranchBadge";
 
-const messageId = (value: string) => value as Id<"messages">;
+const messageId = (value: string) => value as string;
 
 describe("summarizeBranches", () => {
   it("returns zero when the conversation is linear", () => {

@@ -1,11 +1,40 @@
-import { api } from "@blah-chat/backend/convex/_generated/api";
+import "server-only";
+import { MODEL_CONFIG } from "@blah-chat/ai/models";
+import {
+  conversations,
+  messages,
+  users,
+} from "@blah-chat/persistence-postgres";
+import { and, desc, eq, sql } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getConvexClient } from "@/lib/api/convex";
-import { withApiKeyAuth } from "@/lib/api/middleware/apiKeyAuth";
+import { cliChatDAL } from "@/lib/api/dal/cliChat";
+import {
+  type ApiKeyAuthContext,
+  withApiKeyAuth,
+} from "@/lib/api/middleware/apiKeyAuth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import logger from "@/lib/logger";
+import { createBookmark, listBookmarks } from "@/lib/persistence/bookmarks";
+import { toApiConversation } from "@/lib/persistence/mappers";
+import { listMemories } from "@/lib/persistence/memories";
+import {
+  createNote,
+  deleteNote,
+  listNotes,
+  updateNote,
+} from "@/lib/persistence/notes";
+import { listProjects } from "@/lib/persistence/projects";
+import { searchMessages } from "@/lib/persistence/search";
+import { getPersistenceDb } from "@/lib/persistence/server";
+import {
+  createTask,
+  deleteTask,
+  listTasks,
+  updateTask,
+} from "@/lib/persistence/tasks";
+import { listTemplates } from "@/lib/persistence/templates";
 import { formatEntity } from "@/lib/utils/formatEntity";
 
 const methodSchema = z.enum([
@@ -43,45 +72,14 @@ const bodySchema = z.object({
   params: z.record(z.string(), z.unknown()).optional(),
 });
 
-async function handler(
-  req: NextRequest,
-  {
-    apiKey,
-    user,
-  }: {
-    params: Promise<Record<string, string | string[]>>;
-    apiKey: string;
-    user: {
-      userId: string;
-      email: string;
-      name: string;
-    };
-  },
-) {
+async function handler(req: NextRequest, context: ApiKeyAuthContext) {
+  const { user } = context;
   const startTime = Date.now();
   const body = bodySchema.parse(await req.json());
   const params = body.params ?? {};
-  const convex = getConvexClient();
 
-  const runQuery = async (
-    reference: unknown,
-    args: Record<string, unknown>,
-  ) => {
-    return (convex.query as any)(reference, {
-      apiKey,
-      ...args,
-    });
-  };
-
-  const runMutation = async (
-    reference: unknown,
-    args: Record<string, unknown>,
-  ) => {
-    return (convex.mutation as any)(reference, {
-      apiKey,
-      ...args,
-    });
-  };
+  const clerkId = user.clerkId;
+  const identity = { clerkId, email: user.email, name: user.name };
 
   let result: unknown;
 
@@ -95,189 +93,298 @@ async function handler(
       break;
     }
     case "listConversations": {
-      result = await runQuery(api.cliAuth.listConversations, {
-        limit: params.limit,
-      });
+      const db = getPersistenceDb();
+      const limit = typeof params.limit === "number" ? params.limit : 50;
+      const rows = await db
+        .select({
+          conversation: conversations,
+          messageCount: sql<number>`count(${messages.id})::int`,
+          lastMessageAt: sql<number | null>`max(${messages.createdAt})`,
+        })
+        .from(conversations)
+        .leftJoin(messages, eq(messages.conversationId, conversations.id))
+        .where(
+          and(
+            eq(conversations.userId, user.userId),
+            eq(conversations.archived, false),
+          ),
+        )
+        .groupBy(conversations.id)
+        .orderBy(
+          desc(
+            sql`coalesce(max(${messages.createdAt}), ${conversations.updatedAt})`,
+          ),
+        )
+        .limit(limit);
+      result = rows.map((row) =>
+        toApiConversation({
+          ...row.conversation,
+          messageCount: row.messageCount,
+          lastMessageAt: row.lastMessageAt,
+        }),
+      );
       break;
     }
     case "getConversation": {
-      result = await runQuery(api.cliAuth.getConversation, {
-        conversationId: params.conversationId,
+      const db = getPersistenceDb();
+      const conversation = await db.query.conversations.findFirst({
+        where: and(
+          eq(conversations.id, params.conversationId as string),
+          eq(conversations.userId, user.userId),
+        ),
+      });
+      if (!conversation) {
+        result = null;
+        break;
+      }
+      const [stats] = await db
+        .select({
+          messageCount: sql<number>`count(*)::int`,
+          lastMessageAt: sql<number | null>`max(${messages.createdAt})`,
+        })
+        .from(messages)
+        .where(eq(messages.conversationId, conversation.id));
+      result = toApiConversation({
+        ...conversation,
+        messageCount: stats?.messageCount ?? 0,
+        lastMessageAt: stats?.lastMessageAt ?? conversation.updatedAt,
       });
       break;
     }
     case "listMessages": {
-      result = await runQuery(api.cliAuth.listMessages, {
-        conversationId: params.conversationId,
-      });
+      result = await cliChatDAL.listMessages(
+        identity,
+        params.conversationId as string,
+      );
       break;
     }
     case "listModels": {
-      result = await runQuery(api.cliAuth.listModels, {});
+      result = Object.values(MODEL_CONFIG).map((m) => ({
+        id: m.id,
+        name: m.name,
+        provider: m.provider,
+      }));
       break;
     }
     case "getUserDefaultModel": {
-      result = await runQuery(api.cliAuth.getUserDefaultModel, {});
+      const db = getPersistenceDb();
+      const _userRow = await db.query.users.findFirst({
+        where: eq(users.id, user.userId),
+      });
+      // defaultModel is stored in user_preferences, not on the users table
+      const { createPreferenceRepository } = await import(
+        "@blah-chat/persistence-postgres"
+      );
+      const prefRepo = createPreferenceRepository(db);
+      const defaultModel = await prefRepo.getForClerkId(
+        clerkId,
+        "defaultModel",
+      );
+      result = {
+        model: typeof defaultModel === "string" ? defaultModel : null,
+      };
       break;
     }
     case "searchConversations": {
-      result = await runQuery(api.cliAuth.searchConversations, {
-        searchQuery: params.query,
-        limit: params.limit,
+      result = await searchMessages(clerkId, {
+        query: params.query as string,
+        limit: typeof params.limit === "number" ? params.limit : 20,
       });
       break;
     }
     case "sendMessage": {
-      result = await runMutation(api.cliAuth.sendMessage, {
-        conversationId: params.conversationId,
-        content: params.content,
-        modelId: params.modelId,
-      });
+      result = await cliChatDAL.sendMessage(
+        identity,
+        params.conversationId as string,
+        {
+          content: params.content as string,
+          modelId: params.modelId as string | undefined,
+        },
+      );
       break;
     }
     case "createConversation": {
-      result = await runMutation(api.cliAuth.createConversation, {
-        title: params.title,
-        model: params.model,
-      });
+      const db = getPersistenceDb();
+      const now = Date.now();
+      const [conversation] = await db
+        .insert(conversations)
+        .values({
+          userId: user.userId,
+          title: (params.title as string) || "New Chat",
+          model: (params.model as string) || "gpt-4o",
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+      result = conversation
+        ? toApiConversation({
+            ...conversation,
+            messageCount: 0,
+            lastMessageAt: conversation.updatedAt,
+          })
+        : null;
       break;
     }
     case "archiveConversation": {
-      await runMutation(api.cliAuth.archiveConversation, {
-        conversationId: params.conversationId,
-      });
+      const db = getPersistenceDb();
+      await db
+        .update(conversations)
+        .set({ archived: true, updatedAt: Date.now() })
+        .where(
+          and(
+            eq(conversations.id, params.conversationId as string),
+            eq(conversations.userId, user.userId),
+          ),
+        );
       result = { success: true };
       break;
     }
     case "deleteConversation": {
-      await runMutation(api.cliAuth.deleteConversation, {
-        conversationId: params.conversationId,
-      });
+      const db = getPersistenceDb();
+      await db
+        .delete(conversations)
+        .where(
+          and(
+            eq(conversations.id, params.conversationId as string),
+            eq(conversations.userId, user.userId),
+          ),
+        );
       result = { success: true };
       break;
     }
     case "updateConversationModel": {
-      await runMutation(api.cliAuth.updateConversationModel, {
-        conversationId: params.conversationId,
-        model: params.model,
-      });
+      const db = getPersistenceDb();
+      await db
+        .update(conversations)
+        .set({ model: params.model as string, updatedAt: Date.now() })
+        .where(
+          and(
+            eq(conversations.id, params.conversationId as string),
+            eq(conversations.userId, user.userId),
+          ),
+        );
       result = { success: true };
       break;
     }
     case "renameConversation": {
-      await runMutation(api.cliAuth.renameConversation, {
-        conversationId: params.conversationId,
-        title: params.title,
-      });
+      const db = getPersistenceDb();
+      await db
+        .update(conversations)
+        .set({ title: params.title as string, updatedAt: Date.now() })
+        .where(
+          and(
+            eq(conversations.id, params.conversationId as string),
+            eq(conversations.userId, user.userId),
+          ),
+        );
       result = { success: true };
       break;
     }
     case "createBookmark": {
-      result = await runMutation(api.cliAuth.createBookmark, {
-        messageId: params.messageId,
-        conversationId: params.conversationId,
-        note: params.note,
+      result = await createBookmark(clerkId, {
+        messageId: params.messageId as string,
+        conversationId: params.conversationId as string,
+        note: params.note as string | undefined,
       });
       break;
     }
     case "listMemories": {
-      result = await runQuery(api.cliAuth.listMemories, {
-        limit: params.limit,
+      result = await listMemories(clerkId, {
+        limit: typeof params.limit === "number" ? params.limit : undefined,
       });
       break;
     }
     case "listProjects": {
-      result = await runQuery(api.cliAuth.listProjects, {
-        limit: params.limit,
-      });
+      result = await listProjects(clerkId);
       break;
     }
     case "listBookmarks": {
-      result = await runQuery(api.cliAuth.listBookmarks, {
-        limit: params.limit,
-      });
+      result = await listBookmarks(clerkId);
       break;
     }
     case "listTemplates": {
-      result = await runQuery(api.cliAuth.listTemplates, {
-        limit: params.limit,
-      });
+      result = await listTemplates(clerkId);
       break;
     }
     case "listTasks": {
-      result = await runQuery(api.cliAuth.listTasks, {
-        status: params.status,
-        limit: params.limit,
-      });
+      result = await listTasks(clerkId);
       break;
     }
     case "createTask": {
-      result = await runMutation(api.cliAuth.createTask, {
-        title: params.title,
-        description: params.description,
-        urgency: params.urgency,
-        deadline: params.deadline,
-        deadlineSource: params.deadlineSource,
-        projectId: params.projectId,
+      result = await createTask(clerkId, {
+        title: params.title as string,
+        description: params.description as string | undefined,
+        urgency: params.urgency as
+          | "low"
+          | "medium"
+          | "high"
+          | "urgent"
+          | undefined,
+        deadline: params.deadline as number | undefined,
+        deadlineSource: params.deadlineSource as string | undefined,
+        projectId: params.projectId as string | undefined,
       });
       break;
     }
     case "updateTask": {
-      await runMutation(api.cliAuth.updateTask, {
-        taskId: params.taskId,
-        title: params.title,
-        description: params.description,
-        status: params.status,
-        urgency: params.urgency,
-        deadline: params.deadline,
+      await updateTask(clerkId, params.taskId as string, {
+        title: params.title as string | undefined,
+        description: params.description as string | undefined,
+        status: params.status as
+          | "suggested"
+          | "confirmed"
+          | "in_progress"
+          | "completed"
+          | "cancelled"
+          | undefined,
+        urgency: params.urgency as
+          | "low"
+          | "medium"
+          | "high"
+          | "urgent"
+          | undefined,
+        deadline: params.deadline as number | undefined,
       });
       result = { success: true };
       break;
     }
     case "completeTask": {
-      await runMutation(api.cliAuth.completeTask, {
-        taskId: params.taskId,
+      await updateTask(clerkId, params.taskId as string, {
+        status: "completed",
       });
       result = { success: true };
       break;
     }
     case "deleteTask": {
-      await runMutation(api.cliAuth.deleteTask, {
-        taskId: params.taskId,
-      });
+      await deleteTask(clerkId, params.taskId as string);
       result = { success: true };
       break;
     }
     case "listNotes": {
-      result = await runQuery(api.cliAuth.listNotes, {
-        limit: params.limit,
-      });
+      result = await listNotes(clerkId);
       break;
     }
     case "createNote": {
-      result = await runMutation(api.cliAuth.createCliNote, {
-        content: params.content,
-        title: params.title,
-        sourceMessageId: params.sourceMessageId,
-        sourceConversationId: params.sourceConversationId,
-        projectId: params.projectId,
+      result = await createNote(clerkId, {
+        content: params.content as string | undefined,
+        title: params.title as string | undefined,
+        sourceMessageId: params.sourceMessageId as string | undefined,
+        sourceConversationId: params.sourceConversationId as string | undefined,
+        projectId: params.projectId as string | undefined,
       });
       break;
     }
     case "updateNote": {
-      await runMutation(api.cliAuth.updateCliNote, {
-        noteId: params.noteId,
-        title: params.title,
-        content: params.content,
-        isPinned: params.isPinned,
+      await updateNote(clerkId, params.noteId as string, {
+        title: params.title as string | undefined,
+        content: params.content as string | undefined,
+        isPinned: params.isPinned as boolean | undefined,
       });
       result = { success: true };
       break;
     }
     case "deleteNote": {
-      await runMutation(api.cliAuth.deleteCliNote, {
-        noteId: params.noteId,
-      });
+      await deleteNote(clerkId, params.noteId as string);
       result = { success: true };
       break;
     }

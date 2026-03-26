@@ -1,4 +1,3 @@
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import Dexie, { type Table } from "dexie";
 
 /**
@@ -14,14 +13,14 @@ export interface CachedPreferences {
  * Synced from Convex subscriptions, enables offline access.
  */
 class BlahChatCache extends Dexie {
-  conversations!: Table<Doc<"conversations">>;
-  messages!: Table<Doc<"messages">>;
-  notes!: Table<Doc<"notes">>;
-  tasks!: Table<Doc<"tasks">>;
-  projects!: Table<Doc<"projects">>;
-  attachments!: Table<Doc<"attachments">>;
-  toolCalls!: Table<Doc<"toolCalls">>;
-  sources!: Table<Doc<"sources">>;
+  conversations!: Table<any>;
+  messages!: Table<any>;
+  notes!: Table<any>;
+  tasks!: Table<any>;
+  projects!: Table<any>;
+  attachments!: Table<any>;
+  toolCalls!: Table<any>;
+  sources!: Table<any>;
   pendingMutations!: Table<PendingMutation>;
   userPreferences!: Table<CachedPreferences>;
 

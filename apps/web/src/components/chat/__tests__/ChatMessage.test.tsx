@@ -68,15 +68,14 @@ vi.mock("../QuickModelSwitcher", () => ({
   QuickModelSwitcher: () => null,
 }));
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 // Import component AFTER mocks
 import { ChatMessage } from "../ChatMessage";
 
 const baseMessage = {
-  _id: "msg-123" as Id<"messages">,
+  _id: "msg-123" as string,
   _creationTime: Date.now(),
-  conversationId: "conv-123" as Id<"conversations">,
-  userId: "user-123" as Id<"users">,
+  conversationId: "conv-123" as string,
+  userId: "user-123" as string,
   createdAt: Date.now(),
   updatedAt: Date.now(),
 };

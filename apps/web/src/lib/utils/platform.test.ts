@@ -1,25 +1,37 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
-  getDataFetchingStrategy,
+  detectDevicePlatform,
+  getPlatform,
   resetDevicePlatformCache,
-  shouldUseConvex,
-  shouldUseSSE,
 } from "./platform";
 
-describe("data fetching strategy (post-cutover)", () => {
+describe("platform utilities (post-cutover)", () => {
   beforeEach(() => {
     resetDevicePlatformCache();
   });
 
-  it("returns sse for all platforms (no longer convex)", () => {
-    expect(getDataFetchingStrategy()).toBe("sse");
+  it("getPlatform returns a valid platform", () => {
+    const result = getPlatform();
+    expect(["mac", "windows", "other"]).toContain(result);
   });
 
-  it("shouldUseConvex returns false", () => {
-    expect(shouldUseConvex()).toBe(false);
+  it("detectDevicePlatform returns web in SSR", () => {
+    expect(detectDevicePlatform()).toBe("web");
   });
 
-  it("shouldUseSSE returns true", () => {
-    expect(shouldUseSSE()).toBe(true);
+  it("does not export shouldUseConvex", async () => {
+    const mod = await import("./platform");
+    expect("shouldUseConvex" in mod).toBe(false);
+  });
+
+  it("does not export getDataFetchingStrategy", async () => {
+    const mod = await import("./platform");
+    expect("getDataFetchingStrategy" in mod).toBe(false);
+  });
+
+  it("does not export DataFetchingStrategy type artifacts at runtime", async () => {
+    const mod = await import("./platform");
+    expect("getEffectiveStrategy" in mod).toBe(false);
+    expect("getManualOverride" in mod).toBe(false);
   });
 });

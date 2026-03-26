@@ -1,6 +1,5 @@
 "use client";
 
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
   Archive,
   Brain,
@@ -29,7 +28,7 @@ export function ConversationPrimaryActions({
   onTogglePin,
   onToggleStar,
 }: {
-  conversation: Doc<"conversations">;
+  conversation: any;
   copied: boolean;
   isCompacting: boolean;
   isExtracting: boolean;

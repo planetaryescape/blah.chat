@@ -1,7 +1,6 @@
 "use client";
 
 import { getModelConfig } from "@blah-chat/ai/utils";
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useQuery as useRestQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
@@ -41,8 +40,8 @@ function ErrorDisplay({
   hasFailedModels,
 }: {
   error?: string;
-  messageId: Id<"messages">;
-  conversationId: Id<"conversations">;
+  messageId: string;
+  conversationId: string;
   hasFailedModels?: boolean;
 }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
@@ -129,7 +128,7 @@ interface ChatMessageProps {
 }
 
 export interface MessageConversationContext {
-  _id: Id<"conversations"> | string;
+  _id: string | string;
   modelRecommendation?: {
     dismissed?: boolean;
   } | null;
@@ -145,7 +144,7 @@ type MessageAttachment = {
   url?: string;
 };
 
-type MessageWithAttachments = (Doc<"messages"> | OptimisticMessage) & {
+type MessageWithAttachments = (any | OptimisticMessage) & {
   attachments?: MessageAttachment[];
 };
 
@@ -256,7 +255,7 @@ export const ChatMessage = memo(
 
     const attachments = message.attachments;
     const urlMap = new Map<string, string>(
-      (attachments ?? [])
+      ((attachments ?? []) as MessageAttachment[])
         .filter(
           (attachment): attachment is MessageAttachment & { url: string } =>
             !!attachment?.url,
@@ -319,7 +318,7 @@ export const ChatMessage = memo(
 
     // Keyboard shortcuts for focused messages (disabled for temp/optimistic messages)
     useMessageKeyboardShortcuts({
-      messageId: message._id as Id<"messages">,
+      messageId: message._id as string,
       conversationId: message.conversationId,
       content: displayContent,
       isFocused,
@@ -394,7 +393,7 @@ export const ChatMessage = memo(
             {isError ? (
               <ErrorDisplay
                 error={message.error}
-                messageId={message._id as Id<"messages">}
+                messageId={message._id as string}
                 conversationId={message.conversationId}
                 hasFailedModels={
                   "failedModels" in message &&
@@ -485,10 +484,10 @@ export const ChatMessage = memo(
                 )}
 
                 {/* Canvas document artifact cards (message body, not inside tool calls) */}
-                <ArtifactList messageId={message._id as Id<"messages">} />
+                <ArtifactList messageId={message._id as string} />
 
                 {/* Source citations (Phase 2: from normalized tables) */}
-                <SourceList messageId={message._id as Id<"messages">} />
+                <SourceList messageId={message._id as string} />
 
                 {/* Attachments - don't reserve space, most messages don't have attachments */}
                 {attachments && attachments.length > 0 && urlMap.size > 0 && (
@@ -557,14 +556,12 @@ export const ChatMessage = memo(
                 {/* Branch indicator */}
                 {!readOnly && conversation && (
                   <MessageBranchIndicator
-                    messageId={message._id as Id<"messages">}
-                    conversationId={conversation._id as Id<"conversations">}
+                    messageId={message._id as string}
+                    conversationId={conversation._id as string}
                   />
                 )}
                 {!readOnly && features.showNotes && (
-                  <MessageNotesIndicator
-                    messageId={message._id as Id<"messages">}
-                  />
+                  <MessageNotesIndicator messageId={message._id as string} />
                 )}
 
                 {/* Status indicator removed - optimistic updates should feel instant */}

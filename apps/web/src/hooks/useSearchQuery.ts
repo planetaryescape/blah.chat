@@ -1,9 +1,8 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useEffect, useState } from "react";
 import { useSDKClient } from "@/lib/api/sdkClient";
 
 interface UseSearchQueryOptions {
-  conversationId?: Id<"conversations">;
+  conversationId?: string;
   dateFrom?: number;
   dateTo?: number;
   messageType?: "user" | "assistant";

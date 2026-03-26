@@ -1,6 +1,5 @@
 "use client";
 
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { ArrowDown } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
@@ -27,13 +26,13 @@ import { DateSeparator } from "./DateSeparator";
 const VIRTUALIZATION_THRESHOLD = 500;
 const NEAR_BOTTOM_THRESHOLD = 64;
 
-type MessageWithUser = (Doc<"messages"> | OptimisticMessage) & {
+type MessageWithUser = (any | OptimisticMessage) & {
   senderUser?: { name?: string; imageUrl?: string } | null;
 };
 
 interface VirtualizedMessageListProps {
   messages: MessageWithUser[];
-  conversationId: Id<"conversations">;
+  conversationId: string;
   conversation?: MessageConversationContext | null;
   onVote?: (
     winnerId: string | undefined,
@@ -126,7 +125,7 @@ export function VirtualizedMessageList({
     () =>
       (messages ?? [])
         .filter((m) => !String(m._id).startsWith("temp-"))
-        .map((m) => m._id as Id<"messages">),
+        .map((m) => m._id as string),
     [messages],
   );
   useMetadataCacheSync(messageIds);

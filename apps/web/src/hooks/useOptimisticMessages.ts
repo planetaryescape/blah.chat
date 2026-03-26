@@ -1,10 +1,9 @@
 "use client";
 
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { OptimisticMessage } from "@/types/optimistic";
 
-type ServerMessage = Doc<"messages">;
+type ServerMessage = any;
 export type MessageWithOptimistic = ServerMessage | OptimisticMessage;
 
 interface UseOptimisticMessagesOptions {

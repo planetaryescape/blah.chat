@@ -1,7 +1,6 @@
 "use client";
 
 import { getModelConfig } from "@blah-chat/ai/utils";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
   deserializeDraftRecord,
   emptyDraft,
@@ -93,7 +92,7 @@ interface Attachment {
 }
 
 interface ChatInputProps {
-  conversationId: Id<"conversations">;
+  conversationId: string;
   parentMessageId?: string;
   isGenerating: boolean;
   selectedModel: string;
@@ -122,7 +121,7 @@ type ApiClientLike = {
 
 async function uploadComposerAttachment(args: {
   apiClient: ApiClientLike;
-  conversationId: Id<"conversations">;
+  conversationId: string;
   fileName: string;
   contentType: string;
   body: Blob | File;
@@ -158,7 +157,7 @@ async function uploadComposerAttachment(args: {
 }
 
 function restoreDraftIntoComposer(args: {
-  conversationId: Id<"conversations">;
+  conversationId: string;
   isComparisonMode: boolean;
   onAttachmentsChange: (attachments: Attachment[]) => void;
   onExitComparison?: () => void;

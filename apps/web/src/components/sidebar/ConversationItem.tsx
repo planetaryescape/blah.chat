@@ -1,4 +1,3 @@
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { Ghost, GitBranch, MoreVertical, Pin, Star, Users } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryState } from "nuqs";
@@ -49,7 +48,7 @@ export function ConversationItem({
   isSelectedById = false,
   onToggleSelection,
 }: {
-  conversation: Doc<"conversations">;
+  conversation: any;
   selectedId?: string | null;
   onClearSelection?: () => void;
   isSelectionMode?: boolean;

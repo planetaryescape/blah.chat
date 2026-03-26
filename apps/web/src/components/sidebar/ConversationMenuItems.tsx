@@ -1,6 +1,5 @@
 "use client";
 
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { Archive, Edit, Pin, Sparkles, Star, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -15,7 +14,7 @@ interface ConversationMenuAction {
 }
 
 interface GetConversationMenuItemsOptions {
-  conversation: Doc<"conversations">;
+  conversation: any;
   onShowRename: () => void;
   onShowDelete: () => void;
   onToggleSelection?: () => void;

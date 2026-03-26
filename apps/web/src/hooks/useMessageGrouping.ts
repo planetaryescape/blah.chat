@@ -1,10 +1,9 @@
 "use client";
 
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMemo, useRef } from "react";
 import type { OptimisticMessage } from "@/types/optimistic";
 
-type MessageWithUser = (Doc<"messages"> | OptimisticMessage) & {
+type MessageWithUser = (any | OptimisticMessage) & {
   senderUser?: { name?: string; imageUrl?: string } | null;
 };
 
@@ -22,12 +21,10 @@ export type GroupedItem =
 /** Groups messages by comparisonGroupId, filtering out consolidated ones */
 export function useMessageGrouping(
   messages: MessageWithUser[],
-  conversationId?: Id<"conversations"> | string,
+  conversationId?: string | string,
 ): GroupedItem[] {
   const prevResultRef = useRef<GroupedItem[]>([]);
-  const prevConversationIdRef = useRef<
-    Id<"conversations"> | string | undefined
-  >(undefined);
+  const prevConversationIdRef = useRef<string | string | undefined>(undefined);
 
   const result = useMemo(() => {
     const visibleMessages = messages.filter(

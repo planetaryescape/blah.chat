@@ -1,6 +1,5 @@
 "use client";
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
   type GenerationEvent,
   parseGenerationEvent,
@@ -60,7 +59,7 @@ type GenerationStartedDetail = {
 };
 
 interface MessageSyncOptions {
-  conversationId: Id<"conversations"> | undefined;
+  conversationId: string | undefined;
 }
 
 const NOOP_LOAD_MORE = (_count?: number) => Promise.resolve();

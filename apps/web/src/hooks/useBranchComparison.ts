@@ -1,6 +1,5 @@
 "use client";
 
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { analytics } from "@/lib/analytics";
@@ -8,21 +7,21 @@ import { useApiClient } from "@/lib/api/client";
 import { useRegenerateMessage } from "@/lib/hooks/mutations/useRegenerateMessage";
 import { useCachedSiblings } from "./useCacheSync";
 
-export interface SiblingWithDuration extends Doc<"messages"> {
+export type SiblingWithDuration = Record<string, any> & {
   generationDuration: number | null;
-}
+};
 
 interface UseBranchComparisonOptions {
-  messageId: Id<"messages">;
-  conversationId: Id<"conversations">;
+  messageId: string;
+  conversationId: string;
 }
 
 interface UseBranchComparisonReturn {
   siblings: SiblingWithDuration[];
   currentIndex: number;
   isLoading: boolean;
-  switchToBranch: (targetId: Id<"messages">) => Promise<void>;
-  regenerate: (messageId: Id<"messages">) => Promise<void>;
+  switchToBranch: (targetId: string) => Promise<void>;
+  regenerate: (messageId: string) => Promise<void>;
   copyContent: (content: string) => Promise<void>;
 }
 
@@ -53,7 +52,7 @@ export function useBranchComparison({
   }, [siblings, messageId]);
 
   const switchToBranch = useCallback(
-    async (targetId: Id<"messages">) => {
+    async (targetId: string) => {
       try {
         await apiClient.post(
           `/api/v1/conversations/${conversationId}/switch-branch`,
@@ -75,7 +74,7 @@ export function useBranchComparison({
   );
 
   const regenerate = useCallback(
-    async (msgId: Id<"messages">) => {
+    async (msgId: string) => {
       try {
         await regenerateMutation.mutateAsync({
           messageId: msgId,

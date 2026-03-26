@@ -1,5 +1,3 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-
 const CONVEX_DOCUMENT_ID_PATTERN = /^[a-z0-9]+$/;
 
 export function isConvexDocumentId(
@@ -10,13 +8,13 @@ export function isConvexDocumentId(
 
 export function isConvexConversationId(
   conversationId: string | null | undefined,
-): conversationId is Id<"conversations"> {
+): conversationId is string {
   return isConvexDocumentId(conversationId);
 }
 
 export function isConvexMessageId(
   messageId: string | null | undefined,
-): messageId is Id<"messages"> {
+): messageId is string {
   return isConvexDocumentId(messageId);
 }
 

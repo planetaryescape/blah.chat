@@ -1,9 +1,8 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { cache } from "@/lib/cache";
 
 export interface QueuedMessage {
   id: string;
-  conversationId: Id<"conversations">;
+  conversationId: string;
   content: string;
   modelId?: string;
   models?: string[];

@@ -1,5 +1,4 @@
 "use client";
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
   Bookmark,
   Copy,
@@ -31,7 +30,7 @@ import type { OptimisticMessage } from "@/types/optimistic";
 import { QuickModelSwitcher } from "./QuickModelSwitcher";
 
 interface MessageActionsMenuMobileProps {
-  message: Doc<"messages"> | OptimisticMessage;
+  message: any | OptimisticMessage;
   isGenerating: boolean;
   isUser: boolean;
   onCopy: () => void;
@@ -60,7 +59,7 @@ export function MessageActionsMenuMobile({
     if (isTempMessage) return;
     void regenerate
       .mutateAsync({
-        messageId: message._id as Id<"messages">,
+        messageId: message._id as string,
         conversationId: message.conversationId,
         modelId,
       })
@@ -85,7 +84,7 @@ export function MessageActionsMenuMobile({
 
   const handleDelete = () => {
     if (isTempMessage) return;
-    const messageId = message._id as Id<"messages">;
+    const messageId = message._id as string;
     const messageElement = document.querySelector(
       `[data-message-id="${messageId}"]`,
     );

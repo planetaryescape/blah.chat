@@ -1,11 +1,10 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { SearchResults } from "../SearchResults";
 
 const result = {
-  _id: "msg_1" as Id<"messages">,
-  conversationId: "conv_1" as Id<"conversations">,
+  _id: "msg_1" as string,
+  conversationId: "conv_1" as string,
   conversationTitle: "Search Test",
   role: "assistant" as const,
   createdAt: Date.now(),

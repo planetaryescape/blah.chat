@@ -1,4 +1,3 @@
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
   Archive,
   Bookmark,
@@ -38,8 +37,8 @@ export const createActionItems = (params: {
   handleNewChat: () => void;
   handleNavigate: (path: string) => void;
   handleTheme: (theme: "light" | "dark" | "system") => void;
-  conversationId?: Id<"conversations"> | null;
-  conversation?: Doc<"conversations"> | null;
+  conversationId?: string | null;
+  conversation?: any | null;
   onRename?: () => void;
   onDelete?: () => void;
   onArchive?: () => void;

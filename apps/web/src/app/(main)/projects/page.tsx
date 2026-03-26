@@ -1,8 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
 import { LayoutGrid, List, Plus, Search } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -35,13 +32,14 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
-import { useProjectCacheSync } from "@/hooks/useLegacyProjectCacheSync";
 import { analytics } from "@/lib/analytics";
+import { useDeleteProject } from "@/lib/hooks/mutations/useProjectMutations";
+import { useProjects } from "@/lib/hooks/queries/useProjects";
 
 export default function ProjectsPage() {
   // All hooks MUST be at the top, before any early returns
   const { showProjects, isLoading } = useFeatureToggles();
-  const { projects, isLoading: projectsLoading } = useProjectCacheSync();
+  const { data: projects, isLoading: projectsLoading } = useProjects();
 
   // Dialog States
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -57,8 +55,7 @@ export default function ProjectsPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Mutations
-  // @ts-ignore
-  const deleteProject = useMutation(api.projects.deleteProject);
+  const deleteProjectMutation = useDeleteProject();
 
   // Show loading while preferences are being fetched
   if (isLoading) {
@@ -77,18 +74,15 @@ export default function ProjectsPage() {
     setIsEditOpen(true);
   };
 
-  const handleDeleteClick = (id: Id<"projects">) => {
-    // Find project to get name? Or just set ID
-    // We need the project object for context usually, but here ID is enough for the call
-    // But specific selectedProject state is better
-    const project = projects?.find((p: any) => p._id === id);
+  const handleDeleteClick = (id: string) => {
+    const project = projects?.find((p) => p._id === id);
     if (project) {
       setSelectedProject(project);
       setIsDeleteOpen(true);
     }
   };
 
-  const handleManageClick = (id: Id<"projects">, name: string) => {
+  const handleManageClick = (id: string, name: string) => {
     setSelectedProject({ _id: id, name });
     setIsManageOpen(true);
   };
@@ -96,7 +90,7 @@ export default function ProjectsPage() {
   const handleConfirmDelete = async () => {
     if (!selectedProject) return;
     try {
-      await deleteProject({ id: selectedProject._id });
+      await deleteProjectMutation.mutateAsync(selectedProject._id);
       toast.success("Project deleted");
       analytics.track("project_deleted");
       setIsDeleteOpen(false);
@@ -108,10 +102,9 @@ export default function ProjectsPage() {
 
   // Filter projects
   const filteredProjects = projects?.filter(
-    (p: any) =>
-      !p.isTemplate &&
-      (searchQuery === "" ||
-        p.name.toLowerCase().includes(searchQuery.toLowerCase())),
+    (p) =>
+      searchQuery === "" ||
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -221,7 +214,7 @@ export default function ProjectsPage() {
               </div>
             ) : (
               <ProjectTable
-                projects={filteredProjects ?? []}
+                projects={(filteredProjects ?? []) as any}
                 onEdit={handleEdit}
                 onDelete={handleDeleteClick}
                 onManage={handleManageClick}

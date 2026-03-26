@@ -883,6 +883,69 @@ export class BlahClient {
     );
   }
 
+  async createProject(payload: {
+    name: string;
+    description?: string;
+    systemPrompt?: string;
+    isTemplate?: boolean;
+  }): Promise<Project> {
+    return this.fetchEnvelope<Project>(
+      "/api/v1/projects",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async updateProject(
+    projectId: string,
+    payload: {
+      name?: string;
+      description?: string;
+      systemPrompt?: string;
+    },
+  ): Promise<Project> {
+    return this.fetchEnvelope<Project>(
+      `/api/v1/projects/${encodeURIComponent(projectId)}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async deleteProject(
+    projectId: string,
+  ): Promise<{ deleted: boolean; projectId: string }> {
+    return this.fetchEnvelope<{ deleted: boolean; projectId: string }>(
+      `/api/v1/projects/${encodeURIComponent(projectId)}`,
+      {
+        method: "DELETE",
+      },
+      "bearer",
+    );
+  }
+
+  async assignConversationsToProject(
+    projectId: string,
+    payload: {
+      projectId?: string | null;
+      conversationIds: string[];
+    },
+  ): Promise<{ assigned: number }> {
+    return this.fetchEnvelope<{ assigned: number }>(
+      `/api/v1/projects/${encodeURIComponent(projectId)}/assign-conversations`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
   async listTemplates(params: { category?: string } = {}): Promise<Template[]> {
     const searchParams = new URLSearchParams();
     if (params.category) {
@@ -891,6 +954,65 @@ export class BlahClient {
 
     return this.fetchEntityList<Template>(
       `/api/v1/templates${searchParams.size ? `?${searchParams.toString()}` : ""}`,
+      "bearer",
+    );
+  }
+
+  async createTemplate(payload: {
+    name: string;
+    prompt: string;
+    description?: string;
+    category: string;
+  }): Promise<Template> {
+    return this.fetchEnvelope<Template>(
+      "/api/v1/templates",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async updateTemplate(
+    templateId: string,
+    payload: {
+      name?: string;
+      prompt?: string;
+      description?: string;
+      category?: string;
+    },
+  ): Promise<Template> {
+    return this.fetchEnvelope<Template>(
+      `/api/v1/templates/${encodeURIComponent(templateId)}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async deleteTemplate(
+    templateId: string,
+  ): Promise<{ deleted: boolean; templateId: string }> {
+    return this.fetchEnvelope<{ deleted: boolean; templateId: string }>(
+      `/api/v1/templates/${encodeURIComponent(templateId)}`,
+      {
+        method: "DELETE",
+      },
+      "bearer",
+    );
+  }
+
+  async incrementTemplateUsage(templateId: string): Promise<Template> {
+    return this.fetchEnvelope<Template>(
+      `/api/v1/templates/${encodeURIComponent(templateId)}/usage`,
+      {
+        method: "POST",
+      },
       "bearer",
     );
   }
@@ -1391,6 +1513,67 @@ export class BlahClient {
 
     return this.unwrapFromResult<{ key: string; value: unknown }>(
       result as RequestResult,
+    );
+  }
+
+  async createConversationShare(payload: {
+    conversationId: string;
+    title: string;
+    isPublic?: boolean;
+    password?: string;
+    anonymizeUsernames?: boolean;
+    expiresAt?: number;
+  }): Promise<Record<string, unknown>> {
+    return this.fetchEnvelope<Record<string, unknown>>(
+      "/api/v1/shares",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "bearer",
+    );
+  }
+
+  async getConversationShareByConversation(
+    conversationId: string,
+  ): Promise<Record<string, unknown> | null> {
+    const response = await this.fetchImpl(
+      `${this.baseUrl}/api/v1/shares/by-conversation?conversationId=${encodeURIComponent(conversationId)}`,
+      {
+        method: "GET",
+        headers: await this.authHeaders("bearer"),
+      },
+    );
+    const payload = (await response.json()) as unknown;
+    const envelope = this.toEnvelope<Record<string, unknown> | null>(payload);
+    return unwrapEnvelope(envelope, response.status);
+  }
+
+  async toggleConversationShare(
+    shareId: string,
+    isActive: boolean,
+  ): Promise<Record<string, unknown>> {
+    return this.fetchEnvelope<Record<string, unknown>>(
+      `/api/v1/shares/${encodeURIComponent(shareId)}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ isActive }),
+      },
+      "bearer",
+    );
+  }
+
+  async extendConversationShareExpiration(
+    shareId: string,
+    expiresAt: number,
+  ): Promise<Record<string, unknown>> {
+    return this.fetchEnvelope<Record<string, unknown>>(
+      `/api/v1/shares/${encodeURIComponent(shareId)}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ expiresAt }),
+      },
+      "bearer",
     );
   }
 

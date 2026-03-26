@@ -1,15 +1,13 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
 import { type RefObject, useEffect } from "react";
 import { toast } from "sonner";
 import { useApiClient } from "@/lib/api/client";
+import { useCreateBookmark } from "@/lib/hooks/mutations/useBookmarkMutations";
 
 interface UseMessageKeyboardShortcutsOptions {
-  messageId: Id<"messages">;
-  conversationId: Id<"conversations">;
+  messageId: string;
+  conversationId: string;
   content: string;
   isFocused: boolean;
   isUser: boolean;
@@ -39,8 +37,7 @@ export function useMessageKeyboardShortcuts({
   messageRef,
 }: UseMessageKeyboardShortcutsOptions) {
   const apiClient = useApiClient();
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const createBookmark = useMutation(api.bookmarks.create);
+  const createBookmark = useCreateBookmark();
 
   useEffect(() => {
     if (!isFocused || readOnly) return;
@@ -75,7 +72,7 @@ export function useMessageKeyboardShortcuts({
           if (!isMod) {
             e.preventDefault();
             try {
-              await createBookmark({
+              await createBookmark.mutateAsync({
                 conversationId,
                 messageId,
               });

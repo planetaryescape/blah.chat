@@ -1,8 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
 import { FolderOpen } from "lucide-react";
 import { useRef } from "react";
 import {
@@ -12,18 +9,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAssignConversations } from "@/lib/hooks/mutations/useProjectMutations";
+import { useProjects } from "@/lib/hooks/queries/useProjects";
 
 interface ProjectSelectorProps {
-  conversationId: Id<"conversations">;
-  currentProjectId?: Id<"projects">;
+  conversationId: string;
+  currentProjectId?: string;
 }
 
 export function ProjectSelector({
   conversationId,
   currentProjectId,
 }: ProjectSelectorProps) {
-  const projects = useQuery(api.projects.list);
-  const assignConversations = useMutation(api.projects.assignConversations);
+  const { data: projects } = useProjects();
+  const assignConversations = useAssignConversations();
   const lastValueRef = useRef(currentProjectId || "none");
 
   const handleChange = async (value: string) => {
@@ -31,8 +30,9 @@ export function ProjectSelector({
     if (value === lastValueRef.current) return;
     lastValueRef.current = value;
 
-    await assignConversations({
-      projectId: value === "none" ? null : (value as Id<"projects">),
+    await assignConversations.mutateAsync({
+      projectId: value === "none" ? "none" : value,
+      targetProjectId: value === "none" ? null : value,
       conversationIds: [conversationId],
     });
   };
@@ -57,7 +57,7 @@ export function ProjectSelector({
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="none">No project</SelectItem>
-        {projects?.map((project: any) => (
+        {projects?.map((project) => (
           <SelectItem key={project._id} value={project._id}>
             <span className="truncate" title={project.name}>
               {project.name}

@@ -1,7 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useMutation } from "convex/react";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -84,9 +82,6 @@ interface UISettingsProps {
 
 export function UISettings({ focusSettingKey }: UISettingsProps) {
   const { state, handlers, isLoading } = useUISettingsState();
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const resetOnboarding = useMutation(api.onboarding.resetOnboarding);
-
   // Controlled accordion state for deep linking
   const [expandedSections, setExpandedSections] =
     useState<string[]>(DEFAULT_EXPANDED);
@@ -244,7 +239,8 @@ export function UISettings({ focusSettingKey }: UISettingsProps) {
             variant="outline"
             onClick={async () => {
               try {
-                await resetOnboarding();
+                // TODO: Phase 15 - need REST route for onboarding reset
+                await fetch("/api/v1/onboarding/reset", { method: "POST" });
                 toast.success("Tour reset! Reload to see it again.");
                 setTimeout(() => {
                   window.location.reload();

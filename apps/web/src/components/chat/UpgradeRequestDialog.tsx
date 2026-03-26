@@ -1,7 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useMutation } from "convex/react";
 import { Crown, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -13,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useApiClient } from "@/lib/api/client";
 
 interface UpgradeRequestDialogProps {
   open: boolean;
@@ -26,13 +25,12 @@ export function UpgradeRequestDialog({
   currentTier,
 }: UpgradeRequestDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const createFeedback = useMutation(api.feedback.createFeedback);
+  const apiClient = useApiClient();
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      await createFeedback({
+      await apiClient.post("/api/v1/feedback", {
         feedbackType: "feature",
         description: `Upgrade request: User on ${currentTier} tier requesting pro model access`,
         page: "/chat",

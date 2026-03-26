@@ -1,9 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { MIN_MESSAGES_FOR_COMPACTION } from "@blah-chat/shared/limits";
-import { useMutation } from "convex/react";
 import { MoreHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useReducer } from "react";
@@ -33,7 +30,7 @@ import { RenameDialog } from "../sidebar/RenameDialog";
 import { ConversationHeaderMenuContent } from "./ConversationHeaderMenuContent";
 
 interface ConversationHeaderMenuProps {
-  conversation: Doc<"conversations">;
+  conversation: any;
 }
 
 interface ConversationHeaderMenuState {
@@ -178,9 +175,6 @@ export function ConversationHeaderMenu({
     });
   };
 
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const updatePreferences = useMutation(api.users.updatePreferences);
-
   // Phase 4: Use new preference hooks
   const prefChatWidth = useUserPreference("chatWidth");
   const prefShowMessageStats = useUserPreference("showMessageStatistics");
@@ -195,9 +189,8 @@ export function ConversationHeaderMenu({
     (conversation.messageCount ?? 0) >= MIN_MESSAGES_FOR_COMPACTION;
 
   const handleWidthChange = (width: ChatWidth) => {
-    void updatePreferences({
-      preferences: { chatWidth: width },
-    })
+    void sdk
+      .updatePreference("chatWidth", width)
       .then(() => {
         toast.success("Chat width updated");
       })
@@ -214,11 +207,7 @@ export function ConversationHeaderMenu({
 
   const handleToggleMessageStats = (checked: boolean) => {
     void updatePreferenceCache("showMessageStatistics", checked)
-      .then(() =>
-        updatePreferences({
-          preferences: { showMessageStatistics: checked },
-        }),
-      )
+      .then(() => sdk.updatePreference("showMessageStatistics", checked))
       .then(() => {
         toast.success(checked ? "Statistics enabled" : "Statistics hidden");
         analytics.track("ui_preference_changed", {
@@ -243,11 +232,7 @@ export function ConversationHeaderMenu({
 
   const handleToggleComparisonStats = (checked: boolean) => {
     void updatePreferenceCache("showComparisonStatistics", checked)
-      .then(() =>
-        updatePreferences({
-          preferences: { showComparisonStatistics: checked },
-        }),
-      )
+      .then(() => sdk.updatePreference("showComparisonStatistics", checked))
       .then(() => {
         toast.success(
           checked ? "Comparison stats enabled" : "Comparison stats hidden",

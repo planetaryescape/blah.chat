@@ -1,9 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import commandScore from "command-score";
-import { useMutation, useQuery } from "convex/react";
 import { FileText, Search, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -22,6 +19,8 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { analytics } from "@/lib/analytics";
+import { useIncrementTemplateUsage } from "@/lib/hooks/mutations/useTemplateMutations";
+import { useTemplates } from "@/lib/hooks/queries/useTemplates";
 import { cn } from "@/lib/utils";
 
 import { useTemplateStore } from "@/stores/templateStore";
@@ -51,10 +50,8 @@ export function QuickTemplateSwitcher({
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const setTemplateText = useTemplateStore((s) => s.setTemplateText);
 
-  // @ts-ignore - Type depth exceeded with complex Convex query
-  const templates = useQuery(api.templates.list, {});
-  // @ts-ignore - Type depth exceeded with complex Convex mutation
-  const incrementUsage = useMutation(api.templates.incrementUsage);
+  const { data: templates } = useTemplates();
+  const incrementUsageMutation = useIncrementTemplateUsage();
 
   const prevOpenRef = useRef(open);
 
@@ -73,21 +70,23 @@ export function QuickTemplateSwitcher({
     const filtered =
       activeCategory === "all"
         ? templates
-        : templates.filter((t: any) => t.category === activeCategory);
+        : templates.filter((t) => t.category === activeCategory);
 
     return {
-      builtIn: filtered.filter((t: any) => t.isBuiltIn),
-      user: filtered.filter((t: any) => !t.isBuiltIn),
+      builtIn: filtered.filter((t) => t.isBuiltIn),
+      user: filtered.filter((t) => !t.isBuiltIn),
     };
   }, [templates, activeCategory]);
 
   const handleSelect = async (template: {
-    _id: Id<"templates">;
+    _id: string;
     prompt: string;
     name: string;
   }) => {
     try {
-      await incrementUsage({ id: template._id });
+      await incrementUsageMutation.mutateAsync({
+        templateId: template._id,
+      });
     } catch (error) {
       console.error("Failed to increment usage:", error);
     }
@@ -111,7 +110,15 @@ export function QuickTemplateSwitcher({
     }
   };
 
-  const renderTemplateItem = (template: any) => {
+  const renderTemplateItem = (template: {
+    _id: string;
+    name: string;
+    prompt: string;
+    description?: string;
+    category: string;
+    isBuiltIn: boolean;
+    usageCount: number;
+  }) => {
     const itemContent = (
       <CommandItem
         key={template._id}
@@ -246,7 +253,7 @@ export function QuickTemplateSwitcher({
             {/* User Templates */}
             {filteredTemplates.user.length > 0 && (
               <CommandGroup heading="Your Templates">
-                {filteredTemplates.user.map((template: any) =>
+                {filteredTemplates.user.map((template) =>
                   renderTemplateItem(template),
                 )}
               </CommandGroup>
@@ -258,7 +265,7 @@ export function QuickTemplateSwitcher({
             {/* Built-in Templates */}
             {filteredTemplates.builtIn.length > 0 && (
               <CommandGroup heading="Built-in Templates">
-                {filteredTemplates.builtIn.map((template: any) =>
+                {filteredTemplates.builtIn.map((template) =>
                   renderTemplateItem(template),
                 )}
               </CommandGroup>

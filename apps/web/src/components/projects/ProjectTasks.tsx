@@ -1,14 +1,12 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
 import { CheckSquare, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useUpdateTask } from "@/lib/hooks/mutations/useTaskMutations";
 
 const URGENCY_COLORS = {
   low: "bg-gray-500",
@@ -21,19 +19,18 @@ export function ProjectTasks({
   projectId,
   tasks,
 }: {
-  projectId: Id<"projects">;
+  projectId: string;
   tasks: any[];
 }) {
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
-  const updateTask = useMutation(api.tasks.update);
+  const updateTask = useUpdateTask();
 
   const handleToggleComplete = async (
-    taskId: Id<"tasks">,
+    taskId: string,
     currentStatus: string,
   ) => {
     try {
-      await updateTask({
-        id: taskId,
+      await updateTask.mutateAsync({
+        taskId,
         status: currentStatus === "completed" ? "in_progress" : "completed",
       });
       toast.success(

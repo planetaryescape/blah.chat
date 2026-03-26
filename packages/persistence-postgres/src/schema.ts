@@ -1415,6 +1415,56 @@ export const byodMigrationLogsRelations = relations(
 );
 
 // ---------------------------------------------------------------------------
+// Conversation Shares
+// ---------------------------------------------------------------------------
+
+export const conversationShares = pgTable(
+  "conversation_shares",
+  {
+    id: text("id").$defaultFn(id).primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    conversationId: text("conversation_id")
+      .notNull()
+      .references(() => conversations.id),
+    shareId: text("share_id").notNull().unique(),
+    title: text("title").notNull(),
+    expiresAt: bigint("expires_at", { mode: "number" }),
+    isPublic: boolean("is_public").notNull().default(true),
+    isActive: boolean("is_active").notNull().default(true),
+    password: text("password"),
+    anonymizeUsernames: boolean("anonymize_usernames").default(false),
+    viewCount: bigint("view_count", { mode: "number" }).notNull().default(0),
+    createdAt: bigint("created_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+    updatedAt: bigint("updated_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+  },
+  (t) => [
+    index("conversation_shares_user_idx").on(t.userId),
+    index("conversation_shares_conversation_idx").on(t.conversationId),
+    uniqueIndex("conversation_shares_share_id_idx").on(t.shareId),
+  ],
+);
+
+export const conversationSharesRelations = relations(
+  conversationShares,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [conversationShares.userId],
+      references: [users.id],
+    }),
+    conversation: one(conversations, {
+      fields: [conversationShares.conversationId],
+      references: [conversations.id],
+    }),
+  }),
+);
+
+// ---------------------------------------------------------------------------
 // Inferred types
 // ---------------------------------------------------------------------------
 
@@ -1431,3 +1481,4 @@ export type MessageSource = typeof messageSources.$inferSelect;
 export type KnowledgeSource = typeof knowledgeSources.$inferSelect;
 export type ByodNeonConfig = typeof byodNeonConfigs.$inferSelect;
 export type ByodMigrationLog = typeof byodMigrationLogs.$inferSelect;
+export type ConversationShare = typeof conversationShares.$inferSelect;

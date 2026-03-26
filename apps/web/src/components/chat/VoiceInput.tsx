@@ -1,7 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useQuery } from "convex/react";
 import { Mic } from "lucide-react";
 import {
   forwardRef,
@@ -21,6 +19,7 @@ import { useUserPreference } from "@/hooks/useUserPreference";
 import { analytics } from "@/lib/analytics";
 import { useApiClient } from "@/lib/api/client";
 import { useSDKClient } from "@/lib/api/sdkClient";
+import { useCurrentUser } from "@/lib/hooks/queries/useCurrentUser";
 import { useApiKeyValidation } from "@/lib/hooks/useApiKeyValidation";
 import { cn } from "@/lib/utils";
 
@@ -44,8 +43,7 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
     const streamRef = useRef<MediaStream | null>(null);
     const stopModeRef = useRef<"preview" | "send" | null>(null);
 
-    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-    const user = useQuery(api.users.getCurrentUser as any);
+    const { data: user } = useCurrentUser();
     const apiClient = useApiClient();
     const sdk = useSDKClient();
 

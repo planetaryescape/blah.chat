@@ -1,9 +1,6 @@
 "use client";
 
 import { MODEL_CONFIG } from "@blah-chat/ai/models";
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
 import { ImageIcon, Loader2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -30,8 +27,8 @@ import { useSDKClient } from "@/lib/api/sdkClient";
 import { QuickModelSwitcher } from "./QuickModelSwitcher";
 
 interface ImageGenerateButtonProps {
-  conversationId: Id<"conversations">;
-  messageId?: Id<"messages">;
+  conversationId: string;
+  messageId?: string;
   initialPrompt?: string;
   variant?: "outline" | "ghost";
   size?: "sm" | "icon";
@@ -70,8 +67,6 @@ export function ImageGenerateButton({
   // Check if selected model supports thinking
   const selectedModelConfig = MODEL_CONFIG[selectedModel];
   const supportsThinking = !!selectedModelConfig?.reasoning;
-  // @ts-ignore - Type depth exceeded with complex Convex mutation
-  const sendMessage = useMutation(api.chat.sendMessage as any);
 
   const handleGenerate = (promptOverride?: string) => {
     const promptToUse = (promptOverride ?? prompt).trim();
@@ -79,8 +74,7 @@ export function ImageGenerateButton({
 
     setIsGenerating(true);
     const request = !messageId
-      ? sendMessage({
-          conversationId,
+      ? sdk.sendMessage(conversationId, {
           content: promptToUse,
           modelId: selectedModel,
         })

@@ -1,17 +1,8 @@
 "use client";
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
-import {
-  type ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
-  type SortingState,
-  useReactTable,
-} from "@tanstack/react-table";
 import { useQuery } from "convex/react";
 import {
-  ArrowUpDown,
   Bookmark,
   Calendar,
   CheckSquare,
@@ -30,7 +21,7 @@ import {
   Trophy,
   Zap,
 } from "lucide-react";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -51,16 +42,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ActivityHeatmap } from "@/components/usage/ActivityHeatmap";
+import { ModelDetailsTable } from "@/components/usage/ModelDetailsTable";
+import { UsageLoadingSkeleton } from "@/components/usage/UsageLoadingSkeleton";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import {
   formatCompactNumber,
@@ -750,259 +735,6 @@ function UsagePageContent() {
           </Accordion>
         </div>
       </ScrollArea>
-    </div>
-  );
-}
-
-// Activity Heatmap Component (GitHub-style)
-function ActivityHeatmap({
-  data,
-}: {
-  data: { date: string; count: number }[];
-}) {
-  // Find max count for color scaling
-  const maxCount = Math.max(...data.map((d) => d.count), 1);
-
-  // Get intensity level (0-4)
-  const getIntensity = (count: number) => {
-    if (count === 0) return 0;
-    const ratio = count / maxCount;
-    if (ratio < 0.25) return 1;
-    if (ratio < 0.5) return 2;
-    if (ratio < 0.75) return 3;
-    return 4;
-  };
-
-  const intensityColors = [
-    "bg-muted", // 0 - no activity
-    "bg-emerald-200 dark:bg-emerald-900", // 1
-    "bg-emerald-400 dark:bg-emerald-700", // 2
-    "bg-emerald-500 dark:bg-emerald-500", // 3
-    "bg-emerald-600 dark:bg-emerald-400", // 4
-  ];
-
-  // Group by week (7 days per column)
-  const weeks: { date: string; count: number }[][] = [];
-  for (let i = 0; i < data.length; i += 7) {
-    weeks.push(data.slice(i, i + 7));
-  }
-
-  const dayLabels = ["S", "M", "T", "W", "T", "F", "S"];
-
-  return (
-    <div className="overflow-x-auto">
-      <div className="flex gap-[2px] min-w-max">
-        {/* Day labels */}
-        <div className="flex flex-col gap-[2px] mr-1 pt-4">
-          {dayLabels.map((day, i) => (
-            <div
-              key={i}
-              className="h-[10px] w-[10px] text-[8px] text-muted-foreground flex items-center justify-center"
-            >
-              {i % 2 === 1 ? day : ""}
-            </div>
-          ))}
-        </div>
-
-        {/* Weeks */}
-        {weeks.map((week, weekIndex) => (
-          <div key={weekIndex} className="flex flex-col gap-[2px]">
-            {/* Month label on first week of month */}
-            <div className="h-3 text-[8px] text-muted-foreground">
-              {weekIndex === 0 ||
-              (week[0] &&
-                new Date(week[0].date).getDate() <= 7 &&
-                weekIndex > 0)
-                ? new Date(week[0]?.date || "").toLocaleDateString("en-US", {
-                    month: "short",
-                  })
-                : ""}
-            </div>
-            {week.map((day, dayIndex) => (
-              <div
-                key={dayIndex}
-                className={`h-[10px] w-[10px] rounded-[2px] ${intensityColors[getIntensity(day.count)]}`}
-                title={`${day.date}: ${day.count} messages`}
-              />
-            ))}
-          </div>
-        ))}
-      </div>
-
-      {/* Legend */}
-      <div className="flex items-center justify-end gap-1 mt-2 text-[10px] text-muted-foreground">
-        <span>Less</span>
-        {intensityColors.map((color, i) => (
-          <div key={i} className={`h-[10px] w-[10px] rounded-[2px] ${color}`} />
-        ))}
-        <span>More</span>
-      </div>
-    </div>
-  );
-}
-
-// Model Details Table Component (sortable)
-interface ModelData {
-  model: string;
-  totalCost: number;
-  totalInputTokens: number;
-  totalOutputTokens: number;
-  requestCount: number;
-}
-
-function ModelDetailsTable({ data }: { data: ModelData[] }) {
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: "totalCost", desc: true },
-  ]);
-
-  const columns: ColumnDef<ModelData>[] = useMemo(
-    () => [
-      {
-        accessorKey: "model",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4 hover:bg-transparent"
-          >
-            Model
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        cell: ({ row }) => (
-          <span className="font-mono text-xs">{row.original.model}</span>
-        ),
-      },
-      {
-        accessorKey: "requestCount",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="hover:bg-transparent w-full justify-end"
-          >
-            Requests
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        cell: ({ row }) => (
-          <div className="text-right">{row.original.requestCount}</div>
-        ),
-      },
-      {
-        accessorKey: "totalInputTokens",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="hover:bg-transparent w-full justify-end"
-          >
-            Input Tokens
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        cell: ({ row }) => (
-          <div className="text-right">
-            {formatCompactNumber(row.original.totalInputTokens)}
-          </div>
-        ),
-      },
-      {
-        accessorKey: "totalOutputTokens",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="hover:bg-transparent w-full justify-end"
-          >
-            Output Tokens
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        cell: ({ row }) => (
-          <div className="text-right">
-            {formatCompactNumber(row.original.totalOutputTokens)}
-          </div>
-        ),
-      },
-      {
-        accessorKey: "totalCost",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="hover:bg-transparent w-full justify-end"
-          >
-            Cost
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        cell: ({ row }) => (
-          <div className="text-right">
-            {formatCurrency(row.original.totalCost)}
-          </div>
-        ),
-      },
-    ],
-    [],
-  );
-
-  const table = useReactTable({
-    data,
-    columns,
-    onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    state: { sorting },
-  });
-
-  return (
-    <div>
-      <h4 className="text-sm font-medium mb-3">Model Details</h4>
-      <ScrollArea className="h-[400px] border rounded-lg">
-        <Table>
-          <TableHeader className="sticky top-0 bg-background z-10">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="hover:bg-transparent">
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id} className="hover:bg-muted/30">
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </ScrollArea>
-    </div>
-  );
-}
-
-function UsageLoadingSkeleton() {
-  return (
-    <div className="flex items-center justify-center h-screen">
-      <div className="flex flex-col items-center gap-4">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        <p className="text-muted-foreground animate-pulse">
-          Loading usage stats...
-        </p>
-      </div>
     </div>
   );
 }

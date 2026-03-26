@@ -1,30 +1,15 @@
 "use client";
 
-// TODO: Phase G - This provider still uses Convex for real-time subscriptions.
-// Once all queries/mutations are migrated to REST, this can be replaced with
-// just ClerkProvider + React Query provider. Keep for now as migration bridge.
-
-import { ClerkProvider, useAuth } from "@clerk/nextjs";
+import { ClerkProvider } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
-import { ConvexReactClient } from "convex/react";
-import { ConvexProviderWithClerk } from "convex/react-clerk";
-import { ConvexQueryCacheProvider } from "convex-helpers/react/cache";
 import { AuthStateListener } from "./AuthStateListener";
 import { CacheProvider } from "./cache-provider";
-
-const convex = process.env.NEXT_PUBLIC_CONVEX_URL
-  ? new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL)
-  : null;
 
 export function ConvexClerkProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  if (!convex) {
-    throw new Error("NEXT_PUBLIC_CONVEX_URL not configured");
-  }
-
   return (
     <ClerkProvider
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!}
@@ -51,13 +36,9 @@ export function ConvexClerkProvider({
         },
       }}
     >
-      <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-        <ConvexQueryCacheProvider expiration={60000} maxIdleEntries={100}>
-          <CacheProvider>
-            <AuthStateListener>{children}</AuthStateListener>
-          </CacheProvider>
-        </ConvexQueryCacheProvider>
-      </ConvexProviderWithClerk>
+      <CacheProvider>
+        <AuthStateListener>{children}</AuthStateListener>
+      </CacheProvider>
     </ClerkProvider>
   );
 }

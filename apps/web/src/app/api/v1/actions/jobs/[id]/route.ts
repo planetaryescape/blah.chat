@@ -113,7 +113,7 @@ async function handler(
     }
   }
 
-  const job = await getJobById(null as any, id as string);
+  const job = await getJobById(id);
 
   if (!job) {
     logger.warn({ userId, jobId: id }, "Job not found");

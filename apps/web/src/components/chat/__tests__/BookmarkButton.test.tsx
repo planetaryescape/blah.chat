@@ -2,14 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock convex/react BEFORE importing component
-const mockMutation = vi.fn();
-let mockExistingBookmark: { _id: string } | null = null;
-
-vi.mock("convex/react", () => ({
-  useQuery: vi.fn(() => mockExistingBookmark),
-  useMutation: vi.fn(() => mockMutation),
-}));
+const _mockMutation = vi.fn();
+let _mockExistingBookmark: { _id: string } | null = null;
 
 // Mock analytics
 vi.mock("@/lib/analytics", () => ({
@@ -32,7 +26,7 @@ describe("BookmarkButton", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockExistingBookmark = null;
+    _mockExistingBookmark = null;
   });
 
   it("shows unfilled icon when not bookmarked", () => {
@@ -43,7 +37,7 @@ describe("BookmarkButton", () => {
   });
 
   it("shows filled icon when bookmarked", () => {
-    mockExistingBookmark = { _id: "bookmark-123" };
+    _mockExistingBookmark = { _id: "bookmark-123" };
 
     render(<BookmarkButton {...defaultProps} />);
 

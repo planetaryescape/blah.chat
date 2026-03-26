@@ -333,7 +333,7 @@ export default function LandingPage() {
             <DeploymentCard
               icon={Database}
               title="BYOD"
-              description="Your Convex database. Your data stays yours."
+              description="Your Postgres database. Your data stays yours."
               badge="Coming Soon"
               badgeColor="bg-zinc-700 text-zinc-300"
               index={2}

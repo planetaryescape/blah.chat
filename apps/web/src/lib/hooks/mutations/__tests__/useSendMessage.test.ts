@@ -34,10 +34,6 @@ vi.mock("@tanstack/react-query", () => {
   };
 });
 
-vi.mock("convex/react", () => ({
-  useQuery: () => ({ _id: "user-123", name: "Test User" }),
-}));
-
 vi.mock("@/lib/api/client", () => {
   const post = vi.fn().mockResolvedValue({ status: "success", data: {} });
   return {

@@ -29,12 +29,12 @@ export function formatEntity<T>(
       ...(id && { id }),
       ...(hasTimestamps && {
         timestamps: {
-          // @ts-ignore - Convex _creationTime field
+          // @ts-ignore - legacy field
           ...(data._creationTime && {
             // @ts-ignore
             created: new Date(data._creationTime).toISOString(),
           }),
-          // @ts-ignore - updatedAt field
+          // @ts-ignore - legacy field
           ...(data.updatedAt && {
             // @ts-ignore
             updated: new Date(data.updatedAt).toISOString(),
@@ -66,7 +66,7 @@ export function formatEntityList<T>(
       return {
         sys: {
           entity,
-          // @ts-ignore - Convex _id field
+          // @ts-ignore - legacy field
           ...(item?._id && { id: item._id }),
         },
         data: compactedItem,

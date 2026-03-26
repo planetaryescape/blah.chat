@@ -7,8 +7,8 @@ function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        // Phase 7: Aggressive caching - Convex real-time updates handle freshness
-        staleTime: 5 * 60 * 1000, // 5min stale (trust Convex subscriptions for updates)
+        // Aggressive caching - REST API polling handles freshness
+        staleTime: 5 * 60 * 1000, // 5min stale
         gcTime: 30 * 60 * 1000, // 30min garbage collection (keep in memory longer)
         refetchOnWindowFocus: false, // Don't refetch on tab switch (reduces 80% of unnecessary calls)
         refetchOnReconnect: true, // Refetch when network reconnects (catch up after offline)

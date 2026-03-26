@@ -18,12 +18,6 @@ const { mockCreateShare, mockToggleShare, mockExistingShare } = vi.hoisted(
   }),
 );
 
-vi.mock("convex/react", () => ({
-  useQuery: () => mockExistingShare.current,
-  useAction: () => mockCreateShare,
-  useMutation: () => mockToggleShare,
-}));
-
 vi.mock("@/lib/analytics", () => ({
   analytics: { track: vi.fn() },
 }));

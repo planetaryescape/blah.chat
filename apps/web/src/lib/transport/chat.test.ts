@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
-  fromConvexConversations,
-  fromConvexMessages,
   fromHttpConversations,
   fromHttpMessages,
+  fromPaginatedConversations,
+  fromPaginatedMessages,
 } from "./chat";
 
 describe("transport adapter parity", () => {
   it("normalizes conversations from both adapters to same shape", () => {
     const sample = [{ _id: "conv_1" }, { _id: "conv_2" }];
 
-    const convex = fromConvexConversations(sample);
+    const convex = fromPaginatedConversations(sample);
     const http = fromHttpConversations({ items: sample, total: 2 });
 
     expect(convex.items).toEqual(http.items);
@@ -22,7 +22,7 @@ describe("transport adapter parity", () => {
   it("normalizes messages from both adapters to same shape", () => {
     const sample = [{ _id: "msg_1" }];
 
-    const convex = fromConvexMessages(sample, false);
+    const convex = fromPaginatedMessages(sample, false);
     const http = fromHttpMessages(sample);
 
     expect(convex.items).toEqual(http.items);

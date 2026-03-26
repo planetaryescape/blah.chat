@@ -126,7 +126,7 @@ export function useSendMessage(
         _optimistic: true,
       };
 
-      // Server creates assistant messages synchronously (convex/chat.ts:188-205)
+      // Server creates assistant messages synchronously on the server
       // Only user message needs optimistic update for instant feedback
       onOptimisticUpdate?.([optimisticUserMsg]);
 
@@ -136,7 +136,7 @@ export function useSendMessage(
     },
 
     onSuccess: (data, variables) => {
-      // Server confirmed - Convex query will update with real messages
+      // Server confirmed - REST query will update with real messages
       // Deduplication happens automatically in useOptimistic merge
       queryClient.invalidateQueries({
         queryKey: queryKeys.messages.list(variables.conversationId),

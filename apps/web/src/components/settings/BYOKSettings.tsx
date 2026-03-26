@@ -37,7 +37,7 @@ import { useSDKClient } from "@/lib/api/sdkClient";
 
 type KeyType = "vercelGateway" | "openRouter" | "groq" | "deepgram";
 
-/** Extract error message from ConvexError or regular Error */
+/** Extract error message from API error or regular Error */
 function getErrorMessage(error: unknown, fallback: string): string {
   const errorObj = error as { data?: string; message?: string };
   return errorObj.data || errorObj.message || fallback;

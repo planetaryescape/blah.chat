@@ -1,10 +1,6 @@
 import "server-only";
 import { MODEL_CONFIG } from "@blah-chat/ai/models";
-import {
-  conversations,
-  messages,
-  users,
-} from "@blah-chat/persistence-postgres";
+import { conversations, messages } from "@blah-chat/persistence-postgres";
 import { and, desc, eq, sql } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -167,15 +163,10 @@ async function handler(req: NextRequest, context: ApiKeyAuthContext) {
       break;
     }
     case "getUserDefaultModel": {
-      const db = getPersistenceDb();
-      const _userRow = await db.query.users.findFirst({
-        where: eq(users.id, user.userId),
-      });
-      // defaultModel is stored in user_preferences, not on the users table
       const { createPreferenceRepository } = await import(
         "@blah-chat/persistence-postgres"
       );
-      const prefRepo = createPreferenceRepository(db);
+      const prefRepo = createPreferenceRepository(getPersistenceDb());
       const defaultModel = await prefRepo.getForClerkId(
         clerkId,
         "defaultModel",

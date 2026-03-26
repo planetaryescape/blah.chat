@@ -4,13 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const regenerateMutate = vi.fn();
 const useRestQueryMock = vi.fn();
 
-// Mock Convex hooks BEFORE importing component
-vi.mock("convex/react", () => ({
-  useQuery: vi.fn(() => null),
-  useMutation: vi.fn(() => vi.fn()),
-  useAction: vi.fn(() => vi.fn()),
-}));
-
 vi.mock("@tanstack/react-query", async () => {
   const actual = await vi.importActual<typeof import("@tanstack/react-query")>(
     "@tanstack/react-query",

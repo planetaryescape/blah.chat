@@ -31,11 +31,11 @@ interface ShareDialogProps {
 }
 
 export function ShareDialog({ conversationId }: ShareDialogProps) {
-  const convexConversationId = isConvexConversationId(conversationId)
+  const validConversationId = isConvexConversationId(conversationId)
     ? (conversationId as string)
     : null;
 
-  if (!convexConversationId) {
+  if (!validConversationId) {
     return null;
   }
 
@@ -49,10 +49,10 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
 
   // TODO: Phase G - needs /api/v1/shares REST route
   const { data: existingShare } = useQuery({
-    queryKey: ["share", convexConversationId],
+    queryKey: ["share", validConversationId],
     queryFn: async () => {
       const res = await fetch(
-        `/api/v1/shares?conversationId=${convexConversationId}`,
+        `/api/v1/shares?conversationId=${validConversationId}`,
       );
       if (!res.ok) return null;
       const json = await res.json();
@@ -60,7 +60,7 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
     },
   });
   void {
-    conversationId: convexConversationId,
+    conversationId: validConversationId,
   };
   const createShare = async (args: any) => {
     const res = await fetch("/api/v1/shares", {
@@ -101,7 +101,7 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
   const handleShare = async () => {
     try {
       const shareId = await createShare({
-        conversationId: convexConversationId,
+        conversationId: validConversationId,
         password: password || undefined,
         expiresIn,
         anonymizeUsernames: anonymize,
@@ -131,7 +131,7 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
 
   const handleToggle = async (isActive: boolean) => {
     try {
-      await toggleShare({ conversationId: convexConversationId, isActive });
+      await toggleShare({ conversationId: validConversationId, isActive });
     } catch (error) {
       console.error("Failed to toggle share:", error);
     }
@@ -140,7 +140,7 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
   const handleExtendExpiration = async () => {
     try {
       await extendExpiration({
-        conversationId: convexConversationId,
+        conversationId: validConversationId,
         expiresIn: extendExpiresIn,
       });
       analytics.track("share_expiration_extended", {

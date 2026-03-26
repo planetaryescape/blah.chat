@@ -10,16 +10,6 @@ const { mockUpdateContent, mockDocument, mockHistory } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("convex/react", () => ({
-  useQuery: vi.fn((_queryFn, args) => {
-    if (args === "skip") return undefined;
-    // Determine which query based on args
-    if ("limit" in args) return mockHistory.current;
-    return mockDocument.current;
-  }),
-  useMutation: () => mockUpdateContent,
-}));
-
 // Import AFTER mocks
 import { useCanvasHistory } from "../useCanvasHistory";
 

@@ -1,13 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getAuthenticatedConvexClient } from "@/lib/api/convex";
-import { withLegacyConvexAuth } from "@/lib/api/middleware/auth";
+import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import logger from "@/lib/logger";
+import { verifyComposioConnection } from "@/lib/persistence/composio";
 
 type AuthContext = {
   params: Promise<Record<string, string | string[]>>;
   userId: string;
-  sessionToken: string;
 };
 
 /**
@@ -18,7 +17,7 @@ type AuthContext = {
  * Verifies connection and returns HTML that posts message to opener.
  */
 async function getHandler(req: NextRequest, context: AuthContext) {
-  const { userId, sessionToken } = context;
+  const { userId } = context;
   const { searchParams } = new URL(req.url);
 
   // Log all params to verify actual parameter name from Composio
@@ -54,13 +53,10 @@ async function getHandler(req: NextRequest, context: AuthContext) {
   );
 
   try {
-    const convex = getAuthenticatedConvexClient(sessionToken);
-
-    // Verify the connection with Composio (includes CSRF state validation)
-    const result = (await (convex.action as any)(
-      "composio/oauth:verifyConnection",
-      { composioConnectionId: connectionId, state },
-    )) as { status: string; error?: string };
+    const result = await verifyComposioConnection(userId, {
+      composioConnectionId: connectionId,
+      state,
+    });
 
     if (result.status === "active") {
       logger.info({ userId, connectionId }, "Composio connection verified");
@@ -214,5 +210,5 @@ function getCallbackHtml(result: {
   `.trim();
 }
 
-export const GET = withErrorHandling(withLegacyConvexAuth(getHandler));
+export const GET = withErrorHandling(withAuth(getHandler));
 export const dynamic = "force-dynamic";

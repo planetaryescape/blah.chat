@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
  * UserSyncError Component
  *
  * Displays when a user is authenticated via Clerk but has no corresponding
- * user record in Convex (webhook failure scenario).
+ * user record in the database (webhook failure scenario).
  *
  * Shows different messages based on environment:
  * - Development: Detailed message with Clerk ID for debugging
@@ -43,8 +43,8 @@ export function UserSyncError() {
             <div className="space-y-3 text-left bg-muted/50 rounded-lg p-4 mt-4">
               <p className="text-sm text-muted-foreground">
                 <strong className="text-foreground">Development Mode:</strong>{" "}
-                Your user record wasn&apos;t synced to Convex. This usually
-                means the Clerk webhook didn&apos;t fire.
+                Your user record wasn&apos;t synced to the database. This
+                usually means the Clerk webhook didn&apos;t fire.
               </p>
               <p className="text-sm text-muted-foreground">
                 <strong>Possible causes:</strong>

@@ -76,7 +76,7 @@ describe("/api/code-execution", () => {
       createMockRequest("/api/code-execution", {
         method: "POST",
         headers: {
-          "X-Convex-Internal": "true",
+          "X-Internal-Call": "true",
         },
         body: {
           code: "print('plot')",

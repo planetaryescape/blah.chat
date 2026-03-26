@@ -2,13 +2,6 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock convex/react BEFORE importing component
-vi.mock("convex/react", () => ({
-  useQuery: vi.fn(() => ({ canUse: true })), // Pro access enabled by default
-  useAction: vi.fn(() => vi.fn()), // Mock useAction for useApiKeyValidation
-  useMutation: vi.fn(() => vi.fn()),
-}));
-
 // Mock model hooks
 vi.mock("@/hooks/useFavoriteModels", () => ({
   useFavoriteModels: () => ({

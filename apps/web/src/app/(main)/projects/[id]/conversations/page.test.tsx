@@ -13,10 +13,6 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-vi.mock("convex/react", () => ({
-  useAction: () => hybridSearchMock,
-}));
-
 vi.mock("use-debounce", () => ({
   useDebouncedCallback: <T extends (...args: any[]) => unknown>(fn: T) => fn,
 }));

@@ -84,12 +84,12 @@ export function createQueuedMessage(
 }
 
 // =============================================================================
-// Convex Document Factories (for convex-test)
+// Database Record Factories (for tests)
 // =============================================================================
 
 /**
- * Factory for test user (Convex document)
- * Uses existing any type from convex/_generated/dataModel
+ * Factory for test user (database record)
+ * Uses existing any type
  */
 export function createTestUserData(
   overrides: Partial<Omit<any, "_id" | "_creationTime">> = {},
@@ -106,7 +106,7 @@ export function createTestUserData(
 }
 
 /**
- * Factory for test conversation (Convex document)
+ * Factory for test conversation (database record)
  * Uses existing any type
  */
 export function createTestConversationData(
@@ -129,7 +129,7 @@ export function createTestConversationData(
 }
 
 /**
- * Factory for test message (Convex document)
+ * Factory for test message (database record)
  * Uses existing any type
  */
 export function createTestMessageData(
@@ -153,7 +153,7 @@ export function createTestMessageData(
 }
 
 /**
- * Mock Clerk identity for convex-test withIdentity()
+ * Mock Clerk identity for test withIdentity()
  */
 export function createMockIdentity(
   overrides: Partial<{
@@ -170,7 +170,7 @@ export function createMockIdentity(
 }
 
 /**
- * Factory for test usage record (Convex document)
+ * Factory for test usage record (database record)
  * Uses existing any type
  */
 export function createTestUsageRecordData(

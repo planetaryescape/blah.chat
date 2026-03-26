@@ -5,9 +5,6 @@ import { dark } from "@clerk/themes";
 import { AuthStateListener } from "./AuthStateListener";
 import { CacheProvider } from "./cache-provider";
 
-/** @deprecated Renamed - use AppProviders. Legacy name kept as re-export. */
-export const ConvexClerkProvider = AppProviders;
-
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider

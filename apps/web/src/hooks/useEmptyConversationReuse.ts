@@ -9,7 +9,7 @@ import { cache } from "@/lib/cache";
  *
  * Behavior:
  * - Checks ALL conversations (pinned and unpinned)
- * - Uses real-time Convex query (not cached messageCount)
+ * - Uses cached query (not cached messageCount)
  * - No age limit - always reuses most recent empty
  * - Returns null if no empty conversations found
  */

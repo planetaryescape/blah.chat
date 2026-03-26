@@ -44,8 +44,8 @@ export default function PrivacyPage() {
                 We never store them.
               </li>
               <li>
-                <strong>BYOD</strong>: Your data stays in your Convex database.
-                We only store operational data.
+                <strong>BYOD</strong>: Your data stays in your own Postgres
+                database. We only store operational data.
               </li>
               <li>
                 <strong>Self-hosted</strong>: You control everything. Nothing
@@ -75,7 +75,7 @@ export default function PrivacyPage() {
           <ul>
             <li>Your API keys (BYOK mode - sent directly to providers)</li>
             <li>Browsing history or tracking cookies</li>
-            <li>Data from your personal Convex database (BYOD mode)</li>
+            <li>Data from your personal Postgres database (BYOD mode)</li>
           </ul>
 
           <h2>How We Use Your Data</h2>
@@ -102,9 +102,9 @@ export default function PrivacyPage() {
           <p>We use these services to operate blah.chat:</p>
           <ul>
             <li>
-              <strong>Convex</strong>: Database and backend (
+              <strong>Neon Postgres</strong>: Database (
               <a
-                href="https://convex.dev/privacy"
+                href="https://neon.tech/privacy"
                 target="_blank"
                 rel="noopener"
               >
@@ -178,7 +178,7 @@ export default function PrivacyPage() {
           <ul>
             <li>All data encrypted in transit (TLS 1.3)</li>
             <li>All data encrypted at rest (AES-256)</li>
-            <li>SOC 2 compliant infrastructure (Convex, Clerk, Vercel)</li>
+            <li>SOC 2 compliant infrastructure (Neon, Clerk, Vercel)</li>
             <li>No plaintext storage of sensitive data</li>
           </ul>
 

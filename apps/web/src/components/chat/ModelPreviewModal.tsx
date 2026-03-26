@@ -1,9 +1,6 @@
 "use client";
 
 import { MODEL_CONFIG } from "@blah-chat/ai/models";
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useAction, useMutation } from "convex/react";
 import { ArrowRightLeft, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +13,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { analytics } from "@/lib/analytics";
+import { useApiClient } from "@/lib/api/client";
+import { useSDKClient } from "@/lib/api/sdkClient";
 import { MarkdownContent } from "./MarkdownContent";
 
 interface Props {
@@ -25,7 +24,7 @@ interface Props {
   suggestedModelId: string;
   currentResponse: string;
   onSwitch: (modelId: string) => void;
-  conversationId: Id<"conversations">;
+  conversationId: string;
   userMessage: string;
 }
 
@@ -46,30 +45,25 @@ export function ModelPreviewModal({
   const currentModel = MODEL_CONFIG[currentModelId];
   const suggestedModel = MODEL_CONFIG[suggestedModelId];
 
-  // Mutations
-  const dismissRecommendation = useMutation(
-    // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
-    api.conversations.dismissModelRecommendation,
-  );
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
-  const updatePreferences = useMutation(api.users.updatePreferences);
+  const apiClient = useApiClient();
+  const sdk = useSDKClient();
 
   // Scroll synchronization refs
   const leftScrollRef = useRef<HTMLDivElement>(null);
   const rightScrollRef = useRef<HTMLDivElement>(null);
   const isScrolling = useRef<"left" | "right" | null>(null);
 
-  // @ts-ignore - Type depth exceeded with complex Convex action (94+ modules)
-  const generatePreview = useAction(api.ai.modelTriage.generatePreview);
-
+  // TODO: Phase 15 - need REST route for model preview generation
   const generatePreviewResponse = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await generatePreview({
-        conversationId,
-        suggestedModelId,
-        userMessage,
-      });
+      const result = await apiClient.post<{ content: string }>(
+        `/api/v1/conversations/${encodeURIComponent(conversationId)}/model-preview`,
+        {
+          suggestedModelId,
+          userMessage,
+        },
+      );
       setPreviewResponse(result.content);
 
       analytics.track("recommendation_preview_completed", {
@@ -95,7 +89,7 @@ export function ModelPreviewModal({
       setLoading(false);
     }
   }, [
-    generatePreview,
+    apiClient,
     conversationId,
     suggestedModelId,
     userMessage,
@@ -121,23 +115,14 @@ export function ModelPreviewModal({
       if (isScrolling.current === "right") return;
       isScrolling.current = "left";
 
-      // Calculate percentage to handle different content heights
       const percentage =
         leftEl.scrollTop / (leftEl.scrollHeight - leftEl.clientHeight);
-      // Determine the target scroll position for the right element
-      // However, for direct comparison, pixel-for-pixel might be better if content is similar
-      // But since models generate different lengths, percentage matching is safer for "end" alignment
-      // Let's try direct pixel first, but often percentage feels more "connected" if lengths differ drastically.
-      // Given the user wants to "compare", they likely want to read line by line.
-      // If one text is much longer, percentage sync can make the shorter one scrol fast.
-      // Let's stick to percentage as it ensures both reach bottom together.
 
       if (rightEl.scrollHeight > rightEl.clientHeight) {
         rightEl.scrollTop =
           percentage * (rightEl.scrollHeight - rightEl.clientHeight);
       }
 
-      // Reset lock after a small delay to allow loop to break
       window.requestAnimationFrame(() => {
         if (isScrolling.current === "left") isScrolling.current = null;
       });
@@ -167,7 +152,7 @@ export function ModelPreviewModal({
       leftEl.removeEventListener("scroll", handleScrollLeft);
       rightEl.removeEventListener("scroll", handleScrollRight);
     };
-  }, []); // Re-attach when content changes
+  }, []);
 
   const handleSwitch = async () => {
     if (!suggestedModel || !currentModel) return;
@@ -195,7 +180,10 @@ export function ModelPreviewModal({
 
     // 2. Dismiss the recommendation banner (Clean up)
     try {
-      await dismissRecommendation({ conversationId });
+      await apiClient.post(
+        `/api/v1/conversations/${encodeURIComponent(conversationId)}/model-recommendation/dismiss`,
+        {},
+      );
     } catch (err) {
       console.error("Failed to dismiss recommendation:", err);
     }
@@ -206,12 +194,8 @@ export function ModelPreviewModal({
         newChatModelSelection: "fixed",
         defaultModel: suggestedModelId,
       });
-      await updatePreferences({
-        preferences: {
-          newChatModelSelection: "fixed",
-          defaultModel: suggestedModelId,
-        },
-      });
+      await sdk.updatePreference("newChatModelSelection", "fixed");
+      await sdk.updatePreference("defaultModel", suggestedModelId);
       console.log("[ModelPreviewModal] Preferences updated successfully");
       analytics.track("model_preference_updated", {
         event: "recommendation_switch",

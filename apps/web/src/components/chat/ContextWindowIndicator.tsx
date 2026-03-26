@@ -2,52 +2,58 @@
 
 import { isAutoModel } from "@blah-chat/ai/models";
 import { getModelConfig } from "@blah-chat/ai/utils";
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { isConvexConversationId } from "@/lib/utils/chatRouteIds";
+import { useApiClient } from "@/lib/api/client";
 
 interface ContextWindowIndicatorProps {
   conversationId: string;
   modelId: string; // Currently selected model
 }
 
+interface TokenUsage {
+  systemTokens: number;
+  messagesTokens: number;
+  memoriesTokens: number;
+  totalTokens: number;
+}
+
+interface LastAssistantMessage {
+  routingDecision?: {
+    selectedModelId?: string;
+  };
+}
+
 export function ContextWindowIndicator({
   conversationId,
   modelId,
 }: ContextWindowIndicatorProps) {
-  const convexConversationId = isConvexConversationId(conversationId)
-    ? (conversationId as Id<"conversations">)
-    : "skip";
+  const apiClient = useApiClient();
 
-  // @ts-ignore
-  const tokenUsage = useQuery(
-    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-    api.conversations.getTokenUsage,
-    convexConversationId === "skip"
-      ? "skip"
-      : {
-          conversationId: convexConversationId,
-        },
-  );
+  // TODO: Phase 15 - need dedicated REST route for token usage
+  const { data: tokenUsage } = useQuery<TokenUsage>({
+    queryKey: ["token-usage", conversationId],
+    queryFn: () =>
+      apiClient.get<TokenUsage>(
+        `/api/v1/conversations/${encodeURIComponent(conversationId)}/token-usage`,
+      ),
+    enabled: !!conversationId,
+  });
 
-  // Get last assistant message to find actual routed model (for Auto model)
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const lastMessage = useQuery(
-    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-    api.messages.getLastAssistantMessage,
-    convexConversationId === "skip"
-      ? "skip"
-      : {
-          conversationId: convexConversationId,
-        },
-  );
+  // TODO: Phase 15 - need dedicated REST route for last assistant message
+  const { data: lastMessage } = useQuery<LastAssistantMessage>({
+    queryKey: ["last-assistant-message", conversationId],
+    queryFn: () =>
+      apiClient.get<LastAssistantMessage>(
+        `/api/v1/conversations/${encodeURIComponent(conversationId)}/last-assistant-message`,
+      ),
+    enabled: !!conversationId,
+  });
 
   // For Auto model, use the actual routed model's context window
   const effectiveModelId =

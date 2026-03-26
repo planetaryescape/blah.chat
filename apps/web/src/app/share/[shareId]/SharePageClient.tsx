@@ -35,6 +35,23 @@ interface SharePageClientProps {
   shareId: string;
 }
 
+type PublicNoteShareMetadata = {
+  _id: string;
+  title: string;
+  requiresPassword: boolean;
+  expiresAt?: number;
+  isOwner: boolean;
+};
+
+type PublicNoteShare = {
+  _id: string;
+  title: string;
+  content: string;
+  createdAt: number;
+  updatedAt: number;
+  isOwner: boolean;
+};
+
 export default function SharePageClient({ shareId }: SharePageClientProps) {
   const router = useRouter();
   const { isSignedIn, isLoaded: authLoaded } = useAuth();
@@ -44,6 +61,10 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
   const [entityType, setEntityType] = useState<"conversation" | "note" | null>(
     null,
   );
+  const [noteShare, setNoteShare] = useState<
+    PublicNoteShareMetadata | null | undefined
+  >(undefined);
+  const [publicNote, setPublicNote] = useState<PublicNoteShare | null>(null);
   const [isForking, setIsForking] = useState<"private" | "collab" | null>(null);
   const [forkError, setForkError] = useState("");
 
@@ -55,12 +76,43 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const conversationShare = useQuery(api.shares.get, { shareId });
 
-  // Try note share if conversation doesn't exist
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const noteShare = useQuery(
-    api.notes.getByShareId,
-    conversationShare === null ? { shareId } : "skip",
-  );
+  useEffect(() => {
+    if (conversationShare !== null) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadNoteShare() {
+      try {
+        const response = await fetch(`/api/v1/public/notes/shares/${shareId}`);
+        if (!response.ok) {
+          if (!cancelled) {
+            setNoteShare(null);
+          }
+          return;
+        }
+
+        const payload = (await response.json()) as {
+          data?: PublicNoteShareMetadata;
+        };
+
+        if (!cancelled) {
+          setNoteShare(payload.data ?? null);
+        }
+      } catch {
+        if (!cancelled) {
+          setNoteShare(null);
+        }
+      }
+    }
+
+    void loadNoteShare();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [conversationShare, shareId]);
 
   // Determine entity type
   useEffect(() => {
@@ -71,11 +123,43 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
     }
   }, [conversationShare, noteShare]);
 
-  // Separate verify actions
+  async function verifyNoteShareAccess(passwordInput?: string) {
+    const response = await fetch(
+      `/api/v1/public/notes/shares/${shareId}/verify`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(
+          passwordInput
+            ? {
+                password: passwordInput,
+              }
+            : {},
+        ),
+      },
+    );
+
+    const payload = (await response.json()) as {
+      status: string;
+      data?: PublicNoteShare;
+      error?: string | { message?: string };
+    };
+
+    if (!response.ok || payload.status === "error" || !payload.data) {
+      throw new Error(
+        typeof payload.error === "string"
+          ? payload.error
+          : payload.error?.message || "Verification failed",
+      );
+    }
+
+    setPublicNote(payload.data);
+  }
+
   // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
   const verifyConversationShare = useAction(api.shares.verify);
-  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
-  const verifyNoteShare = useAction(api.notes.verifyShare);
 
   // Fork actions
   // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
@@ -114,8 +198,8 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
 
     const autoVerify = async () => {
       try {
-        if (entityType === "note" && noteShare?._id) {
-          await verifyNoteShare({ noteId: noteShare._id });
+        if (entityType === "note") {
+          await verifyNoteShareAccess();
         } else if (entityType === "conversation") {
           await verifyConversationShare({ shareId });
         }
@@ -130,19 +214,14 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
     entityType,
     verified,
     share?.requiresPassword,
-    noteShare?._id,
     shareId,
-    verifyNoteShare,
     verifyConversationShare,
   ]);
 
   const handleVerify = async () => {
     try {
-      if (entityType === "note" && noteShare?._id) {
-        await verifyNoteShare({
-          noteId: noteShare._id,
-          password: password || undefined,
-        });
+      if (entityType === "note") {
+        await verifyNoteShareAccess(password || undefined);
       } else {
         await verifyConversationShare({
           shareId,
@@ -490,8 +569,8 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
   }
 
   // Render note share view if it's a note
-  if (entityType === "note" && verified && noteShare?._id) {
-    return <NoteShareView noteId={noteShare._id} />;
+  if (entityType === "note" && verified && publicNote) {
+    return <NoteShareView note={publicNote} isOwner={publicNote.isOwner} />;
   }
 
   // Check if data is valid (not revoked/expired union types)

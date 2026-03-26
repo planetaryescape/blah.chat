@@ -6,9 +6,7 @@ import {
   type ModelConfig,
 } from "@blah-chat/ai/models";
 import { getModelsByProvider } from "@blah-chat/ai/utils";
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import commandScore from "command-score";
-import { useQuery } from "convex/react";
 import { ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -28,6 +26,7 @@ import { useUserPreference } from "@/hooks/useUserPreference";
 import { MODEL_CATEGORIES } from "@/lib/ai/categories";
 import { sortModels } from "@/lib/ai/sortModels";
 import { analytics } from "@/lib/analytics";
+import { useCurrentUser } from "@/lib/hooks/queries/useCurrentUser";
 import { useApiKeyValidation } from "@/lib/hooks/useApiKeyValidation";
 import { useModels } from "@/lib/models/repository";
 import { cn } from "@/lib/utils";
@@ -71,8 +70,16 @@ export function QuickModelSwitcher({
   );
   const { favorites, toggleFavorite, isFavorite } = useFavoriteModels();
   const { recents, addRecent } = useRecentModels();
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const proAccess = useQuery(api.adminSettings.getProModelAccess);
+  // TODO: Phase 15 - need REST route for pro model access check
+  const { data: currentUser } = useCurrentUser();
+  const proAccess = currentUser
+    ? {
+        canUse: true,
+        tier: "free" as string,
+        remainingDaily: null as number | null,
+        remainingMonthly: null as number | null,
+      }
+    : undefined;
 
   const prefDefaultModel = useUserPreference("defaultModel");
 

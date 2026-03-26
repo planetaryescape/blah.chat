@@ -1,8 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
 import {
   Archive,
   BookOpen,
@@ -21,10 +18,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useProjectSurfaceStats } from "@/hooks/useProjectSurfaceStats";
 import { useUserPreference } from "@/hooks/useUserPreference";
+import { useProject } from "@/lib/hooks/queries/useProjects";
 import { cn } from "@/lib/utils";
 
 interface ProjectLayoutProps {
-  projectId: Id<"projects">;
+  projectId: string;
   children: ReactNode;
 }
 
@@ -32,8 +30,7 @@ export function ProjectLayout({ projectId, children }: ProjectLayoutProps) {
   const _router = useRouter();
   const pathname = usePathname();
   const showTasks = useUserPreference("showTasks");
-  // @ts-ignore - Type depth exceeded
-  const project = useQuery(api.projects.get, { id: projectId });
+  const { data: project } = useProject(projectId);
   const surface = useProjectSurfaceStats(projectId);
 
   if (!project) {

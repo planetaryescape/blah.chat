@@ -16,70 +16,39 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const CATEGORIES = ["all", "coding", "writing", "analysis", "creative"];
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
-import { toast } from "sonner";
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
 import { FeatureLoadingScreen } from "@/components/FeatureLoadingScreen";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
+import { useTemplates } from "@/lib/hooks/queries/useTemplates";
 
 function TemplatesPageContent() {
-  // All hooks MUST be at the top, before any early returns
   const { showTemplates, isLoading } = useFeatureToggles();
   const searchParams = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [hasSeeded, setHasSeeded] = useState(false);
 
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const templates: Doc<"templates">[] | undefined = useQuery(
-    api.templates.list,
-    selectedCategory === "all" ? {} : { category: selectedCategory },
-  );
+  const { data: templates } = useTemplates(selectedCategory);
 
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const seedBuiltIn = useMutation(api.templates.builtIn.seedBuiltInTemplates);
-
-  // Handle ?action=new query param from command palette
   useEffect(() => {
     if (searchParams.get("action") === "new") {
       setIsCreateOpen(true);
-      // Clean URL to avoid reopening on refresh
       window.history.replaceState({}, "", "/templates");
     }
   }, [searchParams]);
 
-  useEffect(() => {
-    const checkAndSeed = async () => {
-      if (templates && templates.length === 0 && !hasSeeded) {
-        try {
-          const result = await seedBuiltIn();
-          toast.success(result.message);
-          setHasSeeded(true);
-        } catch (error) {
-          console.error("Failed to seed templates:", error);
-        }
-      }
-    };
-    checkAndSeed();
-  }, [templates, hasSeeded, seedBuiltIn]);
-
-  // Show loading while preferences are being fetched
   if (isLoading) {
     return <FeatureLoadingScreen />;
   }
 
-  // Route guard: show disabled page if templates feature is off
   if (!showTemplates) {
     return (
       <DisabledFeaturePage featureName="Templates" settingKey="showTemplates" />
     );
   }
 
-  const builtInTemplates = templates?.filter((t: any) => t.isBuiltIn) || [];
-  const userTemplates = templates?.filter((t: any) => !t.isBuiltIn) || [];
+  const builtInTemplates = templates?.filter((t) => t.isBuiltIn) || [];
+  const userTemplates = templates?.filter((t) => !t.isBuiltIn) || [];
 
   return (
     <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
@@ -100,7 +69,7 @@ function TemplatesPageContent() {
                 className="w-full md:w-auto"
               >
                 <TabsList className="bg-muted/50">
-                  {CATEGORIES.map((cat: any) => (
+                  {CATEGORIES.map((cat) => (
                     <TabsTrigger
                       key={cat}
                       value={cat}
@@ -141,7 +110,7 @@ function TemplatesPageContent() {
                   Your Templates
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {userTemplates.map((template: any) => (
+                  {userTemplates.map((template) => (
                     <TemplateCard key={template._id} template={template} />
                   ))}
                 </div>
@@ -154,7 +123,7 @@ function TemplatesPageContent() {
                   Built-in Templates
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {builtInTemplates.map((template: any) => (
+                  {builtInTemplates.map((template) => (
                     <TemplateCard key={template._id} template={template} />
                   ))}
                 </div>

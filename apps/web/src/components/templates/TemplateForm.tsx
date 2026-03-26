@@ -1,8 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -17,10 +14,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  useCreateTemplate,
+  useUpdateTemplate,
+} from "@/lib/hooks/mutations/useTemplateMutations";
 
 interface TemplateFormProps {
   template?: {
-    _id: Id<"templates">;
+    _id: string;
     name: string;
     prompt: string;
     description?: string;
@@ -38,8 +39,8 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
   const [category, setCategory] = useState(template?.category || "coding");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const createTemplate = useMutation(api.templates.create);
-  const updateTemplate = useMutation(api.templates.update);
+  const createTemplateMutation = useCreateTemplate();
+  const updateTemplateMutation = useUpdateTemplate();
 
   const isEditing = !!template;
 
@@ -53,8 +54,8 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
     setIsSubmitting(true);
     try {
       if (isEditing) {
-        await updateTemplate({
-          id: template._id,
+        await updateTemplateMutation.mutateAsync({
+          templateId: template._id,
           name: name.trim(),
           prompt: prompt.trim(),
           description: description.trim() || undefined,
@@ -62,7 +63,7 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
         });
         toast.success("Template updated");
       } else {
-        await createTemplate({
+        await createTemplateMutation.mutateAsync({
           name: name.trim(),
           prompt: prompt.trim(),
           description: description.trim() || undefined,
@@ -100,7 +101,7 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {CATEGORIES.map((cat: any) => (
+            {CATEGORIES.map((cat) => (
               <SelectItem key={cat} value={cat}>
                 {cat.charAt(0).toUpperCase() + cat.slice(1)}
               </SelectItem>

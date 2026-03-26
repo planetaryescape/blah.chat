@@ -71,6 +71,13 @@
       "when": 1774417173058,
       "tag": "0009_short_jackal",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1774493805708,
+      "tag": "0010_brief_shape",
+      "breakpoints": true
     }
   ]
 }

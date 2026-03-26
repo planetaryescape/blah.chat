@@ -1,8 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -13,10 +10,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { analytics } from "@/lib/analytics";
+import {
+  useCreateProject,
+  useUpdateProject,
+} from "@/lib/hooks/mutations/useProjectMutations";
 
 interface ProjectFormProps {
   project?: {
-    _id: Id<"projects">;
+    _id: string;
     name: string;
     description?: string;
     systemPrompt?: string;
@@ -31,8 +32,8 @@ export function ProjectForm({ project, onSuccess }: ProjectFormProps) {
   const [isTemplate, setIsTemplate] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const createProject = useMutation(api.projects.create);
-  const updateProject = useMutation(api.projects.update);
+  const createProject = useCreateProject();
+  const updateProject = useUpdateProject();
 
   const isEditing = !!project;
 
@@ -48,8 +49,8 @@ export function ProjectForm({ project, onSuccess }: ProjectFormProps) {
 
     try {
       if (isEditing) {
-        await updateProject({
-          id: project._id,
+        await updateProject.mutateAsync({
+          projectId: project._id,
           name: name.trim(),
           description: description.trim() || undefined,
           systemPrompt: systemPrompt.trim() || undefined,
@@ -61,7 +62,7 @@ export function ProjectForm({ project, onSuccess }: ProjectFormProps) {
           hasSystemPrompt: !!systemPrompt.trim(),
         });
       } else {
-        await createProject({
+        await createProject.mutateAsync({
           name: name.trim(),
           description: description.trim() || undefined,
           systemPrompt: systemPrompt.trim() || undefined,

@@ -1,8 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
 import { Plus, Tag, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -22,10 +19,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useApiClient } from "@/lib/api/client";
 import { getTagLabel, normalizeTag, validateTag } from "@/lib/utils/tagUtils";
 
 interface MinimalTagInputProps {
-  noteId: Id<"notes">;
+  noteId: string;
   tags: string[];
   suggestedTags: string[];
 }
@@ -37,9 +35,7 @@ export function MinimalTagInput({
 }: MinimalTagInputProps) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
-
-  const addTag = useMutation(api.notes.addTag);
-  const removeTag = useMutation(api.notes.removeTag);
+  const apiClient = useApiClient();
 
   const handleAddTag = async (tag: string) => {
     try {
@@ -57,7 +53,9 @@ export function MinimalTagInput({
         return;
       }
 
-      await addTag({ noteId, tag: normalized });
+      await apiClient.post(`/api/v1/notes/${encodeURIComponent(noteId)}/tags`, {
+        tag: normalized,
+      });
       toast.success("Tag added");
       setInputValue("");
       setOpen(false);
@@ -69,7 +67,9 @@ export function MinimalTagInput({
 
   const handleRemoveTag = async (tag: string) => {
     try {
-      await removeTag({ noteId, tag });
+      await apiClient.delete(
+        `/api/v1/notes/${encodeURIComponent(noteId)}/tags?tag=${encodeURIComponent(tag)}`,
+      );
       toast.success("Tag removed");
     } catch (error) {
       console.error("Failed to remove tag:", error);

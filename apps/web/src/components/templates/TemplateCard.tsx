@@ -1,8 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
 import {
   Copy,
   Edit,
@@ -39,13 +36,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  useDeleteTemplate,
+  useIncrementTemplateUsage,
+} from "@/lib/hooks/mutations/useTemplateMutations";
 import { cn } from "@/lib/utils";
 import { useTemplateStore } from "@/stores/templateStore";
 import { TemplateForm } from "./TemplateForm";
 
 interface TemplateCardProps {
   template: {
-    _id: Id<"templates">;
+    _id: string;
     name: string;
     prompt: string;
     description?: string;
@@ -59,15 +60,15 @@ export function TemplateCard({ template }: TemplateCardProps) {
   const router = useRouter();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation
-  const deleteTemplate = useMutation(api.templates.deleteTemplate);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation
-  const incrementUsage = useMutation(api.templates.incrementUsage);
+  const deleteTemplateMutation = useDeleteTemplate();
+  const incrementUsageMutation = useIncrementTemplateUsage();
   const setTemplateText = useTemplateStore((s) => s.setTemplateText);
 
   const handleDelete = async () => {
     try {
-      await deleteTemplate({ id: template._id });
+      await deleteTemplateMutation.mutateAsync({
+        templateId: template._id,
+      });
       toast.success("Template deleted");
     } catch (error) {
       toast.error("Failed to delete template");
@@ -77,7 +78,9 @@ export function TemplateCard({ template }: TemplateCardProps) {
 
   const handleUse = async () => {
     try {
-      await incrementUsage({ id: template._id });
+      await incrementUsageMutation.mutateAsync({
+        templateId: template._id,
+      });
       setTemplateText(template.prompt, template.name);
       router.push("/chat?from=template");
     } catch (error) {

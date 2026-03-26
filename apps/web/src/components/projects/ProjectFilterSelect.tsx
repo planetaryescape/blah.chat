@@ -1,8 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
 import { FolderOpen } from "lucide-react";
 import {
   Select,
@@ -11,10 +8,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useProjects } from "@/lib/hooks/queries/useProjects";
 
 interface ProjectFilterSelectProps {
-  value: Id<"projects"> | null;
-  onChange: (id: Id<"projects"> | null) => void;
+  value: string | null;
+  onChange: (id: string | null) => void;
   className?: string;
 }
 
@@ -27,11 +25,10 @@ export function ProjectFilterSelect({
   onChange,
   className = "w-[180px]",
 }: ProjectFilterSelectProps) {
-  // @ts-ignore - Type depth exceeded
-  const projects = useQuery(api.projects.list);
+  const { data: projects } = useProjects();
 
   const handleChange = (selected: string) => {
-    onChange(selected === "all" ? null : (selected as Id<"projects">));
+    onChange(selected === "all" ? null : selected);
   };
 
   if (!projects || projects.length === 0) {
@@ -64,7 +61,7 @@ export function ProjectFilterSelect({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Projects</SelectItem>
-          {projects.map((project: any) => (
+          {projects.map((project) => (
             <SelectItem key={project._id} value={project._id}>
               <span className="truncate" title={project.name}>
                 {project.name}

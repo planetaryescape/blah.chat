@@ -1,8 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
 import {
   Check,
   Copy,
@@ -33,7 +30,7 @@ import { useCanvasHistory } from "@/hooks/useCanvasHistory";
 import { cn } from "@/lib/utils";
 
 interface CanvasToolbarProps {
-  documentId: Id<"canvasDocuments"> | null;
+  documentId: string | null;
   isSaving?: boolean;
   className?: string;
   onDelete?: () => void;
@@ -48,11 +45,8 @@ export function CanvasToolbar({
   const { setShowHistoryPanel } = useCanvasContext();
   const [copied, setCopied] = useState(false);
 
-  // @ts-ignore - Type depth exceeded
-  const document = useQuery(
-    api.canvas.documents.get,
-    documentId ? { documentId } : "skip",
-  );
+  // TODO: Phase G - Canvas has no Postgres table yet
+  const document: any = null;
 
   const {
     canUndo,

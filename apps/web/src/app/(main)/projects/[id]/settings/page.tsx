@@ -1,8 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useState } from "react";
@@ -22,6 +19,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  useDeleteProject,
+  useUpdateProject,
+} from "@/lib/hooks/mutations/useProjectMutations";
+import { useProject } from "@/lib/hooks/queries/useProjects";
 
 export default function ProjectSettingsPage({
   params,
@@ -29,12 +31,12 @@ export default function ProjectSettingsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const projectId = id as Id<"projects">;
+  const projectId = id;
   const router = useRouter();
 
-  const project = useQuery(api.projects.get, { id: projectId });
-  const updateProject = useMutation(api.projects.update);
-  const deleteProject = useMutation(api.projects.deleteProject);
+  const { data: project } = useProject(projectId);
+  const updateProjectMutation = useUpdateProject();
+  const deleteProjectMutation = useDeleteProject();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -45,14 +47,14 @@ export default function ProjectSettingsPage({
   if (project && !isDirty && !name) {
     setName(project.name);
     setDescription(project.description || "");
-    setSystemPrompt(project.systemPrompt || "");
+    setSystemPrompt((project as any).systemPrompt || "");
     // Don't set dirty here, just init
   }
 
   const handleSave = async () => {
     try {
-      await updateProject({
-        id: projectId,
+      await updateProjectMutation.mutateAsync({
+        projectId,
         name,
         description,
         systemPrompt,
@@ -67,7 +69,7 @@ export default function ProjectSettingsPage({
 
   const handleDelete = async () => {
     try {
-      await deleteProject({ id: projectId });
+      await deleteProjectMutation.mutateAsync(projectId);
       toast.success("Project deleted");
       router.push("/projects");
     } catch (error) {
@@ -168,19 +170,8 @@ export default function ProjectSettingsPage({
                   <AlertDialogDescription>
                     This action cannot be undone. This will permanently delete
                     the project <strong>{project.name}</strong> and remove all
-                    associations. tasks, notes, and files will remain but be
+                    associations. Tasks, notes, and files will remain but be
                     unlinked.
-                    {/* Wait, actual deletion logic suggests it cascades?
-                        Checking convex/projects.ts -> deleteProject:
-                        It unlinks conversations (junctions deleted), unlinks project from conversations (projectId=undefined).
-                        It deletes the project row.
-                        It DOES NOT delete the actual notes/files/conversations themselves, just the link.
-                        Wait, need to check if it deletes tasks?
-                        The deleteProject mutation I saw earlier removes junctions.
-                        Tasks? "deleteProject" does NOT seem to delete tasks in the code I reviewed (only junctions).
-                        Actually, tasks have projectId. It might need a clean up.
-                        But the message above is safe: "remove all associations".
-                    */}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

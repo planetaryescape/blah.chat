@@ -1,6 +1,5 @@
 "use client";
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { formatDistanceToNow } from "date-fns";
 import { domAnimation, LazyMotion, m } from "framer-motion";
 import {
@@ -19,7 +18,7 @@ export function ProjectOverview({
   resources,
   stats,
 }: {
-  projectId: Id<"projects">;
+  projectId: string;
   resources: any;
   stats: any;
 }) {

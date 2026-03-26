@@ -1,30 +1,17 @@
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 /**
  * Hook for managing document version history
  * Extracts undo/redo logic from CanvasEditor for reusability
+ * TODO: Phase G - Canvas has no Postgres table yet. All queries return stubs.
  */
-export function useCanvasHistory(
-  documentId: Id<"canvasDocuments"> | undefined,
-) {
-  // @ts-ignore - Type depth exceeded
-  const document = useQuery(
-    api.canvas.documents.get,
-    documentId ? { documentId } : "skip",
-  );
-
-  const history = useQuery(
-    // @ts-ignore - Type depth exceeded with 94+ Convex modules
-    api.canvas.history.getHistory,
-    documentId ? { documentId, limit: 50 } : "skip",
-  );
-
-  // @ts-ignore - Type depth exceeded
-  const updateContentMutation = useMutation(api.canvas.documents.updateContent);
+export function useCanvasHistory(documentId: string | undefined) {
+  // TODO: Phase G - Canvas has no Postgres table yet
+  const document: any = null;
+  const history = undefined as any[] | undefined;
+  const updateContentMutation = async (_args: any) => {};
+  void documentId;
 
   const currentVersion = document?.version ?? 0;
 

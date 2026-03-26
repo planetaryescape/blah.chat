@@ -1,7 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -15,10 +14,32 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
 export function AdminSearchSettings() {
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const settings = useQuery(api.adminSettings.get);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const updateSettings = useMutation(api.adminSettings.update);
+  // TODO: Phase G - needs /api/v1/admin/settings REST route
+  const queryClient = useQueryClient();
+  const { data: settings } = useQuery({
+    queryKey: ["admin", "settings"],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/admin/settings");
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data ?? null;
+    },
+  });
+
+  const updateSettingsMut = useMutation({
+    mutationFn: async (data: Record<string, any>) => {
+      const res = await fetch("/api/v1/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
+    },
+  });
 
   const [hybridSearchEnabled, setHybridSearchEnabled] = useState(false);
 
@@ -32,7 +53,7 @@ export function AdminSearchSettings() {
   const handleToggleChange = async (checked: boolean) => {
     setHybridSearchEnabled(checked);
     try {
-      await updateSettings({ enableHybridSearch: checked });
+      await updateSettingsMut.mutateAsync({ enableHybridSearch: checked });
       toast.success(`Hybrid search ${checked ? "enabled" : "disabled"}`);
     } catch (_error) {
       toast.error("Failed to update settings");

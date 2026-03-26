@@ -1,8 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { CalendarIcon, CheckSquare, FileText, FolderOpen } from "lucide-react";
 import { useState } from "react";
@@ -45,7 +43,7 @@ export interface ExtractedTask {
   urgency?: "low" | "medium" | "high" | "urgent" | null;
   confidence?: number;
   context?: string | null;
-  projectId?: Id<"projects">;
+  projectId?: string;
 }
 
 export interface ExtractedNote {
@@ -54,7 +52,7 @@ export interface ExtractedNote {
   category?: string | null;
   confidence?: number;
   context?: string | null;
-  projectId?: Id<"projects">;
+  projectId?: string;
 }
 
 interface MeetingReviewPanelProps {
@@ -83,8 +81,17 @@ export function MeetingReviewPanel({
   );
 
   // Fetch projects for assignment
-  // @ts-ignore - Type depth exceeded
-  const projects = useQuery(api.projects.list) ?? [];
+
+  // TODO: Phase G - use REST projects endpoint
+  const { data: projects = [] } = useQuery({
+    queryKey: ["projects"],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/projects");
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data ?? [];
+    },
+  });
 
   const toggleTask = (index: number) => {
     const next = new Set(selectedTasks);
@@ -269,7 +276,7 @@ export function MeetingReviewPanel({
                                 projectId:
                                   value === "none"
                                     ? undefined
-                                    : (value as Id<"projects">),
+                                    : (value as string),
                               })
                             }
                           >
@@ -408,7 +415,7 @@ export function MeetingReviewPanel({
                                 projectId:
                                   value === "none"
                                     ? undefined
-                                    : (value as Id<"projects">),
+                                    : (value as string),
                               })
                             }
                           >

@@ -1,9 +1,7 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useQuery } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useQuery } from "convex/react";
 import {
   ArrowLeft,
   Bookmark,
@@ -105,7 +103,7 @@ const FEATURE_LABELS: Record<string, string> = {
 export default function UserDetailPage({
   params,
 }: {
-  params: Promise<{ userId: Id<"users"> }>;
+  params: Promise<{ userId: string }>;
 }) {
   const unwrappedParams = use(params);
   const userId = unwrappedParams.userId;
@@ -114,42 +112,121 @@ export default function UserDetailPage({
   // Date range state - fresh last 30 days on each page load
   const [dateRange, setDateRange] = useState(() => getLastNDays(30));
 
-  // Fetch all data
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const users = useQuery(api.admin.listUsers);
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const summary = useQuery(api.usage.queries.getUserUsageSummary, {
-    userId,
-    startDate: dateRange.startDate,
-    endDate: dateRange.endDate,
+  // TODO: Phase G - needs /api/v1/admin/users route
+  const { data: users } = useQuery({
+    queryKey: ["admin", "users"],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/admin/users");
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data ?? [];
+    },
   });
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const dailySpend = useQuery(api.usage.queries.getUserDailySpend, {
-    userId,
-    startDate: dateRange.startDate,
-    endDate: dateRange.endDate,
+
+  // TODO: Phase G - needs /api/v1/admin/users/:id/usage-summary route
+  const { data: summary } = useQuery({
+    queryKey: [
+      "admin",
+      "user-usage-summary",
+      userId,
+      dateRange.startDate,
+      dateRange.endDate,
+    ],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/v1/admin/users/${userId}/usage-summary?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
+      );
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data ?? null;
+    },
   });
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const modelBreakdown = useQuery(api.usage.queries.getUserSpendByModel, {
-    userId,
-    startDate: dateRange.startDate,
-    endDate: dateRange.endDate,
+
+  // TODO: Phase G - needs /api/v1/admin/users/:id/daily-spend route
+  const { data: dailySpend } = useQuery({
+    queryKey: [
+      "admin",
+      "user-daily-spend",
+      userId,
+      dateRange.startDate,
+      dateRange.endDate,
+    ],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/v1/admin/users/${userId}/daily-spend?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
+      );
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data ?? null;
+    },
   });
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const costByType = useQuery(api.usage.queries.getUserCostByType, {
-    userId,
-    startDate: dateRange.startDate,
-    endDate: dateRange.endDate,
+
+  // TODO: Phase G - needs /api/v1/admin/users/:id/spend-by-model route
+  const { data: modelBreakdown } = useQuery({
+    queryKey: [
+      "admin",
+      "user-model-breakdown",
+      userId,
+      dateRange.startDate,
+      dateRange.endDate,
+    ],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/v1/admin/users/${userId}/spend-by-model?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
+      );
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data ?? null;
+    },
   });
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const costByFeature = useQuery(api.usage.queries.getUserCostByFeature, {
-    userId,
-    startDate: dateRange.startDate,
-    endDate: dateRange.endDate,
+
+  // TODO: Phase G - needs /api/v1/admin/users/:id/cost-by-type route
+  const { data: costByType } = useQuery({
+    queryKey: [
+      "admin",
+      "user-cost-by-type",
+      userId,
+      dateRange.startDate,
+      dateRange.endDate,
+    ],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/v1/admin/users/${userId}/cost-by-type?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
+      );
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data ?? null;
+    },
   });
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const activityStats = useQuery(api.usage.queries.getUserActivityStats, {
-    userId,
+
+  // TODO: Phase G - needs /api/v1/admin/users/:id/cost-by-feature route
+  const { data: costByFeature } = useQuery({
+    queryKey: [
+      "admin",
+      "user-cost-by-feature",
+      userId,
+      dateRange.startDate,
+      dateRange.endDate,
+    ],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/v1/admin/users/${userId}/cost-by-feature?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
+      );
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data ?? null;
+    },
+  });
+
+  // TODO: Phase G - needs /api/v1/admin/users/:id/activity-stats route
+  const { data: activityStats } = useQuery({
+    queryKey: ["admin", "user-activity-stats", userId],
+    queryFn: async () => {
+      const res = await fetch(`/api/v1/admin/users/${userId}/activity-stats`);
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data ?? null;
+    },
   });
 
   // Virtualization setup - MUST be before early return to maintain hook order
@@ -185,8 +262,8 @@ export default function UserDetailPage({
 
   // Feature breakdown data
   const featureData = Object.entries(costByFeature)
-    .filter(([_, data]) => data.total > 0)
-    .map(([feature, data]) => ({
+    .filter(([_, data]: [string, any]) => data.total > 0)
+    .map(([feature, data]: [string, any]) => ({
       name: FEATURE_LABELS[feature] || feature,
       key: feature,
       value: data.total,

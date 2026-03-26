@@ -1,7 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useAction, useMutation } from "convex/react";
 import { format } from "date-fns";
 import {
   ArrowRight,
@@ -57,14 +55,34 @@ export default function SmartAssistantPage() {
   const [meetingDate, setMeetingDate] = useState<Date>(new Date());
 
   // Actions
-  const extractFromMeeting = useAction(
-    // @ts-ignore - Type depth exceeded with 85+ Convex modules
-    api.ai.meetingExtraction.extractFromMeeting,
-  );
-  // @ts-ignore - Type depth exceeded
-  const createTask = useMutation(api.tasks.create);
-  // @ts-ignore - Type depth exceeded
-  const createNote = useMutation(api.notes.createNote);
+  // TODO: Phase G - needs meeting extraction REST route
+  const extractFromMeeting = async (args: any) => {
+    const res = await fetch("/api/v1/actions/extract-meeting", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(args),
+    });
+    if (!res.ok) throw new Error("Failed");
+    const json = await res.json();
+    return json.data;
+  };
+
+  // TODO: Phase G - needs tasks REST route
+  const createTask = async (args: any) => {
+    await fetch("/api/v1/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(args),
+    });
+  };
+
+  const createNote = async (args: any) => {
+    await fetch("/api/v1/notes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(args),
+    });
+  };
   const apiClient = useApiClient();
   const sdk = useSDKClient();
 

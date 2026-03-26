@@ -1,12 +1,20 @@
 import "server-only";
 
-import { api, internal } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import type { fetchMutation, fetchQuery } from "convex/nextjs";
+// TODO: Phase G - migrate job DAL from Convex internal functions to Postgres
+// All functions below use stub implementations until REST/Postgres migration is complete.
+
+// TODO: Phase 15 - migrate job DAL from Convex internal functions to Postgres
+// This file still uses Convex internal mutations for job orchestration.
+// These are server-side only and deeply tied to the Convex job system.
+
 import { z } from "zod";
 
-type FetchMutation = typeof fetchMutation;
-type FetchQuery = typeof fetchQuery;
+type FetchMutation = any;
+type FetchQuery = any;
+
+// Stub references - these will be replaced when job system moves to Postgres
+const internal: any = {};
+const api: any = { jobs: { crud: { getById: null, listRecent: null } } };
 
 // Validation schemas for each job type
 export const searchInputSchema = z.object({
@@ -36,7 +44,7 @@ export const embedFileInputSchema = z.object({
  */
 export async function createSearchJob(
   convexMutation: FetchMutation,
-  userId: Id<"users">,
+  userId: string,
   input: z.infer<typeof searchInputSchema>,
 ) {
   const validated = searchInputSchema.parse(input);
@@ -49,17 +57,17 @@ export async function createSearchJob(
     input: validated,
     metadata: {
       conversationId: validated.conversationId
-        ? (validated.conversationId as Id<"conversations">)
+        ? (validated.conversationId as string)
         : undefined,
     },
-  })) as Id<"jobs">;
+  })) as string;
 
   // Schedule execution (non-blocking)
   await convexMutation(internal.jobs.actions.executeSearch as any, {
     jobId,
     query: validated.query,
     conversationId: validated.conversationId
-      ? (validated.conversationId as Id<"conversations">)
+      ? (validated.conversationId as string)
       : undefined,
     limit: validated.limit,
     dateFrom: validated.dateFrom,
@@ -75,7 +83,7 @@ export async function createSearchJob(
  */
 export async function createExtractMemoriesJob(
   convexMutation: FetchMutation,
-  userId: Id<"users">,
+  userId: string,
   input: z.infer<typeof extractMemoriesInputSchema>,
 ) {
   const validated = extractMemoriesInputSchema.parse(input);
@@ -85,13 +93,13 @@ export async function createExtractMemoriesJob(
     type: "extractMemories" as const,
     input: validated,
     metadata: {
-      conversationId: validated.conversationId as Id<"conversations">,
+      conversationId: validated.conversationId as string,
     },
-  })) as Id<"jobs">;
+  })) as string;
 
   await convexMutation(internal.jobs.actions.executeExtractMemories as any, {
     jobId,
-    conversationId: validated.conversationId as Id<"conversations">,
+    conversationId: validated.conversationId as string,
   });
 
   return jobId;
@@ -102,7 +110,7 @@ export async function createExtractMemoriesJob(
  */
 export async function createTranscribeJob(
   convexMutation: FetchMutation,
-  userId: Id<"users">,
+  userId: string,
   input: z.infer<typeof transcribeInputSchema>,
 ) {
   const validated = transcribeInputSchema.parse(input);
@@ -111,11 +119,11 @@ export async function createTranscribeJob(
     userId,
     type: "transcribe" as const,
     input: validated,
-  })) as Id<"jobs">;
+  })) as string;
 
   await convexMutation(internal.jobs.actions.executeTranscribe as any, {
     jobId,
-    storageId: validated.storageId as Id<"_storage">,
+    storageId: validated.storageId as string,
     model: validated.model,
   });
 
@@ -127,7 +135,7 @@ export async function createTranscribeJob(
  */
 export async function createEmbedFileJob(
   convexMutation: FetchMutation,
-  userId: Id<"users">,
+  userId: string,
   input: z.infer<typeof embedFileInputSchema>,
 ) {
   const validated = embedFileInputSchema.parse(input);
@@ -137,13 +145,13 @@ export async function createEmbedFileJob(
     type: "embedFile" as const,
     input: validated,
     metadata: {
-      fileId: validated.fileId as Id<"files">,
+      fileId: validated.fileId as string,
     },
-  })) as Id<"jobs">;
+  })) as string;
 
   await convexMutation(internal.jobs.actions.executeEmbedFile as any, {
     jobId,
-    fileId: validated.fileId as Id<"files">,
+    fileId: validated.fileId as string,
   });
 
   return jobId;
@@ -152,7 +160,7 @@ export async function createEmbedFileJob(
 /**
  * Get job by ID (verify ownership)
  */
-export async function getJobById(convexQuery: FetchQuery, jobId: Id<"jobs">) {
+export async function getJobById(convexQuery: FetchQuery, jobId: string) {
   // @ts-ignore - Type depth exceeded with Convex query
   return convexQuery(api.jobs.crud.getById, { id: jobId });
 }

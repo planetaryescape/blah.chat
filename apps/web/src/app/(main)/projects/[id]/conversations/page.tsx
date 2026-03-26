@@ -1,7 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
   type ColumnDef,
   flexRender,
@@ -12,7 +10,6 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useAction } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import {
   ArrowUpDown,
@@ -43,7 +40,7 @@ import { cn } from "@/lib/utils";
 
 // Type for conversation data
 type ConversationRow = {
-  _id: Id<"conversations">;
+  _id: string;
   title: string;
   model: string;
   messageCount: number;
@@ -58,16 +55,14 @@ export default function ProjectConversationsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const projectId = id as Id<"projects">;
+  const projectId = id;
   const router = useRouter();
   const apiClient = useApiClient();
 
   // State
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<
-    Doc<"conversations">[] | null
-  >(null);
+  const [searchResults, setSearchResults] = useState<any[] | null>(null);
   const [view, setView] = useState<"list" | "grid">("list");
   const [sorting, setSorting] = useState<SortingState>([]);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 });
@@ -78,18 +73,10 @@ export default function ProjectConversationsPage({
 
   // Queries - fetch ALL project conversations (no search param to avoid focus loss)
   const { conversations: allConversations, isLoading: isConversationsLoading } =
-    useRestConversationSync(projectId);
+    useRestConversationSync(projectId as any);
 
-  // Hybrid search action - located in convex/conversations/hybridSearch.ts
-  // Must use subdirectory path, not api.conversations.hybridSearch
-  // @ts-ignore - Type depth exceeded with complex Convex schema
-  const hybridSearchRef = (api as unknown as any)["conversations/hybridSearch"]
-    .hybridSearch;
-  // @ts-ignore - Type depth exceeded with complex Convex schema
-  const hybridSearch = useAction(hybridSearchRef);
-
-  // Debounced hybrid search function
-  const executeHybridSearch = useDebouncedCallback(
+  // Client-side search with debounce
+  const executeSearch = useDebouncedCallback(
     async (query: string) => {
       if (!query.trim()) {
         setSearchResults(null);
@@ -99,19 +86,10 @@ export default function ProjectConversationsPage({
 
       setIsSearching(true);
       try {
-        const results = await hybridSearch({
-          query: query.trim(),
-          projectId,
-          limit: 50,
-        });
-        setSearchResults(results);
-      } catch (error) {
-        console.error("Hybrid search failed:", error);
-        // Fallback to client-side filtering
         if (allConversations) {
           const lowerQuery = query.toLowerCase();
           const filtered = allConversations.filter(
-            (c: Doc<"conversations">) =>
+            (c: any) =>
               c.title?.toLowerCase().includes(lowerQuery) ||
               c.model?.toLowerCase().includes(lowerQuery),
           );
@@ -126,8 +104,8 @@ export default function ProjectConversationsPage({
 
   // Trigger search when query changes
   useEffect(() => {
-    executeHybridSearch(searchQuery);
-  }, [searchQuery, executeHybridSearch]);
+    executeSearch(searchQuery);
+  }, [searchQuery, executeSearch]);
 
   // Use search results if available, otherwise use all conversations
   const displayedConversations =
@@ -136,7 +114,7 @@ export default function ProjectConversationsPage({
   // Transform data for table
   const tableData = useMemo<ConversationRow[]>(() => {
     if (!displayedConversations) return [];
-    return displayedConversations.map((conv: Doc<"conversations">) => ({
+    return displayedConversations.map((conv: any) => ({
       _id: conv._id,
       title: conv.title || "Untitled Chat",
       model: conv.model,
@@ -261,7 +239,7 @@ export default function ProjectConversationsPage({
   // Handlers
   const handleCreateChat = async () => {
     try {
-      const conversation = await apiClient.post<{ _id: Id<"conversations"> }>(
+      const conversation = await apiClient.post<{ _id: string }>(
         "/api/v1/conversations",
         {
           model: "zai:glm-4.6v-flash",
@@ -275,7 +253,7 @@ export default function ProjectConversationsPage({
     }
   };
 
-  const handleRowClick = (conversationId: Id<"conversations">) => {
+  const handleRowClick = (conversationId: string) => {
     router.push(`/chat/${conversationId}`);
   };
 
@@ -346,7 +324,7 @@ export default function ProjectConversationsPage({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               ref={searchInputRef}
-              placeholder="Search conversations (hybrid: title + message content)..."
+              placeholder="Search conversations..."
               value={searchQuery}
               onChange={handleSearchChange}
               className="pl-9 pr-10 bg-background/50 border-muted-foreground/20 focus:bg-background transition-colors"
@@ -359,7 +337,7 @@ export default function ProjectConversationsPage({
                 onClick={handleClearSearch}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-sm"
               >
-                ✕
+                x
               </button>
             )}
           </div>

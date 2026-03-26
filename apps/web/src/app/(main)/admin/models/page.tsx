@@ -1,6 +1,5 @@
 "use client";
 
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
   type ColumnDef,
   flexRender,
@@ -11,7 +10,6 @@ import {
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { useMutation } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import {
   AlertTriangle,
@@ -73,19 +71,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAllModels } from "@/lib/models";
 import { formatCurrency } from "@/lib/utils/date";
 
-// Lazy load mutations to avoid type depth issues
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _modelsApi: any = null;
-function getModelsApi() {
-  if (!_modelsApi) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { api } = require("@blah-chat/backend/convex/_generated/api");
-    _modelsApi = api.models;
-  }
-  return _modelsApi;
-}
-
-type ModelRow = Doc<"models">;
+type ModelRow = any;
 
 function ModelsListSkeleton() {
   return (
@@ -104,64 +90,51 @@ function ModelsPageContent() {
   const router = useRouter();
   const models = useAllModels();
 
-  // @ts-ignore - Type depth exceeded with Convex mutations
-  const deprecateMutation = useMutation(getModelsApi().mutations.deprecate);
-  // @ts-ignore - Type depth exceeded with Convex mutations
-  const reactivateMutation = useMutation(getModelsApi().mutations.reactivate);
-  // @ts-ignore - Type depth exceeded with Convex mutations
-  const removeMutation = useMutation(getModelsApi().mutations.remove);
-  // @ts-ignore - Type depth exceeded with Convex mutations
-  const duplicateMutation = useMutation(getModelsApi().mutations.duplicate);
+  // TODO: Phase G - needs admin REST routes for model management
 
   const [sorting, setSorting] = useState<SortingState>([
     { id: "name", desc: false },
   ]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [providerFilter, setProviderFilter] = useState<string>("all");
-  const [deleteTarget, setDeleteTarget] = useState<Doc<"models">["_id"] | null>(
-    null,
-  );
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [duplicateTarget, setDuplicateTarget] = useState<ModelRow | null>(null);
   const [newModelId, setNewModelId] = useState("");
   const [newModelName, setNewModelName] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleDeprecate = useCallback(
-    async (id: Doc<"models">["_id"]) => {
-      try {
-        await deprecateMutation({ id });
-        toast.success("Model deprecated");
-      } catch (error: any) {
-        toast.error(error.message || "Failed to deprecate model");
-      }
-    },
-    [deprecateMutation],
-  );
+  const handleDeprecate = useCallback(async (id: string) => {
+    try {
+      await fetch(`/api/v1/admin/models/${id}/deprecate`, { method: "POST" }); // TODO: Phase G
+      toast.success("Model deprecated");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to deprecate model");
+    }
+  }, []);
 
-  const handleReactivate = useCallback(
-    async (id: Doc<"models">["_id"]) => {
-      try {
-        await reactivateMutation({ id });
-        toast.success("Model reactivated");
-      } catch (error: any) {
-        toast.error(error.message || "Failed to reactivate model");
-      }
-    },
-    [reactivateMutation],
-  );
+  const handleReactivate = useCallback(async (id: string) => {
+    try {
+      await fetch(`/api/v1/admin/models/${id}/reactivate`, {
+        method: "POST",
+      }); // TODO: Phase G
+      toast.success("Model reactivated");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to reactivate model");
+    }
+  }, []);
 
   const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
     try {
-      await removeMutation({ id: deleteTarget });
+      await fetch(`/api/v1/admin/models/${deleteTarget}`, { method: "DELETE" }); // TODO: Phase G
       toast.success("Model deleted");
     } catch (error: any) {
       toast.error(error.message || "Failed to delete model");
     } finally {
       setDeleteTarget(null);
     }
-  }, [deleteTarget, removeMutation]);
+  }, [deleteTarget]);
 
   const openDuplicateDialog = useCallback((model: ModelRow) => {
     setDuplicateTarget(model);
@@ -178,27 +151,25 @@ function ModelsPageContent() {
   const executeDuplicate = useCallback(async () => {
     if (!duplicateTarget || !newModelId || !newModelName) return;
     try {
-      await duplicateMutation({
-        sourceId: duplicateTarget._id,
-        newModelId,
-        newName: newModelName,
+      await fetch("/api/v1/admin/models/duplicate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sourceId: duplicateTarget._id,
+          newModelId,
+          newName: newModelName,
+        }),
       });
       toast.success("Model duplicated");
       closeDuplicateDialog();
     } catch (error: any) {
       toast.error(error.message || "Failed to duplicate model");
     }
-  }, [
-    duplicateTarget,
-    newModelId,
-    newModelName,
-    duplicateMutation,
-    closeDuplicateDialog,
-  ]);
+  }, [duplicateTarget, newModelId, newModelName, closeDuplicateDialog]);
 
   const handleExport = useCallback(() => {
     if (!models) return;
-    const data = models.map((m) => ({
+    const data = models.map((m: any) => ({
       modelId: m.modelId,
       provider: m.provider,
       name: m.name,
@@ -262,7 +233,7 @@ function ModelsPageContent() {
   // Filter models
   const filteredModels = useMemo(() => {
     if (!models) return [];
-    return models.filter((m) => {
+    return models.filter((m: any) => {
       if (providerFilter !== "all" && m.provider !== providerFilter)
         return false;
       if (statusFilter !== "all" && m.status !== statusFilter) return false;
@@ -273,7 +244,9 @@ function ModelsPageContent() {
   // Get unique providers
   const providers = useMemo(() => {
     if (!models) return [];
-    return [...new Set(models.map((m) => m.provider))].sort();
+    return (
+      [...new Set(models.map((m: any) => m.provider))] as string[]
+    ).sort();
   }, [models]);
 
   // Column definitions
@@ -367,7 +340,7 @@ function ModelsPageContent() {
         header: "Capabilities",
         cell: ({ row }) => (
           <div className="flex flex-wrap gap-1">
-            {row.original.capabilities?.map((cap) => (
+            {row.original.capabilities?.map((cap: any) => (
               <Badge key={cap} variant="secondary" className="text-xs">
                 {cap}
               </Badge>

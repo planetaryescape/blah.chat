@@ -1,8 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { Check, Clock, Copy, Share2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -34,7 +32,7 @@ interface ShareDialogProps {
 
 export function ShareDialog({ conversationId }: ShareDialogProps) {
   const convexConversationId = isConvexConversationId(conversationId)
-    ? (conversationId as Id<"conversations">)
+    ? (conversationId as string)
     : null;
 
   if (!convexConversationId) {
@@ -49,13 +47,45 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
   const [copied, setCopied] = useState(false);
   const [extendExpiresIn, setExtendExpiresIn] = useState<number | undefined>(7);
 
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const existingShare = useQuery(api.shares.getByConversation, {
-    conversationId: convexConversationId,
+  // TODO: Phase G - needs /api/v1/shares REST route
+  const { data: existingShare } = useQuery({
+    queryKey: ["share", convexConversationId],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/v1/shares?conversationId=${convexConversationId}`,
+      );
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data ?? null;
+    },
   });
-  const createShare = useAction(api.shares.create);
-  const toggleShare = useMutation(api.shares.toggle);
-  const extendExpiration = useMutation(api.shares.extendExpiration);
+  void {
+    conversationId: convexConversationId,
+  };
+  const createShare = async (args: any) => {
+    const res = await fetch("/api/v1/shares", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(args),
+    });
+    if (!res.ok) throw new Error("Failed");
+    const json = await res.json();
+    return json.data?.shareId;
+  }; // TODO: Phase G
+  const toggleShare = async (args: any) => {
+    await fetch("/api/v1/shares/toggle", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(args),
+    });
+  }; // TODO: Phase G
+  const extendExpiration = async (args: any) => {
+    await fetch("/api/v1/shares/extend", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(args),
+    });
+  }; // TODO: Phase G
 
   // Check if share is expired
   const isExpired =

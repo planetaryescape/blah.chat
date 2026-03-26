@@ -21,7 +21,7 @@ async function postHandler(
     "POST /api/v1/projects/[id]/assign-conversations",
   );
   const result = await projectsDAL.assignConversations(userId, {
-    projectId: body.projectId ?? id,
+    projectId: "projectId" in body ? body.projectId : id,
     conversationIds: body.conversationIds,
   });
   return NextResponse.json(result, { status: 200 });

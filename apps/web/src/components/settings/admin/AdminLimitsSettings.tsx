@@ -1,7 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DollarSign, Loader2, MessageCircle, Plug } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -19,10 +18,32 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 
 export function AdminLimitsSettings() {
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const settings = useQuery(api.adminSettings.get);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const updateSettings = useMutation(api.adminSettings.update);
+  // TODO: Phase G - needs /api/v1/admin/settings REST route
+  const queryClient = useQueryClient();
+  const { data: settings } = useQuery({
+    queryKey: ["admin", "settings"],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/admin/settings");
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data ?? null;
+    },
+  });
+
+  const updateSettingsMut = useMutation({
+    mutationFn: async (data: Record<string, any>) => {
+      const res = await fetch("/api/v1/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
+    },
+  });
 
   const [monthlyBudget, setMonthlyBudget] = useState(10);
   const [alertThreshold, setAlertThreshold] = useState(80);
@@ -45,7 +66,7 @@ export function AdminLimitsSettings() {
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      await updateSettings({
+      await updateSettingsMut.mutateAsync({
         defaultMonthlyBudget: monthlyBudget,
         defaultBudgetAlertThreshold: alertThreshold / 100,
         budgetHardLimitEnabled: hardLimitEnabled,

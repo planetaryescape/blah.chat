@@ -1,7 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useMutation } from "convex/react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -28,8 +26,17 @@ export default function ImportPage() {
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const importConversations = useMutation(api.import.importConversations);
+  // TODO: Phase G - needs /api/v1/import REST route
+  const importConversations = async (args: any) => {
+    const res = await fetch("/api/v1/import/conversations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(args),
+    });
+    if (!res.ok) throw new Error("Import failed");
+    const json = await res.json();
+    return json.data;
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];

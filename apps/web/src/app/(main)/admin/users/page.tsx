@@ -1,7 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useQuery } from "@tanstack/react-query";
 import {
   type ColumnDef,
   flexRender,
@@ -12,7 +11,6 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useMutation, useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowUpDown, Shield, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -38,7 +36,7 @@ import {
 } from "@/lib/utils/date";
 
 type UserWithUsage = {
-  _id: Id<"users">;
+  _id: string;
   name: string;
   email: string;
   imageUrl: string | undefined;
@@ -68,10 +66,6 @@ function UsersListSkeleton() {
 
 function UsersPageContent() {
   const router = useRouter();
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const updateRole = useMutation(api.admin.updateUserRole);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const updateTier = useMutation(api.admin.updateUserTier);
 
   // Date range state - fresh last 30 days on each page load
   const [dateRange, setDateRange] = useState(() => getLastNDays(30));
@@ -88,37 +82,70 @@ function UsersPageContent() {
   // Virtualization ref (must be before early return)
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const users = useQuery(api.admin.listUsers);
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const usageSummary = useQuery(api.usage.queries.getAllUsersUsageSummary, {
-    startDate: dateRange.startDate,
-    endDate: dateRange.endDate,
+  // TODO: Phase G - needs /api/v1/admin/users route
+  const { data: users } = useQuery({
+    queryKey: ["admin", "users"],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/admin/users");
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data ?? [];
+    },
+  });
+
+  // TODO: Phase G - needs /api/v1/admin/usage-summary route
+  const { data: usageSummary } = useQuery({
+    queryKey: [
+      "admin",
+      "usage-summary",
+      dateRange.startDate,
+      dateRange.endDate,
+    ],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/v1/admin/usage-summary?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
+      );
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data ?? [];
+    },
   });
 
   // Stabilize callback to prevent column recreation
   const handleToggleAdmin = useCallback(
-    async (userId: Id<"users">, isAdmin: boolean) => {
+    async (userId: string, isAdmin: boolean) => {
       try {
-        await updateRole({ userId, isAdmin });
+        // TODO: Phase G - needs /api/v1/admin/users/:id/role route
+        const res = await fetch(`/api/v1/admin/users/${userId}/role`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isAdmin }),
+        });
+        if (!res.ok) throw new Error("Failed to update role");
         toast.success(isAdmin ? "Admin role granted" : "Admin role revoked");
       } catch (error: any) {
         toast.error(error.message || "Failed to update role");
       }
     },
-    [updateRole],
+    [],
   );
 
   const handleUpdateTier = useCallback(
-    async (userId: Id<"users">, tier: "free" | "tier1" | "tier2") => {
+    async (userId: string, tier: "free" | "tier1" | "tier2") => {
       try {
-        await updateTier({ userId, tier });
+        // TODO: Phase G - needs /api/v1/admin/users/:id/tier route
+        const res = await fetch(`/api/v1/admin/users/${userId}/tier`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tier }),
+        });
+        if (!res.ok) throw new Error("Failed to update tier");
         toast.success(`User tier updated to ${tier}`);
       } catch (error: any) {
         toast.error(error.message || "Failed to update tier");
       }
     },
-    [updateTier],
+    [],
   );
 
   // Merge users with usage data - MUST be memoized to prevent infinite re-renders

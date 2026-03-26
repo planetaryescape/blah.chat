@@ -1,7 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import {
   DollarSign,
   Loader2,
@@ -68,29 +67,75 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 export default function UsagePage() {
   const [dateRange, setDateRange] = useState(() => getLastNDays(30));
 
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const monthlyTotal = useQuery(api.usage.queries.getAllUsersMonthlyTotal);
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const dailySpend = useQuery(api.usage.queries.getAllUsersDailySpend, {
-    days: 30,
-  });
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const spendByModel = useQuery(api.usage.queries.getAllUsersSpendByModel, {
-    days: 30,
-  });
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const conversationCosts = useQuery(
-    api.usage.queries.getAllUsersConversationCosts,
-    {
-      limit: 10,
+  // TODO: Phase G - needs admin usage REST routes
+  const { data: monthlyTotal } = useQuery({
+    queryKey: ["admin", "usage", "monthly-total"],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/admin/usage/monthly-total");
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data ?? null;
     },
-  );
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const userCount = useQuery(api.admin.getUserCount);
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const costByFeature = useQuery(api.usage.queries.getAllUsersCostByFeature, {
-    startDate: dateRange.startDate,
-    endDate: dateRange.endDate,
+  });
+
+  const { data: dailySpend } = useQuery({
+    queryKey: ["admin", "usage", "daily-spend"],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/admin/usage/daily-spend?days=30");
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data ?? null;
+    },
+  });
+
+  const { data: spendByModel } = useQuery({
+    queryKey: ["admin", "usage", "spend-by-model"],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/admin/usage/spend-by-model?days=30");
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data ?? null;
+    },
+  });
+
+  const { data: conversationCosts } = useQuery({
+    queryKey: ["admin", "usage", "conversation-costs"],
+    queryFn: async () => {
+      const res = await fetch(
+        "/api/v1/admin/usage/conversation-costs?limit=10",
+      );
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data ?? null;
+    },
+  });
+
+  const { data: userCount } = useQuery({
+    queryKey: ["admin", "user-count"],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/admin/user-count");
+      if (!res.ok) return 0;
+      const json = await res.json();
+      return json.data ?? 0;
+    },
+  });
+
+  const { data: costByFeature } = useQuery({
+    queryKey: [
+      "admin",
+      "usage",
+      "cost-by-feature",
+      dateRange.startDate,
+      dateRange.endDate,
+    ],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/v1/admin/usage/cost-by-feature?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
+      );
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data ?? null;
+    },
   });
 
   if (
@@ -112,8 +157,8 @@ export default function UsagePage() {
   // Feature breakdown data
   const featureData = costByFeature
     ? Object.entries(costByFeature)
-        .filter(([_, data]) => data.total > 0)
-        .map(([feature, data]) => ({
+        .filter(([_, data]: [string, any]) => data.total > 0)
+        .map(([feature, data]: [string, any]) => ({
           name: FEATURE_LABELS[feature] || feature,
           key: feature,
           value: data.total,

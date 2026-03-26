@@ -1,10 +1,9 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
   createTriggerClient,
   parsePersistenceEnv,
   type TriggerRetrieveRunResponse,
 } from "@blah-chat/persistence-postgres";
-import { fetchQuery } from "convex/nextjs";
+
 import type { NextRequest } from "next/server";
 import { getJobById } from "@/lib/api/dal/jobs";
 import { withAuth } from "@/lib/api/middleware/auth";
@@ -114,7 +113,7 @@ async function handler(
     }
   }
 
-  const job = await getJobById(fetchQuery, id as Id<"jobs">);
+  const job = await getJobById(null as any, id as string);
 
   if (!job) {
     logger.warn({ userId, jobId: id }, "Job not found");

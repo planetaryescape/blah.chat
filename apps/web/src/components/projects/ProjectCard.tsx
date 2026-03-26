@@ -1,6 +1,5 @@
 "use client";
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { formatDistanceToNow } from "date-fns";
 import {
   ArrowUpRight,
@@ -23,7 +22,7 @@ import { ProjectStats } from "./ProjectStats";
 
 interface ProjectCardProps {
   project: {
-    _id: Id<"projects">;
+    _id: string;
     name: string;
     description?: string;
     systemPrompt?: string;
@@ -31,8 +30,8 @@ interface ProjectCardProps {
     updatedAt: number;
   };
   onEdit?: (project: any) => void;
-  onDelete?: (id: Id<"projects">) => void;
-  onManage?: (id: Id<"projects">, name: string) => void;
+  onDelete?: (id: string) => void;
+  onManage?: (id: string, name: string) => void;
 }
 
 export function ProjectCard({

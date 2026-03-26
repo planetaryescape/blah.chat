@@ -7,9 +7,8 @@
  * After Clerk authentication, generates an API key and redirects to CLI's local callback.
  */
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import { useAuth } from "@clerk/nextjs";
-import { useMutation } from "convex/react";
+
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 
@@ -19,8 +18,14 @@ function CLILoginContent() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [redirecting, setRedirecting] = useState(false);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
-  const createCliKey = useMutation(api.cliAuth.create);
+
+  // TODO: Phase G - needs /api/v1/cli/auth REST route
+  const createCliKey = async () => {
+    const res = await fetch("/api/v1/cli/auth", { method: "POST" });
+    if (!res.ok) throw new Error("Failed to create API key");
+    const json = await res.json();
+    return json.data;
+  };
   const hasRun = useRef(false);
 
   const callbackUrl = searchParams.get("callback");

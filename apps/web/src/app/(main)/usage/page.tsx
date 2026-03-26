@@ -1,7 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Bookmark,
   Calendar,
@@ -92,45 +91,63 @@ function UsagePageContent() {
   const [dateRange, setDateRange] = useState(() => getLastNDays(30));
   const showTasks = useUserPreference("showTasks");
 
-  // Fetch all user data
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const usageSummary = useQuery(api.usage.queries.getUsageSummary, {
-    startDate: dateRange.startDate,
-    endDate: dateRange.endDate,
+  // TODO: Phase G - needs /api/v1/usage/* REST routes
+  const fetchUsage = async (path: string, params?: Record<string, string>) => {
+    const qs = params ? `?${new URLSearchParams(params).toString()}` : "";
+    const res = await fetch(`/api/v1/usage/${path}${qs}`);
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.data ?? null;
+  };
+
+  const dp = { startDate: dateRange.startDate, endDate: dateRange.endDate };
+  const { data: usageSummary } = useQuery({
+    queryKey: ["usage", "summary", dp],
+    queryFn: () => fetchUsage("summary", dp),
   });
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const dailySpend = useQuery(api.usage.queries.getDailySpend, { days: 30 });
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const spendByModel = useQuery(api.usage.queries.getSpendByModelDetailed, {
-    startDate: dateRange.startDate,
-    endDate: dateRange.endDate,
+  const { data: dailySpend } = useQuery({
+    queryKey: ["usage", "daily-spend"],
+    queryFn: () => fetchUsage("daily-spend", { days: "30" }),
   });
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const costByType = useQuery(api.usage.queries.getCostByType, {
-    startDate: dateRange.startDate,
-    endDate: dateRange.endDate,
+  const { data: spendByModel } = useQuery({
+    queryKey: ["usage", "spend-by-model", dp],
+    queryFn: () => fetchUsage("spend-by-model-detailed", dp),
   });
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const costByFeature = useQuery(api.usage.queries.getCostByFeature, {
-    startDate: dateRange.startDate,
-    endDate: dateRange.endDate,
+  const { data: costByType } = useQuery({
+    queryKey: ["usage", "cost-by-type", dp],
+    queryFn: () => fetchUsage("cost-by-type", dp),
   });
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const activityStats = useQuery(api.usage.queries.getActivityStats);
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const totalCounts = useQuery(api.usage.queries.getTotalCounts);
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const streakStats = useQuery(api.usage.queries.getStreakStats);
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const heatmapData = useQuery(api.usage.queries.getActivityHeatmap);
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const percentileRanking = useQuery(api.usage.queries.getPercentileRanking);
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const actionStats = useQuery(api.usage.queries.getActionStats);
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const byokBreakdown = useQuery(api.usage.queries.getByokBreakdown, {
-    startDate: dateRange.startDate,
-    endDate: dateRange.endDate,
+  const { data: costByFeature } = useQuery({
+    queryKey: ["usage", "cost-by-feature", dp],
+    queryFn: () => fetchUsage("cost-by-feature", dp),
+  });
+  const { data: activityStats } = useQuery({
+    queryKey: ["usage", "activity-stats"],
+    queryFn: () => fetchUsage("activity-stats"),
+  });
+  const { data: totalCounts } = useQuery({
+    queryKey: ["usage", "total-counts"],
+    queryFn: () => fetchUsage("total-counts"),
+  });
+  const { data: streakStats } = useQuery({
+    queryKey: ["usage", "streaks"],
+    queryFn: () => fetchUsage("streaks"),
+  });
+  const { data: heatmapData } = useQuery({
+    queryKey: ["usage", "heatmap"],
+    queryFn: () => fetchUsage("heatmap"),
+  });
+  const { data: percentileRanking } = useQuery({
+    queryKey: ["usage", "percentile"],
+    queryFn: () => fetchUsage("percentile-ranking"),
+  });
+  const { data: actionStats } = useQuery({
+    queryKey: ["usage", "action-stats"],
+    queryFn: () => fetchUsage("action-stats"),
+  });
+  const { data: byokBreakdown } = useQuery({
+    queryKey: ["usage", "byok-breakdown", dp],
+    queryFn: () => fetchUsage("byok-breakdown", dp),
   });
 
   const isLoading =
@@ -163,8 +180,8 @@ function UsagePageContent() {
   // Feature breakdown data
   const featureData = costByFeature
     ? Object.entries(costByFeature)
-        .filter(([_, data]) => data.total > 0)
-        .map(([feature, data]) => ({
+        .filter(([_, data]: [string, any]) => data.total > 0)
+        .map(([feature, data]: [string, any]) => ({
           name: FEATURE_LABELS[feature] || feature,
           key: feature,
           value: data.total,
@@ -179,7 +196,7 @@ function UsagePageContent() {
     : [];
 
   const modelPieData =
-    spendByModel?.slice(0, 6).map((m) => ({
+    spendByModel?.slice(0, 6).map((m: any) => ({
       name: m.model.split(":").pop() || m.model,
       value: m.totalCost,
     })) || [];
@@ -407,7 +424,7 @@ function UsagePageContent() {
                         <div className="space-y-1">
                           {percentileRanking.modelRankings
                             .slice(0, 3)
-                            .map((m) => (
+                            .map((m: any) => (
                               <div
                                 key={m.model}
                                 className="flex justify-between text-xs"
@@ -577,7 +594,7 @@ function UsagePageContent() {
                               }
                               labelLine={{ strokeWidth: 1 }}
                             >
-                              {modelPieData.map((_, index) => (
+                              {modelPieData.map((_: any, index: number) => (
                                 <Cell
                                   key={`cell-${index}`}
                                   fill={COLORS[index % COLORS.length]}

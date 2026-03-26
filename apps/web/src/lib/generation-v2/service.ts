@@ -25,6 +25,7 @@ import {
 import type { GenerationEvent } from "@blah-chat/streaming-core";
 import { embedMany } from "ai";
 import { eq } from "drizzle-orm";
+import type { MetricsCollector } from "@/lib/observability/metrics";
 import { persistMessageSources } from "@/lib/persistence/sources";
 import { createGenerationV2Repository } from "./repository";
 import type {
@@ -142,6 +143,7 @@ export class GenerationV2Service {
       new Promise((resolve) => setTimeout(resolve, ms)),
     private readonly now: () => number = () => Date.now(),
     private readonly backgroundTasks: GenerationV2BackgroundTasks = {},
+    readonly _createMetricsCollector?: () => MetricsCollector,
   ) {
     this.repository = createGenerationV2Repository(db);
   }
@@ -184,6 +186,8 @@ export class GenerationV2Service {
       throw new Error("Generation request not found");
     }
 
+    const collector = this._createMetricsCollector?.();
+
     await this.store.setRequestStatus(requestId, "running");
     await this.repository.updateRequestStatus(requestId, "running");
 
@@ -193,6 +197,7 @@ export class GenerationV2Service {
           bundle,
           session,
           promptMessages: mapPromptMessages(bundle.promptMessages),
+          collector,
         }),
       ),
     );
@@ -204,6 +209,8 @@ export class GenerationV2Service {
       await this.queueModelFitIfNeeded(bundle);
       await this.queueAutoTitleIfNeeded(bundle.conversationId);
     }
+
+    await collector?.flush(bundle.userId);
 
     return status;
   }
@@ -527,11 +534,14 @@ export class GenerationV2Service {
     bundle: PersistedRequestBundle;
     session: PersistedRequestBundle["sessions"][number];
     promptMessages: GenerationPromptMessage[];
+    collector?: MetricsCollector;
   }) {
-    const { bundle, session, promptMessages } = input;
+    const { bundle, session, promptMessages, collector } = input;
     const abortController = new AbortController();
     const sessionStartedAt = this.now();
+    const routerStartedAt = this.now();
     const resolvedRoute = await this.resolveSessionRoute({ bundle, session });
+    collector?.recordRouterLatency(this.now() - routerStartedAt);
     const resolvedModelId = resolvedRoute.selectedModelId;
     const resolvedSession = { ...session, modelId: resolvedModelId };
     let lastStopCheck = 0;
@@ -599,7 +609,10 @@ export class GenerationV2Service {
         signal: abortController.signal,
       })) {
         accumulated += delta;
-        firstTokenAt ??= this.now();
+        if (firstTokenAt === null) {
+          firstTokenAt = this.now();
+          collector?.recordTTFT(firstTokenAt - sessionStartedAt);
+        }
 
         await this.emit(bundle.requestId, {
           requestId: bundle.requestId,
@@ -663,6 +676,12 @@ export class GenerationV2Service {
         requestId: bundle.requestId,
         sessionId: session.sessionId,
       });
+      if (usage?.outputTokens) {
+        collector?.recordTokenRate(
+          usage.outputTokens,
+          Math.max(1, completedAt - sessionStartedAt),
+        );
+      }
       await this.repository.upsertRoutingOutcome({
         decisionId: routingDecision.id,
         requestId: bundle.requestId,
@@ -714,6 +733,11 @@ export class GenerationV2Service {
         return;
       }
 
+      collector?.recordProviderError(
+        providerFromModelId(resolvedModelId),
+        error instanceof Error ? error.message : String(error),
+        "unknown",
+      );
       await this.repository.updateSessionStatus(session.sessionId, "error");
       const erroredAt = this.now();
       await this.repository.upsertRoutingOutcome({

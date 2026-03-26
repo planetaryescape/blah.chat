@@ -1,18 +1,16 @@
 import "server-only";
 
-// TODO: needs Postgres job orchestration
-// All functions below use stub implementations until job system migration is complete.
-
+import {
+  createTriggerClient,
+  parsePersistenceEnv,
+} from "@blah-chat/persistence-postgres";
 import { z } from "zod";
 
-type FetchMutation = any;
-type FetchQuery = any;
+function getTrigger() {
+  const env = parsePersistenceEnv(process.env);
+  return createTriggerClient(env);
+}
 
-// Stub references - these will be replaced when job system moves to Postgres
-const internal: any = {};
-const api: any = { jobs: { crud: { getById: null, listRecent: null } } };
-
-// Validation schemas for each job type
 export const searchInputSchema = z.object({
   query: z.string().min(1).max(500),
   conversationId: z.string().optional(),
@@ -29,148 +27,97 @@ export const extractMemoriesInputSchema = z.object({
 export const transcribeInputSchema = z.object({
   storageId: z.string(),
   model: z.enum(["whisper-1", "whisper-large-v3"]).optional(),
+  mimeType: z.string().optional(),
 });
 
 export const embedFileInputSchema = z.object({
   fileId: z.string(),
 });
 
-/**
- * Create search job and schedule execution
- */
 export async function createSearchJob(
-  convexMutation: FetchMutation,
-  userId: string,
+  _userId: string,
   input: z.infer<typeof searchInputSchema>,
 ) {
   const validated = searchInputSchema.parse(input);
-
-  // Create job
-  // @ts-ignore - stub type
-  const jobId = (await convexMutation(internal.jobs.crud.create as any, {
-    userId,
-    type: "search" as const,
-    input: validated,
-    metadata: {
-      conversationId: validated.conversationId
-        ? (validated.conversationId as string)
-        : undefined,
-    },
-  })) as string;
-
-  // Schedule execution (non-blocking)
-  await convexMutation(internal.jobs.actions.executeSearch as any, {
-    jobId,
+  const trigger = getTrigger();
+  const run = await trigger.triggerTask("hybrid-search", {
     query: validated.query,
-    conversationId: validated.conversationId
-      ? (validated.conversationId as string)
-      : undefined,
+    conversationId: validated.conversationId,
     limit: validated.limit,
     dateFrom: validated.dateFrom,
     dateTo: validated.dateTo,
-    messageType: validated.messageType as "user" | "assistant" | undefined,
+    messageType: validated.messageType,
   });
-
-  return jobId;
+  return run.id ?? "unknown";
 }
 
-/**
- * Create memory extraction job and schedule execution
- */
 export async function createExtractMemoriesJob(
-  convexMutation: FetchMutation,
-  userId: string,
+  _userId: string,
   input: z.infer<typeof extractMemoriesInputSchema>,
 ) {
   const validated = extractMemoriesInputSchema.parse(input);
-
-  const jobId = (await convexMutation(internal.jobs.crud.create as any, {
-    userId,
-    type: "extractMemories" as const,
-    input: validated,
-    metadata: {
-      conversationId: validated.conversationId as string,
-    },
-  })) as string;
-
-  await convexMutation(internal.jobs.actions.executeExtractMemories as any, {
-    jobId,
-    conversationId: validated.conversationId as string,
+  const trigger = getTrigger();
+  const run = await trigger.triggerTask("extract-memories", {
+    conversationId: validated.conversationId,
   });
-
-  return jobId;
+  return run.id ?? "unknown";
 }
 
-/**
- * Create transcription job and schedule execution
- */
 export async function createTranscribeJob(
-  convexMutation: FetchMutation,
-  userId: string,
+  _userId: string,
   input: z.infer<typeof transcribeInputSchema>,
 ) {
   const validated = transcribeInputSchema.parse(input);
-
-  const jobId = (await convexMutation(internal.jobs.crud.create as any, {
-    userId,
-    type: "transcribe" as const,
-    input: validated,
-  })) as string;
-
-  await convexMutation(internal.jobs.actions.executeTranscribe as any, {
-    jobId,
-    storageId: validated.storageId as string,
+  const trigger = getTrigger();
+  const run = await trigger.triggerTask("transcribe", {
+    storageId: validated.storageId,
     model: validated.model,
+    mimeType: validated.mimeType,
   });
-
-  return jobId;
+  return run.id ?? "unknown";
 }
 
-/**
- * Create file embeddings job and schedule execution (Tier 2)
- */
 export async function createEmbedFileJob(
-  convexMutation: FetchMutation,
-  userId: string,
+  _userId: string,
   input: z.infer<typeof embedFileInputSchema>,
 ) {
   const validated = embedFileInputSchema.parse(input);
-
-  const jobId = (await convexMutation(internal.jobs.crud.create as any, {
-    userId,
-    type: "embedFile" as const,
-    input: validated,
-    metadata: {
-      fileId: validated.fileId as string,
-    },
-  })) as string;
-
-  await convexMutation(internal.jobs.actions.executeEmbedFile as any, {
-    jobId,
-    fileId: validated.fileId as string,
+  const trigger = getTrigger();
+  const run = await trigger.triggerTask("embed-file", {
+    fileId: validated.fileId,
   });
-
-  return jobId;
+  return run.id ?? "unknown";
 }
 
-/**
- * Get job by ID (verify ownership)
- */
-export async function getJobById(convexQuery: FetchQuery, jobId: string) {
-  // @ts-ignore - stub type
-  return convexQuery(api.jobs.crud.getById, { id: jobId });
+export async function getJobById(jobId: string) {
+  const trigger = getTrigger();
+  try {
+    const run = await trigger.retrieveRun(jobId);
+    return {
+      _id: jobId,
+      status: run.isCompleted
+        ? "completed"
+        : run.isFailed
+          ? "failed"
+          : run.isExecuting
+            ? "running"
+            : "pending",
+      result: run.output,
+      error: run.error
+        ? { message: run.error.message ?? "Unknown error" }
+        : undefined,
+    };
+  } catch {
+    return null;
+  }
 }
 
-/**
- * List recent jobs
- */
-export async function listRecentJobs(
-  convexQuery: FetchQuery,
-  options?: { limit?: number; type?: string; status?: string },
-) {
-  return convexQuery(api.jobs.crud.listRecent, {
-    limit: options?.limit,
-    type: options?.type as any,
-    status: options?.status as any,
-  });
+export async function listRecentJobs(options?: {
+  limit?: number;
+  type?: string;
+  status?: string;
+}) {
+  const trigger = getTrigger();
+  const result = await trigger.ping();
+  return result.data ?? [];
 }

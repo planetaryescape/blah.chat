@@ -168,7 +168,6 @@
         "@blah-chat/ai": "workspace:*",
         "@blah-chat/api-client": "workspace:*",
         "@blah-chat/auto-router": "workspace:*",
-        "@blah-chat/byod-schema": "workspace:*",
         "@blah-chat/chat-ui-core": "workspace:*",
         "@blah-chat/persistence-postgres": "workspace:*",
         "@blah-chat/shared": "workspace:*",

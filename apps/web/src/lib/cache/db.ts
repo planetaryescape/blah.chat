@@ -10,7 +10,7 @@ export interface CachedPreferences {
 
 /**
  * Local IndexedDB cache for instant reads.
- * Synced from Convex subscriptions, enables offline access.
+ * Synced from REST API, enables offline access.
  */
 class BlahChatCache extends Dexie {
   conversations!: Table<any>;

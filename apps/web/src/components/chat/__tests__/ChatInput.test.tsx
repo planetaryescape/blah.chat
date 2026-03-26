@@ -2,13 +2,6 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock Convex hooks BEFORE importing component
-vi.mock("convex/react", () => ({
-  useQuery: vi.fn(() => null),
-  useMutation: vi.fn(() => vi.fn()),
-  useAction: vi.fn(() => vi.fn()),
-}));
-
 // Mock the send message hook
 const mockSendMessage = vi.fn();
 vi.mock("@/lib/hooks/mutations", () => ({

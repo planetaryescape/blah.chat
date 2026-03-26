@@ -1,7 +1,7 @@
 /**
  * Data Access Layer (DAL)
  *
- * Centralized access to Convex queries/mutations.
+ * Centralized data access layer.
  * Provides server-side data operations with ownership verification.
  */
 

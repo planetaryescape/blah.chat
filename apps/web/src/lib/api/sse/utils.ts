@@ -122,7 +122,7 @@ export function formatSSEEvent(event: string, data: unknown): string {
 /**
  * Create polling interval with error handling
  *
- * Used by SSE endpoints to poll Convex for updates.
+ * Used by SSE endpoints to poll the database for updates.
  *
  * @param pollFn - Async function to poll
  * @param send - SSE send function

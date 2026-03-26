@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { osisToDisplay } from "@/lib/bible/utils";
 import { formatEntity, formatErrorEntity } from "@/lib/utils/formatEntity";
 
-// Simple in-memory cache for bible verses (replaces Convex cache)
+// Simple in-memory cache for bible verses (replaces old cache)
 // TODO: Phase 15 - migrate to Postgres or Redis cache
 const verseCache = new Map<
   string,

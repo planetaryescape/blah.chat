@@ -17,11 +17,6 @@ const {
   mockUseMutation: vi.fn(),
 }));
 
-vi.mock("convex/react", () => ({
-  useAction: (...args: unknown[]) => mockUseAction(...args),
-  useMutation: (...args: unknown[]) => mockUseMutation(...args),
-}));
-
 vi.mock("@/lib/api/client", () => ({
   useApiClient: () => ({
     delete: mockDelete,

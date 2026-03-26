@@ -56,26 +56,4 @@ describe("withAuth middleware", () => {
     expect(res.status).toBe(200);
     expect(inner).toHaveBeenCalledTimes(1);
   });
-
-  it("legacy convex auth still returns a session token", async () => {
-    authMock.mockResolvedValue({
-      userId: "user_123",
-      getToken: vi.fn().mockResolvedValue("convex_token"),
-    });
-
-    const { withLegacyConvexAuth } = await import("../auth");
-    const inner = vi.fn(async (_req, ctx) => {
-      expect(ctx.userId).toBe("user_123");
-      expect(ctx.sessionToken).toBe("convex_token");
-      return new Response("ok", { status: 200 });
-    });
-
-    const handler = withLegacyConvexAuth(inner);
-    const res = await handler(new Request("http://localhost/api") as any, {
-      params: Promise.resolve({}),
-    });
-
-    expect(res.status).toBe(200);
-    expect(inner).toHaveBeenCalledTimes(1);
-  });
 });

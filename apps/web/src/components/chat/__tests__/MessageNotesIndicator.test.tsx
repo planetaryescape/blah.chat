@@ -3,10 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const useQueryMock = vi.fn();
 
-vi.mock("convex/react", () => ({
-  useQuery: (...args: unknown[]) => useQueryMock(...args),
-}));
-
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: vi.fn(),

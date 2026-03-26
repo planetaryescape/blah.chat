@@ -151,6 +151,97 @@ export async function initiateComposioConnection(
   };
 }
 
+export async function verifyComposioConnection(
+  clerkUserId: string,
+  input: {
+    composioConnectionId: string;
+    state?: string | null;
+  },
+): Promise<{ status: string; error?: string }> {
+  const db = getPersistenceDb();
+  const user = await ensureCurrentPersistenceUser(clerkUserId);
+
+  const connection = await db.query.composioConnections.findFirst({
+    where: eq(
+      composioConnections.composioConnectionId,
+      input.composioConnectionId,
+    ),
+  });
+
+  if (!connection) {
+    throw new Error("Connection not found");
+  }
+
+  if (connection.userId !== user.id) {
+    throw new Error("Unauthorized: Connection belongs to another user");
+  }
+
+  // CSRF state validation
+  if (connection.oauthState) {
+    if (!input.state) {
+      throw new Error("Missing state parameter");
+    }
+    if (input.state !== connection.oauthState) {
+      throw new Error("Invalid state parameter - possible CSRF attack");
+    }
+    if (
+      connection.oauthStateExpiresAt &&
+      Date.now() > connection.oauthStateExpiresAt
+    ) {
+      throw new Error("OAuth state expired - please try again");
+    }
+  }
+
+  const composio = getComposioClient();
+
+  try {
+    const composioConnection = await composio.connectedAccounts.get(
+      input.composioConnectionId,
+    );
+
+    if (composioConnection.status === "ACTIVE") {
+      await db
+        .update(composioConnections)
+        .set({
+          status: "active",
+          connectedAt: Date.now(),
+          lastError: null,
+          updatedAt: Date.now(),
+        })
+        .where(eq(composioConnections.id, connection.id));
+      return { status: "active" };
+    }
+
+    const status =
+      composioConnection.status === "INITIATED" ? "initiated" : "failed";
+    await db
+      .update(composioConnections)
+      .set({
+        status,
+        lastError:
+          composioConnection.status === "FAILED" ? "OAuth flow failed" : null,
+        updatedAt: Date.now(),
+      })
+      .where(eq(composioConnections.id, connection.id));
+
+    return { status };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+
+    await db
+      .update(composioConnections)
+      .set({
+        status: "failed",
+        lastError: errorMessage,
+        updatedAt: Date.now(),
+      })
+      .where(eq(composioConnections.id, connection.id));
+
+    return { status: "failed", error: errorMessage };
+  }
+}
+
 export async function revokeComposioConnection(
   clerkUserId: string,
   input: { integrationId: string },

@@ -122,7 +122,7 @@ function ChatPageContent({
   const features = useFeatureToggles();
 
   // Token usage query (needed before model selection for blocking)
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  // TODO: token usage query needs REST endpoint
   const tokenUsage = undefined;
 
   // State for model switch blocking

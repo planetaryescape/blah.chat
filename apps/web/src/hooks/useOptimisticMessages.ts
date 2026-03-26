@@ -19,7 +19,7 @@ interface UseOptimisticMessagesReturn {
  * Time windows for matching optimistic user messages to server-confirmed ones.
  *
  * NOTE: Only USER messages are optimistic. Server creates assistant messages
- * synchronously (convex/chat.ts:188-205) so no client-side optimistic assistant
+ * synchronously (server-side) so no client-side optimistic assistant
  * messages exist.
  *
  * - MATCH_FUTURE_WINDOW_MS (10s): Allow server message to arrive after optimistic

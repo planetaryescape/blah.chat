@@ -14,7 +14,7 @@ interface DiffTrackerResult {
  * Use this to inform the LLM about user changes.
  *
  * @param editorRef - Ref to Monaco editor instance
- * @param document - Canvas document from Convex query
+ * @param document - Canvas document from database query
  */
 export function useCanvasDiffTracker(
   editorRef: React.RefObject<editor.IStandaloneCodeEditor | null>,

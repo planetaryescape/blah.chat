@@ -50,23 +50,4 @@ describe("api auth middleware", () => {
       }),
     ).rejects.toThrow("boom");
   });
-
-  it("withLegacyConvexAuth does not swallow handler errors", async () => {
-    vi.mocked(auth).mockResolvedValue({
-      userId: "user-1",
-      getToken: vi.fn().mockResolvedValue("convex-token"),
-    } as any);
-
-    const { withLegacyConvexAuth } = await import("./auth");
-    const handler = vi.fn(async () => {
-      throw new Error("boom");
-    });
-
-    const wrapped = withLegacyConvexAuth(handler as any);
-    await expect(
-      wrapped(new Request("https://example.com") as any, {
-        params: Promise.resolve({}),
-      }),
-    ).rejects.toThrow("boom");
-  });
 });

@@ -4,7 +4,7 @@
  * Pre-defined prompt templates that ship with the app.
  * These are seeded into the database on first run.
  *
- * Copied from @blah-chat/backend/convex/lib/prompts/templates/builtIn
+ * Originally from backend templates
  */
 
 export interface BuiltInTemplate {

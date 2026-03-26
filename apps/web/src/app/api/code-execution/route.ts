@@ -55,11 +55,11 @@ function getImagePayload(result: E2BResult) {
 
 /**
  * API Route for code execution using E2B
- * This is outside Convex to avoid ESM/CommonJS bundling conflicts
+ * Standalone route to avoid ESM/CommonJS bundling conflicts
  */
 export async function POST(request: NextRequest) {
-  // Check for internal Convex call header or verify user authentication
-  const isInternalCall = request.headers.get("X-Convex-Internal") === "true";
+  // Check for internal call header or verify user authentication
+  const isInternalCall = request.headers.get("X-Internal-Call") === "true";
   let authenticatedUserId: string | null = null;
 
   if (!isInternalCall) {

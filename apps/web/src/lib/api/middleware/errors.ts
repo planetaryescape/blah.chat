@@ -39,11 +39,11 @@ export function withErrorHandling(
         );
       }
 
-      // Handle Convex errors
+      // Handle API errors
       if (error instanceof Error) {
         const message = error.message;
 
-        // Parse common Convex error patterns
+        // Parse common API error patterns
         if (message.includes("not found")) {
           logger.warn({ error: message, url: req.url }, "Resource not found");
           return NextResponse.json(formatErrorEntity("Resource not found"), {

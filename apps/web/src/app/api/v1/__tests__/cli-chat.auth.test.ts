@@ -7,17 +7,9 @@ import { createGenerationV2Repository } from "@/lib/generation-v2/repository";
 import { createMockRequest, unwrapData } from "@/lib/test/api-helpers";
 import { createTestPersistenceDb } from "../../../../../../../packages/persistence-postgres/src/testing/pglite";
 
-const queryMock = vi.fn();
 const processMock = vi.fn();
 const streamToSseMock = vi.fn();
 let db: Awaited<ReturnType<typeof createTestPersistenceDb>>;
-
-vi.mock("@/lib/api/convex", () => ({
-  getConvexClient: vi.fn(() => ({
-    query: queryMock,
-    mutation: vi.fn(),
-  })),
-}));
 
 vi.mock("@/lib/persistence/server", () => ({
   getPersistenceDb: () => db,
@@ -84,20 +76,27 @@ describe("CLI chat API-key routes", () => {
         });
       },
     );
-    queryMock.mockResolvedValue({
-      userId: "convex_user_1",
-      clerkId: "clerk_cli_1",
-      email: "cli@example.com",
-      name: "CLI User",
-    });
   });
 
   it("sends, discovers, and streams a CLI generation request through Postgres routes", async () => {
+    const { createHash } = await import("node:crypto");
+    const { cliApiKeys } = await import("@blah-chat/persistence-postgres");
+
     const repo = createGenerationV2Repository(db);
     const user = await repo.upsertUser({
       clerkId: "clerk_cli_1",
       email: "cli@example.com",
       name: "CLI User",
+    });
+
+    // Seed an API key so apiKeyAuth middleware can validate it
+    const apiKey = "blah_valid";
+    await db.insert(cliApiKeys).values({
+      userId: user.id,
+      keyHash: createHash("sha256").update(apiKey).digest("hex"),
+      keyPrefix: apiKey.slice(0, 12),
+      name: "Test CLI Key",
+      createdAt: Date.now(),
     });
     const conversation = await createConversationRepository(db).create({
       userId: user.id,

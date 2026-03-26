@@ -8,7 +8,7 @@ export interface PaginatedItems<T> {
   };
 }
 
-export function fromConvexConversations<T>(items: T[]): PaginatedItems<T> {
+export function fromPaginatedConversations<T>(items: T[]): PaginatedItems<T> {
   return {
     items,
     pagination: {
@@ -35,7 +35,7 @@ export function fromHttpConversations<T>(data: {
   };
 }
 
-export function fromConvexMessages<T>(
+export function fromPaginatedMessages<T>(
   items: T[],
   hasNext: boolean,
 ): PaginatedItems<T> {

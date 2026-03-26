@@ -3,10 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const comparisonViewMock = vi.fn();
 
-vi.mock("convex/react", () => ({
-  useQuery: vi.fn(() => null),
-}));
-
 vi.mock("react-virtuoso", () => ({
   Virtuoso: ({
     data,

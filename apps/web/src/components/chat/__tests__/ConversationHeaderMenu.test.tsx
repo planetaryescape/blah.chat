@@ -51,13 +51,6 @@ vi.mock("@/hooks/useUserPreference", () => ({
   },
 }));
 
-vi.mock("convex/react", () => ({
-  useQuery: () => ({ _id: "user-123" }),
-  useMutation: () => mockUpdatePreferences,
-  useAction: () =>
-    vi.fn().mockResolvedValue({ conversationId: "new-conv-123" }),
-}));
-
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockRouterPush }),
 }));

@@ -11,11 +11,6 @@ export default defineConfig({
     include: ["src/**/*.test.{ts,tsx}"],
     exclude: ["node_modules", "e2e", ".next"],
     css: false, // Don't process CSS imports
-    server: {
-      deps: {
-        inline: ["convex-test"],
-      },
-    },
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],

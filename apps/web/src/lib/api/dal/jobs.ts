@@ -1,11 +1,7 @@
 import "server-only";
 
-// TODO: Phase G - migrate job DAL from Convex internal functions to Postgres
-// All functions below use stub implementations until REST/Postgres migration is complete.
-
-// TODO: Phase 15 - migrate job DAL from Convex internal functions to Postgres
-// This file still uses Convex internal mutations for job orchestration.
-// These are server-side only and deeply tied to the Convex job system.
+// TODO: needs Postgres job orchestration
+// All functions below use stub implementations until job system migration is complete.
 
 import { z } from "zod";
 
@@ -50,7 +46,7 @@ export async function createSearchJob(
   const validated = searchInputSchema.parse(input);
 
   // Create job
-  // @ts-ignore - Type depth exceeded with Convex internal functions
+  // @ts-ignore - stub type
   const jobId = (await convexMutation(internal.jobs.crud.create as any, {
     userId,
     type: "search" as const,
@@ -161,7 +157,7 @@ export async function createEmbedFileJob(
  * Get job by ID (verify ownership)
  */
 export async function getJobById(convexQuery: FetchQuery, jobId: string) {
-  // @ts-ignore - Type depth exceeded with Convex query
+  // @ts-ignore - stub type
   return convexQuery(api.jobs.crud.getById, { id: jobId });
 }
 

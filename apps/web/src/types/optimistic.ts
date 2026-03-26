@@ -27,7 +27,7 @@ export interface OptimisticMessage {
   comparisonGroupId?: string;
   createdAt: number;
   updatedAt: number;
-  _creationTime: number; // Convex system field - set to match server messages
+  _creationTime: number; // Legacy system field - set to match server messages
   _optimistic: true;
   // Optional fields from real messages (for type compatibility)
   partialContent?: string;

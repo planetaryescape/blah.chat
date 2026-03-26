@@ -50,7 +50,7 @@ describe("search auth with Clerk + Postgres", () => {
 
     db = await createTestPersistenceDb();
     getTokenMock = vi.fn(async () => {
-      throw new Error("Convex token should not be requested");
+      throw new Error("Token should not be requested");
     });
 
     authMock.mockResolvedValue({

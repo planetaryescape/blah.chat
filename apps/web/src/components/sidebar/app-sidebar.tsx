@@ -298,7 +298,7 @@ function useSidebarBulkActions(
 export function AppSidebar() {
   const [projectFilter, setProjectFilter] = useQueryState("project");
 
-  // Local-first: Convex syncs to Dexie, reads from cache (instant)
+  // Local-first: REST syncs to local cache, reads from cache (instant)
   const { conversations: rawConversations, isLoading: conversationsLoading } =
     useRestConversationSync((projectFilter as any) || undefined);
 

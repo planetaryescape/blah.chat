@@ -1,5 +1,7 @@
+import "server-only";
 import type { NextRequest } from "next/server";
-import { getConvexClient } from "@/lib/api/convex";
+import { cliChatDAL } from "@/lib/api/dal/cliChat";
+import type { ApiKeyAuthContext } from "@/lib/api/middleware/apiKeyAuth";
 import { withApiKeyAuth } from "@/lib/api/middleware/apiKeyAuth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import {
@@ -10,29 +12,19 @@ import {
 } from "@/lib/api/sse/utils";
 import logger from "@/lib/logger";
 
-async function handler(
-  req: NextRequest,
-  {
-    params,
-    apiKey,
-    user,
-  }: {
-    params: Promise<Record<string, string | string[]>>;
-    apiKey: string;
-    user: {
-      userId: string;
-      email: string;
-      name: string;
-    };
-  },
-) {
+async function handler(req: NextRequest, context: ApiKeyAuthContext) {
+  const { params, user } = context;
   const { conversationId } = (await params) as { conversationId: string };
-  const convex = getConvexClient();
+  const identity = {
+    clerkId: user.clerkId,
+    email: user.email,
+    name: user.name,
+  };
 
-  const initialMessages = (await (convex.query as any)("cliAuth:listMessages", {
-    apiKey,
+  const initialMessages = await cliChatDAL.listMessages(
+    identity,
     conversationId,
-  })) as any[] | null;
+  );
 
   if (!initialMessages) {
     return new Response("Not found", { status: 404 });
@@ -55,10 +47,10 @@ async function handler(
       async () => {
         if (isClosed()) return null;
 
-        const messages = (await (convex.query as any)("cliAuth:listMessages", {
-          apiKey,
+        const messages = await cliChatDAL.listMessages(
+          identity,
           conversationId,
-        })) as any[] | null;
+        );
 
         if (!messages) {
           return { messages: [] };

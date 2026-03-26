@@ -14,6 +14,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1.0,
     },
     // Future: Add dynamic /share/[id] pages when share feature is implemented
-    // Query Convex for public shares and add them here
+    // Query Postgres for public shares and add them here
   ];
 }

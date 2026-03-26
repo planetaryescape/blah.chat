@@ -14,7 +14,6 @@ import {
   buildTtsCacheObjectKey,
   uploadObject,
 } from "@blah-chat/persistence-postgres";
-// biome-ignore lint/style/useImportType: need runtime value
 import { ConvexHttpClient } from "convex/browser";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -238,7 +237,6 @@ async function main() {
       }
 
       // Resolve storage URL via Convex query
-      // biome-ignore lint/suspicious/noExplicitAny: convex dynamic query
       const storageUrl = await convex.query("storage:getUrl" as any, {
         storageId: entry.storageId,
       });

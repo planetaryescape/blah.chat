@@ -1,4 +1,3 @@
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import { type NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedConvexClient } from "@/lib/api/convex";
 import { withLegacyConvexAuth } from "@/lib/api/middleware/auth";
@@ -59,8 +58,7 @@ async function getHandler(req: NextRequest, context: AuthContext) {
 
     // Verify the connection with Composio (includes CSRF state validation)
     const result = (await (convex.action as any)(
-      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      api.composio.oauth.verifyConnection,
+      "composio/oauth:verifyConnection",
       { composioConnectionId: connectionId, state },
     )) as { status: string; error?: string };
 

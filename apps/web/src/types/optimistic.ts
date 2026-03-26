@@ -1,13 +1,11 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-
 /**
  * Optimistic message shown immediately when user sends message
  * Replaced by real server message when confirmed
  */
 export interface OptimisticMessage {
-  _id: Id<"messages"> | `temp-${string}`; // Support both real IDs and temp IDs
-  conversationId: Id<"conversations">;
-  userId?: Id<"users">;
+  _id: string | `temp-${string}`; // Support both real IDs and temp IDs
+  conversationId: string;
+  userId?: string;
   role: "user" | "assistant";
   content: string;
   clientMessageId?: string;
@@ -39,8 +37,8 @@ export interface OptimisticMessage {
   thinkingStartedAt?: number;
   thinkingCompletedAt?: number;
   error?: string;
-  parentMessageId?: Id<"messages">;
-  consolidatedMessageId?: Id<"messages">;
+  parentMessageId?: string;
+  consolidatedMessageId?: string;
   isConsolidation?: boolean;
   generationStartedAt?: number;
   generationCompletedAt?: number;
@@ -66,11 +64,11 @@ export interface FailedMessage extends OptimisticMessage {
  */
 export interface QueuedMessage {
   id: string;
-  conversationId: Id<"conversations">;
+  conversationId: string;
   content: string;
   modelId?: string;
   models?: string[];
-  parentMessageId?: Id<"messages">;
+  parentMessageId?: string;
   clientMessageId?: string;
   thinkingEffort?: "none" | "low" | "medium" | "high";
   attachments?: Array<{

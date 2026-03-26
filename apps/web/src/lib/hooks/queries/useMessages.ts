@@ -1,10 +1,9 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useQuery } from "@tanstack/react-query";
 import { useSDKClient } from "@/lib/api/sdkClient";
 import { fromHttpMessages } from "@/lib/transport/chat";
 
 export interface UseMessagesOptions {
-  conversationId: Id<"conversations">;
+  conversationId: string;
   page?: number;
   pageSize?: number;
 }

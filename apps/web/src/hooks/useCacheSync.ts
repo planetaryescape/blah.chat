@@ -1,13 +1,12 @@
 "use client";
 
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useQuery as useReactQuery } from "@tanstack/react-query";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useMemo, useRef } from "react";
 import { cache } from "@/lib/cache";
 
-type CachedMessage = Doc<"messages">;
-type CachedSource = Doc<"sources"> & {
+type CachedMessage = any;
+type CachedSource = any & {
   metadata?: {
     title?: string;
     description?: string;
@@ -19,8 +18,8 @@ type CachedSource = Doc<"sources"> & {
 };
 
 type MessageMetadataPayload = {
-  attachments: Doc<"attachments">[];
-  toolCalls: Doc<"toolCalls">[];
+  attachments: any[];
+  toolCalls: any[];
   sources: CachedSource[];
 };
 
@@ -83,7 +82,7 @@ function buildMessageMap(
 
 function collectPathFromActiveLeaf(
   byId: Map<string, CachedMessage>,
-  activeLeafMessageId: Id<"messages"> | string | undefined,
+  activeLeafMessageId: string | string | undefined,
   visited: Set<string>,
 ): CachedMessage[] {
   if (!activeLeafMessageId) return [];
@@ -159,7 +158,7 @@ function appendRemainingMessages(
 
 export function orderMessagesByActivePath(
   messages: CachedMessage[],
-  activeLeafMessageId?: Id<"messages"> | string,
+  activeLeafMessageId?: string | string,
 ): CachedMessage[] {
   if (messages.length <= 1) return messages;
 
@@ -184,7 +183,7 @@ export function orderMessagesByActivePath(
 
 export function getChildMessagesForParent(
   messages: CachedMessage[],
-  parentMessageId: Id<"messages"> | string,
+  parentMessageId: string | string,
 ): CachedMessage[] {
   const targetParentId = String(parentMessageId);
   const children = messages.filter((message) => {
@@ -196,7 +195,7 @@ export function getChildMessagesForParent(
     }
     return (
       Array.isArray(message.parentMessageIds) &&
-      message.parentMessageIds.some((id) => String(id) === targetParentId)
+      message.parentMessageIds.some((id: any) => String(id) === targetParentId)
     );
   });
 
@@ -215,8 +214,8 @@ export function getSiblingsForMessage(
     .sort(compareTreeOrder);
 }
 
-export function useMetadataCacheSync(messageIds: Id<"messages">[]) {
-  const prevIdsRef = useRef<Id<"messages">[]>([]);
+export function useMetadataCacheSync(messageIds: string[]) {
+  const prevIdsRef = useRef<string[]>([]);
   const stableIds = useMemo(() => {
     const changed =
       messageIds.length !== prevIdsRef.current.length ||
@@ -252,33 +251,31 @@ export function useMetadataCacheSync(messageIds: Id<"messages">[]) {
   }, [metadata]);
 }
 
-export function useCachedAttachments(messageId: Id<"messages"> | string) {
+export function useCachedAttachments(messageId: string | string) {
   return useLiveQuery(
     () => cache.attachments.where("messageId").equals(messageId).toArray(),
     [messageId],
-    [] as Doc<"attachments">[],
+    [] as any[],
   );
 }
 
-export function useCachedToolCalls(messageId: Id<"messages"> | string) {
+export function useCachedToolCalls(messageId: string | string) {
   return useLiveQuery(
     () => cache.toolCalls.where("messageId").equals(messageId).toArray(),
     [messageId],
-    [] as Doc<"toolCalls">[],
+    [] as any[],
   );
 }
 
-export function useCachedSources(messageId: Id<"messages"> | string) {
+export function useCachedSources(messageId: string | string) {
   return useLiveQuery(
     () => cache.sources.where("messageId").equals(messageId).toArray(),
     [messageId],
-    [] as Doc<"sources">[],
+    [] as any[],
   );
 }
 
-export function useCachedChildBranches(
-  parentMessageId: Id<"messages"> | string,
-) {
+export function useCachedChildBranches(parentMessageId: string | string) {
   return useLiveQuery(
     () =>
       cache.conversations
@@ -286,7 +283,7 @@ export function useCachedChildBranches(
         .equals(parentMessageId)
         .toArray(),
     [parentMessageId],
-    [] as Doc<"conversations">[],
+    [] as any[],
   );
 }
 
@@ -294,9 +291,7 @@ export function useCachedChildBranches(
  * P7 Tree Architecture: Get child messages (siblings in tree) for a message
  * Used for in-conversation branch navigation
  */
-export function useCachedChildMessages(
-  parentMessageId: Id<"messages"> | string,
-) {
+export function useCachedChildMessages(parentMessageId: string | string) {
   return useLiveQuery(
     async () => {
       const parentMessage = await cache.messages.get(parentMessageId);
@@ -315,7 +310,7 @@ export function useCachedChildMessages(
       return getChildMessagesForParent(conversationMessages, parentMessageId);
     },
     [parentMessageId],
-    [] as Doc<"messages">[],
+    [] as any[],
   );
 }
 
@@ -323,7 +318,7 @@ export function useCachedChildMessages(
  * P7 Tree Architecture: Get sibling messages (same parent) for a message
  * Used for branch switching UI
  */
-export function useCachedSiblings(messageId: Id<"messages"> | string) {
+export function useCachedSiblings(messageId: string | string) {
   return useLiveQuery(
     async () => {
       const message = await cache.messages.get(messageId);
@@ -337,6 +332,6 @@ export function useCachedSiblings(messageId: Id<"messages"> | string) {
       return getSiblingsForMessage(conversationMessages, message);
     },
     [messageId],
-    [] as Doc<"messages">[],
+    [] as any[],
   );
 }

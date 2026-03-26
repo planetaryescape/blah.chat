@@ -2,7 +2,6 @@
  * Test data factories
  * Uses EXISTING project types - does not create new ones
  */
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import type { ApiResponse } from "@/lib/api/types";
 import type { OptimisticMessage, QueuedMessage } from "@/types/optimistic";
 
@@ -90,11 +89,11 @@ export function createQueuedMessage(
 
 /**
  * Factory for test user (Convex document)
- * Uses existing Doc<"users"> type from convex/_generated/dataModel
+ * Uses existing any type from convex/_generated/dataModel
  */
 export function createTestUserData(
-  overrides: Partial<Omit<Doc<"users">, "_id" | "_creationTime">> = {},
-): Omit<Doc<"users">, "_id" | "_creationTime"> {
+  overrides: Partial<Omit<any, "_id" | "_creationTime">> = {},
+): Omit<any, "_id" | "_creationTime"> {
   const now = Date.now();
   return {
     clerkId: `clerk-${crypto.randomUUID()}`,
@@ -108,14 +107,12 @@ export function createTestUserData(
 
 /**
  * Factory for test conversation (Convex document)
- * Uses existing Doc<"conversations"> type
+ * Uses existing any type
  */
 export function createTestConversationData(
-  userId: Id<"users">,
-  overrides: Partial<
-    Omit<Doc<"conversations">, "_id" | "_creationTime" | "userId">
-  > = {},
-): Omit<Doc<"conversations">, "_id" | "_creationTime"> {
+  userId: string,
+  overrides: Partial<Omit<any, "_id" | "_creationTime" | "userId">> = {},
+): Omit<any, "_id" | "_creationTime"> {
   const now = Date.now();
   return {
     userId,
@@ -133,15 +130,15 @@ export function createTestConversationData(
 
 /**
  * Factory for test message (Convex document)
- * Uses existing Doc<"messages"> type
+ * Uses existing any type
  */
 export function createTestMessageData(
-  conversationId: Id<"conversations">,
-  userId: Id<"users">,
+  conversationId: string,
+  userId: string,
   overrides: Partial<
-    Omit<Doc<"messages">, "_id" | "_creationTime" | "conversationId" | "userId">
+    Omit<any, "_id" | "_creationTime" | "conversationId" | "userId">
   > = {},
-): Omit<Doc<"messages">, "_id" | "_creationTime"> {
+): Omit<any, "_id" | "_creationTime"> {
   const now = Date.now();
   return {
     conversationId,
@@ -174,14 +171,12 @@ export function createMockIdentity(
 
 /**
  * Factory for test usage record (Convex document)
- * Uses existing Doc<"usageRecords"> type
+ * Uses existing any type
  */
 export function createTestUsageRecordData(
-  userId: Id<"users">,
-  overrides: Partial<
-    Omit<Doc<"usageRecords">, "_id" | "_creationTime" | "userId">
-  > = {},
-): Omit<Doc<"usageRecords">, "_id" | "_creationTime"> {
+  userId: string,
+  overrides: Partial<Omit<any, "_id" | "_creationTime" | "userId">> = {},
+): Omit<any, "_id" | "_creationTime"> {
   return {
     userId,
     date: new Date().toISOString().split("T")[0],

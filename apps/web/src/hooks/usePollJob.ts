@@ -1,4 +1,3 @@
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
@@ -49,7 +48,7 @@ export function usePollJob<TResult = any>(
       }
 
       const envelope = await response.json();
-      return envelope.data as Doc<"jobs">;
+      return envelope.data as any;
     },
     enabled: enabled && !!jobId,
     refetchInterval: (query) => {

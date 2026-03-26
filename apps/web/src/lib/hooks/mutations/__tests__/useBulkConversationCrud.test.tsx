@@ -38,7 +38,6 @@ vi.mock("@/lib/cache", () => ({
   },
 }));
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useBulkConversationCrud } from "../useBulkConversationCrud";
 
 describe("useBulkConversationCrud", () => {
@@ -66,21 +65,18 @@ describe("useBulkConversationCrud", () => {
     const { result } = renderHook(() => useBulkConversationCrud());
 
     await result.current.deleteMany({
-      conversationIds: [
-        "conv-a" as Id<"conversations">,
-        "conv-b" as Id<"conversations">,
-      ],
+      conversationIds: ["conv-a" as string, "conv-b" as string],
     });
     await result.current.archiveMany({
-      conversationIds: ["conv-a" as Id<"conversations">],
+      conversationIds: ["conv-a" as string],
     });
     await result.current.autoRenameMany({
-      conversationIds: ["conv-d" as Id<"conversations">],
+      conversationIds: ["conv-d" as string],
     });
     await result.current.setPinned(
       [
         {
-          _id: "conv-b" as Id<"conversations">,
+          _id: "conv-b" as string,
           pinned: false,
         },
       ],
@@ -89,7 +85,7 @@ describe("useBulkConversationCrud", () => {
     await result.current.setStarred(
       [
         {
-          _id: "conv-c" as Id<"conversations">,
+          _id: "conv-c" as string,
           starred: false,
         },
       ],

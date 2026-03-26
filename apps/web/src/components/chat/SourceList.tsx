@@ -1,6 +1,5 @@
 "use client";
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -33,7 +32,7 @@ type SourceWithMetadata = {
 };
 
 interface SourceListProps {
-  messageId: Id<"messages">;
+  messageId: string;
   className?: string;
 }
 

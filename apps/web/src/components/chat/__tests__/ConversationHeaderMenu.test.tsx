@@ -95,16 +95,13 @@ vi.mock("@/components/sidebar/DeleteConversationDialog", () => ({
 }));
 
 // Import AFTER mocks
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { ConversationHeaderMenu } from "../ConversationHeaderMenu";
 
-const createConversation = (
-  overrides: Partial<Doc<"conversations">> = {},
-): Doc<"conversations"> =>
+const createConversation = (overrides: Partial<any> = {}): any =>
   ({
-    _id: "conv-123" as Id<"conversations">,
+    _id: "conv-123" as string,
     _creationTime: Date.now(),
-    userId: "user-123" as Id<"users">,
+    userId: "user-123" as string,
     title: "Test Conversation",
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -113,7 +110,7 @@ const createConversation = (
     starred: false,
     archived: false,
     ...overrides,
-  }) as Doc<"conversations">;
+  }) as any;
 
 describe("ConversationHeaderMenu", () => {
   beforeEach(() => {

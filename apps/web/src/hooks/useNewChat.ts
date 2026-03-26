@@ -1,6 +1,5 @@
 "use client";
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { analytics } from "@/lib/analytics";
@@ -30,7 +29,7 @@ export function useNewChat() {
   const { newChatModel } = useNewChatModel();
   const { findEmptyConversation, isLoading } = useEmptyConversationReuse();
 
-  const startNewChat = useCallback(async (): Promise<Id<"conversations">> => {
+  const startNewChat = useCallback(async (): Promise<string> => {
     // Check for reusable empty conversation
     const empty = findEmptyConversation();
 
@@ -47,7 +46,7 @@ export function useNewChat() {
     }
 
     // Create new conversation with user's preferred model
-    const conversation = await apiClient.post<{ _id: Id<"conversations"> }>(
+    const conversation = await apiClient.post<{ _id: string }>(
       "/api/v1/conversations",
       {
         model: newChatModel,

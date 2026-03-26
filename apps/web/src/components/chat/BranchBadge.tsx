@@ -1,6 +1,5 @@
 "use client";
 
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useLiveQuery } from "dexie-react-hooks";
 import { GitBranch } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +12,7 @@ import {
 import { cache } from "@/lib/cache";
 
 interface BranchBadgeProps {
-  conversationId: Id<"conversations">;
+  conversationId: string;
 }
 
 interface BranchSummary {
@@ -28,7 +27,7 @@ interface BranchSummary {
 
 export function summarizeBranches(
   messages: Array<
-    Pick<Doc<"messages">, "_id" | "content" | "createdAt" | "parentMessageIds">
+    Pick<any, "_id" | "content" | "createdAt" | "parentMessageIds">
   >,
 ): BranchSummary {
   const childCounts = new Map<string, number>();
@@ -73,7 +72,7 @@ export function BranchBadge({ conversationId }: BranchBadgeProps) {
             .equals(conversationId)
             .toArray(),
     [conversationId, isInvalidConversationId],
-    [] as Doc<"messages">[],
+    [] as any[],
   );
 
   const summary = summarizeBranches(messages);

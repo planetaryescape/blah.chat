@@ -1,6 +1,5 @@
 "use client";
 
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { Edit, Trash2 } from "lucide-react";
 import {
   DropdownMenuContent,
@@ -34,7 +33,7 @@ export function ConversationHeaderMenuContent({
   onToggleStar,
   onWidthChange,
 }: {
-  conversation: Doc<"conversations">;
+  conversation: any;
   copied: boolean;
   currentWidth: ChatWidth;
   isCompacting: boolean;

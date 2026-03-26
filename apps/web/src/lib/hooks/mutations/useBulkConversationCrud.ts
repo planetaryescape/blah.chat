@@ -1,19 +1,18 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useApiClient } from "@/lib/api/client";
 import { cache } from "@/lib/cache";
 
 interface BulkConversationArgs {
-  conversationIds: Id<"conversations">[];
+  conversationIds: string[];
 }
 
 interface BulkConversationState {
-  _id: Id<"conversations">;
+  _id: string;
   pinned?: boolean;
   starred?: boolean;
 }
 
 interface RestConversation {
-  _id: Id<"conversations">;
+  _id: string;
   updatedAt?: number;
   title?: string | null;
   pinned?: boolean;
@@ -22,8 +21,8 @@ interface RestConversation {
 }
 
 async function syncToggledConversations(
-  execute: (conversationId: Id<"conversations">) => Promise<RestConversation>,
-  conversationIds: Id<"conversations">[],
+  execute: (conversationId: string) => Promise<RestConversation>,
+  conversationIds: string[],
 ) {
   if (conversationIds.length === 0) {
     return [];

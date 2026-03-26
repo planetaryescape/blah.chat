@@ -1,6 +1,5 @@
 "use client";
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { Check, Copy, RefreshCw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useMediaQuery } from "usehooks-ts";
@@ -28,8 +27,8 @@ import { cn } from "@/lib/utils";
 import { MarkdownContent } from "./MarkdownContent";
 
 interface BranchComparisonSheetProps {
-  messageId: Id<"messages">;
-  conversationId: Id<"conversations">;
+  messageId: string;
+  conversationId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -64,13 +63,13 @@ export function BranchComparisonSheet({
   const displayedSiblings = sortedSiblings.slice(0, 4);
   const hasMoreSiblings = sortedSiblings.length > 4;
 
-  const handleSelectBranch = async (targetId: Id<"messages">) => {
+  const handleSelectBranch = async (targetId: string) => {
     if (targetId === activeSiblingId) return;
     await switchToBranch(targetId);
     onOpenChange(false);
   };
 
-  const handleRegenerate = async (msgId: Id<"messages">) => {
+  const handleRegenerate = async (msgId: string) => {
     await regenerate(msgId);
     onOpenChange(false);
   };

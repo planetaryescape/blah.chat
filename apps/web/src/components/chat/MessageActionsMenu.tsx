@@ -1,5 +1,4 @@
 "use client";
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { MoreHorizontal, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +19,7 @@ import { cache } from "@/lib/cache";
 import type { OptimisticMessage } from "@/types/optimistic";
 
 interface MessageActionsMenuProps {
-  message: Doc<"messages"> | OptimisticMessage;
+  message: any | OptimisticMessage;
   isGenerating: boolean;
   isUser: boolean;
 }
@@ -35,7 +34,7 @@ export function MessageActionsMenu({ message }: MessageActionsMenuProps) {
   if (isTempMessage) return null;
 
   const handleDelete = () => {
-    const messageId = message._id as Id<"messages">;
+    const messageId = message._id as string;
     const messageElement = document.querySelector(
       `[data-message-id="${messageId}"]`,
     );

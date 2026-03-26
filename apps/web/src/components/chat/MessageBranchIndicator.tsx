@@ -1,6 +1,5 @@
 "use client";
 
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { AnimatePresence, domAnimation, LazyMotion, m } from "framer-motion";
 import {
   ChevronDown,
@@ -26,8 +25,8 @@ import { useApiClient } from "@/lib/api/client";
 import { BranchComparisonSheet } from "./BranchComparisonSheet";
 
 interface MessageBranchIndicatorProps {
-  messageId: Id<"messages">;
-  conversationId: Id<"conversations">;
+  messageId: string;
+  conversationId: string;
 }
 
 /**
@@ -68,7 +67,7 @@ export function MessageBranchIndicator({
     return null;
   }
 
-  const handleSwitchToBranch = async (targetMessageId: Id<"messages">) => {
+  const handleSwitchToBranch = async (targetMessageId: string) => {
     try {
       await apiClient.post(
         `/api/v1/conversations/${conversationId}/switch-branch`,
@@ -191,7 +190,7 @@ export function MessageBranchIndicator({
                 >
                   <div className="mt-2 space-y-1 pl-2">
                     {/* Legacy conversation branches */}
-                    {childConversations?.map((branch: Doc<"conversations">) => (
+                    {childConversations?.map((branch: any) => (
                       <Button
                         key={branch._id}
                         variant="ghost"
@@ -225,7 +224,7 @@ export function MessageBranchIndicator({
                     {/* P7 Tree message branches */}
                     {childMessages
                       ?.filter((m) => !m.isActiveBranch)
-                      .map((branch: Doc<"messages">) => (
+                      .map((branch: any) => (
                         <Button
                           key={branch._id}
                           variant="ghost"

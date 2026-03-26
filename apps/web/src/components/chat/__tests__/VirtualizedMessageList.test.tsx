@@ -84,14 +84,13 @@ vi.mock("../DateSeparator", () => ({
   ),
 }));
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { VirtualizedMessageList } from "../VirtualizedMessageList";
 
 const now = 1_700_000_000_000;
 
 const baseMessage = {
-  conversationId: "conv-123" as Id<"conversations">,
-  userId: "user-123" as Id<"users">,
+  conversationId: "conv-123" as string,
+  userId: "user-123" as string,
   createdAt: now,
   updatedAt: now,
   _creationTime: now,
@@ -105,11 +104,11 @@ describe("VirtualizedMessageList", () => {
   it("renders only active-branch messages in the visible timeline", () => {
     render(
       <VirtualizedMessageList
-        conversationId={"conv-123" as Id<"conversations">}
+        conversationId={"conv-123" as string}
         messages={[
           {
             ...baseMessage,
-            _id: "msg-user" as Id<"messages">,
+            _id: "msg-user" as string,
             role: "user",
             content: "Active question",
             status: "complete",
@@ -117,7 +116,7 @@ describe("VirtualizedMessageList", () => {
           },
           {
             ...baseMessage,
-            _id: "msg-active" as Id<"messages">,
+            _id: "msg-active" as string,
             role: "assistant",
             content: "Active answer",
             status: "complete",
@@ -128,7 +127,7 @@ describe("VirtualizedMessageList", () => {
           },
           {
             ...baseMessage,
-            _id: "msg-inactive" as Id<"messages">,
+            _id: "msg-inactive" as string,
             role: "assistant",
             content: "Inactive branch answer",
             status: "complete",
@@ -152,11 +151,11 @@ describe("VirtualizedMessageList", () => {
   it("keeps inactive comparison siblings visible inside the comparison group", () => {
     render(
       <VirtualizedMessageList
-        conversationId={"conv-123" as Id<"conversations">}
+        conversationId={"conv-123" as string}
         messages={[
           {
             ...baseMessage,
-            _id: "msg-user" as Id<"messages">,
+            _id: "msg-user" as string,
             role: "user",
             content: "Compare these",
             status: "complete",
@@ -165,7 +164,7 @@ describe("VirtualizedMessageList", () => {
           },
           {
             ...baseMessage,
-            _id: "msg-active" as Id<"messages">,
+            _id: "msg-active" as string,
             role: "assistant",
             content: "Active model",
             status: "complete",
@@ -177,7 +176,7 @@ describe("VirtualizedMessageList", () => {
           },
           {
             ...baseMessage,
-            _id: "msg-inactive" as Id<"messages">,
+            _id: "msg-inactive" as string,
             role: "assistant",
             content: "Inactive model",
             status: "stopped",

@@ -1,4 +1,3 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { toast } from "sonner";
@@ -34,7 +33,7 @@ function dispatchGenerationStartedEvent(
 }
 
 interface SendMessageArgs {
-  conversationId: Id<"conversations">;
+  conversationId: string;
   content: string;
   modelId?: string;
   models?: string[];

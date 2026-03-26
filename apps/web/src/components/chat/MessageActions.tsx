@@ -1,6 +1,5 @@
 "use client";
 
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
   Check,
   Copy,
@@ -35,8 +34,8 @@ import { QuickModelSwitcher } from "./QuickModelSwitcher";
 import { TTSButton } from "./TTSButton";
 
 interface MessageActionsProps {
-  message: Doc<"messages"> | OptimisticMessage;
-  nextMessage?: Doc<"messages"> | OptimisticMessage;
+  message: any | OptimisticMessage;
+  nextMessage?: any | OptimisticMessage;
   readOnly?: boolean;
   onEdit?: () => void;
 }
@@ -139,7 +138,7 @@ export function MessageActions({
   const handleRegenerate = async (modelId?: string) => {
     try {
       await regenerate.mutateAsync({
-        messageId: message._id as Id<"messages">,
+        messageId: message._id as string,
         conversationId: message.conversationId,
         modelId,
       });
@@ -179,13 +178,13 @@ export function MessageActions({
           open={showCreateNote}
           onOpenChange={setShowCreateNote}
           initialContent={message.content || message.partialContent || ""}
-          sourceMessageId={message._id as Id<"messages">}
+          sourceMessageId={message._id as string}
           sourceConversationId={message.conversationId}
         />
 
         {features.showBookmarks && (
           <BookmarkButton
-            messageId={message._id as Id<"messages">}
+            messageId={message._id as string}
             conversationId={message.conversationId}
           />
         )}
@@ -257,7 +256,7 @@ export function MessageActions({
                       }
 
                       void regenerate.mutateAsync({
-                        messageId: nextMessage._id as Id<"messages">,
+                        messageId: nextMessage._id as string,
                         conversationId: message.conversationId,
                       });
                     }}
@@ -298,7 +297,7 @@ export function MessageActions({
             {/* Bookmark Button */}
             {features.showBookmarks && (
               <BookmarkButton
-                messageId={message._id as Id<"messages">}
+                messageId={message._id as string}
                 conversationId={message.conversationId}
               />
             )}
@@ -406,7 +405,7 @@ export function MessageActions({
         open={showCreateNote}
         onOpenChange={setShowCreateNote}
         initialContent={message.content || message.partialContent || ""}
-        sourceMessageId={message._id as Id<"messages">}
+        sourceMessageId={message._id as string}
         sourceConversationId={message.conversationId}
       />
     </>

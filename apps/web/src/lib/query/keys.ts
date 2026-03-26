@@ -1,15 +1,12 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-
 export const queryKeys = {
   conversations: {
     all: ["conversations"] as const,
     lists: () => [...queryKeys.conversations.all, "list"] as const,
-    detail: (id: Id<"conversations">) =>
-      [...queryKeys.conversations.all, id] as const,
+    detail: (id: string) => [...queryKeys.conversations.all, id] as const,
   },
   messages: {
     all: ["messages"] as const,
-    list: (conversationId: Id<"conversations">) =>
+    list: (conversationId: string) =>
       [...queryKeys.messages.all, conversationId] as const,
   },
   preferences: {

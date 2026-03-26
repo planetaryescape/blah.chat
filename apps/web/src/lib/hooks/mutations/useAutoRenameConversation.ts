@@ -1,15 +1,14 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApiClient } from "@/lib/api/client";
 import { cache } from "@/lib/cache";
 import { queryKeys } from "@/lib/query/keys";
 
 interface AutoRenameConversationArgs {
-  conversationId: Id<"conversations">;
+  conversationId: string;
 }
 
 interface AutoRenamedConversation {
-  _id: Id<"conversations">;
+  _id: string;
   title?: string | null;
   updatedAt?: number;
 }

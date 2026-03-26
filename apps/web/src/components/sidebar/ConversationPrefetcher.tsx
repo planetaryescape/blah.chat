@@ -1,32 +1,29 @@
 "use client";
 
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useEffect } from "react";
 import { cache } from "@/lib/cache";
 
-function extractConversation(
-  payload: unknown,
-): Doc<"conversations"> | undefined {
+function extractConversation(payload: unknown): any | undefined {
   if (
     payload &&
     typeof payload === "object" &&
     "data" in payload &&
     payload.data
   ) {
-    return payload.data as Doc<"conversations">;
+    return payload.data as any;
   }
 
   return undefined;
 }
 
-function extractMessages(payload: unknown): Doc<"messages">[] {
+function extractMessages(payload: unknown): any[] {
   if (!Array.isArray(payload)) {
     return [];
   }
 
   return payload.flatMap((item) =>
     item && typeof item === "object" && "data" in item && item.data
-      ? [item.data as Doc<"messages">]
+      ? [item.data as any]
       : [],
   );
 }
@@ -37,7 +34,7 @@ function extractMessages(payload: unknown): Doc<"messages">[] {
 export function ConversationPrefetcher({
   conversationId,
 }: {
-  conversationId: Id<"conversations">;
+  conversationId: string;
 }) {
   useEffect(() => {
     const controller = new AbortController();

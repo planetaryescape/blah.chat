@@ -1,6 +1,5 @@
 "use client";
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { Loader2, Paperclip } from "lucide-react";
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
@@ -19,7 +18,7 @@ interface Attachment {
 }
 
 interface FileUploadProps {
-  conversationId?: Id<"conversations">;
+  conversationId?: string;
   attachments: Attachment[];
   onAttachmentsChange: (attachments: Attachment[]) => void;
   onUploadComplete?: () => void;
@@ -32,7 +31,7 @@ type UploadApiClient = {
 
 async function uploadAttachmentFile(args: {
   apiClient: UploadApiClient;
-  conversationId: Id<"conversations">;
+  conversationId: string;
   file: File;
 }) {
   const { apiClient, conversationId, file } = args;

@@ -1,4 +1,4 @@
-// OS Platform (existing)
+// OS Platform
 export type Platform = "mac" | "windows" | "other";
 
 export function getPlatform(): Platform {
@@ -17,40 +17,24 @@ export function getModifierKey(): string {
 /**
  * Server-safe modifier key that returns "Ctrl" during SSR
  * and the correct platform-specific key on the client.
- * Use this to avoid hydration mismatches.
  */
 export function getServerSafeModifierKey(): string {
-  if (typeof window === "undefined") {
-    // During SSR, always return "Ctrl" to match initial hydration
-    return "Ctrl";
-  }
-
-  // On client, return the actual platform-specific key
+  if (typeof window === "undefined") return "Ctrl";
   return getPlatform() === "mac" ? "⌘" : "Ctrl";
 }
 
 // Device Platform (mobile vs web)
 export type DevicePlatform = "web" | "mobile";
-export type DataFetchingStrategy = "convex" | "sse" | "polling";
 
 let cachedDevicePlatform: DevicePlatform | null = null;
 
-/**
- * Detect if running on mobile device
- *
- * Detection hierarchy:
- * 1. User-agent (iPhone, Android, mobile browsers)
- * 2. Viewport width (< 768px)
- * 3. Touch capability
- */
 export function detectDevicePlatform(): DevicePlatform {
   if (cachedDevicePlatform) return cachedDevicePlatform;
 
   if (typeof window === "undefined") {
-    return "web"; // SSR fallback
+    return "web";
   }
 
-  // 1. User-agent detection
   const userAgent = navigator.userAgent.toLowerCase();
   const mobileKeywords = ["android", "iphone", "ipad", "ipod", "mobile"];
   const isMobileUA = mobileKeywords.some((keyword) =>
@@ -62,10 +46,7 @@ export function detectDevicePlatform(): DevicePlatform {
     return cachedDevicePlatform;
   }
 
-  // 2. Viewport detection (< 768px = mobile)
   const isMobileViewport = window.innerWidth < 768;
-
-  // 3. Touch capability
   const hasTouchScreen =
     "ontouchstart" in window || navigator.maxTouchPoints > 0;
 
@@ -78,63 +59,6 @@ export function detectDevicePlatform(): DevicePlatform {
   return cachedDevicePlatform;
 }
 
-/**
- * Determine data fetching strategy
- *
- * Post-cutover: all surfaces use SSE/REST (Postgres-backed).
- * Manual override via localStorage "blah_data_strategy" for rollback.
- *
- * Returns:
- * - "sse": Use Server-Sent Events + REST API (default for all surfaces)
- * - "polling": Use HTTP polling (fallback if SSE fails - handled in hooks)
- * - "convex": Legacy, only reachable via manual override for rollback
- */
-export function getDataFetchingStrategy(): DataFetchingStrategy {
-  return "sse";
-}
-
-/**
- * Check if should use SSE (mobile)
- */
-export function shouldUseSSE(): boolean {
-  return getDataFetchingStrategy() === "sse";
-}
-
-/**
- * Check if should use Convex WebSocket (web desktop)
- */
-export function shouldUseConvex(): boolean {
-  return getDataFetchingStrategy() === "convex";
-}
-
-/**
- * Manual override for testing
- * localStorage: "blah_data_strategy" = "convex" | "sse" | "polling"
- */
-export function getManualOverride(): DataFetchingStrategy | null {
-  if (typeof window === "undefined") return null;
-
-  const override = localStorage.getItem("blah_data_strategy");
-  if (override === "convex" || override === "sse" || override === "polling") {
-    return override;
-  }
-
-  return null;
-}
-
-/**
- * Get effective strategy with manual override support
- */
-export function getEffectiveStrategy(): DataFetchingStrategy {
-  const manualOverride = getManualOverride();
-  if (manualOverride) return manualOverride;
-
-  return getDataFetchingStrategy();
-}
-
-/**
- * Reset cached platform (useful for testing)
- */
 export function resetDevicePlatformCache(): void {
   cachedDevicePlatform = null;
 }

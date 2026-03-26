@@ -36,12 +36,11 @@ vi.mock("@/lib/analytics", () => ({
   analytics: { track: vi.fn() },
 }));
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 // Import AFTER mocks
 import { useConversationActions } from "../useConversationActions";
 
 describe("useConversationActions", () => {
-  const conversationId = "conv-123" as Id<"conversations">;
+  const conversationId = "conv-123" as string;
 
   beforeEach(() => {
     vi.clearAllMocks();

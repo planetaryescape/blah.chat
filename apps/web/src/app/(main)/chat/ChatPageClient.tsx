@@ -1,6 +1,5 @@
 "use client";
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef } from "react";
@@ -54,7 +53,7 @@ function ChatPageContent() {
 
       try {
         // Create new conversation
-        const conversation = await apiClient.post<{ _id: Id<"conversations"> }>(
+        const conversation = await apiClient.post<{ _id: string }>(
           "/api/v1/conversations",
           {
             model: newChatModel,

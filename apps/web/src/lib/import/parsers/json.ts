@@ -19,7 +19,7 @@ export function parseJSON(content: string): ImportResult {
       model: conv.model,
       systemPrompt: conv.systemPrompt,
       createdAt: conv.createdAt,
-      messages: conv.messages.map((msg) => ({
+      messages: conv.messages.map((msg: any) => ({
         role: msg.role,
         content: msg.content,
         createdAt: msg.createdAt,

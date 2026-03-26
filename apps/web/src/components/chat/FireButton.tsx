@@ -1,6 +1,5 @@
 "use client";
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { Flame } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -26,7 +25,7 @@ import { useDeleteConversation } from "@/lib/hooks/mutations";
 import { cn } from "@/lib/utils";
 
 interface FireButtonProps {
-  conversationId: Id<"conversations">;
+  conversationId: string;
   className?: string;
 }
 

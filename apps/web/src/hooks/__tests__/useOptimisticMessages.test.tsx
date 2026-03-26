@@ -1,18 +1,15 @@
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { OptimisticMessage } from "@/types/optimistic";
 import { useOptimisticMessages } from "../useOptimisticMessages";
 
-function createServerMessage(
-  overrides: Partial<Doc<"messages">> = {},
-): Doc<"messages"> {
+function createServerMessage(overrides: Partial<any> = {}): any {
   const now = Date.now();
   return {
-    _id: `msg-${crypto.randomUUID()}` as Id<"messages">,
+    _id: `msg-${crypto.randomUUID()}` as string,
     _creationTime: now,
-    conversationId: "conv-1" as Id<"conversations">,
-    userId: "user-1" as Id<"users">,
+    conversationId: "conv-1" as string,
+    userId: "user-1" as string,
     role: "user",
     content: "Test message",
     status: "complete",
@@ -26,13 +23,13 @@ describe("useOptimisticMessages", () => {
   it("orders user before assistant when createdAt timestamps tie", () => {
     const timestamp = 1_700_000_000_000;
     const userMessage = createServerMessage({
-      _id: "msg-user" as Id<"messages">,
+      _id: "msg-user" as string,
       role: "user",
       createdAt: timestamp,
       content: "Hello",
     });
     const assistantMessage = createServerMessage({
-      _id: "msg-assistant" as Id<"messages">,
+      _id: "msg-assistant" as string,
       role: "assistant",
       status: "pending",
       createdAt: timestamp,
@@ -58,8 +55,8 @@ describe("useOptimisticMessages", () => {
     const timestamp = 1_700_000_100_000;
     const optimisticUserMessage: OptimisticMessage = {
       _id: "temp-user-1",
-      conversationId: "conv-1" as Id<"conversations">,
-      userId: "user-1" as Id<"users">,
+      conversationId: "conv-1" as string,
+      userId: "user-1" as string,
       role: "user",
       content: "Skew test",
       status: "optimistic",
@@ -71,7 +68,7 @@ describe("useOptimisticMessages", () => {
 
     const { result, rerender } = renderHook(
       ({ serverMessages }) => useOptimisticMessages({ serverMessages }),
-      { initialProps: { serverMessages: [] as Doc<"messages">[] } },
+      { initialProps: { serverMessages: [] as any[] } },
     );
 
     act(() => {
@@ -79,14 +76,14 @@ describe("useOptimisticMessages", () => {
     });
 
     const serverUserMessage = createServerMessage({
-      _id: "msg-server-user" as Id<"messages">,
+      _id: "msg-server-user" as string,
       role: "user",
       content: "Skew test",
       // Server slightly behind optimistic timestamp (clock skew)
       createdAt: timestamp - 500,
     });
     const serverAssistantMessage = createServerMessage({
-      _id: "msg-server-assistant" as Id<"messages">,
+      _id: "msg-server-assistant" as string,
       role: "assistant",
       status: "pending",
       content: "",
@@ -113,8 +110,8 @@ describe("useOptimisticMessages", () => {
     const timestamp = 1_700_000_200_000;
     const optimisticUserMessage: OptimisticMessage = {
       _id: "temp-user-client-id",
-      conversationId: "conv-1" as Id<"conversations">,
-      userId: "user-1" as Id<"users">,
+      conversationId: "conv-1" as string,
+      userId: "user-1" as string,
       role: "user",
       content: "Client id test",
       clientMessageId: "client-123",
@@ -127,7 +124,7 @@ describe("useOptimisticMessages", () => {
 
     const { result, rerender } = renderHook(
       ({ serverMessages }) => useOptimisticMessages({ serverMessages }),
-      { initialProps: { serverMessages: [] as Doc<"messages">[] } },
+      { initialProps: { serverMessages: [] as any[] } },
     );
 
     act(() => {
@@ -135,14 +132,14 @@ describe("useOptimisticMessages", () => {
     });
 
     const serverUserMessage = createServerMessage({
-      _id: "msg-server-client-id" as Id<"messages">,
+      _id: "msg-server-client-id" as string,
       role: "user",
       content: "Client id test",
       clientMessageId: "client-123",
       createdAt: timestamp + 60_000,
     });
     const serverAssistantMessage = createServerMessage({
-      _id: "msg-server-assistant-client-id" as Id<"messages">,
+      _id: "msg-server-assistant-client-id" as string,
       role: "assistant",
       status: "pending",
       content: "",

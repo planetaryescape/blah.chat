@@ -1,11 +1,10 @@
 "use client";
 
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useState } from "react";
 import { cache } from "@/lib/cache";
 
-type ApiConversation = Doc<"conversations">;
+type ApiConversation = any;
 
 type ConversationEnvelope = {
   data?: ApiConversation;
@@ -88,9 +87,9 @@ async function syncConversationCache(
 }
 
 async function getConversationsByProject(
-  projectId?: Id<"projects"> | "none" | null,
-): Promise<Doc<"conversations">[]> {
-  let conversations: Doc<"conversations">[];
+  projectId?: string | "none" | null,
+): Promise<any[]> {
+  let conversations: any[];
 
   if (projectId && projectId !== "none") {
     conversations = await cache.conversations
@@ -108,15 +107,13 @@ async function getConversationsByProject(
   return sortConversations(conversations);
 }
 
-export function useRestConversationSync(
-  projectId?: Id<"projects"> | "none" | null,
-) {
+export function useRestConversationSync(projectId?: string | "none" | null) {
   const [isLoading, setIsLoading] = useState(true);
 
   const cachedConversations = useLiveQuery(
     () => getConversationsByProject(projectId),
     [projectId],
-    [] as Doc<"conversations">[],
+    [] as any[],
   );
 
   useEffect(() => {

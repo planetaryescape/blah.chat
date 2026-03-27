@@ -63,6 +63,15 @@ export {
   type SelectModelResult,
 } from "./router";
 export {
+  adjustExplorationRate,
+  evaluateShadowDecisions,
+  type ModelHistoricalStats,
+  type ShadowDecisionInput,
+  type ShadowEvaluation,
+  type ShadowModelSummary,
+  summarizeShadowPerformance,
+} from "./shadow-evaluator";
+export {
   type CandidateFeatures,
   type CandidateInput,
   type ClassifierConfig,

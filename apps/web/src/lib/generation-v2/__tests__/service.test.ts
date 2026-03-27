@@ -551,11 +551,17 @@ describe("GenerationV2Service", () => {
     const db = await createTestPersistenceDb();
     const conversations = createConversationRepository(db);
     const store = new MemoryGenerationEventStore();
+    // Provide output for all code_heavy candidates since exploration may pick any
+    const codeOutput = ["typed ", "output"];
     const service = new GenerationV2Service(
       db,
       store,
       new FakeGenerationProvider({
-        "openai:gpt-5.1-codex": ["typed ", "output"],
+        "openai:gpt-5.1-codex": codeOutput,
+        "anthropic:claude-sonnet-4": codeOutput,
+        "deepseek:deepseek-r1": codeOutput,
+        "openai:gpt-5.1": codeOutput,
+        "google:gemini-2.5-pro": codeOutput,
       }),
       async () => {},
       (() => {
@@ -591,28 +597,31 @@ describe("GenerationV2Service", () => {
 
     await service.process(started.requestId);
 
-    const bundle = await (service as any).repository.getRequestBundle(
-      started.requestId,
-    );
     const decisions = await db
       .select()
       .from(routingDecisions)
       .where(eq(routingDecisions.generationRequestId, started.requestId));
-    const messages = await (service as any).repository.listMessages(
+    const msgs = await (service as any).repository.listMessages(
       conversation.id,
     );
 
-    expect(bundle?.sessions[0]?.modelId).toBe("openai:gpt-5.1-codex");
+    // Hard rule should fire code_heavy; exact model depends on scoring + exploration
     expect(decisions[0]).toMatchObject({
       routeLabel: "code_heavy",
-      selectedModelId: "openai:gpt-5.1-codex",
     });
-    expect(messages[1]).toMatchObject({
+    expect(msgs[1]).toMatchObject({
       role: "assistant",
-      model: "openai:gpt-5.1-codex",
       content: "typed output",
       status: "complete",
     });
+    // Model should be one of the code_heavy candidates
+    expect([
+      "openai:gpt-5.1-codex",
+      "anthropic:claude-sonnet-4",
+      "deepseek:deepseek-r1",
+      "openai:gpt-5.1",
+      "google:gemini-2.5-pro",
+    ]).toContain(decisions[0]?.selectedModelId);
   });
 
   it("uses the persisted default model when auto router is disabled", async () => {

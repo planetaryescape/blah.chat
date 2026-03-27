@@ -415,6 +415,44 @@ describe("buildComparisonStats", () => {
     expect(stats.get("a")).toEqual({ wins: 2, losses: 1, ties: 0, total: 3 });
     expect(stats.get("b")).toEqual({ wins: 0, losses: 1, ties: 1, total: 2 });
   });
+
+  it("counts regenerated signals as losses", () => {
+    const rows = [
+      { modelId: "a", signal: "win" },
+      { modelId: "a", signal: "regenerated" },
+      { modelId: "a", signal: "regenerated" },
+      { modelId: "b", signal: "regenerated" },
+    ];
+    const stats = buildComparisonStats(rows);
+
+    expect(stats.get("a")).toEqual({ wins: 1, losses: 2, ties: 0, total: 3 });
+    expect(stats.get("b")).toEqual({ wins: 0, losses: 1, ties: 0, total: 1 });
+  });
+
+  it("counts model_switch signals as losses", () => {
+    const rows = [
+      { modelId: "a", signal: "win" },
+      { modelId: "a", signal: "model_switch" },
+      { modelId: "b", signal: "model_switch" },
+      { modelId: "b", signal: "model_switch" },
+    ];
+    const stats = buildComparisonStats(rows);
+
+    expect(stats.get("a")).toEqual({ wins: 1, losses: 1, ties: 0, total: 2 });
+    expect(stats.get("b")).toEqual({ wins: 0, losses: 2, ties: 0, total: 2 });
+  });
+
+  it("counts both_bad signals as losses for all participants", () => {
+    const rows = [
+      { modelId: "a", signal: "both_bad" },
+      { modelId: "b", signal: "both_bad" },
+      { modelId: "a", signal: "win" },
+    ];
+    const stats = buildComparisonStats(rows);
+
+    expect(stats.get("a")).toEqual({ wins: 1, losses: 1, ties: 0, total: 2 });
+    expect(stats.get("b")).toEqual({ wins: 0, losses: 1, ties: 0, total: 1 });
+  });
 });
 
 describe("buildLatestHealthMap", () => {

@@ -123,7 +123,7 @@ describe("validateImportFile", () => {
 });
 
 describe("parseImportFile", () => {
-  it("routes JSON format to JSON parser", () => {
+  it("routes JSON format to JSON parser and extracts conversations", () => {
     const content = JSON.stringify({
       version: "1.0",
       exportedAt: "2024-01-01",
@@ -137,6 +137,9 @@ describe("parseImportFile", () => {
     const result = parseImportFile(content);
     expect(result.success).toBe(true);
     expect(result.data?.format).toBe("json");
+    expect(result.data?.conversations).toHaveLength(1);
+    expect(result.data?.conversations[0].title).toBe("Test");
+    expect(result.data?.conversations[0].messages).toHaveLength(1);
   });
 
   it("routes ChatGPT format to ChatGPT parser", () => {

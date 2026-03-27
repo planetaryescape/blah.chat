@@ -106,11 +106,13 @@ describe("mergeMessagesWithRRF", () => {
     expect(result).toHaveLength(2);
   });
 
-  it("strips score from output", () => {
+  it("strips score from output but preserves message fields", () => {
     const textResults = [createMessage("1", "test")];
     const result = mergeMessagesWithRRF(textResults, [], 10);
 
     expect(result[0]).not.toHaveProperty("score");
+    expect(result[0].content).toBe("test");
+    expect(result[0].role).toBe("user");
   });
 
   it("merges and ranks correctly", () => {

@@ -103,12 +103,8 @@ describe("convex/admin", () => {
       const result = await asUser.query(api.admin.listUsers, {});
 
       expect(result).toHaveLength(2);
-      expect(result.map((u: { name: string }) => u.name)).toContain(
-        "Admin User",
-      );
-      expect(result.map((u: { name: string }) => u.name)).toContain(
-        "Other User",
-      );
+      const names = result.map((u: { name: string }) => u.name).sort();
+      expect(names).toEqual(["Admin User", "Other User"]);
     });
   });
 
@@ -238,7 +234,8 @@ describe("convex/admin", () => {
       // Verify the user was updated
       await t.run(async (ctx) => {
         const user = await ctx.db.get(targetUserId);
-        expect(user?.tier).toBe("tier2");
+        expect(user).not.toBeNull();
+        expect(user!.tier).toBe("tier2");
       });
     });
   });

@@ -64,13 +64,15 @@ describe("formatDuration", () => {
 describe("isCachedResponse", () => {
   it("returns true for TTFT <50ms", () => {
     expect(isCachedResponse(0)).toBe(true);
-    expect(isCachedResponse(25)).toBe(true);
     expect(isCachedResponse(49)).toBe(true);
   });
 
-  it("returns false for TTFT >=50ms", () => {
+  it("returns false for TTFT >=50ms (boundary at 50)", () => {
     expect(isCachedResponse(50)).toBe(false);
-    expect(isCachedResponse(100)).toBe(false);
     expect(isCachedResponse(500)).toBe(false);
+  });
+
+  it("treats negative TTFT as cached (below threshold)", () => {
+    expect(isCachedResponse(-1)).toBe(true);
   });
 });

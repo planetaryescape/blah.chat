@@ -97,7 +97,8 @@ describe("cascade delete", () => {
 
       // Verify bookmark exists
       let bookmark = await t.run(async (ctx) => ctx.db.get(bookmarkId));
-      expect(bookmark).toBeDefined();
+      expect(bookmark).not.toBeNull();
+      expect(bookmark!.conversationId).toBe(convId);
 
       // Delete conversation
       const asUser = t.withIdentity(identity);
@@ -146,10 +147,11 @@ describe("cascade delete", () => {
         conversationId: convId,
       });
 
-      // Memory should exist but with undefined conversationId
+      // Memory should exist but with undefined conversationId (nullified, not deleted)
       const memory = await t.run(async (ctx) => ctx.db.get(memoryId));
-      expect(memory).toBeDefined();
-      expect(memory?.conversationId).toBeUndefined();
+      expect(memory).not.toBeNull();
+      expect(memory!.content).toBe("Test memory");
+      expect(memory!.conversationId).toBeUndefined();
     });
 
     it("deletes related shares", async () => {
@@ -184,7 +186,8 @@ describe("cascade delete", () => {
 
       // Verify share exists
       let share = await t.run(async (ctx) => ctx.db.get(shareId));
-      expect(share).toBeDefined();
+      expect(share).not.toBeNull();
+      expect(share!.shareId).toBe("test-share-id");
 
       // Delete conversation
       const asUser = t.withIdentity(identity);
@@ -232,7 +235,8 @@ describe("cascade delete", () => {
 
       // Verify junction exists
       let junction = await t.run(async (ctx) => ctx.db.get(junctionId));
-      expect(junction).toBeDefined();
+      expect(junction).not.toBeNull();
+      expect(junction!.conversationId).toBe(convId);
 
       // Delete conversation
       const asUser = t.withIdentity(identity);
@@ -262,7 +266,7 @@ describe("cascade delete", () => {
 
       // Verify conversation exists
       let conversation = await t.run(async (ctx) => ctx.db.get(convId));
-      expect(conversation).toBeDefined();
+      expect(conversation).not.toBeNull();
 
       // Delete conversation
       const asUser = t.withIdentity(identity);

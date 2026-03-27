@@ -152,17 +152,16 @@ describe("convex/conversations", () => {
         title: "New Chat",
       });
 
-      expect(result).toBeDefined();
-
       // Verify in database
       const conversation = await t.run(async (ctx) => {
         return await ctx.db.get(result);
       });
 
-      expect(conversation?.model).toBe("gpt-4o");
-      expect(conversation?.title).toBe("New Chat");
-      expect(conversation?.pinned).toBe(false);
-      expect(conversation?.archived).toBe(false);
+      expect(conversation).not.toBeNull();
+      expect(conversation!.model).toBe("gpt-4o");
+      expect(conversation!.title).toBe("New Chat");
+      expect(conversation!.pinned).toBe(false);
+      expect(conversation!.archived).toBe(false);
     });
 
     it("creates conversation with default title when not provided", async () => {
@@ -185,7 +184,8 @@ describe("convex/conversations", () => {
         return await ctx.db.get(result);
       });
 
-      expect(conversation?.title).toBe("New Chat");
+      expect(conversation).not.toBeNull();
+      expect(conversation!.title).toBe("New Chat");
     });
 
     it("creates incognito conversation with correct settings", async () => {
@@ -209,8 +209,9 @@ describe("convex/conversations", () => {
         return await ctx.db.get(result);
       });
 
-      expect(conversation?.isIncognito).toBe(true);
-      expect(conversation?.title).toBe("Incognito Chat");
+      expect(conversation).not.toBeNull();
+      expect(conversation!.isIncognito).toBe(true);
+      expect(conversation!.title).toBe("Incognito Chat");
     });
   });
 
@@ -235,7 +236,8 @@ describe("convex/conversations", () => {
         conversationId: convId,
       });
 
-      expect(result?.title).toBe("My Chat");
+      expect(result).not.toBeNull();
+      expect(result!.title).toBe("My Chat");
     });
 
     it("returns null for non-owner", async () => {
@@ -313,7 +315,7 @@ describe("convex/conversations", () => {
       });
 
       let conversation = await t.run(async (ctx) => ctx.db.get(convId));
-      expect(conversation?.pinned).toBe(true);
+      expect(conversation!.pinned).toBe(true);
 
       // Unpin it
       await asUser.mutation(api.conversations.togglePin, {
@@ -321,7 +323,7 @@ describe("convex/conversations", () => {
       });
 
       conversation = await t.run(async (ctx) => ctx.db.get(convId));
-      expect(conversation?.pinned).toBe(false);
+      expect(conversation!.pinned).toBe(false);
     });
 
     it("throws when pinning empty conversation", async () => {
@@ -374,7 +376,7 @@ describe("convex/conversations", () => {
       });
 
       const conversation = await t.run(async (ctx) => ctx.db.get(convId));
-      expect(conversation?.archived).toBe(true);
+      expect(conversation!.archived).toBe(true);
     });
   });
 
@@ -401,7 +403,7 @@ describe("convex/conversations", () => {
       });
 
       const conversation = await t.run(async (ctx) => ctx.db.get(convId));
-      expect(conversation?.title).toBe("New Title");
+      expect(conversation!.title).toBe("New Title");
     });
   });
 });

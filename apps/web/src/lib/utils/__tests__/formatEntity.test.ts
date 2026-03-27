@@ -9,7 +9,7 @@ import {
 } from "../formatEntity";
 
 describe("formatEntity", () => {
-  it("wraps data in success envelope", () => {
+  it("wraps data in success envelope with entity type", () => {
     const data = { id: "123", name: "Test" };
     const result = formatEntity(data, "user");
 
@@ -19,80 +19,73 @@ describe("formatEntity", () => {
   });
 
   it("includes id in sys when provided", () => {
-    const data = { name: "Test" };
-    const result = formatEntity(data, "user", "user-123");
-
+    const result = formatEntity({ name: "Test" }, "user", "user-123");
     expect(result.sys.id).toBe("user-123");
   });
 
   it("omits id from sys when not provided", () => {
-    const data = { name: "Test" };
-    const result = formatEntity(data, "user");
-
+    const result = formatEntity({ name: "Test" }, "user");
     expect(result.sys.id).toBeUndefined();
   });
 
-  it("includes created timestamp from _creationTime", () => {
-    const creationTime = 1703001600000; // 2023-12-19
-    const data = { _creationTime: creationTime, name: "Test" };
-    const result = formatEntity(data, "user");
-
-    expect(result.sys.timestamps?.created).toBe(
-      new Date(creationTime).toISOString(),
+  it("converts _creationTime to ISO created timestamp", () => {
+    const result = formatEntity(
+      { _creationTime: 1703001600000, name: "Test" },
+      "user",
     );
+    expect(result.sys.timestamps?.created).toBe("2023-12-19T16:00:00.000Z");
   });
 
-  it("includes updated timestamp from updatedAt", () => {
-    const updatedAt = 1703088000000; // 2023-12-20
-    const data = { updatedAt, name: "Test" };
-    const result = formatEntity(data, "user");
-
-    expect(result.sys.timestamps?.updated).toBe(
-      new Date(updatedAt).toISOString(),
+  it("converts updatedAt to ISO updated timestamp", () => {
+    const result = formatEntity(
+      { updatedAt: 1703088000000, name: "Test" },
+      "user",
     );
+    expect(result.sys.timestamps?.updated).toBe("2023-12-20T16:00:00.000Z");
   });
 
-  it("always includes retrieved timestamp", () => {
-    const data = { name: "Test" };
-    const result = formatEntity(data, "user");
-
-    expect(result.sys.timestamps?.retrieved).toBeDefined();
-    // Should be a valid ISO string
-    expect(() => new Date(result.sys.timestamps!.retrieved!)).not.toThrow();
+  it("always includes retrieved timestamp as valid ISO string", () => {
+    const before = new Date().toISOString();
+    const result = formatEntity({ name: "Test" }, "user");
+    const after = new Date().toISOString();
+    const retrieved = result.sys.timestamps?.retrieved;
+    expect(typeof retrieved).toBe("string");
+    expect(retrieved! >= before).toBe(true);
+    expect(retrieved! <= after).toBe(true);
   });
 
-  it("compacts null fields from data", () => {
-    const data = { id: "123", name: "Test", nullField: null };
+  it("compacts null, undefined, and empty string fields from data", () => {
+    const data = {
+      id: "123",
+      name: "Test",
+      nullField: null,
+      undefinedField: undefined,
+      emptyString: "",
+    };
     const result = formatEntity(data, "user");
 
-    expect(result.data).not.toHaveProperty("nullField");
     expect(result.data).toHaveProperty("id", "123");
-  });
-
-  it("compacts undefined fields from data", () => {
-    const data = { id: "123", name: "Test", undefinedField: undefined };
-    const result = formatEntity(data, "user");
-
+    expect(result.data).toHaveProperty("name", "Test");
+    expect(result.data).not.toHaveProperty("nullField");
     expect(result.data).not.toHaveProperty("undefinedField");
-  });
-
-  it("compacts empty string fields from data", () => {
-    const data = { id: "123", name: "Test", emptyString: "" };
-    const result = formatEntity(data, "user");
-
     expect(result.data).not.toHaveProperty("emptyString");
   });
 
-  it("handles primitive data types", () => {
+  it("passes through primitive data without compaction", () => {
     const result = formatEntity("simple string", "text");
-
     expect(result.status).toBe("success");
     expect(result.data).toBe("simple string");
+  });
+
+  it("preserves zero and false values during compaction", () => {
+    const result = formatEntity({ count: 0, active: false, name: "x" }, "item");
+    expect(result.data).toHaveProperty("count", 0);
+    expect(result.data).toHaveProperty("active", false);
   });
 });
 
 describe("formatEntityList", () => {
-  it("wraps items array in list envelope", () => {
+  it("wraps items in list envelope with correct count", () => {
     const items = [
       { _id: "1", name: "Item 1" },
       { _id: "2", name: "Item 2" },
@@ -104,20 +97,18 @@ describe("formatEntityList", () => {
     expect(result.data).toHaveLength(2);
   });
 
-  it("includes entity type and id for each item", () => {
+  it("extracts _id into sys.id for each item", () => {
     const items = [
-      { _id: "item-1", name: "Item 1" },
-      { _id: "item-2", name: "Item 2" },
+      { _id: "item-1", name: "A" },
+      { _id: "item-2", name: "B" },
     ];
-    const result = formatEntityList(items, "item");
+    const result = formatEntityList(items, "widget");
 
-    expect(result.data![0]!.sys.entity).toBe("item");
-    expect(result.data![0]!.sys.id).toBe("item-1");
-    expect(result.data![1]!.sys.entity).toBe("item");
-    expect(result.data![1]!.sys.id).toBe("item-2");
+    expect(result.data![0]!.sys).toEqual({ entity: "widget", id: "item-1" });
+    expect(result.data![1]!.sys).toEqual({ entity: "widget", id: "item-2" });
   });
 
-  it("compacts each item data", () => {
+  it("compacts each item's data", () => {
     const items = [{ _id: "1", name: "Item", nullField: null }];
     const result = formatEntityList(items, "item");
 
@@ -125,17 +116,17 @@ describe("formatEntityList", () => {
     expect(result.data![0]!.data).toHaveProperty("name", "Item");
   });
 
-  it("handles empty array", () => {
+  it("returns empty data array for empty input", () => {
     const result = formatEntityList([], "item");
 
     expect(result.status).toBe("success");
     expect(result.sys.entity).toBe("list");
-    expect(result.data).toHaveLength(0);
+    expect(result.data).toEqual([]);
   });
 });
 
 describe("formatErrorEntity", () => {
-  it("formats string error", () => {
+  it("formats string error into error envelope", () => {
     const result = formatErrorEntity("Something went wrong");
 
     expect(result.status).toBe("error");
@@ -143,32 +134,24 @@ describe("formatErrorEntity", () => {
     expect(result.error).toBe("Something went wrong");
   });
 
-  it("formats Error object", () => {
-    const error = new Error("Database connection failed");
-    const result = formatErrorEntity(error);
-
-    expect(result.status).toBe("error");
-    expect(result.sys.entity).toBe("error");
+  it("extracts message from Error object", () => {
+    const result = formatErrorEntity(new Error("Database connection failed"));
     expect(result.error).toBe("Database connection failed");
   });
 
-  it("formats error object with message and code", () => {
+  it("passes through structured error object with code", () => {
     const error = { message: "Not found", code: "NOT_FOUND" };
     const result = formatErrorEntity(error);
-
-    expect(result.status).toBe("error");
-    expect(result.sys.entity).toBe("error");
     expect(result.error).toEqual({ message: "Not found", code: "NOT_FOUND" });
   });
 
-  it("formats error object with details", () => {
+  it("preserves error details when present", () => {
     const error = {
       message: "Validation failed",
       code: "VALIDATION_ERROR",
       details: { field: "email", reason: "invalid format" },
     };
     const result = formatErrorEntity(error);
-
     expect(result.error).toEqual(error);
   });
 });

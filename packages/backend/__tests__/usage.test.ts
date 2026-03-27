@@ -174,7 +174,7 @@ describe("convex/usage", () => {
       });
     });
 
-    it("creates separate records for different models", async () => {
+    it("creates separate records for different models with correct field values", async () => {
       const t = convexTest(schema);
       const identity = createMockIdentity();
 
@@ -214,6 +214,8 @@ describe("convex/usage", () => {
 
         const records = await ctx.db.query("usageRecords").collect();
         expect(records).toHaveLength(2);
+        const models = records.map((r) => r.model).sort();
+        expect(models).toEqual(["anthropic:claude-3-opus", "openai:gpt-5"]);
       });
     });
 

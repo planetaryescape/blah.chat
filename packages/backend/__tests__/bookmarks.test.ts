@@ -40,11 +40,12 @@ describe("convex/bookmarks", () => {
         tags: ["important", "code"],
       });
 
-      expect(bookmarkId).toBeDefined();
-
       const bookmark = await t.run(async (ctx) => ctx.db.get(bookmarkId));
-      expect(bookmark?.note).toBe("Test note");
-      expect(bookmark?.tags).toEqual(["important", "code"]);
+      expect(bookmark).not.toBeNull();
+      expect(bookmark!.note).toBe("Test note");
+      expect(bookmark!.tags).toEqual(["important", "code"]);
+      expect(bookmark!.messageId).toBe(messageId);
+      expect(bookmark!.conversationId).toBe(conversationId);
     });
 
     it("throws for duplicate bookmark", async () => {
@@ -158,8 +159,9 @@ describe("convex/bookmarks", () => {
       });
 
       const updated = await t.run(async (ctx) => ctx.db.get(bookmarkId));
-      expect(updated?.note).toBe("New note");
-      expect(updated?.tags).toEqual(["new", "updated"]);
+      expect(updated).not.toBeNull();
+      expect(updated!.note).toBe("New note");
+      expect(updated!.tags).toEqual(["new", "updated"]);
     });
   });
 
@@ -260,7 +262,8 @@ describe("convex/bookmarks", () => {
         messageId,
       });
 
-      expect(result?.note).toBe("Found bookmark");
+      expect(result).not.toBeNull();
+      expect(result!.note).toBe("Found bookmark");
     });
 
     it("returns null for non-bookmarked message", async () => {

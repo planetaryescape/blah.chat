@@ -1,34 +1,32 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import {
   getMobileTransportMode,
   shouldUseConvexTransport,
   supportsR2BlobTransport,
 } from "./mode";
 
-const originalTransport = process.env.EXPO_PUBLIC_MOBILE_TRANSPORT;
+// These functions return constants defining the mobile transport contract.
+// Other modules depend on these values — if any changes, SSE streaming
+// and blob upload code must be updated in lockstep.
 
-describe("mobile transport mode", () => {
-  afterEach(() => {
-    if (originalTransport === undefined) {
-      delete process.env.EXPO_PUBLIC_MOBILE_TRANSPORT;
-    } else {
-      process.env.EXPO_PUBLIC_MOBILE_TRANSPORT = originalTransport;
-    }
-  });
-
-  it("defaults to http-sse for rewrite-safe blob flows", () => {
-    delete process.env.EXPO_PUBLIC_MOBILE_TRANSPORT;
-
+describe("getMobileTransportMode", () => {
+  it("returns http-sse as the transport mode", () => {
     expect(getMobileTransportMode()).toBe("http-sse");
-    expect(shouldUseConvexTransport()).toBe(false);
-    expect(supportsR2BlobTransport()).toBe(true);
   });
 
-  it("disables R2 blob flows when convex transport is explicitly forced", () => {
-    process.env.EXPO_PUBLIC_MOBILE_TRANSPORT = "convex";
+  it("returns a string (type contract for consumers)", () => {
+    expect(typeof getMobileTransportMode()).toBe("string");
+  });
+});
 
-    expect(getMobileTransportMode()).toBe("convex");
-    expect(shouldUseConvexTransport()).toBe(true);
-    expect(supportsR2BlobTransport()).toBe(false);
+describe("shouldUseConvexTransport", () => {
+  it("returns false — mobile never uses Convex WebSocket transport", () => {
+    expect(shouldUseConvexTransport()).toBe(false);
+  });
+});
+
+describe("supportsR2BlobTransport", () => {
+  it("returns true — mobile supports R2 blob uploads", () => {
+    expect(supportsR2BlobTransport()).toBe(true);
   });
 });

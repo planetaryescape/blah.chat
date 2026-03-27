@@ -28,7 +28,6 @@
         "clipboardy": "^5.0.2",
         "commander": "^14.0.3",
         "conf": "^15.0.2",
-        "convex": "^1.17.0",
         "marked": "12",
         "marked-terminal": "^7.3.0",
         "open": "^11.0.0",
@@ -86,7 +85,6 @@
         "bible-passage-reference-parser": "^3.1.0",
         "buffer": "^6.0.3",
         "burnt": "^0.13.0",
-        "convex": "^1.21.0",
         "expo": "~54.0.0",
         "expo-apple-authentication": "^8.0.8",
         "expo-asset": "~12.0.12",
@@ -140,7 +138,6 @@
         "@babel/core": "^7.25.0",
         "@babel/plugin-transform-react-jsx": "^7.27.1",
         "@biomejs/biome": "2.3.14",
-        "@blah-chat/backend": "workspace:*",
         "@types/node": "^25.0.10",
         "@types/react": "~19.2.13",
         "@types/react-syntax-highlighter": "^15.5.13",
@@ -176,6 +173,7 @@
         "@clerk/nextjs": "^6.36.5",
         "@clerk/themes": "^2.4.46",
         "@composio/core": "^0.6.3",
+        "@composio/vercel": "^0.6.7",
         "@dnd-kit/core": "^6.3.1",
         "@dnd-kit/sortable": "^10.0.0",
         "@dnd-kit/utilities": "^3.2.2",
@@ -576,7 +574,6 @@
       "version": "0.2.0",
       "dependencies": {
         "@blah-chat/ai": "workspace:*",
-        "@blah-chat/backend": "workspace:*",
         "@blah-chat/persistence-postgres": "workspace:*",
         "@blah-chat/shared": "workspace:*",
         "@trigger.dev/sdk": "^4.4.3",
@@ -5215,6 +5212,8 @@
     "@blah-chat/mobile/react-dom": ["react-dom@19.1.0", "", { "dependencies": { "scheduler": "^0.26.0" }, "peerDependencies": { "react": "^19.1.0" } }, "sha512-Xs1hdnE+DyKgeHJeJznQmYMIBG3TKIHJJT95Q58nHLSrElKlGQqDTR2HQ9fx5CN/Gk6Vh/kupBTDLU11/nDk/g=="],
 
     "@blah-chat/web/@biomejs/biome": ["@biomejs/biome@2.4.0", "", { "optionalDependencies": { "@biomejs/cli-darwin-arm64": "2.4.0", "@biomejs/cli-darwin-x64": "2.4.0", "@biomejs/cli-linux-arm64": "2.4.0", "@biomejs/cli-linux-arm64-musl": "2.4.0", "@biomejs/cli-linux-x64": "2.4.0", "@biomejs/cli-linux-x64-musl": "2.4.0", "@biomejs/cli-win32-arm64": "2.4.0", "@biomejs/cli-win32-x64": "2.4.0" }, "bin": { "biome": "bin/biome" } }, "sha512-iluT61cORUDIC5i/y42ljyQraCemmmcgbMLLCnYO+yh+2hjTmcMFcwY8G0zTzWCsPb3t3AyKc+0t/VuhPZULUg=="],
+
+    "@blah-chat/web/@composio/vercel": ["@composio/vercel@0.6.7", "", { "peerDependencies": { "@composio/core": "0.6.7", "ai": "^5.0.0 || ^6.0.0" } }, "sha512-uH5XSTBaUESeUuRLwI9OIzkwSBdMgTC+epjkfYKOlp70OvdBkmORe2dZkNhPS0FOGR+I75BkqVx1v9CkjCE/pg=="],
 
     "@blah-chat/web/lucide-react": ["lucide-react@0.577.0", "", { "peerDependencies": { "react": "^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-4LjoFv2eEPwYDPg/CUdBJQSDfPyzXCRrVW1X7jrx/trgxnxkHFjnVZINbzvzxjN70dxychOfg+FTYwBiS3pQ5A=="],
 

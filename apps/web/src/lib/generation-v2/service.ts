@@ -27,6 +27,7 @@ import { embedMany } from "ai";
 import { eq } from "drizzle-orm";
 import type { MetricsCollector } from "@/lib/observability/metrics";
 import { persistMessageSources } from "@/lib/persistence/sources";
+import { createComposioTools } from "./composioTools";
 import { createGenerationV2Repository } from "./repository";
 import type {
   GenerationEventStore,
@@ -544,6 +545,11 @@ export class GenerationV2Service {
     collector?.recordRouterLatency(this.now() - routerStartedAt);
     const resolvedModelId = resolvedRoute.selectedModelId;
     const resolvedSession = { ...session, modelId: resolvedModelId };
+    const composioTools = await createComposioTools({
+      db: this.db,
+      userId: bundle.userId,
+      integrations: bundle.integrations,
+    });
     let lastStopCheck = 0;
     let lastCheckpointAt = this.now();
     let lastCheckpointLength = 0;
@@ -558,6 +564,23 @@ export class GenerationV2Service {
         modelId: resolvedModelId,
       });
     }
+
+    // Record model-switch dissatisfaction: user explicitly chose a different
+    // model after auto-router previously selected a different one.
+    if (resolvedRoute.routeLabel === "explicit") {
+      const prevAutoRouted =
+        await this.repository.findLastAutoRoutedAssistantMessageId(
+          bundle.conversationId,
+        );
+      if (prevAutoRouted) {
+        await this.repository
+          .recordModelSwitchFeedback(prevAutoRouted)
+          .catch(() => {
+            // Non-critical — don't fail the generation
+          });
+      }
+    }
+
     await this.repository.updateSessionStatus(
       session.sessionId,
       "running",
@@ -606,6 +629,9 @@ export class GenerationV2Service {
         requestId: bundle.requestId,
         sessionId: session.sessionId,
         messages: promptMessages,
+        integrations: bundle.integrations,
+        tools:
+          Object.keys(composioTools).length > 0 ? composioTools : undefined,
         signal: abortController.signal,
       })) {
         accumulated += delta;

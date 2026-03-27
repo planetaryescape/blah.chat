@@ -663,6 +663,34 @@ export const composioConnections = pgTable(
   }),
 );
 
+export const conversationIntegrationEvents = pgTable(
+  "conversation_integration_events",
+  {
+    id: text("id").primaryKey().$defaultFn(id),
+    conversationId: text("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    integrationId: text("integration_id").notNull(),
+    integrationName: text("integration_name").notNull(),
+    action: text("action").notNull(),
+    source: text("source").notNull().default("composer"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    createdAt: bigint("created_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+  },
+  (table) => ({
+    byConversation: index("conversation_integration_events_by_conversation").on(
+      table.conversationId,
+      table.createdAt,
+    ),
+    byUser: index("conversation_integration_events_by_user").on(table.userId),
+  }),
+);
+
 export const notes = pgTable(
   "notes",
   {
@@ -793,6 +821,31 @@ export const generationRequests = pgTable("generation_requests", {
   createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(now),
   updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(now),
 });
+
+export const generationRequestIntegrations = pgTable(
+  "generation_request_integrations",
+  {
+    requestId: text("request_id")
+      .notNull()
+      .references(() => generationRequests.id, { onDelete: "cascade" }),
+    integrationId: text("integration_id").notNull(),
+    integrationName: text("integration_name").notNull(),
+    composioConnectionId: text("composio_connection_id"),
+    connectionStatus: text("connection_status"),
+    createdAt: bigint("created_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+  },
+  (table) => ({
+    pk: primaryKey({
+      columns: [table.requestId, table.integrationId],
+    }),
+    byRequest: index("generation_request_integrations_by_request").on(
+      table.requestId,
+      table.createdAt,
+    ),
+  }),
+);
 
 export const comparisonVotes = pgTable("comparison_votes", {
   id: text("id").primaryKey().$defaultFn(id),
@@ -1237,6 +1290,21 @@ export const conversationsRelations = relations(
       references: [users.id],
     }),
     messages: many(messages),
+    integrationEvents: many(conversationIntegrationEvents),
+  }),
+);
+
+export const conversationIntegrationEventsRelations = relations(
+  conversationIntegrationEvents,
+  ({ one }) => ({
+    conversation: one(conversations, {
+      fields: [conversationIntegrationEvents.conversationId],
+      references: [conversations.id],
+    }),
+    user: one(users, {
+      fields: [conversationIntegrationEvents.userId],
+      references: [users.id],
+    }),
   }),
 );
 
@@ -1311,6 +1379,27 @@ export const userPreferencesRelations = relations(
     user: one(users, {
       fields: [userPreferences.userId],
       references: [users.id],
+    }),
+  }),
+);
+
+export const generationRequestsRelations = relations(
+  generationRequests,
+  ({ one, many }) => ({
+    conversation: one(conversations, {
+      fields: [generationRequests.conversationId],
+      references: [conversations.id],
+    }),
+    integrations: many(generationRequestIntegrations),
+  }),
+);
+
+export const generationRequestIntegrationsRelations = relations(
+  generationRequestIntegrations,
+  ({ one }) => ({
+    request: one(generationRequests, {
+      fields: [generationRequestIntegrations.requestId],
+      references: [generationRequests.id],
     }),
   }),
 );
@@ -1473,6 +1562,10 @@ export type Conversation = typeof conversations.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type Attachment = typeof attachments.$inferSelect;
 export type MessageToolCall = typeof messageToolCalls.$inferSelect;
+export type ConversationIntegrationEvent =
+  typeof conversationIntegrationEvents.$inferSelect;
+export type GenerationRequestIntegration =
+  typeof generationRequestIntegrations.$inferSelect;
 export type Note = typeof notes.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
 export type FeedbackEntry = typeof feedbackEntries.$inferSelect;

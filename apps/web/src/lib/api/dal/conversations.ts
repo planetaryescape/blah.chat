@@ -6,6 +6,11 @@ import {
 import { and, desc, eq, sql } from "drizzle-orm";
 import { compactConversation } from "@/lib/conversations/compaction";
 import { generateConversationTitle } from "@/lib/conversations/titleGeneration";
+import {
+  getConversationSelectedIntegrationIds,
+  listConversationIntegrationEvents,
+  setConversationSelectedIntegrations,
+} from "@/lib/persistence/conversationIntegrations";
 import { ensureCurrentPersistenceUser } from "@/lib/persistence/current-user";
 import { toApiConversation } from "@/lib/persistence/mappers";
 import { getPersistenceDb } from "@/lib/persistence/server";
@@ -16,6 +21,7 @@ import { z } from "zod";
 const createConversationSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   model: z.string().min(1),
+  selectedIntegrationIds: z.array(z.string()).optional(),
   systemPrompt: z.string().optional(),
   projectId: z.string().nullable().optional(),
   isIncognito: z.boolean().optional(),
@@ -32,6 +38,7 @@ const updateConversationSchema = z
   .object({
     title: z.string().min(1).max(200).optional(),
     model: z.string().min(1).optional(),
+    selectedIntegrationIds: z.array(z.string()).optional(),
   })
   .partial();
 
@@ -72,12 +79,17 @@ async function formatOwnedConversation(
     })
     .from(messages)
     .where(eq(messages.conversationId, conversation.id));
+  const selectedIntegrationIds = await getConversationSelectedIntegrationIds(
+    db,
+    conversation.id,
+  );
 
   return formatEntity(
     toApiConversation({
       ...conversation,
       messageCount: stats?.messageCount ?? 0,
       lastMessageAt: stats?.lastMessageAt ?? conversation.updatedAt,
+      selectedIntegrationIds,
     }),
     "conversation",
     conversation.id,
@@ -116,12 +128,23 @@ export const conversationsDAL = {
         : null,
     });
 
+    if ((validated.selectedIntegrationIds?.length ?? 0) > 0) {
+      await setConversationSelectedIntegrations({
+        db,
+        conversationId: conversation.id,
+        userId: user.id,
+        selectedIntegrationIds: validated.selectedIntegrationIds ?? [],
+        source: "composer",
+      });
+    }
+
     return formatEntity(
       toApiConversation({
         ...conversation,
         archived: conversation.archived,
         messageCount: 0,
         lastMessageAt: conversation.updatedAt,
+        selectedIntegrationIds: validated.selectedIntegrationIds ?? [],
       }),
       "conversation",
       conversation.id,
@@ -197,6 +220,16 @@ export const conversationsDAL = {
       conversationId,
     );
 
+    if (validated.selectedIntegrationIds !== undefined) {
+      await setConversationSelectedIntegrations({
+        db,
+        conversationId: conversation.id,
+        userId: conversation.userId,
+        selectedIntegrationIds: validated.selectedIntegrationIds,
+        source: "composer",
+      });
+    }
+
     const [updated] = await db
       .update(conversations)
       .set({
@@ -211,7 +244,41 @@ export const conversationsDAL = {
       throw new Error("Conversation not found");
     }
 
-    return formatEntity(toApiConversation(updated), "conversation", updated.id);
+    const selectedIntegrationIds = await getConversationSelectedIntegrationIds(
+      db,
+      updated.id,
+    );
+
+    return formatEntity(
+      toApiConversation({ ...updated, selectedIntegrationIds }),
+      "conversation",
+      updated.id,
+    );
+  },
+
+  listIntegrationEvents: async (userId: string, conversationId: string) => {
+    const { db, conversation } = await getOwnedConversation(
+      userId,
+      conversationId,
+    );
+    const events = await listConversationIntegrationEvents(db, conversation.id);
+
+    return events.map((event) =>
+      formatEntity(
+        {
+          _id: event.id,
+          conversationId: event.conversationId,
+          integrationId: event.integrationId,
+          integrationName: event.integrationName,
+          action: event.action as "enabled" | "disabled",
+          source: event.source,
+          createdAt: event.createdAt,
+          _creationTime: event.createdAt,
+        },
+        "conversationIntegrationEvent",
+        event.id,
+      ),
+    );
   },
 
   autoRename: async (userId: string, conversationId: string) => {

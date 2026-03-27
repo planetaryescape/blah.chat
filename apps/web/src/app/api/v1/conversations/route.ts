@@ -12,6 +12,7 @@ import { formatEntity } from "@/lib/utils/formatEntity";
 const createSchema = z.object({
   title: z.string().optional(),
   model: z.string(),
+  selectedIntegrationIds: z.array(z.string()).optional(),
   systemPrompt: z.string().optional(),
   projectId: z.string().nullable().optional(),
   isIncognito: z.boolean().optional(),

@@ -34,12 +34,10 @@ export function useNewChat() {
     const empty = findEmptyConversation();
 
     if (empty) {
-      // Update model to user's preferred new chat model if different
-      if (empty.model !== newChatModel) {
-        await apiClient.patch(`/api/v1/conversations/${empty._id}`, {
-          model: newChatModel,
-        });
-      }
+      await apiClient.patch(`/api/v1/conversations/${empty._id}`, {
+        ...(empty.model !== newChatModel ? { model: newChatModel } : {}),
+        selectedIntegrationIds: [],
+      });
       router.push(`/chat/${empty._id}`);
       analytics.track("conversation_reused", { conversationId: empty._id });
       return empty._id;

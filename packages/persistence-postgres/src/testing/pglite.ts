@@ -291,6 +291,18 @@ CREATE TABLE composio_connections (
   UNIQUE (user_id, integration_id)
 );
 
+CREATE TABLE conversation_integration_events (
+  id text PRIMARY KEY,
+  conversation_id text NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  integration_id text NOT NULL,
+  integration_name text NOT NULL,
+  action text NOT NULL,
+  source text NOT NULL DEFAULT 'composer',
+  metadata jsonb,
+  created_at bigint NOT NULL
+);
+
 CREATE TABLE notes (
   id text PRIMARY KEY,
   user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -349,6 +361,16 @@ CREATE TABLE generation_requests (
   status text NOT NULL,
   created_at bigint NOT NULL,
   updated_at bigint NOT NULL
+);
+
+CREATE TABLE generation_request_integrations (
+  request_id text NOT NULL REFERENCES generation_requests(id) ON DELETE CASCADE,
+  integration_id text NOT NULL,
+  integration_name text NOT NULL,
+  composio_connection_id text,
+  connection_status text,
+  created_at bigint NOT NULL,
+  PRIMARY KEY (request_id, integration_id)
 );
 
 CREATE TABLE generation_sessions (

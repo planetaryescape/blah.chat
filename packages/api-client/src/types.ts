@@ -78,6 +78,7 @@ export interface Conversation {
   _id: string;
   title?: string | null;
   model?: string | null;
+  selectedIntegrationIds?: string[];
   isIncognito?: boolean;
   incognitoSettings?: {
     enableReadTools: boolean;

@@ -22,6 +22,7 @@ import type { OptimisticMessage } from "@/types/optimistic";
 import { ChatMessage, type MessageConversationContext } from "./ChatMessage";
 import { ComparisonView } from "./ComparisonView";
 import { DateSeparator } from "./DateSeparator";
+import { IntegrationTimelineEvent } from "./IntegrationTimelineEvent";
 
 const VIRTUALIZATION_THRESHOLD = 500;
 const NEAR_BOTTOM_THRESHOLD = 64;
@@ -30,8 +31,22 @@ type MessageWithUser = (any | OptimisticMessage) & {
   senderUser?: { name?: string; imageUrl?: string } | null;
 };
 
+type IntegrationEventEntry = {
+  _id: string;
+  integrationId: string;
+  integrationName: string;
+  action: "enabled" | "disabled";
+  createdAt: number;
+};
+
+function isIntegrationEventEntry(
+  value: MessageWithUser | IntegrationEventEntry,
+): value is IntegrationEventEntry {
+  return !("role" in value);
+}
+
 interface VirtualizedMessageListProps {
-  messages: MessageWithUser[];
+  messages: Array<MessageWithUser | IntegrationEventEntry>;
   conversationId: string;
   conversation?: MessageConversationContext | null;
   onVote?: (
@@ -76,6 +91,7 @@ export function VirtualizedMessageList({
     () =>
       messages.filter(
         (message) =>
+          isIntegrationEventEntry(message) ||
           !!message.comparisonGroupId ||
           !("isActiveBranch" in message) ||
           message.isActiveBranch !== false,
@@ -124,7 +140,10 @@ export function VirtualizedMessageList({
   const messageIds = useMemo(
     () =>
       (messages ?? [])
-        .filter((m) => !String(m._id).startsWith("temp-"))
+        .filter(
+          (m) =>
+            !isIntegrationEventEntry(m) && !String(m._id).startsWith("temp-"),
+        )
         .map((m) => m._id as string),
     [messages],
   );
@@ -204,6 +223,9 @@ export function VirtualizedMessageList({
       if (item.type === "message") {
         return String(item.data._id) === highlightMessageId;
       }
+      if (item.type === "integration-event") {
+        return String(item.data._id) === highlightMessageId;
+      }
       return (
         String(item.userMessage._id) === highlightMessageId ||
         item.assistantMessages.some((m) => String(m._id) === highlightMessageId)
@@ -281,7 +303,9 @@ export function VirtualizedMessageList({
                   ? item.id
                   : item.type === "date-separator"
                     ? `date-${item.timestamp}`
-                    : String(item.data._id)
+                    : item.type === "integration-event"
+                      ? `integration-event-${item.data._id}`
+                      : String(item.data._id)
               }
               item={item}
               index={index}
@@ -330,7 +354,9 @@ export function VirtualizedMessageList({
             ? item.id
             : item.type === "date-separator"
               ? `date-${item.timestamp}`
-              : item.data._id
+              : item.type === "integration-event"
+                ? `integration-event-${item.data._id}`
+                : item.data._id
         }
         defaultItemHeight={190}
         increaseViewportBy={{ top: 300, bottom: 300 }}
@@ -362,7 +388,9 @@ export function VirtualizedMessageList({
                 ? item.id
                 : item.type === "date-separator"
                   ? `date-${item.timestamp}`
-                  : String(item.data._id)
+                  : item.type === "integration-event"
+                    ? `integration-event-${item.data._id}`
+                    : String(item.data._id)
             }
             item={item}
             index={index}
@@ -449,6 +477,29 @@ const MessageItemContent = memo(function MessageItemContent({
       >
         <div className="col-start-2">
           <DateSeparator timestamp={item.timestamp} />
+        </div>
+      </div>
+    );
+  }
+
+  if (item.type === "integration-event") {
+    return (
+      <div
+        id={`message-group-${index}`}
+        className={cn(
+          "grid gap-4 px-4 py-2",
+          chatWidth === "narrow" && "grid-cols-[1fr_min(42rem,100%)_1fr]",
+          chatWidth === "standard" && "grid-cols-[1fr_min(56rem,100%)_1fr]",
+          chatWidth === "wide" && "grid-cols-[1fr_min(72rem,100%)_1fr]",
+          chatWidth === "full" && "grid-cols-[1fr_min(92%,100%)_1fr]",
+          !chatWidth && "grid-cols-[1fr_min(56rem,100%)_1fr]",
+        )}
+      >
+        <div className="col-start-2">
+          <IntegrationTimelineEvent
+            action={item.data.action}
+            integrationName={item.data.integrationName}
+          />
         </div>
       </div>
     );

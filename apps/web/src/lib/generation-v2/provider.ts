@@ -171,11 +171,13 @@ export class AiSdkGenerationProvider implements GenerationProvider {
     requestId: string;
     sessionId: string;
     messages: GenerationPromptMessage[];
+    tools?: Record<string, unknown>;
     signal?: AbortSignal;
   }) {
     const result = streamText({
       model: getModel(input.modelId),
       messages: toModelMessages(input.messages),
+      ...(input.tools ? { tools: input.tools as any } : {}),
       providerOptions: getGatewayOptions(input.modelId, input.userId, [
         "chat",
         "generation-v2",

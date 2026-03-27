@@ -97,6 +97,9 @@ interface ChatInputProps {
   isGenerating: boolean;
   selectedModel: string;
   onModelChange: (modelId: string) => void;
+  selectedIntegrationIds?: string[];
+  onToggleIntegration?: (integrationId: string) => void;
+  integrationsSaving?: boolean;
   thinkingEffort?: ThinkingEffort;
   onThinkingEffortChange?: (effort: ThinkingEffort) => void;
   attachments: Attachment[];
@@ -161,6 +164,7 @@ function restoreDraftIntoComposer(args: {
   isComparisonMode: boolean;
   onAttachmentsChange: (attachments: Attachment[]) => void;
   onExitComparison?: () => void;
+  onIntegrationsChange: (integrationIds: string[]) => void;
   onModelChange: (modelId: string) => void;
   onStartComparison?: (models: string[]) => void;
   onThinkingEffortChange?: (effort: ThinkingEffort) => void;
@@ -174,6 +178,7 @@ function restoreDraftIntoComposer(args: {
     isComparisonMode,
     onAttachmentsChange,
     onExitComparison,
+    onIntegrationsChange,
     onModelChange,
     onStartComparison,
     onThinkingEffortChange,
@@ -192,6 +197,7 @@ function restoreDraftIntoComposer(args: {
   setQuote(draft?.quote ?? null);
   setCursorPosition(draft?.text.length ?? 0);
   onAttachmentsChange(draft?.attachments ?? []);
+  onIntegrationsChange(draft?.selectedIntegrationIds ?? []);
 
   if (draft?.selectedModel) {
     onModelChange(draft.selectedModel);
@@ -214,6 +220,9 @@ export const ChatInput = memo(function ChatInput({
   isGenerating,
   selectedModel,
   onModelChange,
+  selectedIntegrationIds = [],
+  onToggleIntegration = () => {},
+  integrationsSaving,
   thinkingEffort,
   onThinkingEffortChange,
   attachments,
@@ -262,6 +271,24 @@ export const ChatInput = memo(function ChatInput({
   const handleDraftModelChange = useEffectEvent((modelId: string) => {
     onModelChange(modelId);
   });
+  const handleDraftIntegrationsChange = useEffectEvent(
+    (integrationIds: string[]) => {
+      const current = new Set(selectedIntegrationIds);
+      const next = new Set(integrationIds);
+
+      for (const integrationId of selectedIntegrationIds) {
+        if (!next.has(integrationId)) {
+          onToggleIntegration(integrationId);
+        }
+      }
+
+      for (const integrationId of integrationIds) {
+        if (!current.has(integrationId)) {
+          onToggleIntegration(integrationId);
+        }
+      }
+    },
+  );
   const handleDraftThinkingEffortChange = useEffectEvent(
     (effort: ThinkingEffort) => {
       onThinkingEffortChange?.(effort);
@@ -351,6 +378,7 @@ export const ChatInput = memo(function ChatInput({
           nextDraft.text = input;
           nextDraft.attachments = attachments;
           nextDraft.selectedModel = selectedModel;
+          nextDraft.selectedIntegrationIds = selectedIntegrationIds;
           nextDraft.thinkingEffort = thinkingEffort ?? "none";
           nextDraft.quote = quote;
           nextDraft.comparisonMode = isComparisonMode;
@@ -385,6 +413,7 @@ export const ChatInput = memo(function ChatInput({
       isComparisonMode,
       quote,
       selectedModel,
+      selectedIntegrationIds,
       selectedModels,
       thinkingEffort,
     ],
@@ -661,6 +690,7 @@ export const ChatInput = memo(function ChatInput({
       isComparisonMode,
       onAttachmentsChange: handleDraftAttachmentsChange,
       onExitComparison: handleDraftExitComparison,
+      onIntegrationsChange: handleDraftIntegrationsChange,
       onModelChange: handleDraftModelChange,
       onStartComparison: handleDraftStartComparison,
       onThinkingEffortChange: handleDraftThinkingEffortChange,
@@ -1204,6 +1234,9 @@ export const ChatInput = memo(function ChatInput({
             onModelChange={onModelChange}
             modelSelectorOpen={modelSelectorOpen}
             onModelSelectorOpenChange={onModelSelectorOpenChange}
+            selectedIntegrationIds={selectedIntegrationIds}
+            onToggleIntegration={onToggleIntegration}
+            integrationsSaving={integrationsSaving}
             supportsThinking={supportsThinking}
             thinkingEffort={thinkingEffort}
             onThinkingEffortChange={onThinkingEffortChange}

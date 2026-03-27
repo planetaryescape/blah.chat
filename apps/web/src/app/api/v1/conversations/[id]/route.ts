@@ -12,6 +12,7 @@ const updateSchema = z
   .object({
     title: z.string().optional(),
     model: z.string().optional(),
+    selectedIntegrationIds: z.array(z.string()).optional(),
   })
   .partial();
 

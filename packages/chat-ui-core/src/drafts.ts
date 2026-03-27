@@ -20,6 +20,7 @@ export interface ChatComposerDraftV1 {
   text: string;
   attachments: PersistedDraftAttachmentV1[];
   selectedModel: string | null;
+  selectedIntegrationIds: string[];
   thinkingEffort: ChatComposerThinkingEffort;
   quote: string | null;
   comparisonMode: boolean;
@@ -72,6 +73,7 @@ function normalizeDraft(
   const text = value.text;
   const attachments = value.attachments;
   const selectedModel = value.selectedModel;
+  const selectedIntegrationIds = value.selectedIntegrationIds;
   const thinkingEffort = value.thinkingEffort;
   const quote = value.quote;
   const comparisonMode = value.comparisonMode;
@@ -83,6 +85,8 @@ function normalizeDraft(
     typeof text !== "string" ||
     !Array.isArray(attachments) ||
     (selectedModel !== null && typeof selectedModel !== "string") ||
+    (selectedIntegrationIds !== undefined &&
+      !Array.isArray(selectedIntegrationIds)) ||
     (thinkingEffort !== "none" &&
       thinkingEffort !== "low" &&
       thinkingEffort !== "medium" &&
@@ -105,6 +109,12 @@ function normalizeDraft(
   const normalizedSelectedModels = selectedModels.filter(
     (model): model is string => typeof model === "string" && model.length > 0,
   );
+  const normalizedSelectedIntegrationIds = (
+    selectedIntegrationIds ?? []
+  ).filter(
+    (integrationId): integrationId is string =>
+      typeof integrationId === "string" && integrationId.length > 0,
+  );
 
   return {
     version: 1,
@@ -113,6 +123,7 @@ function normalizeDraft(
     text,
     attachments: normalizedAttachments,
     selectedModel,
+    selectedIntegrationIds: normalizedSelectedIntegrationIds,
     thinkingEffort,
     quote,
     comparisonMode:
@@ -133,6 +144,7 @@ export function emptyDraft(input: {
     text: "",
     attachments: [],
     selectedModel: null,
+    selectedIntegrationIds: [],
     thinkingEffort: "none",
     quote: null,
     comparisonMode: false,
@@ -146,6 +158,7 @@ export function isEmptyDraft(draft: ChatComposerDraftV1): boolean {
     draft.text.trim().length === 0 &&
     draft.attachments.length === 0 &&
     draft.selectedModel === null &&
+    draft.selectedIntegrationIds.length === 0 &&
     draft.thinkingEffort === "none" &&
     draft.quote === null &&
     draft.comparisonMode === false &&

@@ -3,6 +3,7 @@ import {
   comparisonVotes,
   conversations,
   generationCheckpoints,
+  generationRequestIntegrations,
   generationRequests,
   generationSessions,
   type Message,
@@ -21,6 +22,10 @@ import {
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { buildConsolidationPrompt } from "@/lib/consolidation";
+import {
+  getConversationSelectedIntegrationIds,
+  snapshotGenerationRequestIntegrations,
+} from "@/lib/persistence/conversationIntegrations";
 import type {
   ClerkUserProfile,
   GenerationToolCall,
@@ -117,6 +122,25 @@ async function getNextSiblingIndex(input: {
       -1,
     ) + 1
   );
+}
+
+async function snapshotConversationIntegrationsForRequest(input: {
+  db: PersistenceDb;
+  requestId: string;
+  conversationId: string;
+  userId: string;
+}) {
+  const selectedIntegrationIds = await getConversationSelectedIntegrationIds(
+    input.db,
+    input.conversationId,
+  );
+
+  return snapshotGenerationRequestIntegrations({
+    db: input.db,
+    requestId: input.requestId,
+    userId: input.userId,
+    selectedIntegrationIds,
+  });
 }
 
 async function createAssistantSession(input: {
@@ -360,6 +384,13 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         throw new Error("Failed to create generation request");
       }
 
+      await snapshotConversationIntegrationsForRequest({
+        db,
+        requestId: request.id,
+        conversationId: conversation.id,
+        userId: user.id,
+      });
+
       const assistantRows = await Promise.all(
         modelIds.map((modelId, index) =>
           createAssistantSession({
@@ -456,6 +487,17 @@ export function createGenerationV2Repository(db: PersistenceDb) {
       if (!request) {
         throw new Error("Failed to create regeneration request");
       }
+
+      if (!userMessage.userId) {
+        throw new Error("User message missing user id");
+      }
+
+      await snapshotConversationIntegrationsForRequest({
+        db,
+        requestId: request.id,
+        conversationId: assistantMessage.conversationId,
+        userId: userMessage.userId,
+      });
 
       const { assistantMessage: regeneratedAssistant } =
         await createAssistantSession({
@@ -568,6 +610,17 @@ export function createGenerationV2Repository(db: PersistenceDb) {
       if (!request) {
         throw new Error("Failed to create edit request");
       }
+
+      if (!editedUserMessage.userId) {
+        throw new Error("Edited message missing user id");
+      }
+
+      await snapshotConversationIntegrationsForRequest({
+        db,
+        requestId: request.id,
+        conversationId: originalMessage.conversationId,
+        userId: editedUserMessage.userId,
+      });
 
       const { assistantMessage } = await createAssistantSession({
         db,
@@ -805,6 +858,17 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         throw new Error("Failed to create consolidation request");
       }
 
+      if (!userMessage.userId) {
+        throw new Error("Comparison prompt missing user id");
+      }
+
+      await snapshotConversationIntegrationsForRequest({
+        db,
+        requestId: request.id,
+        conversationId: conversation.id,
+        userId: userMessage.userId,
+      });
+
       const { assistantMessage } = await createAssistantSession({
         db,
         requestId: request.id,
@@ -906,6 +970,13 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         throw new Error("Failed to create consolidation generation request");
       }
 
+      await snapshotConversationIntegrationsForRequest({
+        db,
+        requestId: request.id,
+        conversationId: conversation.id,
+        userId: input.userId,
+      });
+
       const { assistantMessage } = await createAssistantSession({
         db,
         requestId: request.id,
@@ -967,6 +1038,11 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         where: eq(generationSessions.requestId, request.id),
         orderBy: (table, { asc: orderAsc }) => [orderAsc(table.createdAt)],
       });
+      const integrations =
+        await db.query.generationRequestIntegrations.findMany({
+          where: eq(generationRequestIntegrations.requestId, request.id),
+          orderBy: (table, { asc: orderAsc }) => [orderAsc(table.createdAt)],
+        });
 
       const promptMessages = await this.getPathToMessage(
         conversation.id,
@@ -994,6 +1070,12 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         userId: user.id,
         userMessageId: request.userMessageId,
         requestedModelIds: request.requestedModels,
+        integrations: integrations.map((integration) => ({
+          integrationId: integration.integrationId,
+          integrationName: integration.integrationName,
+          composioConnectionId: integration.composioConnectionId,
+          connectionStatus: integration.connectionStatus,
+        })),
         promptMessages: promptChain,
         sessions: sessions.map((session) => ({
           sessionId: session.id,
@@ -1343,7 +1425,14 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         .where(
           and(
             inArray(routingDecisions.selectedModelId, modelIds),
-            inArray(routingFeedback.signal, ["win", "loss", "tie"]),
+            inArray(routingFeedback.signal, [
+              "win",
+              "loss",
+              "tie",
+              "regenerated",
+              "model_switch",
+              "both_bad",
+            ]),
           ),
         )
         .orderBy(desc(routingFeedback.createdAt))
@@ -1439,6 +1528,61 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         .returning();
 
       return feedback ?? null;
+    },
+
+    async recordModelSwitchFeedback(previousAssistantMessageId: string) {
+      const session = await db.query.generationSessions.findFirst({
+        where: eq(
+          generationSessions.assistantMessageId,
+          previousAssistantMessageId,
+        ),
+      });
+      if (!session) return null;
+
+      const outcome = await db.query.routingOutcomes.findFirst({
+        where: eq(routingOutcomes.generationSessionId, session.id),
+      });
+      if (!outcome) return null;
+
+      const [feedback] = await db
+        .insert(routingFeedback)
+        .values({
+          outcomeId: outcome.id,
+          signal: "model_switch",
+          metadata: { previousAssistantMessageId },
+          createdAt: now(),
+        })
+        .returning();
+
+      return feedback ?? null;
+    },
+
+    async findLastAutoRoutedAssistantMessageId(
+      conversationId: string,
+    ): Promise<string | null> {
+      const row = await db
+        .select({ assistantMessageId: generationSessions.assistantMessageId })
+        .from(generationSessions)
+        .innerJoin(
+          generationRequests,
+          eq(generationRequests.id, generationSessions.requestId),
+        )
+        .innerJoin(
+          routingDecisions,
+          eq(routingDecisions.generationRequestId, generationRequests.id),
+        )
+        .where(
+          and(
+            eq(generationRequests.conversationId, conversationId),
+            sql`${routingDecisions.routeLabel} NOT IN ('explicit', 'manual_default')`,
+            eq(generationSessions.status, "complete"),
+          ),
+        )
+        .orderBy(desc(generationSessions.updatedAt))
+        .limit(1)
+        .then((rows) => rows[0] ?? null);
+
+      return row?.assistantMessageId ?? null;
     },
 
     async listMessages(conversationId: string) {

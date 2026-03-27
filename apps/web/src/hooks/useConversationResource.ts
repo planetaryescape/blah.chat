@@ -6,6 +6,7 @@ type ConversationResource = {
   _id: string;
   title: string;
   model: string;
+  selectedIntegrationIds?: string[];
   archived?: boolean;
   messageCount?: number;
   lastMessageAt?: number;

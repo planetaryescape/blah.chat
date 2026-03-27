@@ -4,6 +4,7 @@ export function toApiConversation(
   conversation: Conversation & {
     messageCount?: number;
     lastMessageAt?: number | null;
+    selectedIntegrationIds?: string[];
   },
 ) {
   return {
@@ -16,6 +17,7 @@ export function toApiConversation(
     pinned: conversation.pinned,
     archived: conversation.archived,
     starred: conversation.starred,
+    selectedIntegrationIds: conversation.selectedIntegrationIds ?? [],
     modelRecommendation: conversation.modelRecommendation ?? undefined,
     messageCount: conversation.messageCount ?? 0,
     lastMessageAt: conversation.lastMessageAt ?? conversation.updatedAt,

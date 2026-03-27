@@ -5,7 +5,7 @@ import { getModelConfig } from "@blah-chat/ai/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { parseAsBoolean, useQueryState } from "nuqs";
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CanvasPanel } from "@/components/canvas/CanvasPanel";
 import { ChatHeader } from "@/components/chat/ChatHeader";
@@ -35,6 +35,8 @@ import { useChatModelSelection } from "@/hooks/useChatModelSelection";
 import { useComparisonHandlers } from "@/hooks/useComparisonHandlers";
 import { useComparisonMode } from "@/hooks/useComparisonMode";
 import { useContextLimitEnforcement } from "@/hooks/useContextLimitEnforcement";
+import { useConversationIntegrationEvents } from "@/hooks/useConversationIntegrationEvents";
+import { useConversationIntegrationSelection } from "@/hooks/useConversationIntegrationSelection";
 import { useConversationNavigation } from "@/hooks/useConversationNavigation";
 import { useConversationResource } from "@/hooks/useConversationResource";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
@@ -72,6 +74,8 @@ function ChatPageContent({
 
   const conversation = useConversationResource(validConversationId);
   const conversationAny = conversation as any;
+  const { data: integrationEvents = [] } =
+    useConversationIntegrationEvents(validConversationId);
   const {
     results: serverMessages,
     status: paginationStatus,
@@ -148,6 +152,14 @@ function ChatPageContent({
       tokenUsage,
       onModelBlocked: handleModelBlocked,
     });
+  const {
+    selectedIntegrationIds,
+    toggleIntegration,
+    isSaving: integrationsSaving,
+  } = useConversationIntegrationSelection({
+    conversationId: validConversationId,
+    initialSelectedIntegrationIds: conversationAny?.selectedIntegrationIds,
+  });
 
   // Context limit enforcement (uses displayModel for accurate percentage)
   const { shouldBlockSend, shouldAutoCompress, percentage, totalTokens } =
@@ -366,6 +378,19 @@ function ChatPageContent({
   const showThinkingEffort =
     !!modelConfig?.reasoning || modelConfig?.capabilities?.includes("thinking");
   const hasMessages = (messages?.length ?? 0) > 0;
+  const transcriptEntries = useMemo(
+    () =>
+      [...(messages ?? []), ...integrationEvents].sort((a, b) => {
+        const aTime = a.createdAt ?? a._creationTime ?? 0;
+        const bTime = b.createdAt ?? b._creationTime ?? 0;
+        if (aTime !== bTime) {
+          return aTime - bTime;
+        }
+
+        return String(a._id).localeCompare(String(b._id));
+      }),
+    [integrationEvents, messages],
+  );
 
   // Navigation between conversations
   const { isFirst, isLast, navigateToPrevious, navigateToNext } =
@@ -526,7 +551,7 @@ function ChatPageContent({
                         key={validConversationId}
                         conversationId={validConversationId!}
                         conversation={conversationAny}
-                        messages={messages ?? []}
+                        messages={transcriptEntries}
                         chatWidth={chatWidth}
                         onVote={handleVote}
                         onConsolidate={handleConsolidate}
@@ -682,6 +707,9 @@ function ChatPageContent({
                   isGenerating={isGenerating}
                   selectedModel={displayModel}
                   onModelChange={handleModelChange}
+                  selectedIntegrationIds={selectedIntegrationIds}
+                  onToggleIntegration={toggleIntegration}
+                  integrationsSaving={integrationsSaving}
                   thinkingEffort={
                     showThinkingEffort ? thinkingEffort : undefined
                   }

@@ -57,6 +57,7 @@ function createConversationEnvelope(
     _id: string;
     title: string;
     model: string;
+    selectedIntegrationIds: string[];
     projectId: string | undefined;
     isIncognito: boolean;
     incognitoSettings:
@@ -86,6 +87,7 @@ function createConversationEnvelope(
       _id: overrides?._id ?? "conv-1",
       title: overrides?.title ?? "New Chat",
       model: overrides?.model ?? "gpt-4o",
+      selectedIntegrationIds: overrides?.selectedIntegrationIds ?? [],
       projectId: overrides?.projectId,
       isIncognito: overrides?.isIncognito ?? false,
       incognitoSettings: overrides?.incognitoSettings,

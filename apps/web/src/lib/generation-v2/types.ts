@@ -23,6 +23,13 @@ export interface GenerationToolCall {
   timestamp: number;
 }
 
+export interface GenerationRequestIntegrationSnapshot {
+  integrationId: string;
+  integrationName: string;
+  composioConnectionId?: string | null;
+  connectionStatus?: string | null;
+}
+
 export interface GenerationProviderStreamInput {
   modelId: string;
   userId: string;
@@ -30,6 +37,8 @@ export interface GenerationProviderStreamInput {
   requestId: string;
   sessionId: string;
   messages: GenerationPromptMessage[];
+  integrations?: GenerationRequestIntegrationSnapshot[];
+  tools?: Record<string, unknown>;
   signal?: AbortSignal;
 }
 
@@ -111,6 +120,7 @@ export interface PersistedRequestBundle {
   userId: string;
   userMessageId: string;
   requestedModelIds: string[];
+  integrations: GenerationRequestIntegrationSnapshot[];
   promptMessages: Array<{ role: string; content: string }>;
   sessions: PersistedSessionBundle[];
 }

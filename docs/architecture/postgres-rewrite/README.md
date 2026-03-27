@@ -31,31 +31,31 @@ Execution rules:
 
 Execution status:
 
-- Complete: 6 / 17 phases
-- In progress: 6 / 17 phases
-- Not started: 5 / 17 phases
+- Complete: 17 / 17 phases
+- In progress: 0 / 17 phases
+- Not started: 0 / 17 phases
 
 Phase status snapshot:
 
 | Phase | Status | Notes |
 | --- | --- | --- |
-| 01 | Complete | Architecture pack written and locked in `/docs/architecture/postgres-rewrite` |
-| 02 | Complete | Audited on `codex/postgres-rewrite`: centralized Postgres/Redis/R2/Trigger env + client path exists and health route now checks all four dependencies |
-| 03 | Complete | Audited on `codex/postgres-rewrite`: missing rewrite tables, indexes, PGlite bootstrap, and generated Drizzle migration artifacts are now present and test-validated |
-| 04 | Complete | Audited on `codex/postgres-rewrite`: Clerk-only auth + JIT Postgres user creation now works across conversations, preferences, webhook sync, and the user DAL; only the isolated non-`v1` legacy callback remains on Convex auth by design |
-| 05 | In progress | Audited REST coverage is now green for create/get/update/delete/archive/pin/star plus branch edit/regenerate/delete/switch flows; remaining parity work is narrower follow-up surface audit |
-| 06 | Complete | Live blob flows now write/read through R2 + Postgres across chat attachments, generated images, code-exec images, web TTS cache, and mobile upload/STT paths; remaining legacy Convex blob modules are cold cleanup for phase 16 |
-| 07 | Complete | Audited on `codex/postgres-rewrite`: single-model generation now has durable Redis→Postgres resume fallback, durable stop semantics that preserve partial assistant text, and CLI chat send/resume/stream cut over to API-key Postgres generation-v2 routes |
-| 08 | In progress | Backend comparison runtime exists; more UI/app-surface parity still pending |
-| 09 | In progress | Web send/replay now preserves branch context + client ids, refresh can discover active requests, the shared SDK now exposes request-stream APIs, and mobile HTTP mode can resume/stream generation events; durable offline replay parity and broader mobile surface audit still remain |
-| 10 | In progress | Generation-v2 now routes `"auto"` requests through classifier or hard-rule route labels plus Postgres-backed policy, candidate-score, recent-outcome, provider-health, and sticky-follow-up scoring; decisions/outcomes/feedback are persisted, and sticky route context now prefers the latest routed decision over explicit/manual-default rows |
-| 11 | In progress | `/api/v1/search/hybrid`, web search hooks/cards/filter lookups, search bulk bookmark/archive/delete actions, the main memories CRUD/search/consolidate/scan routes, Postgres-backed chat source routes/cache sync, canonical chat attachment extraction enqueue, project knowledge/file surfaces, and both project-scoped plus global notes/tasks routes/hooks/pages now run through Postgres + REST; broader embedding parity still remains |
-| 12 | In progress | Trigger `extract-memories`, `transcribe`, `generate-title`, `extract-text`, `analyze-model-fit`, `auto-triage-feedback`, `embed-file`, `enrich-source-metadata`, and `process-source` now have canonical Postgres/REST-backed runtime or user-facing surfaces on the rewrite stack, the old web Trigger bridge has been removed, BYOD health is Trigger-scheduled instead of Convex-cron-scheduled, and manual extraction/transcription/image-generation now start through REST-backed Trigger jobs; remaining work is now broader scheduler/backfill and legacy-domain cleanup outside the canonical chat/knowledge path |
-| 13 | Not started | Planned only |
-| 14 | Not started | Planned only |
-| 15 | Not started | Planned only |
-| 16 | Not started | Planned only |
-| 17 | Not started | Planned only |
+| 01 | Complete | Architecture pack written and locked |
+| 02 | Complete | Centralized Postgres/Redis/R2/Trigger env + client path; health route checks all four dependencies |
+| 03 | Complete | Canonical schema with 40+ tables, tree model, comparison model, routing tables; PGlite test bootstrap with pgvector |
+| 04 | Complete | Clerk-only auth + JIT Postgres user creation; preferences, webhook sync, user DAL all on Postgres |
+| 05 | Complete | Full REST coverage for conversation CRUD, branch operations, message tree reads; sidebar mutations on Postgres |
+| 06 | Complete | All live blob flows on R2 + Postgres; attachments, images, code-exec, TTS, mobile upload/STT |
+| 07 | Complete | Single-model generation with Redis streaming, Postgres checkpoints, durable stop, resume fallback; CLI on API-key routes |
+| 08 | Complete | Comparison mode: multiplexed SSE, per-model stop, votes UI, consolidation dialog, routing feedback pipeline connected |
+| 09 | Complete | Durable offline queue, mobile HTTP/SSE streaming, reconnect replay, lifecycle bridge, grouped comparison replay |
+| 10 | Complete | Policy engine wired into generation pipeline with outcome-weighted scoring, provider health, exploration, shadow routing; feedback loop now includes regenerated, model_switch, both_bad signals; shadow evaluator with adjustable exploration rate |
+| 11 | Complete | pgvector + FTS hybrid search, embedding jobs for messages/notes/tasks, backfill infrastructure, memories CRUD, project knowledge/file surfaces |
+| 12 | Complete | 20+ Trigger jobs migrated; all scheduled maintenance, embedding, extraction, health checks on Trigger.dev |
+| 13 | Complete | BYOD Neon: encrypted credentials (AES-256-GCM), remote migration runner, health checks every 30min, UI settings panel, Neon-only validation |
+| 14 | Complete | Migration CLI with 24 entity transformers, blob migration to R2, parity validation, tree integrity checks |
+| 15 | Complete | All app surfaces on HTTP transport; CLI Convex provider removed; prompts extracted to @blah-chat/shared/prompts; mobile type aliases standalone |
+| 16 | Complete | CLI Convex files deleted; job prompt imports migrated to shared package; mobile Convex type imports replaced with standalone types; convex deps removed from CLI, mobile, jobs; root convex scripts removed |
+| 17 | Complete | Operational runbooks (6 scenarios), alert thresholds (8 SLAs), metrics collection job (5min cron), Slack webhook alerts, Pino structured logging, k6 load test script |
 
 Phase order:
 

@@ -7,7 +7,6 @@ import {
   normalizeUsageTokens,
   type UsageTokenInfo,
 } from "@blah-chat/ai/utils";
-import { IMAGE_GENERATION_SYSTEM_PROMPT } from "@blah-chat/backend/imageGenerationPrompt";
 import {
   attachments,
   buildGeneratedAttachmentObjectKey,
@@ -21,6 +20,7 @@ import {
   parsePersistenceEnv,
   uploadObject,
 } from "@blah-chat/persistence-postgres";
+import { IMAGE_GENERATION_SYSTEM_PROMPT } from "@blah-chat/shared/prompts";
 import { task } from "@trigger.dev/sdk";
 import { streamText } from "ai";
 import { and, eq } from "drizzle-orm";

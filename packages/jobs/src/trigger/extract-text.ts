@@ -3,10 +3,6 @@ import { DOCUMENT_EXTRACTION_MODEL } from "@blah-chat/ai/operational-models";
 import { getModel } from "@blah-chat/ai/registry";
 import { normalizeUsageTokens, type UsageTokenInfo } from "@blah-chat/ai/utils";
 import {
-  buildPdfPageExtractionPrompt,
-  DOCUMENT_EXTRACTION_PROMPT,
-} from "@blah-chat/backend/documentExtractionPrompts";
-import {
   type Attachment,
   attachments,
   createNeonDatabase,
@@ -15,6 +11,10 @@ import {
   type PersistenceDb,
   parsePersistenceEnv,
 } from "@blah-chat/persistence-postgres";
+import {
+  buildPdfPageExtractionPrompt,
+  DOCUMENT_EXTRACTION_PROMPT,
+} from "@blah-chat/shared/prompts";
 import { task } from "@trigger.dev/sdk";
 import { generateText } from "ai";
 import { eq } from "drizzle-orm";

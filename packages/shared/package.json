@@ -36,6 +36,10 @@
     "./canvas": {
       "types": "./dist/canvas/index.d.ts",
       "import": "./dist/canvas/index.js"
+    },
+    "./prompts": {
+      "types": "./dist/prompts/index.d.ts",
+      "import": "./dist/prompts/index.js"
     }
   },
   "files": [
@@ -47,7 +51,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup src/index.ts src/byod/index.ts src/desktop.ts src/utils/index.ts src/preferences.ts src/limits.ts src/integrations.ts src/canvas/index.ts --format esm --dts --clean",
+    "build": "tsup src/index.ts src/byod/index.ts src/desktop.ts src/utils/index.ts src/preferences.ts src/limits.ts src/integrations.ts src/canvas/index.ts src/prompts/index.ts --format esm --dts --clean",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "bun run build"
   },

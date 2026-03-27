@@ -2,7 +2,6 @@ import { getGatewayOptions } from "@blah-chat/ai/gateway";
 import { TITLE_GENERATION_MODEL } from "@blah-chat/ai/operational-models";
 import { getModel } from "@blah-chat/ai/registry";
 import { calculateCost, type UsageTokenInfo } from "@blah-chat/ai/utils";
-import { CONVERSATION_TITLE_PROMPT } from "@blah-chat/backend/titleGenerationPrompt";
 import {
   conversations,
   createConversationRepository,
@@ -10,6 +9,7 @@ import {
   type Message,
   type PersistenceDb,
 } from "@blah-chat/persistence-postgres";
+import { CONVERSATION_TITLE_PROMPT } from "@blah-chat/shared/prompts";
 import { task } from "@trigger.dev/sdk";
 import { generateText } from "ai";
 import { eq } from "drizzle-orm";

@@ -35,7 +35,6 @@
   },
   "dependencies": {
     "@blah-chat/ai": "workspace:*",
-    "@blah-chat/backend": "workspace:*",
     "@blah-chat/persistence-postgres": "workspace:*",
     "@blah-chat/shared": "workspace:*",
     "@trigger.dev/sdk": "^4.4.3",

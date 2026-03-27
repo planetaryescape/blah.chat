@@ -11,12 +11,6 @@ import {
   type UsageTokenInfo,
 } from "@blah-chat/ai/utils";
 import {
-  buildMemoryExtractionPrompt,
-  EXTRACTION_THRESHOLDS,
-  type MemoryExtractionLevel,
-} from "@blah-chat/backend/memoryExtractionPrompt";
-import { estimateTokens } from "@blah-chat/backend/tokenCounting";
-import {
   conversations,
   createConversationRepository,
   createNeonDatabase,
@@ -26,6 +20,12 @@ import {
   userPreferences,
 } from "@blah-chat/persistence-postgres";
 import { PREFERENCE_DEFAULTS } from "@blah-chat/shared/preferences";
+import {
+  buildMemoryExtractionPrompt,
+  EXTRACTION_THRESHOLDS,
+  estimateTokens,
+  type MemoryExtractionLevel,
+} from "@blah-chat/shared/prompts";
 import { task } from "@trigger.dev/sdk";
 import { embedMany, generateObject } from "ai";
 import { and, desc, eq, sql } from "drizzle-orm";

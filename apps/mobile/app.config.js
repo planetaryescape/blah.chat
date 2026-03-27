@@ -73,7 +73,6 @@ export default {
         projectId: "90d8e51e-5262-4ecd-94e4-cc53b8923d43",
       },
       clerkPublishableKey: process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY,
-      convexUrl: process.env.EXPO_PUBLIC_CONVEX_URL,
     },
     updates: {
       url: "https://u.expo.dev/90d8e51e-5262-4ecd-94e4-cc53b8923d43",

@@ -1,5 +1,6 @@
+import { useAuth } from "@clerk/clerk-expo";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import { Copy, Key, Plus, Trash2 } from "lucide-react-native";
 import { useCallback, useState } from "react";
@@ -15,15 +16,40 @@ import { TouchableOpacity } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FluidButton } from "@/components/ui/FluidButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { api } from "@/lib/convex";
+import { queryClient } from "@/lib/cache/queryClient";
 import { haptic } from "@/lib/haptics";
 import { palette, spacing, typography } from "@/lib/theme/designSystem";
+import { createMobileSdkClient } from "@/lib/transport/httpClient";
 import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
 
 export default function ApiKeysScreen() {
-  const keys = useQuery(api.cliAuth.list);
-  const createKey = useMutation(api.cliAuth.create);
-  const revokeKey = useMutation(api.cliAuth.revoke);
+  const { getToken } = useAuth();
+
+  const keysQuery = useQuery({
+    queryKey: ["mobile", "cli-api-keys"],
+    queryFn: async () => {
+      const client = createMobileSdkClient(() => getToken());
+      return client.listCliApiKeys();
+    },
+  });
+  const createKeyMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const client = createMobileSdkClient(() => getToken());
+      return client.createCliApiKey({ name });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mobile", "cli-api-keys"] });
+    },
+  });
+  const revokeKeyMutation = useMutation({
+    mutationFn: async (keyId: string) => {
+      const client = createMobileSdkClient(() => getToken());
+      return client.revokeCliApiKey(keyId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mobile", "cli-api-keys"] });
+    },
+  });
 
   const [createOpen, setCreateOpen] = useState(false);
   const [keyName, setKeyName] = useState("");
@@ -35,7 +61,7 @@ export default function ApiKeysScreen() {
     setCreating(true);
     haptic.medium();
     try {
-      const result = await createKey({ name: keyName.trim() });
+      const result = await createKeyMutation.mutateAsync(keyName.trim());
       setNewKey(result.key);
       setKeyName("");
     } catch {
@@ -43,7 +69,7 @@ export default function ApiKeysScreen() {
     } finally {
       setCreating(false);
     }
-  }, [keyName, createKey]);
+  }, [createKeyMutation, keyName]);
 
   const handleRevoke = useCallback(
     (keyId: string, prefix: string) => {
@@ -58,7 +84,7 @@ export default function ApiKeysScreen() {
             onPress: async () => {
               haptic.medium();
               try {
-                await revokeKey({ keyId });
+                await revokeKeyMutation.mutateAsync(keyId);
               } catch {
                 Alert.alert("Error", "Failed to revoke key.");
               }
@@ -67,7 +93,7 @@ export default function ApiKeysScreen() {
         ],
       );
     },
-    [revokeKey],
+    [revokeKeyMutation],
   );
 
   const handleCopy = useCallback(async (text: string) => {
@@ -108,13 +134,13 @@ export default function ApiKeysScreen() {
       />
 
       {/* Key List */}
-      {keys === undefined ? (
+      {keysQuery.data === undefined ? (
         <View
           style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
         >
           <ActivityIndicator size="large" color={palette.roseQuartz} />
         </View>
-      ) : keys.length === 0 ? (
+      ) : keysQuery.data.length === 0 ? (
         <View
           style={{
             flex: 1,
@@ -149,7 +175,7 @@ export default function ApiKeysScreen() {
         </View>
       ) : (
         <FlatList
-          data={keys}
+          data={keysQuery.data}
           keyExtractor={(item) => item._id}
           contentContainerStyle={{ padding: spacing.md }}
           renderItem={({ item }) => (

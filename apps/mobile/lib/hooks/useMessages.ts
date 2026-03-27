@@ -1,132 +1,25 @@
-import type { GenerationStreamEvent } from "@blah-chat/api-client";
 import { useAuth } from "@clerk/clerk-expo";
-import {
-  useMutation as useTanstackMutation,
-  useQuery as useTanstackQuery,
-} from "@tanstack/react-query";
-import {
-  useMutation as useConvexMutation,
-  useQuery as useConvexQuery,
-} from "convex/react";
+import { onlineManager, useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { queryClient } from "@/lib/cache/queryClient";
+import {
+  insertConversationIntoCache,
+  reconcileConversationInCache,
+} from "@/lib/chat/conversationCache";
+import {
+  addPendingMessagePair,
+  applyGenerationEventToMessages,
+  filterActiveBranchMessages,
+} from "@/lib/chat/messageTree";
 import type { Doc, Id } from "@/lib/convex";
-import { api } from "@/lib/convex";
+import { mobileMessageQueue } from "@/lib/offline/messageQueue";
 import { createMobileSdkClient } from "@/lib/transport/httpClient";
-import { shouldUseConvexTransport } from "@/lib/transport/mode";
 
 type Message = Doc<"messages">;
 
-function sortMessages(messages: Message[]) {
-  return [...messages].sort((a, b) => {
-    if (a.createdAt !== b.createdAt) {
-      return a.createdAt - b.createdAt;
-    }
+const LOCAL_CONVERSATION_PREFIX = "local_conv_";
 
-    const aSibling = typeof a.siblingIndex === "number" ? a.siblingIndex : 0;
-    const bSibling = typeof b.siblingIndex === "number" ? b.siblingIndex : 0;
-    if (aSibling !== bSibling) {
-      return aSibling - bSibling;
-    }
-
-    return String(a._id).localeCompare(String(b._id));
-  });
-}
-
-function applyGenerationEventToMessages(
-  messages: Message[],
-  conversationId: Id<"conversations">,
-  event: GenerationStreamEvent,
-) {
-  const index = messages.findIndex(
-    (message) => String(message._id) === event.assistantMessageId,
-  );
-  const existing = index === -1 ? undefined : messages[index];
-  const base =
-    existing ??
-    ({
-      _id: event.assistantMessageId as Id<"messages">,
-      _creationTime: event.ts,
-      conversationId,
-      userId: "assistant" as Id<"users">,
-      role: "assistant",
-      content: "",
-      status: "pending",
-      model: event.modelId,
-      createdAt: event.ts,
-      updatedAt: event.ts,
-      siblingIndex: 0,
-      isActiveBranch: true,
-    } satisfies Message);
-  const currentContent = base.partialContent ?? base.content;
-
-  let nextMessage: Message = {
-    ...base,
-    model: event.modelId,
-    updatedAt: event.ts,
-  };
-
-  switch (event.type) {
-    case "start":
-      nextMessage = {
-        ...nextMessage,
-        status: "generating",
-        partialContent: currentContent || undefined,
-      };
-      break;
-    case "delta": {
-      const nextContent = `${currentContent}${event.delta ?? ""}`;
-      nextMessage = {
-        ...nextMessage,
-        content: nextContent,
-        partialContent: nextContent,
-        status: "generating",
-      };
-      break;
-    }
-    case "checkpoint":
-      nextMessage = {
-        ...nextMessage,
-        content: event.content ?? currentContent,
-        partialContent: event.content ?? currentContent,
-        status: "generating",
-      };
-      break;
-    case "complete":
-      nextMessage = {
-        ...nextMessage,
-        content: event.content ?? currentContent,
-        partialContent: undefined,
-        status: "complete",
-      };
-      break;
-    case "cancelled":
-      nextMessage = {
-        ...nextMessage,
-        status: "stopped",
-        partialContent: undefined,
-      };
-      break;
-    case "error":
-      nextMessage = {
-        ...nextMessage,
-        status: "error",
-        partialContent: undefined,
-      };
-      break;
-  }
-
-  const nextMessages = [...messages];
-  if (index === -1) {
-    nextMessages.push(nextMessage);
-  } else {
-    nextMessages[index] = nextMessage;
-  }
-
-  return sortMessages(nextMessages);
-}
-
-function isTerminalGenerationEvent(event: GenerationStreamEvent) {
+function isTerminalGenerationEvent(event: { type: string }) {
   return (
     event.type === "complete" ||
     event.type === "cancelled" ||
@@ -134,19 +27,46 @@ function isTerminalGenerationEvent(event: GenerationStreamEvent) {
   );
 }
 
+function createClientMessageId() {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `client_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function isLocalConversationId(conversationId: string | null | undefined) {
+  return (
+    !!conversationId && conversationId.startsWith(LOCAL_CONVERSATION_PREFIX)
+  );
+}
+
+function shouldQueueSendError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+  return (
+    message.includes("network request failed") ||
+    message.includes("failed to fetch") ||
+    message.includes("networkerror") ||
+    message.includes("load failed")
+  );
+}
+
+export function createLocalConversationId() {
+  return `${LOCAL_CONVERSATION_PREFIX}${createClientMessageId()}` as Id<"conversations">;
+}
+
 export function useMessages(conversationId: Id<"conversations"> | null) {
-  const useConvexMode = shouldUseConvexTransport();
   const { getToken } = useAuth();
   const [usePollingFallback, setUsePollingFallback] = useState(false);
+  const isLocalConversation = isLocalConversationId(conversationId);
 
-  const convexMessages = useConvexQuery(
-    api.messages.list,
-    useConvexMode && conversationId ? { conversationId } : "skip",
-  ) as Message[] | undefined;
-
-  const activeGenerationQuery = useTanstackQuery({
+  const activeGenerationQuery = useQuery({
     queryKey: ["mobile", "active-generation", conversationId],
-    enabled: !useConvexMode && !!conversationId,
+    enabled: !!conversationId && !isLocalConversation,
     staleTime: 0,
     queryFn: async () => {
       if (!conversationId) {
@@ -158,9 +78,9 @@ export function useMessages(conversationId: Id<"conversations"> | null) {
     },
   });
 
-  const httpQuery = useTanstackQuery({
+  const messageTreeQuery = useQuery({
     queryKey: ["mobile", "messages", conversationId],
-    enabled: !useConvexMode && !!conversationId,
+    enabled: !!conversationId && !isLocalConversation,
     staleTime: 2_000,
     refetchInterval:
       activeGenerationQuery.data?.requestId || !usePollingFallback
@@ -178,7 +98,7 @@ export function useMessages(conversationId: Id<"conversations"> | null) {
   });
 
   useEffect(() => {
-    if (useConvexMode || !conversationId) {
+    if (!conversationId || isLocalConversation) {
       return;
     }
 
@@ -186,8 +106,8 @@ export function useMessages(conversationId: Id<"conversations"> | null) {
     if (!activeGeneration?.requestId) {
       return;
     }
-    const requestId = activeGeneration.requestId;
 
+    const requestId = activeGeneration.requestId;
     const client = createMobileSdkClient(() => getToken());
     const abortController = new AbortController();
     let cancelled = false;
@@ -246,54 +166,219 @@ export function useMessages(conversationId: Id<"conversations"> | null) {
       cancelled = true;
       abortController.abort();
     };
-  }, [activeGenerationQuery.data, conversationId, getToken, useConvexMode]);
+  }, [
+    activeGenerationQuery.data,
+    conversationId,
+    getToken,
+    isLocalConversation,
+  ]);
 
-  const allMessages = useConvexMode
-    ? convexMessages
-    : (httpQuery.data as Message[] | undefined);
-
-  return useMemo(() => {
-    if (!allMessages) return allMessages;
-    return allMessages.filter((m: Message) => m.isActiveBranch !== false);
-  }, [allMessages]);
+  return useMemo(
+    () =>
+      filterActiveBranchMessages(
+        messageTreeQuery.data as Message[] | undefined,
+      ),
+    [messageTreeQuery.data],
+  );
 }
 
+export function useMessageTree(conversationId: Id<"conversations"> | null) {
+  const { getToken } = useAuth();
+  const isLocalConversation = isLocalConversationId(conversationId);
+
+  const query = useQuery({
+    queryKey: ["mobile", "messages", conversationId],
+    enabled: !!conversationId && !isLocalConversation,
+    staleTime: 2_000,
+    queryFn: async () => {
+      if (!conversationId) {
+        return null;
+      }
+
+      const client = createMobileSdkClient(() => getToken());
+      return (await client.listMessages(conversationId)) as Message[];
+    },
+  });
+
+  return query.data as Message[] | undefined;
+}
+
+type SendMessageArgs = {
+  conversationId?: Id<"conversations">;
+  localConversationId?: Id<"conversations">;
+  createConversation?: {
+    model: string;
+    title?: string;
+    systemPrompt?: string;
+  };
+  content: string;
+  modelId?: string;
+  models?: string[];
+  parentMessageId?: Id<"messages">;
+  clientMessageId?: string;
+  thinkingEffort?: "none" | "low" | "medium" | "high";
+  attachments?: Array<{
+    type: "file" | "image" | "audio";
+    name: string;
+    storageId: string;
+    mimeType: string;
+    size: number;
+  }>;
+};
+
+type QueuedSendResult = {
+  queued: true;
+  conversationId: Id<"conversations">;
+  clientMessageId: string;
+  requestId: null;
+  streamUrl: null;
+  status: "queued";
+};
+
+type SentSendResult = {
+  queued: false;
+  conversationId: string;
+  clientMessageId: string;
+  requestId: string;
+  streamUrl: string;
+  status: string;
+};
+
+type SendMessageResult = QueuedSendResult | SentSendResult;
+
 export function useSendMessage() {
-  const useConvexMode = shouldUseConvexTransport();
-  const convexMutation = useConvexMutation(api.chat.sendMessage);
   const { getToken } = useAuth();
 
-  const httpMutation = useTanstackMutation({
-    mutationFn: async (args: {
-      conversationId: Id<"conversations">;
-      content: string;
-      modelId?: string;
-      models?: string[];
-      parentMessageId?: Id<"messages">;
-      clientMessageId?: string;
-      thinkingEffort?: "none" | "low" | "medium" | "high";
-      attachments?: Array<{
-        type: "file" | "image" | "audio";
-        name: string;
-        storageId: string;
-        mimeType: string;
-        size: number;
-      }>;
-    }) => {
+  const mutation = useMutation<SendMessageResult, Error, SendMessageArgs>({
+    mutationFn: async (args: SendMessageArgs): Promise<SendMessageResult> => {
       const client = createMobileSdkClient(() => getToken());
-      return client.sendMessage(args.conversationId, {
+      const clientMessageId = args.clientMessageId ?? createClientMessageId();
+      const optimisticConversationId =
+        args.conversationId ?? args.localConversationId;
+
+      if (!optimisticConversationId) {
+        throw new Error("conversationId or localConversationId is required");
+      }
+
+      const createdAt = Date.now();
+      queryClient.setQueryData<Message[] | undefined>(
+        ["mobile", "messages", optimisticConversationId],
+        (current) =>
+          addPendingMessagePair(current ?? [], {
+            conversationId: optimisticConversationId,
+            content: args.content,
+            modelId: args.modelId,
+            models: args.models,
+            clientMessageId,
+            createdAt,
+          }),
+      );
+
+      const queueRecord = {
+        conversationId: args.conversationId,
+        localConversationId: args.localConversationId,
+        createConversation: args.createConversation,
         content: args.content,
         modelId: args.modelId,
         models: args.models,
         parentMessageId: args.parentMessageId,
-        clientMessageId: args.clientMessageId,
+        clientMessageId,
         thinkingEffort: args.thinkingEffort,
         attachments: args.attachments,
-      });
+        createdAt,
+      };
+
+      if (onlineManager.isOnline() === false) {
+        mobileMessageQueue.enqueueSend(queueRecord);
+        return {
+          queued: true,
+          conversationId: optimisticConversationId,
+          clientMessageId,
+          requestId: null,
+          streamUrl: null,
+          status: "queued",
+        };
+      }
+
+      if (
+        !args.conversationId &&
+        args.localConversationId &&
+        !args.createConversation
+      ) {
+        mobileMessageQueue.enqueueSend(queueRecord);
+        return {
+          queued: true,
+          conversationId: optimisticConversationId,
+          clientMessageId,
+          requestId: null,
+          streamUrl: null,
+          status: "queued",
+        };
+      }
+
+      try {
+        let conversationId = args.conversationId;
+        if (!conversationId && args.createConversation) {
+          const createdConversation = await client.createConversation(
+            args.createConversation,
+          );
+          conversationId = createdConversation._id as Id<"conversations">;
+          insertConversationIntoCache(
+            queryClient,
+            createdConversation as unknown as Doc<"conversations">,
+          );
+
+          if (args.localConversationId) {
+            reconcileConversationInCache(queryClient, {
+              localConversationId: args.localConversationId,
+              nextConversation:
+                createdConversation as unknown as Doc<"conversations">,
+            });
+          }
+        }
+
+        if (!conversationId) {
+          throw new Error("Conversation creation did not return an id");
+        }
+
+        const response = await client.sendMessage(conversationId, {
+          content: args.content,
+          modelId: args.modelId,
+          models: args.models,
+          parentMessageId: args.parentMessageId,
+          clientMessageId,
+          thinkingEffort: args.thinkingEffort,
+          attachments: args.attachments,
+        });
+
+        return {
+          ...response,
+          queued: false,
+          clientMessageId,
+        };
+      } catch (error) {
+        if (!shouldQueueSendError(error)) {
+          throw error;
+        }
+
+        mobileMessageQueue.enqueueSend(queueRecord);
+        return {
+          queued: true,
+          conversationId: optimisticConversationId,
+          clientMessageId,
+          requestId: null,
+          streamUrl: null,
+          status: "queued",
+        };
+      }
     },
-    onSuccess: (data, variables) => {
+    onSuccess: async (data) => {
+      if (data.queued) {
+        return;
+      }
+
       queryClient.setQueryData(
-        ["mobile", "active-generation", variables.conversationId],
+        ["mobile", "active-generation", data.conversationId],
         {
           conversationId: data.conversationId,
           requestId: data.requestId,
@@ -301,32 +386,14 @@ export function useSendMessage() {
           status: data.status,
         },
       );
-      queryClient.invalidateQueries({
-        queryKey: ["mobile", "messages", variables.conversationId],
+      await queryClient.invalidateQueries({
+        queryKey: ["mobile", "messages", data.conversationId],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["mobile", "conversations"],
       });
     },
   });
 
-  if (useConvexMode) {
-    return convexMutation;
-  }
-
-  return async (args: {
-    conversationId: Id<"conversations">;
-    content: string;
-    modelId?: string;
-    models?: string[];
-    parentMessageId?: Id<"messages">;
-    clientMessageId?: string;
-    thinkingEffort?: "none" | "low" | "medium" | "high";
-    attachments?: Array<{
-      type: "file" | "image" | "audio";
-      name: string;
-      storageId: string;
-      mimeType: string;
-      size: number;
-    }>;
-  }) => {
-    return httpMutation.mutateAsync(args);
-  };
+  return async (args: SendMessageArgs) => mutation.mutateAsync(args);
 }

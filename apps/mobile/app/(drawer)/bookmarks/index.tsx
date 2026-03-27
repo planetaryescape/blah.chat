@@ -33,8 +33,8 @@ function BookmarkCard({
   onPress: () => void;
   onLongPress: () => void;
 }) {
-  const contentPreview = bookmark.message?.content
-    ? stripMarkdown(bookmark.message.content).slice(0, 150)
+  const contentPreview = bookmark.messagePreview
+    ? stripMarkdown(bookmark.messagePreview).slice(0, 150)
     : "";
 
   return (
@@ -69,7 +69,7 @@ function BookmarkCard({
             color: palette.starlightDim,
           }}
         >
-          {bookmark.conversation?.title || "Untitled"}
+          {bookmark.conversationTitle || "Untitled"}
         </Text>
         <Text
           style={{
@@ -174,8 +174,8 @@ export default function BookmarksListScreen() {
     if (!searchQuery.trim()) return bookmarks;
     const q = searchQuery.toLowerCase();
     return bookmarks.filter((b: BookmarkItem) => {
-      const content = b.message?.content?.toLowerCase() || "";
-      const title = b.conversation?.title?.toLowerCase() || "";
+      const content = b.messagePreview?.toLowerCase() || "";
+      const title = b.conversationTitle?.toLowerCase() || "";
       const note = b.note?.toLowerCase() || "";
       const tags = b.tags?.join(" ").toLowerCase() || "";
       return (

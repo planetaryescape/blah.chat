@@ -169,4 +169,55 @@ describe("checkMetricsThresholds", () => {
     expect(result).toHaveProperty("alertsFired");
     expect(typeof result.alertsFired).toBe("number");
   });
+
+  it("sends Slack webhook when breaches detected and webhook configured", async () => {
+    const db = await createTestPersistenceDb();
+
+    await seedOutcomes(db, [
+      ...Array.from({ length: 18 }, () => ({
+        status: "complete",
+        ttftMs: 1000,
+      })),
+      { status: "complete", ttftMs: 5000 },
+      { status: "complete", ttftMs: 6000 },
+    ]);
+
+    const slackPayloads: unknown[] = [];
+    const result = await checkMetricsThresholds({
+      db,
+      now: () => Date.now(),
+      sendSlackAlert: async (payload) => {
+        slackPayloads.push(payload);
+      },
+    });
+
+    expect(result.breaches.length).toBeGreaterThanOrEqual(1);
+    expect(slackPayloads.length).toBe(1);
+    const payload = slackPayloads[0] as { text: string };
+    expect(payload.text).toContain("ttft_p95");
+  });
+
+  it("skips Slack when no breaches", async () => {
+    const db = await createTestPersistenceDb();
+
+    await seedOutcomes(
+      db,
+      Array.from({ length: 5 }, () => ({
+        status: "complete",
+        ttftMs: 200,
+      })),
+    );
+
+    const slackPayloads: unknown[] = [];
+    const result = await checkMetricsThresholds({
+      db,
+      now: () => Date.now(),
+      sendSlackAlert: async (payload) => {
+        slackPayloads.push(payload);
+      },
+    });
+
+    expect(result.breaches).toEqual([]);
+    expect(slackPayloads).toHaveLength(0);
+  });
 });

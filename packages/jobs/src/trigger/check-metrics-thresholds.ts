@@ -46,6 +46,7 @@ export interface CheckMetricsThresholdsDependencies {
     event: string;
     properties?: Record<string, unknown>;
   }) => Promise<boolean>;
+  sendSlackAlert?: (payload: { text: string }) => Promise<void>;
 }
 
 export async function checkMetricsThresholds(
@@ -149,6 +150,17 @@ export async function checkMetricsThresholds(
     }
   }
 
+  // Send Slack alert summary
+  if (deps.sendSlackAlert && breaches.length > 0) {
+    const lines = breaches.map(
+      (b) =>
+        `${b.severity === "critical" ? "CRITICAL" : "WARNING"}: ${b.metric} = ${typeof b.actual === "number" ? b.actual.toFixed(1) : b.actual} (threshold: ${b.threshold})`,
+    );
+    await deps.sendSlackAlert({
+      text: `[blah.chat] ${breaches.length} metric threshold breach${breaches.length > 1 ? "es" : ""}:\n${lines.join("\n")}`,
+    });
+  }
+
   return { breaches, alertsFired };
 }
 
@@ -163,5 +175,18 @@ export const checkMetricsThresholdsTask = schedules.task({
   cron: CHECK_METRICS_THRESHOLDS_CRON,
   maxDuration: 60,
   retry: { maxAttempts: 1 },
-  run: async () => checkMetricsThresholds(),
+  run: async () => {
+    const slackWebhookUrl = process.env.SLACK_ALERTS_WEBHOOK_URL;
+    return checkMetricsThresholds({
+      sendSlackAlert: slackWebhookUrl
+        ? async (payload) => {
+            await fetch(slackWebhookUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+          }
+        : undefined,
+    });
+  },
 });

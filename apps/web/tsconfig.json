@@ -28,8 +28,7 @@
         "../../packages/persistence-postgres/src/*"
       ],
       "@blah-chat/chat-ui-core": ["../../packages/chat-ui-core/src/index.ts"],
-      "@blah-chat/chat-ui-core/*": ["../../packages/chat-ui-core/src/*"],
-      "@blah-chat/backend/*": ["../../packages/backend/*"]
+      "@blah-chat/chat-ui-core/*": ["../../packages/chat-ui-core/src/*"]
     }
   },
   "include": [

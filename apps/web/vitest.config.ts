@@ -35,7 +35,6 @@ export default defineConfig({
         __dirname,
         "../../packages/chat-ui-core/src/index.ts",
       ),
-      "@blah-chat/backend": path.resolve(__dirname, "../../packages/backend"),
       "@": path.resolve(__dirname, "./src"),
     },
   },

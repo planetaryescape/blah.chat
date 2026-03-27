@@ -53,13 +53,9 @@
     "directory": "packages/cognitive-memory"
   },
   "peerDependencies": {
-    "convex": ">=1.0.0",
     "pg": ">=8.0.0"
   },
   "peerDependenciesMeta": {
-    "convex": {
-      "optional": true
-    },
     "pg": {
       "optional": true
     }
@@ -68,7 +64,6 @@
     "@vitest/coverage-v8": "^4.0.18",
     "@types/node": "^22.19.0",
     "@types/pg": "^8.15.5",
-    "convex": "^1.0.0",
     "pg": "^8.16.3",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",

@@ -317,7 +317,13 @@ export function buildComparisonStats(
     };
     current.total += 1;
     if (row.signal === "win") current.wins += 1;
-    else if (row.signal === "loss") current.losses += 1;
+    else if (
+      row.signal === "loss" ||
+      row.signal === "regenerated" ||
+      row.signal === "model_switch" ||
+      row.signal === "both_bad"
+    )
+      current.losses += 1;
     else if (row.signal === "tie") current.ties += 1;
     grouped.set(row.modelId, current);
   }

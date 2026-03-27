@@ -3,8 +3,9 @@ import {
   INTEGRATIONS,
   type IntegrationCategory,
 } from "@blah-chat/shared/integrations";
+import { useAuth } from "@clerk/clerk-expo";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { useAction, useQuery } from "convex/react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import * as WebBrowser from "expo-web-browser";
 import { Link2, Plus, Search, Unlink } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
@@ -21,9 +22,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
 import { FluidButton } from "@/components/ui/FluidButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { api } from "@/lib/convex";
+import { queryClient } from "@/lib/cache/queryClient";
 import { haptic } from "@/lib/haptics";
 import { palette, spacing, typography } from "@/lib/theme/designSystem";
+import { createMobileSdkClient } from "@/lib/transport/httpClient";
 import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -38,9 +40,35 @@ const SORTED_CATEGORIES = Object.entries(INTEGRATION_CATEGORIES)
   .map(([key, val]) => ({ key: key as IntegrationCategory, label: val.label }));
 
 export default function IntegrationsScreen() {
-  const connections = useQuery(api.composio.connections.listConnections);
-  const initiateConnection = useAction(api.composio.oauth.initiateConnection);
-  const revokeConnection = useAction(api.composio.oauth.revokeConnection);
+  const { getToken } = useAuth();
+  const connectionsQuery = useQuery({
+    queryKey: ["mobile", "composio-connections"],
+    queryFn: async () => {
+      const client = createMobileSdkClient(() => getToken());
+      return client.listComposioConnections();
+    },
+  });
+  const initiateConnectionMutation = useMutation({
+    mutationFn: async (integrationId: string) => {
+      const client = createMobileSdkClient(() => getToken());
+      return client.initiateComposioConnection({
+        integrationId,
+        redirectUrl: "blahchat://composio/callback",
+      });
+    },
+  });
+  const revokeConnectionMutation = useMutation({
+    mutationFn: async (integrationId: string) => {
+      const client = createMobileSdkClient(() => getToken());
+      return client.revokeComposioConnection({ integrationId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["mobile", "composio-connections"],
+      });
+    },
+  });
+  const connections = connectionsQuery.data;
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -77,16 +105,17 @@ export default function IntegrationsScreen() {
       haptic.medium();
       setConnectingId(integrationId);
       try {
-        const result = await initiateConnection({
-          integrationId,
-          redirectUrl: "blahchat://composio/callback",
-        });
+        const result =
+          await initiateConnectionMutation.mutateAsync(integrationId);
         if (result.redirectUrl) {
           await WebBrowser.openAuthSessionAsync(
             result.redirectUrl,
             "blahchat://composio/callback",
           );
         }
+        await queryClient.invalidateQueries({
+          queryKey: ["mobile", "composio-connections"],
+        });
         setSheetOpen(false);
       } catch {
         Alert.alert("Error", "Failed to start connection. Please try again.");
@@ -94,7 +123,7 @@ export default function IntegrationsScreen() {
         setConnectingId(null);
       }
     },
-    [initiateConnection],
+    [initiateConnectionMutation],
   );
 
   const handleDisconnect = useCallback(
@@ -107,7 +136,7 @@ export default function IntegrationsScreen() {
           onPress: async () => {
             haptic.medium();
             try {
-              await revokeConnection({ integrationId });
+              await revokeConnectionMutation.mutateAsync(integrationId);
             } catch {
               Alert.alert("Error", "Failed to disconnect.");
             }
@@ -115,7 +144,7 @@ export default function IntegrationsScreen() {
         },
       ]);
     },
-    [revokeConnection],
+    [revokeConnectionMutation],
   );
 
   const rightAction = (

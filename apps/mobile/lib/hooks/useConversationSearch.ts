@@ -1,7 +1,7 @@
-import { useAction } from "convex/react";
+import { useAuth } from "@clerk/clerk-expo";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Doc, Id } from "@/lib/convex";
-import { api } from "@/lib/convex";
+import type { Doc } from "@/lib/convex";
+import { createMobileSdkClient } from "@/lib/transport/httpClient";
 
 type Conversation = Doc<"conversations">;
 
@@ -9,15 +9,16 @@ export function useConversationSearch(
   projectId?: string | null,
   debounceMs = 350,
 ) {
-  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
-  const hybridSearch = useAction(api.conversations.hybridSearch.hybridSearch);
+  const { getToken } = useAuth();
   const [results, setResults] = useState<Conversation[] | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const search = useCallback(
     (query: string) => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
 
       if (!query.trim()) {
         setResults(null);
@@ -26,34 +27,38 @@ export function useConversationSearch(
       }
 
       setIsSearching(true);
-
       debounceRef.current = setTimeout(async () => {
         try {
-          const searchResults = await hybridSearch({
-            query: query.trim(),
-            limit: 50,
-            projectId:
-              projectId === "none"
-                ? "none"
-                : projectId
-                  ? (projectId as Id<"projects">)
-                  : undefined,
+          const client = createMobileSdkClient(() => getToken());
+          const response = await client.listConversations({
+            limit: 200,
+            archived: false,
+            projectId: projectId === "none" ? "none" : (projectId ?? undefined),
           });
-          setResults(searchResults);
-        } catch (error) {
-          console.error("Search failed:", error);
+          const normalizedQuery = query.trim().toLowerCase();
+          setResults(
+            (response.items as Conversation[]).filter((conversation) =>
+              [conversation.title ?? "", conversation.model ?? ""]
+                .join(" ")
+                .toLowerCase()
+                .includes(normalizedQuery),
+            ),
+          );
+        } catch {
           setResults(null);
         } finally {
           setIsSearching(false);
         }
       }, debounceMs);
     },
-    [hybridSearch, debounceMs, projectId],
+    [debounceMs, getToken, projectId],
   );
 
   useEffect(() => {
     return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
     };
   }, []);
 

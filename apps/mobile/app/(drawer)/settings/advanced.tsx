@@ -1,4 +1,5 @@
-import { useAction, useQuery } from "convex/react";
+import { useAuth } from "@clerk/clerk-expo";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Check, Eye, EyeOff, Shield, Trash2, X } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import {
@@ -14,9 +15,10 @@ import { TouchableOpacity } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FluidButton } from "@/components/ui/FluidButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { api } from "@/lib/convex";
+import { queryClient } from "@/lib/cache/queryClient";
 import { haptic } from "@/lib/haptics";
 import { palette, spacing, typography } from "@/lib/theme/designSystem";
+import { createMobileSdkClient } from "@/lib/transport/httpClient";
 
 type KeyType = "vercelGateway" | "openRouter" | "groq" | "deepgram";
 
@@ -252,11 +254,62 @@ function KeyCard({
 }
 
 export default function AdvancedSettingsScreen() {
-  const config = useQuery(api.byok.credentials.getConfig);
-  const enableByok = useAction(api.byok.credentials.enable);
-  const disableByok = useAction(api.byok.credentials.disable);
-  const saveApiKey = useAction(api.byok.saveCredentials.saveApiKey);
-  const removeApiKey = useAction(api.byok.saveCredentials.removeApiKey);
+  const { getToken } = useAuth();
+  const configQuery = useQuery({
+    queryKey: ["mobile", "byok-config"],
+    queryFn: async () => {
+      const client = createMobileSdkClient(() => getToken());
+      return client.getByokConfig();
+    },
+  });
+  const enableByokMutation = useMutation({
+    mutationFn: async () => {
+      const client = createMobileSdkClient(() => getToken());
+      return client.enableByok();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mobile", "byok-config"] });
+    },
+  });
+  const disableByokMutation = useMutation({
+    mutationFn: async () => {
+      const client = createMobileSdkClient(() => getToken());
+      return client.disableByok();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mobile", "byok-config"] });
+    },
+  });
+  const saveApiKeyMutation = useMutation({
+    mutationFn: async (args: { keyType: KeyType; apiKey: string }) => {
+      const client = createMobileSdkClient(() => getToken());
+      return client.saveByokApiKey(args);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mobile", "byok-config"] });
+    },
+  });
+  const removeApiKeyMutation = useMutation({
+    mutationFn: async (keyType: KeyType) => {
+      const client = createMobileSdkClient(() => getToken());
+      return client.removeByokApiKey({ keyType });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mobile", "byok-config"] });
+    },
+  });
+  const config = configQuery.data;
+  const resolvedConfig = config ?? {
+    _id: "pending",
+    byokEnabled: false,
+    hasVercelGatewayKey: false,
+    hasOpenRouterKey: false,
+    hasGroqKey: false,
+    hasDeepgramKey: false,
+    lastValidated: undefined,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
 
   const handleToggle = useCallback(
     async (enabled: boolean) => {
@@ -270,31 +323,31 @@ export default function AdvancedSettingsScreen() {
             );
             return;
           }
-          await enableByok({});
+          await enableByokMutation.mutateAsync();
         } else {
-          await disableByok({});
+          await disableByokMutation.mutateAsync();
         }
       } catch {
         Alert.alert("Error", "Failed to update BYOK setting.");
       }
     },
-    [config, enableByok, disableByok],
+    [config, disableByokMutation, enableByokMutation],
   );
 
   const handleSave = useCallback(
     (keyType: KeyType) => async (apiKey: string) => {
-      await saveApiKey({ keyType, apiKey });
+      await saveApiKeyMutation.mutateAsync({ keyType, apiKey });
       haptic.success();
     },
-    [saveApiKey],
+    [saveApiKeyMutation],
   );
 
   const handleRemove = useCallback(
     (keyType: KeyType) => async () => {
-      await removeApiKey({ keyType });
+      await removeApiKeyMutation.mutateAsync(keyType);
       haptic.success();
     },
-    [removeApiKey],
+    [removeApiKeyMutation],
   );
 
   return (
@@ -352,14 +405,16 @@ export default function AdvancedSettingsScreen() {
               </Text>
             </View>
             <Switch
-              value={config.byokEnabled}
+              value={resolvedConfig.byokEnabled}
               onValueChange={handleToggle}
               trackColor={{
                 false: palette.glassMedium,
                 true: palette.roseQuartzDim,
               }}
               thumbColor={
-                config.byokEnabled ? palette.roseQuartz : palette.starlightDim
+                resolvedConfig.byokEnabled
+                  ? palette.roseQuartz
+                  : palette.starlightDim
               }
             />
           </View>
@@ -370,13 +425,13 @@ export default function AdvancedSettingsScreen() {
           ).map((keyType) => {
             const isConfigured =
               keyType === "vercelGateway"
-                ? config.hasVercelGatewayKey
+                ? resolvedConfig.hasVercelGatewayKey
                 : keyType === "openRouter"
-                  ? config.hasOpenRouterKey
+                  ? resolvedConfig.hasOpenRouterKey
                   : keyType === "groq"
-                    ? config.hasGroqKey
-                    : config.hasDeepgramKey;
-            const lastValidated = config.lastValidated?.[keyType];
+                    ? resolvedConfig.hasGroqKey
+                    : resolvedConfig.hasDeepgramKey;
+            const lastValidated = resolvedConfig.lastValidated?.[keyType];
             return (
               <KeyCard
                 key={keyType}

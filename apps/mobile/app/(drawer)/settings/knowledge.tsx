@@ -1,5 +1,6 @@
+import { useAuth } from "@clerk/clerk-expo";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   FileText,
   Globe,
@@ -23,9 +24,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
 import { FluidButton } from "@/components/ui/FluidButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { api } from "@/lib/convex";
+import { queryClient } from "@/lib/cache/queryClient";
 import { haptic } from "@/lib/haptics";
 import { palette, spacing, typography } from "@/lib/theme/designSystem";
+import { createMobileSdkClient } from "@/lib/transport/httpClient";
 import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
 
 const TYPE_ICONS: Record<string, typeof FileText> = {
@@ -43,12 +45,53 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function KnowledgeBankScreen() {
-  const sources = useQuery(api.knowledgeBank.index.list);
-  const createTextSource = useMutation(
-    api.knowledgeBank.index.createTextSource,
-  );
-  const createWebSource = useMutation(api.knowledgeBank.index.createWebSource);
-  const removeSource = useMutation(api.knowledgeBank.index.remove);
+  const { getToken } = useAuth();
+  const sourcesQuery = useQuery({
+    queryKey: ["mobile", "knowledge-sources"],
+    queryFn: async () => {
+      const client = createMobileSdkClient(() => getToken());
+      return client.listKnowledgeSources();
+    },
+  });
+  const createSourceMutation = useMutation({
+    mutationFn: async (
+      args:
+        | {
+            type: "text";
+            title: string;
+            content: string;
+          }
+        | {
+            type: "web";
+            title: string;
+            url: string;
+          },
+    ) => {
+      const client = createMobileSdkClient(() => getToken());
+      if (args.type === "text") {
+        return client.createKnowledgeSource(args);
+      }
+
+      return client.createKnowledgeSource(args);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["mobile", "knowledge-sources"],
+      });
+    },
+  });
+  const removeSourceMutation = useMutation({
+    mutationFn: async (sourceId: string) => {
+      const client = createMobileSdkClient(() => getToken());
+      return client.deleteKnowledgeSource(sourceId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["mobile", "knowledge-sources"],
+      });
+    },
+  });
+  const sources = sourcesQuery.data;
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [addType, setAddType] = useState<"text" | "url">("text");
@@ -62,12 +105,17 @@ export default function KnowledgeBankScreen() {
     haptic.medium();
     try {
       if (addType === "text") {
-        await createTextSource({
+        await createSourceMutation.mutateAsync({
+          type: "text",
           title: title.trim(),
           content: content.trim(),
         });
       } else {
-        await createWebSource({ url: content.trim(), title: title.trim() });
+        await createSourceMutation.mutateAsync({
+          type: "web",
+          url: content.trim(),
+          title: title.trim(),
+        });
       }
       setTitle("");
       setContent("");
@@ -77,7 +125,7 @@ export default function KnowledgeBankScreen() {
     } finally {
       setSaving(false);
     }
-  }, [addType, title, content, createTextSource, createWebSource]);
+  }, [addType, content, createSourceMutation, title]);
 
   const handleDelete = useCallback(
     (sourceId: string) => {
@@ -89,7 +137,7 @@ export default function KnowledgeBankScreen() {
           onPress: async () => {
             haptic.medium();
             try {
-              await removeSource({ sourceId });
+              await removeSourceMutation.mutateAsync(sourceId);
             } catch {
               Alert.alert("Error", "Failed to delete source.");
             }
@@ -97,7 +145,7 @@ export default function KnowledgeBankScreen() {
         },
       ]);
     },
-    [removeSource],
+    [removeSourceMutation],
   );
 
   const rightAction = (

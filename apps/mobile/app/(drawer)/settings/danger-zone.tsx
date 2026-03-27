@@ -1,5 +1,5 @@
 import { useAuth } from "@clerk/clerk-expo";
-import { useAction, useMutation } from "convex/react";
+import { useMutation } from "@tanstack/react-query";
 import { File, Paths } from "expo-file-system";
 import { useRouter } from "expo-router";
 import { AlertTriangle } from "lucide-react-native";
@@ -10,16 +10,31 @@ import { SettingsRow } from "@/components/settings/SettingsRow";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { FluidButton } from "@/components/ui/FluidButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { api } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import { palette, spacing, typography } from "@/lib/theme/designSystem";
+import { createMobileSdkClient } from "@/lib/transport/httpClient";
 
 export default function DangerZoneScreen() {
   const router = useRouter();
-  const { signOut } = useAuth();
-  const exportData = useAction(api.users.exportMyData);
-  const deleteData = useMutation(api.users.deleteMyData);
-  const deleteAccount = useMutation(api.users.deleteMyAccount);
+  const { getToken, signOut } = useAuth();
+  const exportDataMutation = useMutation({
+    mutationFn: async () => {
+      const client = createMobileSdkClient(() => getToken());
+      return client.exportUserData();
+    },
+  });
+  const deleteDataMutation = useMutation({
+    mutationFn: async (confirmationText: string) => {
+      const client = createMobileSdkClient(() => getToken());
+      return client.deleteUserData({ confirmationText });
+    },
+  });
+  const deleteAccountMutation = useMutation({
+    mutationFn: async (confirmationText: string) => {
+      const client = createMobileSdkClient(() => getToken());
+      return client.deleteUserAccount({ confirmationText });
+    },
+  });
 
   const [exporting, setExporting] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
@@ -32,7 +47,7 @@ export default function DangerZoneScreen() {
     setExporting(true);
     haptic.medium();
     try {
-      const data = await exportData();
+      const data = await exportDataMutation.mutateAsync();
       const json = JSON.stringify(data, null, 2);
       const fileName = `blahchat-export-${Date.now()}.json`;
       const file = new File(Paths.document, fileName);
@@ -43,14 +58,14 @@ export default function DangerZoneScreen() {
     } finally {
       setExporting(false);
     }
-  }, [exportData]);
+  }, [exportDataMutation]);
 
   const handleDeleteData = useCallback(async () => {
     if (deleteConfirmText !== "DELETE MY DATA") return;
     setDeleting(true);
     haptic.error();
     try {
-      await deleteData({ confirmationText: "DELETE MY DATA" });
+      await deleteDataMutation.mutateAsync("DELETE MY DATA");
       setShowDeleteConfirm(false);
       setDeleteConfirmText("");
       Alert.alert("Done", "All data has been deleted.");
@@ -60,20 +75,20 @@ export default function DangerZoneScreen() {
     } finally {
       setDeleting(false);
     }
-  }, [deleteConfirmText, deleteData, router]);
+  }, [deleteConfirmText, deleteDataMutation, router]);
 
   const handleDeleteAccount = useCallback(async () => {
     if (deleteAccountText !== "DELETE MY ACCOUNT") return;
     setDeleting(true);
     haptic.error();
     try {
-      await deleteAccount({ confirmationText: "DELETE MY ACCOUNT" });
+      await deleteAccountMutation.mutateAsync("DELETE MY ACCOUNT");
       await signOut();
     } catch {
       Alert.alert("Error", "Failed to delete account.");
       setDeleting(false);
     }
-  }, [deleteAccountText, deleteAccount, signOut]);
+  }, [deleteAccountMutation, deleteAccountText, signOut]);
 
   return (
     <SafeAreaView

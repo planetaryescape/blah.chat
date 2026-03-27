@@ -1,74 +1,42 @@
 import { useAuth } from "@clerk/clerk-expo";
-import {
-  useMutation as useTanstackMutation,
-  useQuery as useTanstackQuery,
-} from "@tanstack/react-query";
-import {
-  useMutation as useConvexMutation,
-  useQuery as useConvexQuery,
-} from "convex/react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { queryClient } from "@/lib/cache/queryClient";
 import type { Doc, Id } from "@/lib/convex";
-import { api } from "@/lib/convex";
 import { createMobileSdkClient } from "@/lib/transport/httpClient";
-import { shouldUseConvexTransport } from "@/lib/transport/mode";
 
 type Conversation = Doc<"conversations">;
 
+function isLocalConversationId(conversationId: string | null | undefined) {
+  return !!conversationId && conversationId.startsWith("local_conv_");
+}
+
 export function useConversations(projectId?: string | null) {
-  const useConvexMode = shouldUseConvexTransport();
   const { getToken } = useAuth();
 
-  const convexData = useConvexQuery(
-    api.conversations.list,
-    useConvexMode
-      ? {
-          projectId:
-            projectId === "none"
-              ? "none"
-              : projectId
-                ? (projectId as Id<"projects">)
-                : undefined,
-        }
-      : "skip",
-  ) as Conversation[] | undefined;
-
-  const httpQuery = useTanstackQuery({
+  const query = useQuery({
     queryKey: ["mobile", "conversations", projectId],
-    enabled: !useConvexMode,
     staleTime: 15_000,
     queryFn: async () => {
       const client = createMobileSdkClient(() => getToken());
       const result = await client.listConversations({
         limit: 200,
         archived: false,
-        projectId:
-          projectId === "none"
-            ? "none"
-            : projectId
-              ? (projectId as Id<"projects">)
-              : undefined,
+        projectId: projectId === "none" ? "none" : (projectId ?? undefined),
       });
       return result.items as Conversation[];
     },
   });
 
-  return useConvexMode
-    ? convexData
-    : (httpQuery.data as Conversation[] | undefined);
+  return query.data as Conversation[] | undefined;
 }
 
 export function useConversation(conversationId: Id<"conversations"> | null) {
-  const useConvexMode = shouldUseConvexTransport();
   const { getToken } = useAuth();
+  const isLocalConversation = isLocalConversationId(conversationId);
 
-  const convexData = useConvexQuery(
-    api.conversations.get,
-    useConvexMode && conversationId ? { conversationId } : "skip",
-  ) as Conversation | null | undefined;
-
-  const httpQuery = useTanstackQuery({
+  const query = useQuery({
     queryKey: ["mobile", "conversation", conversationId],
-    enabled: !useConvexMode && !!conversationId,
+    enabled: !!conversationId && !isLocalConversation,
     staleTime: 15_000,
     queryFn: async () => {
       if (!conversationId) {
@@ -81,17 +49,13 @@ export function useConversation(conversationId: Id<"conversations"> | null) {
     },
   });
 
-  return useConvexMode
-    ? convexData
-    : (httpQuery.data as Conversation | null | undefined);
+  return query.data as Conversation | null | undefined;
 }
 
 export function useCreateConversation() {
-  const useConvexMode = shouldUseConvexTransport();
-  const convexMutation = useConvexMutation(api.conversations.create);
   const { getToken } = useAuth();
 
-  const httpMutation = useTanstackMutation({
+  const mutation = useMutation({
     mutationFn: async (args: {
       model: string;
       title?: string;
@@ -99,29 +63,31 @@ export function useCreateConversation() {
     }) => {
       const client = createMobileSdkClient(() => getToken());
       const conversation = await client.createConversation(args);
-      return conversation._id as Id<"conversations">;
+      return conversation as Conversation;
+    },
+    onSuccess: (conversation) => {
+      queryClient.setQueryData(
+        ["mobile", "conversation", conversation._id],
+        conversation,
+      );
+      queryClient.invalidateQueries({ queryKey: ["mobile", "conversations"] });
     },
   });
-
-  if (useConvexMode) {
-    return convexMutation;
-  }
 
   return async (args: {
     model: string;
     title?: string;
     systemPrompt?: string;
   }) => {
-    return httpMutation.mutateAsync(args);
+    const conversation = await mutation.mutateAsync(args);
+    return conversation._id as Id<"conversations">;
   };
 }
 
 export function useUpdateModel() {
-  const useConvexMode = shouldUseConvexTransport();
-  const convexMutation = useConvexMutation(api.conversations.updateModel);
   const { getToken } = useAuth();
 
-  const httpMutation = useTanstackMutation({
+  const mutation = useMutation({
     mutationFn: async (args: {
       conversationId: Id<"conversations">;
       model: string;
@@ -131,16 +97,16 @@ export function useUpdateModel() {
         model: args.model,
       });
     },
+    onSuccess: async (_data, variables) => {
+      await queryClient.invalidateQueries({
+        queryKey: ["mobile", "conversation", variables.conversationId],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["mobile", "conversations"],
+      });
+    },
   });
 
-  if (useConvexMode) {
-    return convexMutation;
-  }
-
-  return async (args: {
-    conversationId: Id<"conversations">;
-    model: string;
-  }) => {
-    return httpMutation.mutateAsync(args);
-  };
+  return async (args: { conversationId: Id<"conversations">; model: string }) =>
+    mutation.mutateAsync(args);
 }

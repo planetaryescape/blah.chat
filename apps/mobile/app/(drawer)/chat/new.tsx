@@ -24,6 +24,11 @@ import {
 } from "@/components/chat";
 import { ModelPicker } from "@/components/chat/ModelPicker";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { queryClient } from "@/lib/cache/queryClient";
+import {
+  buildLocalConversation,
+  insertConversationIntoCache,
+} from "@/lib/chat/conversationCache";
 import {
   clearChatDraft,
   readChatDraft,
@@ -31,11 +36,8 @@ import {
 } from "@/lib/chat/drafts";
 import type { Doc, Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
-import {
-  useCreateConversation,
-  useSendMessage,
-  useStarterSuggestions,
-} from "@/lib/hooks";
+import { useSendMessage, useStarterSuggestions } from "@/lib/hooks";
+import { createLocalConversationId } from "@/lib/hooks/useMessages";
 import { usePreferences } from "@/lib/hooks/usePreferences";
 import {
   getTimeGreeting,
@@ -55,7 +57,6 @@ const PROMPT_ICON_MAP: Record<SuggestionIcon, typeof Sparkles> = {
 
 export default function NewChatScreen() {
   const router = useRouter();
-  const createConversation = useCreateConversation();
   const sendMessage = useSendMessage();
   const { visibleSuggestions: starterSuggestions } = useStarterSuggestions();
   const prefs = usePreferences();
@@ -225,12 +226,21 @@ export default function NewChatScreen() {
           optimisticAssistantMessage,
         ]);
 
-        const conversationId = await createConversation({
-          model: selectedModel,
-        });
+        const localConversationId = createLocalConversationId();
+        insertConversationIntoCache(
+          queryClient,
+          buildLocalConversation({
+            conversationId: localConversationId,
+            model: selectedModel,
+            createdAt: now,
+          }),
+        );
 
-        await sendMessage({
-          conversationId,
+        const result = await sendMessage({
+          localConversationId,
+          createConversation: {
+            model: selectedModel,
+          },
           content,
           ...(isComparisonMode
             ? { models: selectedModels }
@@ -243,7 +253,7 @@ export default function NewChatScreen() {
         setDraftText("");
         setDraftAttachments([]);
 
-        router.replace(`/(drawer)/chat/${conversationId}`);
+        router.replace(`/(drawer)/chat/${result.conversationId}`);
       } catch (_error) {
         haptic.error();
         setOptimisticMessages([]);
@@ -252,7 +262,6 @@ export default function NewChatScreen() {
       }
     },
     [
-      createConversation,
       draftKey,
       isComparisonMode,
       isSending,

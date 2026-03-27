@@ -1,6 +1,6 @@
-import { useMutation } from "convex/react";
+import { useAuth } from "@clerk/clerk-expo";
 import { useCallback } from "react";
-import { api } from "@/lib/convex";
+import { createMobileSdkClient } from "@/lib/transport/httpClient";
 
 type SidebarEvent =
   | "sidebar_open"
@@ -9,8 +9,7 @@ type SidebarEvent =
   | "sidebar_action";
 
 export function useSidebarAnalytics() {
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const recordAction = useMutation(api.usage.mutations.recordAction);
+  const { getToken } = useAuth();
 
   return useCallback(
     (
@@ -18,14 +17,11 @@ export function useSidebarAnalytics() {
       metadata?: Record<string, unknown>,
       resourceId?: string,
     ) => {
-      void recordAction({
-        actionType: event,
-        resourceId,
-        metadata,
-      }).catch(() => {
-        // best-effort analytics
+      const client = createMobileSdkClient(() => getToken());
+      void client.trackSidebarEvent(event, metadata, resourceId).catch(() => {
+        // Best effort only. Analytics should never affect drawer behavior.
       });
     },
-    [recordAction],
+    [getToken],
   );
 }

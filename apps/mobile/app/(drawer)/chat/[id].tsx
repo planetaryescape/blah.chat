@@ -239,8 +239,14 @@ export default function ChatScreen() {
           optimisticAssistantMessage,
         ]);
 
+        const sendTarget =
+          typeof conversationId === "string" &&
+          conversationId.startsWith("local_conv_")
+            ? { localConversationId: conversationId }
+            : { conversationId };
+
         await sendMessage({
-          conversationId,
+          ...sendTarget,
           content,
           ...(isComparisonMode && selectedModels.length >= 2
             ? { models: selectedModels }

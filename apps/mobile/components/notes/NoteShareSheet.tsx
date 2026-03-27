@@ -98,7 +98,7 @@ export function NoteShareSheet({ isOpen, onClose, note }: NoteShareSheetProps) {
   const handleCopyLink = useCallback(async () => {
     if (!note?.shareId) return;
 
-    const url = `https://blah.chat/shared/notes/${note.shareId}`;
+    const url = `https://blah.chat/share/${note.shareId}`;
     await Clipboard.setStringAsync(url);
     setCopied(true);
     haptic.success();
@@ -109,9 +109,7 @@ export function NoteShareSheet({ isOpen, onClose, note }: NoteShareSheetProps) {
   if (!note) return null;
 
   const hasShare = !!note.shareId;
-  const shareUrl = hasShare
-    ? `https://blah.chat/shared/notes/${note.shareId}`
-    : "";
+  const shareUrl = hasShare ? `https://blah.chat/share/${note.shareId}` : "";
 
   return (
     <BottomSheetModal

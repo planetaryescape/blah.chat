@@ -1,18 +1,13 @@
 import { useAuth } from "@clerk/clerk-expo";
-import { useMutation as useTanstackMutation } from "@tanstack/react-query";
-import { useMutation as useConvexMutation } from "convex/react";
+import { useMutation } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { queryClient } from "@/lib/cache/queryClient";
-import { api } from "@/lib/convex";
 import { createMobileSdkClient } from "@/lib/transport/httpClient";
-import { shouldUseConvexTransport } from "@/lib/transport/mode";
 
 export function useUpdatePreference() {
-  const useConvexMode = shouldUseConvexTransport();
-  const convexMutation = useConvexMutation(api.users.updatePreferences);
   const { getToken } = useAuth();
 
-  const httpMutation = useTanstackMutation({
+  const mutation = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: unknown }) => {
       const client = createMobileSdkClient(() => getToken());
       return client.updatePreference(key, value);
@@ -23,13 +18,11 @@ export function useUpdatePreference() {
   });
 
   return useCallback(
-    async (key: string, value: unknown) => {
-      if (useConvexMode) {
-        await convexMutation({ preferences: { [key]: value } as any });
-      } else {
-        await httpMutation.mutateAsync({ key, value });
-      }
-    },
-    [useConvexMode, convexMutation, httpMutation],
+    async (key: string, value: unknown) =>
+      mutation.mutateAsync({
+        key,
+        value,
+      }),
+    [mutation],
   );
 }

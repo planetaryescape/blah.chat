@@ -1,6 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+// eslint-disable-next-line -- needed for test wrapper
+import { renderWithProviders } from "@/lib/test/render-helpers";
 
 // Mock the send message hook
 const mockSendMessage = vi.fn();
@@ -89,7 +91,7 @@ describe("ChatInput", () => {
 
   it("displays input value when user types", async () => {
     const user = userEvent.setup();
-    render(<ChatInput {...defaultProps} />);
+    renderWithProviders(<ChatInput {...defaultProps} />);
 
     const input = screen.getByLabelText("Message input");
     await user.type(input, "Hello world");
@@ -99,7 +101,9 @@ describe("ChatInput", () => {
 
   it("calls sendMessage when user types and presses Enter", async () => {
     const user = userEvent.setup();
-    render(<ChatInput {...defaultProps} parentMessageId="msg-parent-1" />);
+    renderWithProviders(
+      <ChatInput {...defaultProps} parentMessageId="msg-parent-1" />,
+    );
 
     const input = screen.getByLabelText("Message input");
     await user.type(input, "Hello world{Enter}");
@@ -117,7 +121,7 @@ describe("ChatInput", () => {
 
   it("inserts newline when Shift+Enter is pressed", async () => {
     const user = userEvent.setup();
-    render(<ChatInput {...defaultProps} />);
+    renderWithProviders(<ChatInput {...defaultProps} />);
 
     const input = screen.getByLabelText("Message input");
     await user.type(input, "Line 1{Shift>}{Enter}{/Shift}Line 2");
@@ -128,7 +132,7 @@ describe("ChatInput", () => {
 
   it("blocks submit when input is empty", async () => {
     const user = userEvent.setup();
-    render(<ChatInput {...defaultProps} />);
+    renderWithProviders(<ChatInput {...defaultProps} />);
 
     const button = screen.getByRole("button", { name: /send message/i });
     expect(button).toBeDisabled();
@@ -139,7 +143,7 @@ describe("ChatInput", () => {
 
   it("blocks submit when isGenerating is true", async () => {
     const user = userEvent.setup();
-    render(<ChatInput {...defaultProps} isGenerating={true} />);
+    renderWithProviders(<ChatInput {...defaultProps} isGenerating={true} />);
 
     const input = screen.getByLabelText("Message input");
     await user.type(input, "Hello world{Enter}");
@@ -158,7 +162,9 @@ describe("ChatInput", () => {
       },
     ];
 
-    render(<ChatInput {...defaultProps} attachments={attachments} />);
+    renderWithProviders(
+      <ChatInput {...defaultProps} attachments={attachments} />,
+    );
 
     expect(screen.getByText("test.pdf")).toBeInTheDocument();
   });
@@ -166,7 +172,7 @@ describe("ChatInput", () => {
   it("keeps focus and input value stable on mobile touch typing", async () => {
     mobileDetectState = { isMobile: true, isTouchDevice: true };
     const user = userEvent.setup();
-    render(<ChatInput {...defaultProps} />);
+    renderWithProviders(<ChatInput {...defaultProps} />);
 
     const input = screen.getByLabelText("Message input");
     await user.click(input);
@@ -190,7 +196,7 @@ describe("ChatInput", () => {
       },
     ];
 
-    render(
+    renderWithProviders(
       <ChatInput
         {...defaultProps}
         attachments={attachments}
@@ -207,7 +213,7 @@ describe("ChatInput", () => {
   it("does not exit comparison mode when props update after starting comparison", async () => {
     const onExitComparison = vi.fn();
 
-    const { rerender } = render(
+    const { rerender } = renderWithProviders(
       <ChatInput
         {...defaultProps}
         isComparisonMode={false}

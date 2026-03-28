@@ -30,21 +30,23 @@ export default function BYODAdminPage() {
   const isBYODEnabled = useFeatureFlag("byod");
 
   // TODO: Phase G - needs /api/v1/admin/byod/stats REST route
-  const { data: stats } = useQuery({
+  const { data: stats, isError: isStatsError } = useQuery({
     queryKey: ["admin", "byod", "stats"],
     queryFn: async () => {
       const res = await fetch("/api/v1/admin/byod/stats");
-      if (!res.ok) return null;
+      if (!res.ok)
+        throw new Error(`Failed to fetch BYOD stats (${res.status})`);
       const json = await res.json();
       return json.data ?? null;
     },
   });
 
-  const { data: instances } = useQuery({
+  const { data: instances, isError: isInstancesError } = useQuery({
     queryKey: ["admin", "byod", "instances"],
     queryFn: async () => {
       const res = await fetch("/api/v1/admin/byod/instances");
-      if (!res.ok) return null;
+      if (!res.ok)
+        throw new Error(`Failed to fetch BYOD instances (${res.status})`);
       const json = await res.json();
       return json.data ?? null;
     },
@@ -140,6 +142,17 @@ export default function BYODAdminPage() {
       setIsSendingNotifications(false);
     }
   };
+
+  if (isStatsError || isInstancesError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-2">
+        <p className="text-destructive font-medium">Failed to load BYOD data</p>
+        <p className="text-sm text-muted-foreground">
+          The admin API endpoints may not be available yet.
+        </p>
+      </div>
+    );
+  }
 
   if (!stats || !instances) {
     return (

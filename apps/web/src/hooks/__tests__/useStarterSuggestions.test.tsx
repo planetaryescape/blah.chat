@@ -1,8 +1,16 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createWrapper } from "@/lib/test/render-helpers";
 
-const useQueryMock = vi.fn();
-const useActionMock = vi.fn();
+const mockGetStarterSuggestions = vi.fn();
+const mockRefreshStarterSuggestions = vi.fn();
+
+vi.mock("@/lib/api/sdkClient", () => ({
+  useSDKClient: () => ({
+    getStarterSuggestions: mockGetStarterSuggestions,
+    refreshStarterSuggestions: mockRefreshStarterSuggestions,
+  }),
+}));
 
 import { useStarterSuggestions } from "../useStarterSuggestions";
 
@@ -12,10 +20,7 @@ describe("useStarterSuggestions", () => {
   });
 
   it("triggers refresh exactly once when needsRefresh is true", async () => {
-    const refreshMock = vi.fn().mockResolvedValue(undefined);
-
-    useActionMock.mockReturnValue(refreshMock);
-    useQueryMock.mockReturnValue({
+    mockGetStarterSuggestions.mockResolvedValue({
       suggestions: [
         { id: "1", text: "First prompt", icon: "sparkles" },
         { id: "2", text: "Second prompt", icon: "brain" },
@@ -27,14 +32,17 @@ describe("useStarterSuggestions", () => {
       generatedAt: 123,
       source: "cache",
     });
+    mockRefreshStarterSuggestions.mockResolvedValue(undefined);
 
-    const { rerender } = renderHook(() => useStarterSuggestions());
+    const { rerender } = renderHook(() => useStarterSuggestions(), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => {
-      expect(refreshMock).toHaveBeenCalledTimes(1);
+      expect(mockRefreshStarterSuggestions).toHaveBeenCalledTimes(1);
     });
 
     rerender();
-    expect(refreshMock).toHaveBeenCalledTimes(1);
+    expect(mockRefreshStarterSuggestions).toHaveBeenCalledTimes(1);
   });
 });

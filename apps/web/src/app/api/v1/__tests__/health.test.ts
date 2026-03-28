@@ -9,6 +9,9 @@ const mockSend = vi.fn();
 const mockTriggerPing = vi.fn();
 
 vi.mock("@blah-chat/persistence-postgres", () => ({
+  createPersistenceDatabase: vi.fn(() => ({
+    execute: mockExecute,
+  })),
   createNeonDatabase: vi.fn(() => ({
     execute: mockExecute,
   })),

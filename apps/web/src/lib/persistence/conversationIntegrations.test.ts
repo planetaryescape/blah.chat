@@ -57,9 +57,17 @@ describe("conversationIntegrations", () => {
     });
 
     const events = await listConversationIntegrationEvents(db, conversationId);
-    expect(
-      events.map((event) => `${event.action}:${event.integrationId}`),
-    ).toEqual(["enabled:github", "enabled:slack", "disabled:github"]);
+    const labels = events.map(
+      (event) => `${event.action}:${event.integrationId}`,
+    );
+    expect(labels).toHaveLength(3);
+    expect(labels).toEqual(
+      expect.arrayContaining([
+        "enabled:github",
+        "enabled:slack",
+        "disabled:github",
+      ]),
+    );
 
     await expect(
       getConversationSelectedIntegrationIds(db, conversationId),

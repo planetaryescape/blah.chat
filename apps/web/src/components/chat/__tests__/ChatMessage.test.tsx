@@ -1,5 +1,6 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderWithProviders } from "@/lib/test/render-helpers";
 
 const regenerateMutate = vi.fn();
 const useRestQueryMock = vi.fn();
@@ -105,7 +106,7 @@ describe("ChatMessage", () => {
       status: "complete" as const,
     };
 
-    render(<ChatMessage message={message} />);
+    renderWithProviders(<ChatMessage message={message} />);
 
     expect(screen.getByLabelText("Your message")).toBeInTheDocument();
     expect(screen.getByText("Hello, this is my message")).toBeInTheDocument();
@@ -120,7 +121,7 @@ describe("ChatMessage", () => {
       model: "openai:gpt-4o",
     };
 
-    render(<ChatMessage message={message} />);
+    renderWithProviders(<ChatMessage message={message} />);
 
     expect(screen.getByLabelText("Assistant message")).toBeInTheDocument();
     expect(screen.getByText(/Hello! How can I help you/)).toBeInTheDocument();
@@ -135,7 +136,7 @@ describe("ChatMessage", () => {
       model: "openai:gpt-4o",
     };
 
-    render(<ChatMessage message={message} />);
+    renderWithProviders(<ChatMessage message={message} />);
 
     // Loading state should be visible (check for status role or loading indicator)
     const messageEl = screen.getByLabelText("Assistant message");
@@ -151,7 +152,7 @@ describe("ChatMessage", () => {
       model: "openai:gpt-4o",
     };
 
-    render(<ChatMessage message={message} />);
+    renderWithProviders(<ChatMessage message={message} />);
 
     const messageEl = screen.getByLabelText("Assistant message");
     expect(messageEl).toHaveAttribute("data-status", "pending");
@@ -167,7 +168,7 @@ describe("ChatMessage", () => {
       model: "openai:gpt-4o",
     };
 
-    render(<ChatMessage message={message} />);
+    renderWithProviders(<ChatMessage message={message} />);
 
     expect(screen.getByText("Unable to generate response")).toBeInTheDocument();
     expect(screen.getByText("Rate limit exceeded")).toBeInTheDocument();
@@ -188,7 +189,7 @@ describe("ChatMessage", () => {
       model: "openai:gpt-4o",
     };
 
-    render(<ChatMessage message={message} />);
+    renderWithProviders(<ChatMessage message={message} />);
 
     const retryButton = screen.getByRole("button", { name: "Try Again" });
     fireEvent.click(retryButton);
@@ -224,7 +225,7 @@ describe("ChatMessage", () => {
       model: "openai:gpt-4o",
     };
 
-    render(<ChatMessage message={message} />);
+    renderWithProviders(<ChatMessage message={message} />);
 
     expect(screen.getByText(/This is being streamed/)).toBeInTheDocument();
   });
@@ -241,7 +242,7 @@ describe("ChatMessage", () => {
       timeToFirstToken: 500,
     };
 
-    render(<ChatMessage message={message} />);
+    renderWithProviders(<ChatMessage message={message} />);
 
     // Model name should be visible in stats
     expect(screen.getByLabelText("Assistant message")).toBeInTheDocument();
@@ -305,7 +306,7 @@ describe("ChatMessage", () => {
       isConsolidation: true,
     };
 
-    const firstRender = render(<ChatMessage message={message} />);
+    const firstRender = renderWithProviders(<ChatMessage message={message} />);
     expect(
       screen.getByRole("button", {
         name: /show original 2 responses/i,
@@ -314,7 +315,7 @@ describe("ChatMessage", () => {
 
     firstRender.unmount();
 
-    render(<ChatMessage message={message} />);
+    renderWithProviders(<ChatMessage message={message} />);
 
     const toggle = screen.getByRole("button", {
       name: /show original 2 responses/i,

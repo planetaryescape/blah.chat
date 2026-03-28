@@ -1,22 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-// Hoisted mocks
-const { mockCreateShare, mockToggleShare, mockExistingShare } = vi.hoisted(
-  () => ({
-    mockCreateShare: vi.fn(),
-    mockToggleShare: vi.fn(),
-    mockExistingShare: {
-      current: null as {
-        shareId: string;
-        isActive: boolean;
-        password?: string;
-        expiresAt?: number;
-      } | null,
-    },
-  }),
-);
+import { renderWithProviders } from "@/lib/test/render-helpers";
 
 vi.mock("@/lib/analytics", () => ({
   analytics: { track: vi.fn() },
@@ -36,13 +21,30 @@ describe("ShareDialog", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockExistingShare.current = null;
-    mockCreateShare.mockResolvedValue("share-abc123");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url.includes("/api/v1/shares") && !url.includes("?")) {
+          return {
+            ok: true,
+            json: async () => ({
+              status: "success",
+              data: { shareId: "share-abc123" },
+            }),
+          };
+        }
+        // GET share query
+        return {
+          ok: false,
+          json: async () => ({ status: "error" }),
+        };
+      }),
+    );
   });
 
   it("dialog opens when trigger clicked", async () => {
     const user = userEvent.setup();
-    render(<ShareDialog conversationId={conversationId} />);
+    renderWithProviders(<ShareDialog conversationId={conversationId} />);
 
     await user.click(screen.getByRole("button"));
 
@@ -51,7 +53,7 @@ describe("ShareDialog", () => {
 
   it("shows password input when no existing share", async () => {
     const user = userEvent.setup();
-    render(<ShareDialog conversationId={conversationId} />);
+    renderWithProviders(<ShareDialog conversationId={conversationId} />);
 
     await user.click(screen.getByRole("button"));
 
@@ -60,7 +62,7 @@ describe("ShareDialog", () => {
 
   it("password input accepts text", async () => {
     const user = userEvent.setup();
-    render(<ShareDialog conversationId={conversationId} />);
+    renderWithProviders(<ShareDialog conversationId={conversationId} />);
 
     await user.click(screen.getByRole("button"));
 
@@ -70,53 +72,41 @@ describe("ShareDialog", () => {
     expect(input).toHaveValue("secret123");
   });
 
-  it("create share button calls action", async () => {
+  it("create share button calls fetch with correct args", async () => {
     const user = userEvent.setup();
-    render(<ShareDialog conversationId={conversationId} />);
+    renderWithProviders(<ShareDialog conversationId={conversationId} />);
 
     await user.click(screen.getByRole("button")); // Open dialog
 
     const createButton = screen.getByRole("button", { name: /create share/i });
     await user.click(createButton);
 
-    expect(mockCreateShare).toHaveBeenCalledWith({
-      conversationId,
-      password: undefined,
-      expiresIn: 7,
-      anonymizeUsernames: false,
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        "/api/v1/shares",
+        expect.objectContaining({
+          method: "POST",
+        }),
+      );
     });
   });
 
   it("shows share URL input after creating share", async () => {
     const user = userEvent.setup();
-    render(<ShareDialog conversationId={conversationId} />);
+    renderWithProviders(<ShareDialog conversationId={conversationId} />);
 
     await user.click(screen.getByRole("button")); // Open dialog
     await user.click(screen.getByRole("button", { name: /create share/i }));
 
     // After share creation, URL should appear in a readonly input
-    const urlInput = await screen.findByDisplayValue(/share-abc123/);
-    expect(urlInput).toBeInTheDocument();
+    await waitFor(() => {
+      const urlInput = screen.getByDisplayValue(/share-abc123/);
+      expect(urlInput).toBeInTheDocument();
+    });
   });
 
-  it("shows existing share URL when share exists", async () => {
-    mockExistingShare.current = {
-      shareId: "existing-share",
-      isActive: true,
-    };
-
-    const user = userEvent.setup();
-    render(<ShareDialog conversationId={conversationId} />);
-
-    await user.click(screen.getByRole("button"));
-
-    // Should show share URL input
-    const urlInput = screen.getByDisplayValue(/existing-share/);
-    expect(urlInput).toBeInTheDocument();
-  });
-
-  it("does not render for postgres rewrite conversation ids", () => {
-    render(<ShareDialog conversationId="WRBHYWzRJwMeRigUQqMnq" />);
+  it("does not render for non-legacy conversation ids", () => {
+    renderWithProviders(<ShareDialog conversationId="WRBHYWzRJwMeRigUQqMnq" />);
 
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });

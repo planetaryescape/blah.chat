@@ -90,10 +90,16 @@ export function reconcileConversationInCache(
     ["mobile", "conversation", input.nextConversation._id],
     mergedConversation,
   );
-  queryClient.removeQueries({
-    queryKey: ["mobile", "conversation", input.localConversationId],
-    exact: true,
-  });
+
+  const idsChanged =
+    input.localConversationId !== (input.nextConversation._id as string);
+
+  if (idsChanged) {
+    queryClient.removeQueries({
+      queryKey: ["mobile", "conversation", input.localConversationId],
+      exact: true,
+    });
+  }
 
   const localMessages = queryClient.getQueryData<Message[]>([
     "mobile",
@@ -109,16 +115,20 @@ export function reconcileConversationInCache(
         input.nextConversation._id,
       ),
     );
+    if (idsChanged) {
+      queryClient.removeQueries({
+        queryKey: ["mobile", "messages", input.localConversationId],
+        exact: true,
+      });
+    }
+  }
+
+  if (idsChanged) {
     queryClient.removeQueries({
-      queryKey: ["mobile", "messages", input.localConversationId],
+      queryKey: ["mobile", "active-generation", input.localConversationId],
       exact: true,
     });
   }
-
-  queryClient.removeQueries({
-    queryKey: ["mobile", "active-generation", input.localConversationId],
-    exact: true,
-  });
 
   for (const [queryKey, current] of queryClient.getQueriesData<
     Conversation[] | undefined

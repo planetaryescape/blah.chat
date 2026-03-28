@@ -59,7 +59,7 @@ describe("useProjectNotes", () => {
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
-        "/api/v1/projects/project_1/notes",
+        expect.stringContaining("/api/v1/notes"),
         expect.objectContaining({ method: "GET" }),
       );
     });

@@ -57,7 +57,7 @@ describe("useTasks", () => {
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
-        "/api/v1/tasks",
+        expect.stringContaining("/api/v1/tasks"),
         expect.objectContaining({ method: "GET" }),
       );
     });

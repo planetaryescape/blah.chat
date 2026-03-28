@@ -113,18 +113,22 @@ export default function UserDetailPage({
   const [dateRange, setDateRange] = useState(() => getLastNDays(30));
 
   // TODO: Phase G - needs /api/v1/admin/users route
-  const { data: users } = useQuery({
+  const {
+    data: users,
+    isError: isUsersError,
+    error: usersError,
+  } = useQuery({
     queryKey: ["admin", "users"],
     queryFn: async () => {
       const res = await fetch("/api/v1/admin/users");
-      if (!res.ok) return [];
+      if (!res.ok) throw new Error(`Failed to fetch users (${res.status})`);
       const json = await res.json();
       return json.data ?? [];
     },
   });
 
   // TODO: Phase G - needs /api/v1/admin/users/:id/usage-summary route
-  const { data: summary } = useQuery({
+  const { data: summary, isError: isSummaryError } = useQuery({
     queryKey: [
       "admin",
       "user-usage-summary",
@@ -136,14 +140,15 @@ export default function UserDetailPage({
       const res = await fetch(
         `/api/v1/admin/users/${userId}/usage-summary?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
       );
-      if (!res.ok) return null;
+      if (!res.ok)
+        throw new Error(`Failed to fetch usage summary (${res.status})`);
       const json = await res.json();
       return json.data ?? null;
     },
   });
 
   // TODO: Phase G - needs /api/v1/admin/users/:id/daily-spend route
-  const { data: dailySpend } = useQuery({
+  const { data: dailySpend, isError: isDailySpendError } = useQuery({
     queryKey: [
       "admin",
       "user-daily-spend",
@@ -155,14 +160,15 @@ export default function UserDetailPage({
       const res = await fetch(
         `/api/v1/admin/users/${userId}/daily-spend?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
       );
-      if (!res.ok) return null;
+      if (!res.ok)
+        throw new Error(`Failed to fetch daily spend (${res.status})`);
       const json = await res.json();
       return json.data ?? null;
     },
   });
 
   // TODO: Phase G - needs /api/v1/admin/users/:id/spend-by-model route
-  const { data: modelBreakdown } = useQuery({
+  const { data: modelBreakdown, isError: isModelBreakdownError } = useQuery({
     queryKey: [
       "admin",
       "user-model-breakdown",
@@ -174,14 +180,15 @@ export default function UserDetailPage({
       const res = await fetch(
         `/api/v1/admin/users/${userId}/spend-by-model?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
       );
-      if (!res.ok) return null;
+      if (!res.ok)
+        throw new Error(`Failed to fetch model breakdown (${res.status})`);
       const json = await res.json();
       return json.data ?? null;
     },
   });
 
   // TODO: Phase G - needs /api/v1/admin/users/:id/cost-by-type route
-  const { data: costByType } = useQuery({
+  const { data: costByType, isError: isCostByTypeError } = useQuery({
     queryKey: [
       "admin",
       "user-cost-by-type",
@@ -193,14 +200,15 @@ export default function UserDetailPage({
       const res = await fetch(
         `/api/v1/admin/users/${userId}/cost-by-type?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
       );
-      if (!res.ok) return null;
+      if (!res.ok)
+        throw new Error(`Failed to fetch cost by type (${res.status})`);
       const json = await res.json();
       return json.data ?? null;
     },
   });
 
   // TODO: Phase G - needs /api/v1/admin/users/:id/cost-by-feature route
-  const { data: costByFeature } = useQuery({
+  const { data: costByFeature, isError: isCostByFeatureError } = useQuery({
     queryKey: [
       "admin",
       "user-cost-by-feature",
@@ -212,18 +220,20 @@ export default function UserDetailPage({
       const res = await fetch(
         `/api/v1/admin/users/${userId}/cost-by-feature?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
       );
-      if (!res.ok) return null;
+      if (!res.ok)
+        throw new Error(`Failed to fetch cost by feature (${res.status})`);
       const json = await res.json();
       return json.data ?? null;
     },
   });
 
   // TODO: Phase G - needs /api/v1/admin/users/:id/activity-stats route
-  const { data: activityStats } = useQuery({
+  const { data: activityStats, isError: isActivityStatsError } = useQuery({
     queryKey: ["admin", "user-activity-stats", userId],
     queryFn: async () => {
       const res = await fetch(`/api/v1/admin/users/${userId}/activity-stats`);
-      if (!res.ok) return null;
+      if (!res.ok)
+        throw new Error(`Failed to fetch activity stats (${res.status})`);
       const json = await res.json();
       return json.data ?? null;
     },
@@ -242,6 +252,30 @@ export default function UserDetailPage({
   });
 
   const user = users?.find((u: any) => u._id === userId);
+
+  const hasError =
+    isUsersError ||
+    isSummaryError ||
+    isDailySpendError ||
+    isModelBreakdownError ||
+    isCostByTypeError ||
+    isCostByFeatureError ||
+    isActivityStatsError;
+
+  if (hasError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen gap-4">
+        <p className="text-destructive font-medium">Failed to load user data</p>
+        <p className="text-sm text-muted-foreground">
+          {usersError?.message || "One or more API requests failed."}
+        </p>
+        <Button variant="outline" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Go Back
+        </Button>
+      </div>
+    );
+  }
 
   // Early return check AFTER all hooks
   if (

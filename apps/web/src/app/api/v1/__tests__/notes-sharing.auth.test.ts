@@ -31,6 +31,32 @@ vi.mock("@blah-chat/ai/registry", () => ({
   getModel: getModelMock,
 }));
 
+vi.mock("@blah-chat/persistence-postgres", async () => {
+  const actual = await vi.importActual<
+    typeof import("@blah-chat/persistence-postgres")
+  >("@blah-chat/persistence-postgres");
+  return {
+    ...actual,
+    parsePersistenceEnv: vi.fn(() => ({
+      databaseUrl: "postgres://test:test@localhost/test",
+      redis: { restUrl: "https://redis.test", restToken: "token" },
+      r2: {
+        accountId: "test",
+        accessKeyId: "test",
+        secretAccessKey: "test",
+        bucket: "test",
+        endpoint: "https://test.r2.cloudflarestorage.com",
+        region: "auto",
+        forcePathStyle: false,
+      },
+      trigger: { secretKey: "tr_test", apiUrl: "https://api.trigger.dev" },
+    })),
+    createTriggerClient: vi.fn(() => ({
+      triggerTask: vi.fn().mockResolvedValue({}),
+    })),
+  };
+});
+
 vi.mock("@/lib/persistence/server", () => ({
   getPersistenceDb: () => db,
 }));

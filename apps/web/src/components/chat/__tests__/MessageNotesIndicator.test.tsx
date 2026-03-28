@@ -1,11 +1,18 @@
-import { render, screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderWithProviders } from "@/lib/test/render-helpers";
 
-const useQueryMock = vi.fn();
+const mockListNotes = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: vi.fn(),
+  }),
+}));
+
+vi.mock("@/lib/api/sdkClient", () => ({
+  useSDKClient: () => ({
+    listNotes: mockListNotes,
   }),
 }));
 
@@ -14,23 +21,29 @@ import { MessageNotesIndicator } from "../MessageNotesIndicator";
 describe("MessageNotesIndicator", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useQueryMock.mockReturnValue(null);
+    mockListNotes.mockResolvedValue([]);
   });
 
-  it("renders note count for convex message ids", () => {
-    useQueryMock.mockReturnValue([
-      { _id: "note1", title: "Note 1", createdAt: Date.now() },
+  it("renders note count for message ids with notes", async () => {
+    mockListNotes.mockResolvedValue([
+      {
+        _id: "note1",
+        title: "Note 1",
+        createdAt: Date.now(),
+        sourceMessageId: "msg123",
+      },
     ]);
 
-    render(<MessageNotesIndicator messageId="msg123" />);
+    renderWithProviders(<MessageNotesIndicator messageId="msg123" />);
 
-    expect(screen.getByText("Notes (1)")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Notes (1)")).toBeInTheDocument();
+    });
   });
 
-  it("skips rendering for postgres rewrite ids", () => {
-    render(<MessageNotesIndicator messageId="Xjtnpfv9cM_HkeEKc9OjL" />);
+  it("does not render for temp message ids", () => {
+    renderWithProviders(<MessageNotesIndicator messageId="temp-123" />);
 
-    expect(useQueryMock).toHaveBeenCalledWith(expect.anything(), "skip");
     expect(screen.queryByText(/Notes \(/)).not.toBeInTheDocument();
   });
 });

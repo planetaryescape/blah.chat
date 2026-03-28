@@ -31,16 +31,6 @@ jobs:
       - name: Run Biome check (lint + format)
         run: bun run lint
 
-      - name: Verify BYOD schema in sync
-        # --check: Regenerates schema without version bump to verify it matches committed files.
-        # If drift detected, run 'bun run byod:sync --force' locally to regenerate.
-        run: |
-          bun run byod:sync --check
-          if ! git diff --exit-code packages/byod-schema/; then
-            echo "::error::BYOD schema is out of sync! Run 'bun run byod:sync --force' to regenerate."
-            exit 1
-          fi
-
       - name: Verify API client OpenAPI types are in sync
         run: |
           bun run api-client:generate
@@ -60,16 +50,6 @@ jobs:
       - name: Enforce desktop version sync
         run: bun run desktop:version-check
 
-      - name: Enforce portable client boundaries
-        run: bun run portable:check
-
-      - name: Convex typecheck
-        if: github.event.pull_request.user.login != 'dependabot[bot]'
-        run: bun run deploy -- --dry-run --typecheck enable
-        working-directory: packages/backend
-        env:
-          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
-
   test:
     name: Unit & Integration Tests
     runs-on: ubuntu-latest
@@ -87,13 +67,6 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
-
-      - name: Generate Convex types
-        if: github.event.pull_request.user.login != 'dependabot[bot]'
-        run: bun run generate
-        working-directory: packages/backend
-        env:
-          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
 
       - name: Run tests
         run: bun run test:run
@@ -119,5 +92,4 @@ jobs:
       - name: Build Next.js app
         run: bun run build
         env:
-          NEXT_PUBLIC_CONVEX_URL: ${{ secrets.NEXT_PUBLIC_CONVEX_URL }}
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}

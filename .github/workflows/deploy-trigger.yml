@@ -5,14 +5,10 @@ on:
     branches: [main]
     paths:
       - "packages/jobs/**"
-      - "packages/backend/convex/http.ts"
-      - "packages/backend/convex/lib/trigger.ts"
   push:
     branches: [main]
     paths:
       - "packages/jobs/**"
-      - "packages/backend/convex/http.ts"
-      - "packages/backend/convex/lib/trigger.ts"
   workflow_dispatch:
 
 jobs:

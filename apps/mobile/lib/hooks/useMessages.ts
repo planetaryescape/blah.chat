@@ -393,6 +393,14 @@ export function useSendMessage() {
         queryKey: ["mobile", "conversations"],
       });
     },
+    onError: async (_error, args) => {
+      const conversationId = args.conversationId ?? args.localConversationId;
+      if (conversationId) {
+        await queryClient.invalidateQueries({
+          queryKey: ["mobile", "messages", conversationId],
+        });
+      }
+    },
   });
 
   return async (args: SendMessageArgs) => mutation.mutateAsync(args);

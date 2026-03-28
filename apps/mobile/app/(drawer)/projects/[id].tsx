@@ -391,7 +391,7 @@ export default function ProjectDetailScreen() {
                       marginTop: 2,
                     }}
                   >
-                    {getTimeAgo(note.updatedAt || Date.now())}
+                    {getTimeAgo(note.updatedAt || note.createdAt || Date.now())}
                   </Text>
                 </View>
               </AnimatedPressable>

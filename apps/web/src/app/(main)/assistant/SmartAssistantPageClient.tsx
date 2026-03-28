@@ -69,19 +69,21 @@ export default function SmartAssistantPage() {
 
   // TODO: Phase G - needs tasks REST route
   const createTask = async (args: any) => {
-    await fetch("/api/v1/tasks", {
+    const res = await fetch("/api/v1/tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(args),
     });
+    if (!res.ok) throw new Error("Failed to create task");
   };
 
   const createNote = async (args: any) => {
-    await fetch("/api/v1/notes", {
+    const res = await fetch("/api/v1/notes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(args),
     });
+    if (!res.ok) throw new Error("Failed to create note");
   };
   const apiClient = useApiClient();
   const sdk = useSDKClient();

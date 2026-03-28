@@ -72,7 +72,8 @@ export default function UsagePage() {
     queryKey: ["admin", "usage", "monthly-total"],
     queryFn: async () => {
       const res = await fetch("/api/v1/admin/usage/monthly-total");
-      if (!res.ok) return null;
+      if (!res.ok)
+        throw new Error(`Failed to fetch monthly total: ${res.status}`);
       const json = await res.json();
       return json.data ?? null;
     },
@@ -82,7 +83,8 @@ export default function UsagePage() {
     queryKey: ["admin", "usage", "daily-spend"],
     queryFn: async () => {
       const res = await fetch("/api/v1/admin/usage/daily-spend?days=30");
-      if (!res.ok) return null;
+      if (!res.ok)
+        throw new Error(`Failed to fetch daily spend: ${res.status}`);
       const json = await res.json();
       return json.data ?? null;
     },
@@ -92,7 +94,8 @@ export default function UsagePage() {
     queryKey: ["admin", "usage", "spend-by-model"],
     queryFn: async () => {
       const res = await fetch("/api/v1/admin/usage/spend-by-model?days=30");
-      if (!res.ok) return null;
+      if (!res.ok)
+        throw new Error(`Failed to fetch spend by model: ${res.status}`);
       const json = await res.json();
       return json.data ?? null;
     },
@@ -104,7 +107,8 @@ export default function UsagePage() {
       const res = await fetch(
         "/api/v1/admin/usage/conversation-costs?limit=10",
       );
-      if (!res.ok) return null;
+      if (!res.ok)
+        throw new Error(`Failed to fetch conversation costs: ${res.status}`);
       const json = await res.json();
       return json.data ?? null;
     },
@@ -132,7 +136,8 @@ export default function UsagePage() {
       const res = await fetch(
         `/api/v1/admin/usage/cost-by-feature?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
       );
-      if (!res.ok) return null;
+      if (!res.ok)
+        throw new Error(`Failed to fetch cost by feature: ${res.status}`);
       const json = await res.json();
       return json.data ?? null;
     },

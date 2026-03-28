@@ -234,7 +234,7 @@ export default function ModelDetailPage({
     try {
       if (isNew) {
         // TODO: Phase G - needs POST /api/v1/admin/models
-        await fetch("/api/v1/admin/models", {
+        const createRes = await fetch("/api/v1/admin/models", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -263,11 +263,12 @@ export default function ModelDetailPage({
             reasoningConfig: formData.reasoningConfig,
           }),
         });
+        if (!createRes.ok) throw new Error("Failed to create model");
         toast.success("Model created");
         router.push("/admin/models");
       } else {
         // TODO: Phase G - needs PATCH /api/v1/admin/models/:id
-        await fetch(`/api/v1/admin/models/${modelId}`, {
+        const updateRes = await fetch(`/api/v1/admin/models/${modelId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -294,6 +295,7 @@ export default function ModelDetailPage({
             reasoningConfig: formData.reasoningConfig,
           }),
         });
+        if (!updateRes.ok) throw new Error("Failed to update model");
         toast.success("Model updated");
         setIsDirty(false);
       }

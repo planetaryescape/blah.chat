@@ -39,8 +39,10 @@ function KnowledgePageContent() {
 
   const filteredSources = useMemo(() => {
     return allSources.filter((source: any) => {
-      if (typeParam !== "all" && source.type !== typeParam) return false;
-      if (statusParam !== "all" && source.status !== statusParam) return false;
+      if (typeParam && typeParam !== "all" && source.type !== typeParam)
+        return false;
+      if (statusParam && statusParam !== "all" && source.status !== statusParam)
+        return false;
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         if (!source.title.toLowerCase().includes(query)) return false;

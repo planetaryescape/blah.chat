@@ -106,7 +106,10 @@ function ModelsPageContent() {
 
   const handleDeprecate = useCallback(async (id: string) => {
     try {
-      await fetch(`/api/v1/admin/models/${id}/deprecate`, { method: "POST" }); // TODO: Phase G
+      const res = await fetch(`/api/v1/admin/models/${id}/deprecate`, {
+        method: "POST",
+      }); // TODO: Phase G
+      if (!res.ok) throw new Error("Failed to deprecate model");
       toast.success("Model deprecated");
     } catch (error: any) {
       toast.error(error.message || "Failed to deprecate model");
@@ -115,9 +118,10 @@ function ModelsPageContent() {
 
   const handleReactivate = useCallback(async (id: string) => {
     try {
-      await fetch(`/api/v1/admin/models/${id}/reactivate`, {
+      const res = await fetch(`/api/v1/admin/models/${id}/reactivate`, {
         method: "POST",
       }); // TODO: Phase G
+      if (!res.ok) throw new Error("Failed to reactivate model");
       toast.success("Model reactivated");
     } catch (error: any) {
       toast.error(error.message || "Failed to reactivate model");

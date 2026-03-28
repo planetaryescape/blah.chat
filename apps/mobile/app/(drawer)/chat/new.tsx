@@ -236,24 +236,39 @@ export default function NewChatScreen() {
           }),
         );
 
-        const result = await sendMessage({
-          localConversationId,
-          createConversation: {
-            model: selectedModel,
-          },
-          content,
-          ...(isComparisonMode
-            ? { models: selectedModels }
-            : { modelId: selectedModel }),
-          thinkingEffort,
-          attachments,
-        });
+        try {
+          const result = await sendMessage({
+            localConversationId,
+            createConversation: {
+              model: selectedModel,
+            },
+            content,
+            ...(isComparisonMode
+              ? { models: selectedModels }
+              : { modelId: selectedModel }),
+            thinkingEffort,
+            attachments,
+          });
 
-        clearChatDraft(draftKey);
-        setDraftText("");
-        setDraftAttachments([]);
+          clearChatDraft(draftKey);
+          setDraftText("");
+          setDraftAttachments([]);
 
-        router.replace(`/(drawer)/chat/${result.conversationId}`);
+          router.replace(`/(drawer)/chat/${result.conversationId}`);
+        } catch (_sendError) {
+          queryClient.removeQueries({
+            queryKey: ["mobile", "conversation", localConversationId],
+            exact: true,
+          });
+          queryClient.removeQueries({
+            queryKey: ["mobile", "messages", localConversationId],
+            exact: true,
+          });
+          await queryClient.invalidateQueries({
+            queryKey: ["mobile", "conversations"],
+          });
+          throw _sendError;
+        }
       } catch (_error) {
         haptic.error();
         setOptimisticMessages([]);

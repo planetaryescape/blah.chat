@@ -17,7 +17,7 @@ export default function AppPage() {
     data: currentUser,
     isLoading: userLoading,
     error: userError,
-  } = useCurrentUser();
+  } = useCurrentUser({ enabled: clerkLoaded && !!isSignedIn });
 
   useEffect(() => {
     if (clerkLoaded && !isSignedIn) {

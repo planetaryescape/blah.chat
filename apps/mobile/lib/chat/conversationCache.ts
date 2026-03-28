@@ -115,12 +115,12 @@ export function reconcileConversationInCache(
         input.nextConversation._id,
       ),
     );
-    if (idsChanged) {
-      queryClient.removeQueries({
-        queryKey: ["mobile", "messages", input.localConversationId],
-        exact: true,
-      });
-    }
+  }
+  if (idsChanged) {
+    queryClient.removeQueries({
+      queryKey: ["mobile", "messages", input.localConversationId],
+      exact: true,
+    });
   }
 
   if (idsChanged) {

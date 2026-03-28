@@ -2,8 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Hoisted mocks
-const { mockUpdateContent, mockDocument, mockHistory } = vi.hoisted(() => ({
-  mockUpdateContent: vi.fn(),
+const { mockDocument, mockHistory } = vi.hoisted(() => ({
   mockDocument: { current: null as { version: number } | null },
   mockHistory: {
     current: null as { version: number; content: string }[] | null,
@@ -50,7 +49,7 @@ describe("useCanvasHistory", () => {
   // These tests verify the stubbed behavior until the table exists.
 
   it("canUndo false when document is null (Phase G stub)", () => {
-    // document is null in the current implementation
+    mockDocument.current = null;
     const { result } = renderHook(() => useCanvasHistory(documentId));
 
     expect(result.current.canUndo).toBe(false);

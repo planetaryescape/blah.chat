@@ -29,6 +29,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Build workspace dependencies
+        run: bunx turbo run build --filter=@blah-chat/ai --filter=@blah-chat/persistence-postgres --filter=@blah-chat/shared
+
       - name: Trigger.dev dry run
         run: bunx trigger.dev@latest deploy --dry-run
         working-directory: packages/jobs
@@ -51,6 +54,9 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Build workspace dependencies
+        run: bunx turbo run build --filter=@blah-chat/ai --filter=@blah-chat/persistence-postgres --filter=@blah-chat/shared
 
       - name: Deploy Trigger.dev tasks
         run: bunx trigger.dev@latest deploy

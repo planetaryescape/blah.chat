@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.35.1](https://github.com/planetaryescape/blah.chat/compare/v1.35.0...v1.35.1) (2026-03-29)
+
+
+### Bug Fixes
+
+* [] Resolve Postgres env bootstrap mismatch ([9106ae2](https://github.com/planetaryescape/blah.chat/commit/9106ae2ed2c7268a24d2e0bd8891d690d1e2a923))
+* address review feedback ([7b5f78c](https://github.com/planetaryescape/blah.chat/commit/7b5f78cb58dc87c263626282148631f5ee1b7aa4))
+
 ## [1.35.0](https://github.com/planetaryescape/blah.chat/compare/v1.34.0...v1.35.0) (2026-03-29)
 
 

@@ -1,7 +1,10 @@
 import { z } from "zod";
 
-const persistenceEnvSchema = z.object({
+const databaseEnvSchema = z.object({
   DATABASE_URL: z.url(),
+});
+
+const persistenceEnvSchema = databaseEnvSchema.extend({
   UPSTASH_REDIS_REST_URL: z.url(),
   UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
   R2_ACCOUNT_ID: z.string().min(1),
@@ -15,6 +18,10 @@ const persistenceEnvSchema = z.object({
   TRIGGER_SECRET_KEY: z.string().min(1).optional(),
   TRIGGER_API_URL: z.url().optional(),
 });
+
+export interface DatabaseEnv {
+  databaseUrl: string;
+}
 
 export interface PersistenceEnv {
   databaseUrl: string;
@@ -42,10 +49,30 @@ export function buildR2Endpoint(accountId: string): string {
   return `https://${accountId}.r2.cloudflarestorage.com`;
 }
 
+function normalizePersistenceEnvInput(
+  env: Record<string, string | undefined>,
+): Record<string, string | undefined> {
+  return {
+    ...env,
+    R2_BUCKET: env.R2_BUCKET ?? env.R2_BUCKET_NAME,
+    R2_ENDPOINT: env.R2_ENDPOINT ?? env.R2_ENDPOINT_URL,
+  };
+}
+
+export function parseDatabaseEnv(
+  env: Record<string, string | undefined>,
+): DatabaseEnv {
+  const parsed = databaseEnvSchema.parse(env);
+
+  return {
+    databaseUrl: parsed.DATABASE_URL,
+  };
+}
+
 export function parsePersistenceEnv(
   env: Record<string, string | undefined>,
 ): PersistenceEnv {
-  const parsed = persistenceEnvSchema.parse(env);
+  const parsed = persistenceEnvSchema.parse(normalizePersistenceEnvInput(env));
 
   return {
     databaseUrl: parsed.DATABASE_URL,

@@ -4,6 +4,27 @@ import { ApiError } from "@/lib/api/errors";
 import logger from "@/lib/logger";
 import { formatErrorEntity } from "@/lib/utils/formatEntity";
 
+type ZodLikeIssue = {
+  path: PropertyKey[];
+};
+
+function isZodLikeError(error: unknown): error is { issues: ZodLikeIssue[] } {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "issues" in error &&
+    Array.isArray(error.issues)
+  );
+}
+
+function isConfigurationZodError(error: { issues: ZodLikeIssue[] }): boolean {
+  return error.issues.some((issue) =>
+    issue.path.some(
+      (segment) => typeof segment === "string" && /^[A-Z0-9_]+$/.test(segment),
+    ),
+  );
+}
+
 export function withErrorHandling(
   handler: (req: NextRequest, context: any) => Promise<Response>,
 ) {
@@ -27,7 +48,18 @@ export function withErrorHandling(
       }
 
       // Handle Zod validation errors
-      if (error instanceof z.ZodError) {
+      if (error instanceof z.ZodError || isZodLikeError(error)) {
+        if (isConfigurationZodError(error)) {
+          logger.error({ issues: error.issues, url: req.url }, "Config error");
+          return NextResponse.json(
+            formatErrorEntity({
+              message: "Service configuration error",
+              code: "CONFIGURATION_ERROR",
+            }),
+            { status: 503 },
+          );
+        }
+
         logger.warn({ issues: error.issues, url: req.url }, "Validation error");
         return NextResponse.json(
           formatErrorEntity({

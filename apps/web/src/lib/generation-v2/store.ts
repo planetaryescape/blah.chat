@@ -1,3 +1,4 @@
+import type { RedisLike } from "@blah-chat/persistence-postgres";
 import {
   type GenerationEvent,
   generationCancelKey,
@@ -5,7 +6,6 @@ import {
   generationRequestMetaKey,
   generationSessionStateKey,
 } from "@blah-chat/streaming-core";
-import type { Redis } from "@upstash/redis";
 import type { GenerationEventStore } from "./types";
 
 const STREAM_TTL_SECONDS = 60 * 60;
@@ -18,9 +18,9 @@ function generationSessionCancelKey(sessionId: string) {
   return `${generationSessionStateKey(sessionId)}:cancel`;
 }
 
-export class UpstashGenerationEventStore implements GenerationEventStore {
+export class RedisGenerationEventStore implements GenerationEventStore {
   constructor(
-    private readonly redis: Redis,
+    private readonly redis: RedisLike,
     private readonly ttlSeconds = STREAM_TTL_SECONDS,
   ) {}
 
@@ -99,6 +99,8 @@ export class UpstashGenerationEventStore implements GenerationEventStore {
     return value?.status ?? null;
   }
 }
+
+export const UpstashGenerationEventStore = RedisGenerationEventStore;
 
 export class MemoryGenerationEventStore implements GenerationEventStore {
   private readonly events = new Map<string, GenerationEvent[]>();

@@ -103,30 +103,35 @@ export function withUserAuth(
     req: NextRequest,
     context: { params: Promise<Record<string, string | string[]>> },
   ) => {
-    try {
-      const result = await auth();
-      if (!result.userId) {
-        logger.warn({ url: req.url }, "Unauthorized request");
-        return NextResponse.json(formatErrorEntity("Authentication required"), {
-          status: 401,
+    const authResult = await (async () => {
+      try {
+        const result = await auth();
+        if (!result.userId) {
+          logger.warn({ url: req.url }, "Unauthorized request");
+          return NextResponse.json(
+            formatErrorEntity("Authentication required"),
+            {
+              status: 401,
+            },
+          );
+        }
+
+        return { userId: result.userId } as const;
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        logger.error(
+          { error: errorMessage, stack: errorStack, url: req.url },
+          "Auth middleware error",
+        );
+        return NextResponse.json(formatErrorEntity("Internal server error"), {
+          status: 500,
         });
       }
+    })();
 
-      return await handler(req, {
-        ...context,
-        userId: result.userId,
-      });
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
-      logger.error(
-        { error: errorMessage, stack: errorStack, url: req.url },
-        "Auth middleware error",
-      );
-      return NextResponse.json(formatErrorEntity("Internal server error"), {
-        status: 500,
-      });
-    }
+    if (authResult instanceof Response) return authResult;
+    return await handler(req, { ...context, ...authResult });
   };
 }

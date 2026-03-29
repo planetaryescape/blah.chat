@@ -6,7 +6,7 @@ import {
 import { getPersistenceDb } from "@/lib/persistence/server";
 import { AiSdkGenerationProvider } from "./provider";
 import { GenerationV2Service } from "./service";
-import { UpstashGenerationEventStore } from "./store";
+import { RedisGenerationEventStore } from "./store";
 
 declare global {
   // eslint-disable-next-line no-var
@@ -22,7 +22,7 @@ export function getGenerationV2Service() {
   const db = getPersistenceDb();
   const redis = createRedisClient(env);
   const trigger = createTriggerClient(env);
-  const store = new UpstashGenerationEventStore(redis);
+  const store = new RedisGenerationEventStore(redis);
   const provider = new AiSdkGenerationProvider();
 
   const service = new GenerationV2Service(

@@ -50,6 +50,14 @@ jobs:
       - name: Enforce desktop version sync
         run: bun run desktop:version-check
 
+      - name: Verify Drizzle migrations are up-to-date with schema
+        run: |
+          bun run db:generate
+          if ! git diff --exit-code packages/persistence-postgres/drizzle/; then
+            echo "::error::Drizzle migrations are out of sync with schema! Run 'bun run db:generate' and commit the result."
+            exit 1
+          fi
+
   test:
     name: Unit & Integration Tests
     runs-on: ubuntu-latest

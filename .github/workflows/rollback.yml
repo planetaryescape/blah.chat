@@ -7,6 +7,11 @@ on:
         description: "Git tag to rollback to (e.g., v0.1.0)"
         required: true
         type: string
+      skip_migration_warning:
+        description: "Acknowledge that database migrations are NOT rolled back automatically"
+        required: true
+        type: boolean
+        default: false
 
 jobs:
   rollback-vercel:
@@ -15,6 +20,15 @@ jobs:
     environment: production
 
     steps:
+      - name: Warn about database migrations
+        if: ${{ !inputs.skip_migration_warning }}
+        run: |
+          echo "::error::Database migrations are NOT automatically reversed during rollback."
+          echo "::error::If the release added new columns/tables, the old app code must be compatible with the new schema."
+          echo "::error::If rollback requires schema changes, apply them manually via 'bun run db:push' or a new migration."
+          echo "::error::Set 'skip_migration_warning' to true to acknowledge and proceed."
+          exit 1
+
       - name: Checkout code at tag
         uses: actions/checkout@v6
         with:

@@ -396,8 +396,24 @@ export function useSendMessage() {
     onError: async (_error, args) => {
       const conversationId = args.conversationId ?? args.localConversationId;
       if (conversationId) {
+        if (args.conversationId) {
+          // Server-backed conversation: invalidate to refetch clean state
+          await queryClient.invalidateQueries({
+            queryKey: ["mobile", "messages", conversationId],
+          });
+        } else {
+          // Local conversation: remove optimistic data directly since
+          // there's no server query to refetch from
+          queryClient.setQueryData(
+            ["mobile", "messages", conversationId],
+            undefined,
+          );
+          queryClient.removeQueries({
+            queryKey: ["mobile", "messages", conversationId],
+          });
+        }
         await queryClient.invalidateQueries({
-          queryKey: ["mobile", "messages", conversationId],
+          queryKey: ["mobile", "conversations"],
         });
       }
     },

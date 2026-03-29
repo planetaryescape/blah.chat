@@ -53,8 +53,9 @@ jobs:
       - name: Verify Drizzle migrations are up-to-date with schema
         run: |
           bun run db:generate
-          if ! git diff --exit-code packages/persistence-postgres/drizzle/; then
+          if [ -n "$(git status --porcelain packages/persistence-postgres/drizzle/)" ]; then
             echo "::error::Drizzle migrations are out of sync with schema! Run 'bun run db:generate' and commit the result."
+            git status packages/persistence-postgres/drizzle/
             exit 1
           fi
 

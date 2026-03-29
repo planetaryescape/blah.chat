@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/planetaryescape/blah.chat/compare/cli-v0.4.0...cli-v0.5.0) (2026-03-29)
+
+
+### Features
+
+* [] cut cli chat to generation-v2 ([d2e8af3](https://github.com/planetaryescape/blah.chat/commit/d2e8af36daafcb5d10c7ab261011cb8c9f44465d))
+
 ## [0.4.0](https://github.com/planetaryescape/blah.chat/compare/cli-v0.3.0...cli-v0.4.0) (2026-03-11)
 
 

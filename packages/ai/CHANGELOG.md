@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/planetaryescape/blah.chat/compare/ai-v0.1.2...ai-v0.2.0) (2026-03-29)
+
+
+### Features
+
+* [] refresh GPT and OpenRouter models ([59c554f](https://github.com/planetaryescape/blah.chat/commit/59c554f6cb22dc49f3f67caa88a65c9787ea224a))
+
 ## [0.1.2](https://github.com/planetaryescape/blah.chat/compare/ai-v0.1.1...ai-v0.1.2) (2026-03-02)
 
 

@@ -1,69 +1,78 @@
 name: Dependabot Auto-Merge
 
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
+  pull_request_target:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
   contents: write
   pull-requests: write
 
+concurrency:
+  group: dependabot-auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   auto-merge:
     name: Auto-merge Dependabot PRs
     runs-on: ubuntu-latest
-    if: >
-      github.event.workflow_run.conclusion == 'success' &&
-      (github.event.workflow_run.event == 'pull_request' ||
-      github.event.workflow_run.event == 'workflow_dispatch')
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Get PR number
-        id: pr
+      - name: Wait for checks to appear
         run: |
-          PR_NUMBER=$(jq -r '.workflow_run.pull_requests[0].number // ""' "$GITHUB_EVENT_PATH")
+          attempts=0
 
-          if [ -z "$PR_NUMBER" ] && [ -n "$HEAD_BRANCH" ]; then
-            PR_NUMBER=$(gh pr list --repo "$REPO" --head "$HEAD_BRANCH" --json number --jq '.[0].number // ""')
-          fi
+          while [ "$attempts" -lt 30 ]; do
+            CHECK_COUNT=$(gh pr checks "$PR_NUMBER" --repo "$REPO" --json name,workflow --jq '[.[] | select((.workflow // .name) != "Dependabot Auto-Merge")] | length')
 
-          if [ -z "$PR_NUMBER" ] && [ -n "$HEAD_SHA" ]; then
-            PR_NUMBER=$(gh api "repos/$REPO/commits/$HEAD_SHA/pulls" --jq 'map(select(.state == "open")) | .[0].number // ""')
-          fi
+            if [ "$CHECK_COUNT" -gt 0 ]; then
+              exit 0
+            fi
 
-          echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
+            attempts=$((attempts + 1))
+            sleep 10
+          done
 
-          if [ -z "$PR_NUMBER" ]; then
-            echo "author=" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          PR_AUTHOR=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json author --jq '.author.login')
-          echo "author=$PR_AUTHOR" >> $GITHUB_OUTPUT
+          echo "::error::No checks found for PR #$PR_NUMBER after waiting."
+          exit 1
         env:
           GH_TOKEN: ${{ secrets.MERGE_BOT_TOKEN || secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
 
-      - name: Check if dependabot PR
-        id: check
-        if: steps.pr.outputs.number != '' && steps.pr.outputs.author == 'dependabot[bot]'
-        run: echo "is_dependabot=true" >> $GITHUB_OUTPUT
+      - name: Wait for checks to pass
+        run: |
+          attempts=0
 
-      - name: Dependabot metadata
-        if: steps.check.outputs.is_dependabot == 'true'
-        id: metadata
-        uses: dependabot/fetch-metadata@v2
-        with:
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
+          while [ "$attempts" -lt 90 ]; do
+            CHECKS_JSON=$(gh pr checks "$PR_NUMBER" --repo "$REPO" --json bucket,name,workflow)
+
+            FAIL_COUNT=$(printf '%s' "$CHECKS_JSON" | jq '[.[] | select((.workflow // .name) != "Dependabot Auto-Merge" and .bucket == "fail")] | length')
+            if [ "$FAIL_COUNT" -gt 0 ]; then
+              echo "::error::One or more checks failed for PR #$PR_NUMBER."
+              printf '%s' "$CHECKS_JSON" | jq '[.[] | select((.workflow // .name) != "Dependabot Auto-Merge")]'
+              exit 1
+            fi
+
+            PENDING_COUNT=$(printf '%s' "$CHECKS_JSON" | jq '[.[] | select((.workflow // .name) != "Dependabot Auto-Merge" and .bucket == "pending")] | length')
+            if [ "$PENDING_COUNT" -eq 0 ]; then
+              exit 0
+            fi
+
+            attempts=$((attempts + 1))
+            sleep 10
+          done
+
+          echo "::error::Checks for PR #$PR_NUMBER did not finish in time."
+          exit 1
+        env:
+          GH_TOKEN: ${{ secrets.MERGE_BOT_TOKEN || secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
 
       - name: Approve Dependabot PR
-        if: steps.check.outputs.is_dependabot == 'true'
         run: |
           if gh pr review --approve "$PR_NUMBER" --repo "$REPO"; then
             echo "::notice::Approved PR #$PR_NUMBER"
@@ -74,12 +83,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.MERGE_BOT_TOKEN || secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
 
       - name: Merge Dependabot PR
-        if: steps.check.outputs.is_dependabot == 'true'
         run: |
-          if gh pr merge --rebase "$PR_NUMBER" --repo "$REPO"; then
+          if gh pr merge --rebase "$PR_NUMBER" --repo "$REPO" --match-head-commit "$HEAD_SHA"; then
             exit 0
           fi
           echo "::notice::Merge skipped/failed (likely requires approval). Leaving PR open."
@@ -87,4 +95,5 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.MERGE_BOT_TOKEN || secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}

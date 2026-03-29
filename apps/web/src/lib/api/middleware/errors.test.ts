@@ -63,6 +63,45 @@ describe("withErrorHandling", () => {
     });
   });
 
+  it("keeps uppercase request field errors as 400s", async () => {
+    const handler = withErrorHandling(async () => {
+      z.object({
+        USER_ID: z.string(),
+      }).parse({});
+
+      return new Response("ok");
+    });
+
+    const response = await handler(createMockRequest("/api/test"), {
+      params: Promise.resolve({}),
+    });
+    const json = await response.json();
+
+    expect(response.status).toBe(400);
+    assertEnvelopeError(json);
+    expect(json.error).toMatchObject({
+      message: "Validation failed",
+      code: "VALIDATION_ERROR",
+    });
+  });
+
+  it("falls back to 500 for malformed Zod-like errors", async () => {
+    const handler = withErrorHandling(async () => {
+      throw {
+        issues: [{ path: "DATABASE_URL" }],
+      };
+    });
+
+    const response = await handler(createMockRequest("/api/test"), {
+      params: Promise.resolve({}),
+    });
+    const json = await response.json();
+
+    expect(response.status).toBe(500);
+    assertEnvelopeError(json);
+    expect(json.error).toBe("Internal server error");
+  });
+
   it("keeps request validation errors as 400s", async () => {
     const handler = withErrorHandling(async () => {
       z.object({

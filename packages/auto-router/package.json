@@ -1,6 +1,6 @@
 {
   "name": "@blah-chat/auto-router",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Two-stage LLM model router: hard rules + embedding similarity. Zero runtime deps, sub-5ms classification.",
   "type": "module",
   "license": "MIT",

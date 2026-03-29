@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.3.0](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.2.0...jobs-v0.3.0) (2026-03-29)
+
+
+### Features
+
+* [] add backfill-embeddings trigger tasks ([8706e6b](https://github.com/planetaryescape/blah.chat/commit/8706e6b28895b502a7702601939d449adca0405e))
+* [] add BYOD health check and migration runner scheduled tasks ([9353d43](https://github.com/planetaryescape/blah.chat/commit/9353d43cfe155299c8e39548697f60d2258d13ed))
+* [] add cleanup and monitoring scheduled tasks ([63913a2](https://github.com/planetaryescape/blah.chat/commit/63913a2a2fbebcb0cb2b50565d3ca041d6db3e58))
+* [] add data integrity scheduled tasks ([a623156](https://github.com/planetaryescape/blah.chat/commit/a623156773203fd2f16a858787e0f55e2b6fc189))
+* [] add embed-message, embed-note, embed-task trigger jobs ([dd38b7d](https://github.com/planetaryescape/blah.chat/commit/dd38b7d7e9864179f7835b832e9eae01225010b4))
+* [] add memory and extraction scheduled tasks ([e7ea42b](https://github.com/planetaryescape/blah.chat/commit/e7ea42b29662acf68cc0852326ffe89bbe7a6085))
+* [] add provider health cron job ([95d9e60](https://github.com/planetaryescape/blah.chat/commit/95d9e606726c37eb211f771440e82e3c4c28eea2))
+* [] add Slack alerting, k6 load tests, and mark all phases complete ([97f2cd7](https://github.com/planetaryescape/blah.chat/commit/97f2cd7bc90e7a0cf71a0d4a522011af4b9527ae))
+* [] add trigger jobs and transport client ([974cbf4](https://github.com/planetaryescape/blah.chat/commit/974cbf4ccadf2353f0e3bf869ec078f316ca72b4))
+* [] export all 24 task types from jobs package index ([abd51cb](https://github.com/planetaryescape/blah.chat/commit/abd51cb056bdab988d308ea00c18773c9c3e19ec))
+* [] move blob flows to r2 and postgres ([eeba2c1](https://github.com/planetaryescape/blah.chat/commit/eeba2c172b4ddc8c298cdda6ff3d8ed222ce0bb5))
+* add check-metrics-thresholds scheduled job ([aeb7682](https://github.com/planetaryescape/blah.chat/commit/aeb7682e2c643f54ab6e6156236c620f4009e04e))
+
+
+### Bug Fixes
+
+* [] compute percentSaved from MODEL_CONFIG in analyze-model-fit test ([dcb2efc](https://github.com/planetaryescape/blah.chat/commit/dcb2efc48ffa1a164a4e5297622448fb7f1c8672))
+* [] increase test timeouts for CI across PGlite packages ([ab29534](https://github.com/planetaryescape/blah.chat/commit/ab295349592d67b69b9e83ae74a920500065dd36))
+
 ## [0.2.0](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.1.0...jobs-v0.2.0) (2026-03-13)
 
 

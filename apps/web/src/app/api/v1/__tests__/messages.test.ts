@@ -144,6 +144,8 @@ function createSendEnvelope(
     messageId: string;
     assistantMessageId: string;
     assistantMessageIds: string[];
+    assistantModelId: string;
+    modelIds: string[];
     status: "pending";
     pollUrl: string;
     streamUrl: string;
@@ -160,6 +162,11 @@ function createSendEnvelope(
       assistantMessageId: overrides?.assistantMessageId ?? "msg-assistant",
       assistantMessageIds: overrides?.assistantMessageIds ?? [
         overrides?.assistantMessageId ?? "msg-assistant",
+      ],
+      assistantModelId:
+        overrides?.assistantModelId ?? overrides?.modelIds?.[0] ?? "gpt-4o",
+      modelIds: overrides?.modelIds ?? [
+        overrides?.assistantModelId ?? "gpt-4o",
       ],
       status: overrides?.status ?? "pending",
       pollUrl:

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   applyGenerationEventToMessages,
+  createPendingAssistantMessages,
   extractMessagesFromPayload,
 } from "../useRestMessageSync";
 
@@ -119,5 +120,73 @@ describe("useRestMessageSync helpers", () => {
       status: "complete",
       model: "openai:gpt-5",
     });
+  });
+
+  it("ignores unknown non-terminal events instead of creating ghost assistant messages", () => {
+    const messages = applyGenerationEventToMessages(
+      [
+        {
+          _id: "msg_user_1",
+          conversationId: "conv_1",
+          role: "user",
+          content: "hello",
+          status: "complete",
+          createdAt: 1,
+          updatedAt: 1,
+          _creationTime: 1,
+        },
+        {
+          _id: "msg_assistant_1",
+          conversationId: "conv_1",
+          role: "assistant",
+          content: "hi",
+          status: "complete",
+          model: "openai:gpt-5",
+          createdAt: 2,
+          updatedAt: 2,
+          _creationTime: 2,
+        },
+      ],
+      "conv_1",
+      {
+        type: "start",
+        requestId: "req_2",
+        sessionId: "sess_2",
+        assistantMessageId: "msg_ghost",
+        modelId: "openai:gpt-5.2-chat",
+        seq: 0,
+        ts: 3,
+      },
+    );
+
+    expect(messages).toHaveLength(2);
+    expect(messages.map((message) => message._id)).toEqual([
+      "msg_user_1",
+      "msg_assistant_1",
+    ]);
+  });
+
+  it("creates pending assistant placeholders immediately from send metadata", () => {
+    const messages = createPendingAssistantMessages({
+      conversationId: "conv_1",
+      assistantMessageIds: ["msg_assistant_1"],
+      modelIds: ["openai:gpt-5.2-chat"],
+      ts: 123,
+    });
+
+    expect(messages).toEqual([
+      {
+        _id: "msg_assistant_1",
+        conversationId: "conv_1",
+        role: "assistant",
+        content: "",
+        partialContent: undefined,
+        status: "pending",
+        model: "openai:gpt-5.2-chat",
+        createdAt: 123,
+        updatedAt: 123,
+        _creationTime: 123,
+      },
+    ]);
   });
 });

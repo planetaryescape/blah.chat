@@ -11,6 +11,10 @@ type GenerationRequestResponse = {
   conversationId?: string;
   requestId?: string;
   streamUrl?: string;
+  assistantMessageId?: string;
+  assistantMessageIds?: string[];
+  assistantModelId?: string;
+  modelIds?: string[];
 };
 
 function dispatchGenerationStartedEvent(
@@ -27,6 +31,10 @@ function dispatchGenerationStartedEvent(
         conversationId: data.conversationId ?? conversationId,
         requestId: data.requestId,
         streamUrl: data.streamUrl,
+        assistantMessageId: data.assistantMessageId,
+        assistantMessageIds: data.assistantMessageIds,
+        assistantModelId: data.assistantModelId,
+        modelIds: data.modelIds,
       },
     }),
   );

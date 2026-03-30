@@ -7,7 +7,7 @@ import {
   messageEdges,
   messages,
 } from "@blah-chat/persistence-postgres";
-import { eq, inArray } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { createGenerationV2Repository } from "@/lib/generation-v2/repository";
 import { getGenerationV2Service } from "@/lib/generation-v2/runtime";
@@ -145,10 +145,20 @@ async function buildAttachmentMeta(messageIds: string[]) {
   }
 
   const db = getPersistenceDb();
-  const rows = await db.query.attachments.findMany({
-    where: inArray(attachments.messageId, messageIds),
-    orderBy: (table, { asc }) => [asc(table.createdAt)],
-  });
+  const rows = await db
+    .select({
+      id: attachments.id,
+      messageId: attachments.messageId,
+      key: attachments.key,
+      name: attachments.name,
+      mimeType: attachments.mimeType,
+      size: attachments.size,
+      type: attachments.type,
+      createdAt: attachments.createdAt,
+    })
+    .from(attachments)
+    .where(inArray(attachments.messageId, messageIds))
+    .orderBy(asc(attachments.createdAt));
   if (rows.length === 0) {
     return new Map<
       string,
@@ -291,6 +301,8 @@ export const messagesDAL = {
         messageId: started.userMessageId,
         assistantMessageId: started.assistantMessageIds[0],
         assistantMessageIds: started.assistantMessageIds,
+        assistantModelId: started.modelIds[0],
+        modelIds: started.modelIds,
         status: "pending" as const,
         pollUrl: `/api/v1/messages/${started.assistantMessageIds[0]}`,
         streamUrl: `/api/v1/generations/${started.requestId}/stream`,

@@ -61,6 +61,7 @@ describe("messagesDAL attachments", () => {
       requestId: "req_1",
       userMessageId: "msg_user_1",
       assistantMessageIds: ["msg_assistant_1"],
+      modelIds: ["openai:gpt-5.2-chat"],
     });
     values.mockReturnValue({
       returning,

@@ -180,4 +180,115 @@ describe("user + preference repositories", () => {
       id: duplicate.id,
     });
   });
+
+  test("keeps the current Clerk row when it already owns data and the email duplicate is empty", async () => {
+    const db = await createTestPersistenceDb();
+    const usersRepo = createUserRepository(db);
+    const conversationsRepo = createConversationRepository(db);
+
+    const current = await usersRepo.upsertFromClerk({
+      clerkId: "user_current",
+      email: "mirror@example.com",
+      name: "Current User",
+    });
+
+    const conversation = await conversationsRepo.create({
+      userId: current.id,
+      title: "Current History",
+      model: "gpt-5",
+    });
+
+    await db.insert(users).values({
+      clerkId: "user_legacy",
+      email: "mirror@example.com",
+      name: "Legacy Duplicate",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    const reconciled = await usersRepo.upsertFromClerk({
+      clerkId: "user_current",
+      email: "mirror@example.com",
+      name: "Current User Updated",
+    });
+
+    const rows = await listUsersByEmail(db, "mirror@example.com");
+    const storedConversation = await db.query.conversations.findFirst({
+      where: eq(conversations.id, conversation.id),
+    });
+
+    expect(reconciled.id).toBe(current.id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      id: current.id,
+      clerkId: "user_current",
+      name: "Current User Updated",
+    });
+    expect(storedConversation?.userId).toBe(current.id);
+    expect(await usersRepo.findByClerkId("user_legacy")).toBeUndefined();
+  });
+
+  test("keeps the current Clerk row when both duplicate rows are empty", async () => {
+    const db = await createTestPersistenceDb();
+    const usersRepo = createUserRepository(db);
+
+    const current = await usersRepo.upsertFromClerk({
+      clerkId: "user_current",
+      email: "empty@example.com",
+      name: "Current User",
+    });
+
+    await db.insert(users).values({
+      clerkId: "user_duplicate",
+      email: "empty@example.com",
+      name: "Duplicate User",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    const reconciled = await usersRepo.upsertFromClerk({
+      clerkId: "user_current",
+      email: "empty@example.com",
+      name: "Current User Updated",
+    });
+
+    const rows = await listUsersByEmail(db, "empty@example.com");
+
+    expect(reconciled.id).toBe(current.id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      id: current.id,
+      clerkId: "user_current",
+      name: "Current User Updated",
+    });
+    expect(await usersRepo.findByClerkId("user_duplicate")).toBeUndefined();
+  });
+
+  test("tolerates concurrent first-login upserts for the same Clerk user", async () => {
+    const db = await createTestPersistenceDb();
+    const usersRepo = createUserRepository(db);
+
+    const [first, second] = await Promise.all([
+      usersRepo.upsertFromClerk({
+        clerkId: "user_race",
+        email: "race@example.com",
+        name: "Race User",
+      }),
+      usersRepo.upsertFromClerk({
+        clerkId: "user_race",
+        email: "race@example.com",
+        name: "Race User",
+      }),
+    ]);
+
+    const rows = await listUsersByEmail(db, "race@example.com");
+
+    expect(first.id).toBe(second.id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      clerkId: "user_race",
+      email: "race@example.com",
+      name: "Race User",
+    });
+  });
 });

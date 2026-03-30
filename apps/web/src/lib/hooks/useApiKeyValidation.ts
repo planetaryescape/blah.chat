@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ApiClientError, useApiClient } from "@/lib/api/client";
+import { useApiClient } from "@/lib/api/client";
 import { useSDKClient } from "@/lib/api/sdkClient";
 
 type AvailabilityData = {
@@ -25,22 +25,6 @@ interface ByokConfig {
   hasGroqKey: boolean;
   hasDeepgramKey: boolean;
 }
-
-const FALLBACK_AVAILABILITY: AvailabilityData = {
-  stt: {
-    groq: true,
-    openai: true,
-    deepgram: true,
-    assemblyai: true,
-    currentProvider: "groq",
-    currentProviderKeyName: "GROQ_API_KEY",
-    hasCurrentProviderKey: true,
-  },
-  tts: {
-    deepgram: true,
-  },
-  isProduction: process.env.NODE_ENV === "production",
-};
 
 const UNAVAILABLE_AVAILABILITY: AvailabilityData = {
   stt: {
@@ -104,25 +88,14 @@ export function useApiKeyValidation() {
   } = useQuery<AvailabilityData>({
     queryKey: ["api-key-availability"],
     queryFn: async () => {
-      try {
-        return await apiClient.get<AvailabilityData>(
-          "/api/v1/settings/api-key-availability",
-        );
-      } catch (error) {
-        if (error instanceof ApiClientError && error.status === 404) {
-          return FALLBACK_AVAILABILITY;
-        }
-
-        throw error;
-      }
+      return await apiClient.get<AvailabilityData>(
+        "/api/v1/settings/api-key-availability",
+      );
     },
     staleTime: 5 * 60_000,
     retry: false,
   });
-
-  const resolvedAvailability =
-    availability ??
-    (availabilityError ? UNAVAILABLE_AVAILABILITY : FALLBACK_AVAILABILITY);
+  const resolvedAvailability = availability ?? UNAVAILABLE_AVAILABILITY;
   const loading = byokLoading || availabilityLoading;
 
   // BYOK helper: check if a gateway is disabled due to missing BYOK key

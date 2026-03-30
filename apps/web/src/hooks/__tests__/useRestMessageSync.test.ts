@@ -122,7 +122,7 @@ describe("useRestMessageSync helpers", () => {
     });
   });
 
-  it("ignores unknown non-terminal events instead of creating ghost assistant messages", () => {
+  it("ignores unknown start events instead of creating ghost assistant messages", () => {
     const messages = applyGenerationEventToMessages(
       [
         {
@@ -164,6 +164,44 @@ describe("useRestMessageSync helpers", () => {
       "msg_user_1",
       "msg_assistant_1",
     ]);
+  });
+
+  it("recreates an in-flight assistant message from an unknown delta event", () => {
+    const messages = applyGenerationEventToMessages(
+      [
+        {
+          _id: "msg_user_1",
+          conversationId: "conv_1",
+          role: "user",
+          content: "hello",
+          status: "complete",
+          createdAt: 1,
+          updatedAt: 1,
+          _creationTime: 1,
+        },
+      ],
+      "conv_1",
+      {
+        type: "delta",
+        requestId: "req_2",
+        sessionId: "sess_2",
+        assistantMessageId: "msg_live",
+        modelId: "openai:gpt-5.2-chat",
+        seq: 1,
+        ts: 3,
+        delta: "Hi there",
+      },
+    );
+
+    expect(messages).toHaveLength(2);
+    expect(messages[1]).toMatchObject({
+      _id: "msg_live",
+      role: "assistant",
+      content: "Hi there",
+      partialContent: "Hi there",
+      status: "generating",
+      model: "openai:gpt-5.2-chat",
+    });
   });
 
   it("creates pending assistant placeholders immediately from send metadata", () => {

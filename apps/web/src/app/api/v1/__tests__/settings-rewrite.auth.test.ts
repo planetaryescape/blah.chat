@@ -532,8 +532,8 @@ describe("settings rewrite routes with Clerk + Postgres", () => {
         stt: {
           groq: false,
           openai: true,
-          deepgram: true,
-          assemblyai: true,
+          deepgram: false,
+          assemblyai: false,
           currentProvider: "openai",
           currentProviderKeyName: "OPENAI_API_KEY",
           hasCurrentProviderKey: true,
@@ -613,7 +613,7 @@ describe("settings rewrite routes with Clerk + Postgres", () => {
         stt: {
           groq: true,
           openai: false,
-          deepgram: false,
+          deepgram: true,
           assemblyai: false,
           currentProvider: "groq",
           currentProviderKeyName: "GROQ_API_KEY",
@@ -640,6 +640,87 @@ describe("settings rewrite routes with Clerk + Postgres", () => {
         delete process.env.DEEPGRAM_API_KEY;
       } else {
         process.env.DEEPGRAM_API_KEY = previousDeepgramKey;
+      }
+    }
+  });
+
+  it("falls back to Groq when OpenAI is unavailable but Groq is configured", async () => {
+    const previousOpenAiKey = process.env.OPENAI_API_KEY;
+    const previousGroqKey = process.env.GROQ_API_KEY;
+    const previousDeepgramKey = process.env.DEEPGRAM_API_KEY;
+    const previousAssemblyAiKey = process.env.ASSEMBLYAI_API_KEY;
+
+    delete process.env.OPENAI_API_KEY;
+    process.env.GROQ_API_KEY = "groq_test_key";
+    delete process.env.DEEPGRAM_API_KEY;
+    delete process.env.ASSEMBLYAI_API_KEY;
+
+    try {
+      const usersRepo = createUserRepository(db);
+      await usersRepo.upsertFromClerk({
+        clerkId: "clerk_settings",
+        email: "settings@example.com",
+        name: "Settings User",
+        imageUrl: "https://example.com/settings.png",
+      });
+
+      const route = await import("../settings/api-key-availability/route");
+      const response = await route.GET(
+        createMockRequest("/api/v1/settings/api-key-availability"),
+        { params: Promise.resolve({}) },
+      );
+
+      expect(response.status).toBe(200);
+      expect(
+        unwrapData<{
+          stt: {
+            groq: boolean;
+            openai: boolean;
+            deepgram: boolean;
+            assemblyai: boolean;
+            currentProvider: string;
+            currentProviderKeyName: string;
+            hasCurrentProviderKey: boolean;
+          };
+          tts: { deepgram: boolean };
+        }>((await response.json()) as any),
+      ).toMatchObject({
+        stt: {
+          groq: true,
+          openai: false,
+          deepgram: false,
+          assemblyai: false,
+          currentProvider: "groq",
+          currentProviderKeyName: "GROQ_API_KEY",
+          hasCurrentProviderKey: true,
+        },
+        tts: {
+          deepgram: false,
+        },
+      });
+    } finally {
+      if (previousOpenAiKey === undefined) {
+        delete process.env.OPENAI_API_KEY;
+      } else {
+        process.env.OPENAI_API_KEY = previousOpenAiKey;
+      }
+
+      if (previousGroqKey === undefined) {
+        delete process.env.GROQ_API_KEY;
+      } else {
+        process.env.GROQ_API_KEY = previousGroqKey;
+      }
+
+      if (previousDeepgramKey === undefined) {
+        delete process.env.DEEPGRAM_API_KEY;
+      } else {
+        process.env.DEEPGRAM_API_KEY = previousDeepgramKey;
+      }
+
+      if (previousAssemblyAiKey === undefined) {
+        delete process.env.ASSEMBLYAI_API_KEY;
+      } else {
+        process.env.ASSEMBLYAI_API_KEY = previousAssemblyAiKey;
       }
     }
   });

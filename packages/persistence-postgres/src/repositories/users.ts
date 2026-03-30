@@ -115,6 +115,15 @@ export function createUserRepository(db: PersistenceDb) {
               createdAt: timestamp,
               updatedAt: timestamp,
             })
+            .onConflictDoUpdate({
+              target: users.clerkId,
+              set: {
+                email: normalizedEmail,
+                name: input.name,
+                imageUrl: input.imageUrl,
+                updatedAt: timestamp,
+              },
+            })
             .returning();
 
           if (!row) {
@@ -169,6 +178,16 @@ export function createUserRepository(db: PersistenceDb) {
         if (!clerkRowHasData && canonicalRowHasData) {
           await tx.delete(users).where(eq(users.id, existingByClerkId.id));
           return updateUser(canonicalCandidate.id, input.clerkId);
+        }
+
+        if (clerkRowHasData && !canonicalRowHasData) {
+          await tx.delete(users).where(eq(users.id, canonicalCandidate.id));
+          return updateUser(existingByClerkId.id, input.clerkId);
+        }
+
+        if (!clerkRowHasData && !canonicalRowHasData) {
+          await tx.delete(users).where(eq(users.id, canonicalCandidate.id));
+          return updateUser(existingByClerkId.id, input.clerkId);
         }
 
         throw new Error(

@@ -14,15 +14,34 @@ type RequestedSttProvider = SupportedSttProvider | "deepgram" | "assemblyai";
 function resolveSttAvailability(requestedProvider: RequestedSttProvider) {
   const hasGroqKey = Boolean(process.env.GROQ_API_KEY);
   const hasOpenAiKey = Boolean(process.env.OPENAI_API_KEY);
+  const hasDeepgramKey = Boolean(process.env.DEEPGRAM_API_KEY);
+  const hasAssemblyAiKey = Boolean(process.env.ASSEMBLYAI_API_KEY);
 
-  const currentProvider: SupportedSttProvider =
-    requestedProvider === "groq" && hasGroqKey ? "groq" : "openai";
+  const currentProvider = (() => {
+    if (requestedProvider === "groq" && hasGroqKey) {
+      return "groq" satisfies SupportedSttProvider;
+    }
+
+    if (requestedProvider === "openai" && hasOpenAiKey) {
+      return "openai" satisfies SupportedSttProvider;
+    }
+
+    if (hasOpenAiKey) {
+      return "openai" satisfies SupportedSttProvider;
+    }
+
+    if (hasGroqKey) {
+      return "groq" satisfies SupportedSttProvider;
+    }
+
+    return requestedProvider === "groq" ? "groq" : "openai";
+  })();
 
   return {
     groq: hasGroqKey,
     openai: hasOpenAiKey,
-    deepgram: hasOpenAiKey,
-    assemblyai: hasOpenAiKey,
+    deepgram: hasDeepgramKey,
+    assemblyai: hasAssemblyAiKey,
     currentProvider,
     currentProviderKeyName:
       currentProvider === "groq" ? "GROQ_API_KEY" : "OPENAI_API_KEY",

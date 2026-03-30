@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
   // Disabled due to TanStack Table v8 compatibility issues (GitHub #5567, #5903)
   // Re-enable when TanStack Table v8.21+ adds official React Compiler support
   reactCompiler: false,
-  serverExternalPackages: ["pino", "pino-pretty"],
+  serverExternalPackages: ["pg", "pino", "pino-pretty"],
   // PostHog reverse proxy to bypass ad blockers
   async rewrites() {
     return [

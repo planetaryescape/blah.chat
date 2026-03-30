@@ -63,7 +63,7 @@ describe("useApiKeyValidation", () => {
     });
   });
 
-  it("falls back cleanly when the availability route is missing", async () => {
+  it("disables voice features when the availability route is missing", async () => {
     getMock.mockRejectedValueOnce(
       new ApiClientError(404, "NOT_FOUND", "Route missing"),
     );
@@ -76,8 +76,14 @@ describe("useApiKeyValidation", () => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(result.current.stt.enabled).toBe(true);
-    expect(result.current.tts.enabled).toBe(true);
+    expect(result.current.stt.enabled).toBe(false);
+    expect(result.current.tts.enabled).toBe(false);
+    expect(result.current.getSTTErrorMessage()).toBe(
+      "Speech-to-text is currently unavailable. Please try again shortly.",
+    );
+    expect(result.current.getTTSErrorMessage()).toBe(
+      "Text-to-speech is currently unavailable. Please try again shortly.",
+    );
     expect(getMock).toHaveBeenCalledTimes(1);
 
     rerender();

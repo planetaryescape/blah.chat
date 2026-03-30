@@ -140,10 +140,7 @@ export function applyGenerationEventToMessages(
     (message) => message._id === event.assistantMessageId,
   );
   const shouldIgnoreUnknownNonTerminalEvent =
-    index === -1 &&
-    (event.type === "start" ||
-      event.type === "delta" ||
-      event.type === "checkpoint");
+    index === -1 && event.type === "start";
 
   if (shouldIgnoreUnknownNonTerminalEvent) {
     return sortMessages(messages);

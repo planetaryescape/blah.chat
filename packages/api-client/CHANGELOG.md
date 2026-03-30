@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/planetaryescape/blah.chat/compare/api-client-v0.5.0...api-client-v0.5.1) (2026-03-30)
+
+
+### Bug Fixes
+
+* [] fall back to Clerk cookies ([f2c4156](https://github.com/planetaryescape/blah.chat/commit/f2c415661fb97af2d242437ed24cf6d3df67f9d4))
+
 ## [0.5.0](https://github.com/planetaryescape/blah.chat/compare/api-client-v0.4.0...api-client-v0.5.0) (2026-03-29)
 
 

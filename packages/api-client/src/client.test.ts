@@ -130,6 +130,54 @@ describe("BlahClient generation request APIs", () => {
     );
   });
 
+  it("falls back to cookie auth when bearer token is temporarily unavailable", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          status: "success",
+          sys: { entity: "user", id: "usr_1" },
+          data: {
+            _id: "usr_1",
+            clerkId: "clerk_123",
+            email: "test@example.com",
+            name: "Test User",
+            createdAt: 1000,
+            updatedAt: 2000,
+          },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const client = createBlahClient({
+      baseUrl: "https://example.com",
+      getAccessToken: async () => null,
+      allowCookieAuthFallback: true,
+      fetch: fetchMock,
+    });
+
+    const result = await client.getCurrentUser();
+
+    expect(result).toMatchObject({
+      _id: "usr_1",
+      clerkId: "clerk_123",
+      email: "test@example.com",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.com/api/v1/user/me",
+      expect.objectContaining({
+        method: "GET",
+        headers: expect.not.objectContaining({
+          Authorization: expect.any(String),
+        }),
+      }),
+    );
+  });
+
   it("sends messages through the generation request envelope", async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
       new Response(

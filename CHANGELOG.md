@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.35.2](https://github.com/planetaryescape/blah.chat/compare/v1.35.1...v1.35.2) (2026-03-30)
+
+
+### Bug Fixes
+
+* [] address CI and review feedback ([c2fdf7c](https://github.com/planetaryescape/blah.chat/commit/c2fdf7ca7b6b0772245ba282acc2e59350ec7396))
+* [] disable voice fallback on API errors ([88faca8](https://github.com/planetaryescape/blah.chat/commit/88faca84f46869c2675e1f0a27fbd3b191d62a10))
+* [] fall back to Clerk cookies ([f2c4156](https://github.com/planetaryescape/blah.chat/commit/f2c415661fb97af2d242437ed24cf6d3df67f9d4))
+* [] harden Postgres chat routes ([2cee7e1](https://github.com/planetaryescape/blah.chat/commit/2cee7e1b09ea621f216c88a2ee0f7888cfe34089))
+* [] load Postgres with pg in prod ([1f13def](https://github.com/planetaryescape/blah.chat/commit/1f13def90fd1e8a5dd0ece1998fc7f1b3de4871a))
+* [] reconcile Clerk users by email ([a391e57](https://github.com/planetaryescape/blah.chat/commit/a391e571b95f704d9af87849c5e1a46628304fea))
+* [] seed pending assistant messages ([34fb084](https://github.com/planetaryescape/blah.chat/commit/34fb084d1a52f8245a42961d5f541ec91b99fd0a))
+* repair dependabot auto-merge trigger ([720dbd6](https://github.com/planetaryescape/blah.chat/commit/720dbd64919315904778f7be847d79cb0205e6e0))
+
 ## [1.35.1](https://github.com/planetaryescape/blah.chat/compare/v1.35.0...v1.35.1) (2026-03-29)
 
 

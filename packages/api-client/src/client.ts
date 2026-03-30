@@ -38,6 +38,7 @@ export interface BlahClientOptions {
   baseUrl?: string;
   apiKey?: string;
   getAccessToken?: () => Promise<string | null>;
+  allowCookieAuthFallback?: boolean;
   headers?: HeadersInit;
   fetch?: typeof fetch;
 }
@@ -106,6 +107,10 @@ export class BlahClient {
 
     const token = await this.options.getAccessToken?.();
     if (!token) {
+      if (this.options.allowCookieAuthFallback) {
+        return baseHeaders;
+      }
+
       throw new BlahSDKError(
         "Bearer token is required",
         401,

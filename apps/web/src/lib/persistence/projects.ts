@@ -121,9 +121,10 @@ export async function getProjectStats(clerkUserId: string, projectId: string) {
   const projectAttachments =
     conversationIds.length === 0
       ? []
-      : await db.query.attachments.findMany({
-          where: inArray(attachments.conversationId, conversationIds),
-        });
+      : await db
+          .select({ id: attachments.id })
+          .from(attachments)
+          .where(inArray(attachments.conversationId, conversationIds));
 
   const completedTaskCount = projectTasks.filter(
     (task) => task.status === "completed",
@@ -284,13 +285,26 @@ export async function listProjectAttachments(
     return [] as ApiProjectAttachment[];
   }
 
-  const rows = await db.query.attachments.findMany({
-    where: inArray(
-      attachments.conversationId,
-      ownedConversations.map((conversation) => conversation.id),
-    ),
-    orderBy: [desc(attachments.createdAt)],
-  });
+  const rows = await db
+    .select({
+      id: attachments.id,
+      createdAt: attachments.createdAt,
+      messageId: attachments.messageId,
+      conversationId: attachments.conversationId,
+      type: attachments.type,
+      key: attachments.key,
+      name: attachments.name,
+      mimeType: attachments.mimeType,
+      size: attachments.size,
+    })
+    .from(attachments)
+    .where(
+      inArray(
+        attachments.conversationId,
+        ownedConversations.map((conversation) => conversation.id),
+      ),
+    )
+    .orderBy(desc(attachments.createdAt));
 
   return rows.map((row) => ({
     _id: row.id,

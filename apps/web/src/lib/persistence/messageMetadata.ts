@@ -5,7 +5,7 @@ import {
   messages,
   messageToolCalls,
 } from "@blah-chat/persistence-postgres";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { ensureCurrentPersistenceUser } from "./current-user";
 import { getPersistenceDb } from "./server";
 import { listMessageSources } from "./sources";
@@ -93,10 +93,22 @@ export async function listMessageMetadata(
   }
 
   const [attachmentRows, toolCallRows, sources] = await Promise.all([
-    db.query.attachments.findMany({
-      where: inArray(attachments.messageId, ownedMessageIds),
-      orderBy: (table, { asc: orderAsc }) => [orderAsc(table.createdAt)],
-    }),
+    db
+      .select({
+        id: attachments.id,
+        createdAt: attachments.createdAt,
+        messageId: attachments.messageId,
+        conversationId: attachments.conversationId,
+        userId: attachments.userId,
+        type: attachments.type,
+        key: attachments.key,
+        name: attachments.name,
+        mimeType: attachments.mimeType,
+        size: attachments.size,
+      })
+      .from(attachments)
+      .where(inArray(attachments.messageId, ownedMessageIds))
+      .orderBy(asc(attachments.createdAt)),
     db.query.messageToolCalls.findMany({
       where: inArray(messageToolCalls.messageId, ownedMessageIds),
       orderBy: (table, { asc: orderAsc }) => [

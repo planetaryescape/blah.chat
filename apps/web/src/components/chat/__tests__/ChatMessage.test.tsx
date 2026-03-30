@@ -4,6 +4,7 @@ import { renderWithProviders } from "@/lib/test/render-helpers";
 
 const regenerateMutate = vi.fn();
 const useRestQueryMock = vi.fn();
+const apiClientGetMock = vi.fn();
 
 vi.mock("@tanstack/react-query", async () => {
   const actual = await vi.importActual<typeof import("@tanstack/react-query")>(
@@ -33,7 +34,7 @@ vi.mock("@/hooks/useUserPreference", () => ({
 
 vi.mock("@/lib/api/client", () => ({
   useApiClient: () => ({
-    get: vi.fn(),
+    get: apiClientGetMock,
     post: vi.fn(),
     patch: vi.fn(),
     delete: vi.fn(),
@@ -96,6 +97,30 @@ describe("ChatMessage", () => {
         };
       },
     );
+  });
+
+  it("disables original-response fetching for temporary consolidated messages", () => {
+    const message = {
+      ...baseMessage,
+      _id: "temp-user-123",
+      role: "assistant" as const,
+      content: "Merged answer",
+      status: "complete" as const,
+      model: "openai:gpt-5-mini",
+      isConsolidation: true,
+    };
+
+    renderWithProviders(<ChatMessage message={message} />);
+
+    expect(useRestQueryMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: ["message", "temp-user-123", "original-responses"],
+        enabled: false,
+        retry: false,
+        retryOnMount: false,
+      }),
+    );
+    expect(apiClientGetMock).not.toHaveBeenCalled();
   });
 
   it("renders user message content", () => {

@@ -1752,9 +1752,12 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         ) ??
         previousDecisions[0] ??
         null;
-      const messageAttachments = await db.query.attachments.findMany({
-        where: eq(attachments.messageId, input.userMessageId),
-      });
+      const messageAttachments = await db
+        .select({
+          mimeType: attachments.mimeType,
+        })
+        .from(attachments)
+        .where(eq(attachments.messageId, input.userMessageId));
 
       return {
         autoRouterEnabled: preferences.autoRouterEnabled,

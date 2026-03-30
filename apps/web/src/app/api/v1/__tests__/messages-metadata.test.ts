@@ -165,6 +165,11 @@ describe("/api/v1/messages/metadata", () => {
         enriched: true,
       })
       .where(eq(sourceMetadata.id, metadata!.id));
+    const legacyAttachmentQuery = vi
+      .spyOn(db.query.attachments, "findMany")
+      .mockImplementation((() => {
+        throw new Error("legacy attachment query should not be called");
+      }) as any);
 
     const { POST } = await import("../messages/metadata/route");
     const response = await POST(
@@ -196,6 +201,7 @@ describe("/api/v1/messages/metadata", () => {
       messageId: assistantMessage.id,
       name: "notes.txt",
     });
+    expect(legacyAttachmentQuery).not.toHaveBeenCalled();
     expect(data.toolCalls).toHaveLength(1);
     expect(data.toolCalls[0]).toMatchObject({
       messageId: assistantMessage.id,

@@ -12,7 +12,7 @@ import { createTestPersistenceDb } from "../../../../../../../packages/persisten
 
 const authMock = vi.fn();
 const currentUserMock = vi.fn();
-const createPersistenceDatabaseMock = vi.fn();
+const createPostgresDatabaseMock = vi.fn();
 const originalEnv = { ...process.env };
 let db: Awaited<ReturnType<typeof createTestPersistenceDb>>;
 
@@ -28,8 +28,8 @@ vi.mock("@blah-chat/persistence-postgres", async () => {
 
   return {
     ...actual,
-    createPersistenceDatabase: (...args: unknown[]) =>
-      createPersistenceDatabaseMock(...args),
+    createPostgresDatabase: (...args: unknown[]) =>
+      createPostgresDatabaseMock(...args),
   };
 });
 
@@ -54,7 +54,7 @@ describe("DB-only env bootstrap", () => {
     vi.resetModules();
 
     db = await createTestPersistenceDb();
-    createPersistenceDatabaseMock.mockImplementation(() => db);
+    createPostgresDatabaseMock.mockImplementation(() => db);
 
     authMock.mockResolvedValue({
       userId: "clerk_env_bootstrap",
@@ -103,7 +103,7 @@ describe("DB-only env bootstrap", () => {
     expect(unwrapData<{ email: string }>(await userResponse.json()).email).toBe(
       "env-bootstrap@example.com",
     );
-    expect(createPersistenceDatabaseMock).toHaveBeenCalledWith(
+    expect(createPostgresDatabaseMock).toHaveBeenCalledWith(
       "postgres://user:pass@host/db",
     );
 
@@ -127,7 +127,7 @@ describe("DB-only env bootstrap", () => {
     ).toMatchObject({
       total: 0,
     });
-    expect(createPersistenceDatabaseMock).toHaveBeenCalledWith(
+    expect(createPostgresDatabaseMock).toHaveBeenCalledWith(
       "postgres://user:pass@host/db",
     );
 

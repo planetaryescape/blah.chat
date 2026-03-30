@@ -42,6 +42,22 @@ const FALLBACK_AVAILABILITY: AvailabilityData = {
   isProduction: process.env.NODE_ENV === "production",
 };
 
+const UNAVAILABLE_AVAILABILITY: AvailabilityData = {
+  stt: {
+    groq: false,
+    openai: false,
+    deepgram: false,
+    assemblyai: false,
+    currentProvider: "groq",
+    currentProviderKeyName: "GROQ_API_KEY",
+    hasCurrentProviderKey: false,
+  },
+  tts: {
+    deepgram: false,
+  },
+  isProduction: process.env.NODE_ENV === "production",
+};
+
 // Gateway to BYOK key field mapping
 const GATEWAY_KEY_MAP: Record<
   string,
@@ -81,27 +97,32 @@ export function useApiKeyValidation() {
       staleTime: 30_000,
     });
 
-  const { data: availability, isLoading: availabilityLoading } =
-    useQuery<AvailabilityData>({
-      queryKey: ["api-key-availability"],
-      queryFn: async () => {
-        try {
-          return await apiClient.get<AvailabilityData>(
-            "/api/v1/settings/api-key-availability",
-          );
-        } catch (error) {
-          if (error instanceof ApiClientError && error.status === 404) {
-            return FALLBACK_AVAILABILITY;
-          }
-
+  const {
+    data: availability,
+    error: availabilityError,
+    isLoading: availabilityLoading,
+  } = useQuery<AvailabilityData>({
+    queryKey: ["api-key-availability"],
+    queryFn: async () => {
+      try {
+        return await apiClient.get<AvailabilityData>(
+          "/api/v1/settings/api-key-availability",
+        );
+      } catch (error) {
+        if (error instanceof ApiClientError && error.status === 404) {
           return FALLBACK_AVAILABILITY;
         }
-      },
-      staleTime: 5 * 60_000,
-      retry: false,
-    });
 
-  const resolvedAvailability = availability ?? FALLBACK_AVAILABILITY;
+        throw error;
+      }
+    },
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+
+  const resolvedAvailability =
+    availability ??
+    (availabilityError ? UNAVAILABLE_AVAILABILITY : FALLBACK_AVAILABILITY);
   const loading = byokLoading || availabilityLoading;
 
   // BYOK helper: check if a gateway is disabled due to missing BYOK key
@@ -169,6 +190,10 @@ export function useApiKeyValidation() {
 
     // Helper functions for error messages
     getSTTErrorMessage: () => {
+      if (availabilityError) {
+        return "Speech-to-text is currently unavailable. Please try again shortly.";
+      }
+
       // Check BYOK first
       if (byokConfig?.byokEnabled && !byokConfig.hasGroqKey) {
         return "Voice input requires Groq API key. Add it in Settings → Advanced.";
@@ -184,6 +209,10 @@ export function useApiKeyValidation() {
     },
 
     getTTSErrorMessage: () => {
+      if (availabilityError) {
+        return "Text-to-speech is currently unavailable. Please try again shortly.";
+      }
+
       // Check BYOK first
       if (byokConfig?.byokEnabled && !byokConfig.hasDeepgramKey) {
         return "Text-to-speech requires Deepgram API key. Add it in Settings → Advanced.";

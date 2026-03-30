@@ -88,4 +88,27 @@ describe("useApiKeyValidation", () => {
 
     expect(getMock).toHaveBeenCalledTimes(1);
   });
+
+  it("disables voice features when the availability route errors", async () => {
+    getMock.mockRejectedValueOnce(
+      new ApiClientError(500, "SERVER_ERROR", "Boom"),
+    );
+
+    const { result } = renderHook(() => useApiKeyValidation(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.stt.enabled).toBe(false);
+    expect(result.current.tts.enabled).toBe(false);
+    expect(result.current.getSTTErrorMessage()).toBe(
+      "Speech-to-text is currently unavailable. Please try again shortly.",
+    );
+    expect(result.current.getTTSErrorMessage()).toBe(
+      "Text-to-speech is currently unavailable. Please try again shortly.",
+    );
+  });
 });

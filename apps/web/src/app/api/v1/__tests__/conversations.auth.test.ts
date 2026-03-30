@@ -5,8 +5,9 @@ import {
   conversations,
   createMessageRepository,
   createUserRepository,
+  users,
 } from "@blah-chat/persistence-postgres";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockRequest, unwrapData } from "@/lib/test/api-helpers";
 import { createTestPersistenceDb } from "../../../../../../../packages/persistence-postgres/src/testing/pglite";
@@ -127,6 +128,61 @@ describe("conversation auth with Clerk + Postgres", () => {
       title: "Phase 4 Chat",
     });
     expect(getTokenMock).not.toHaveBeenCalled();
+  });
+
+  it("reconciles a preexisting duplicate user row and preserves conversation history", async () => {
+    const usersRepo = createUserRepository(db);
+    const legacyUser = await usersRepo.upsertFromClerk({
+      clerkId: "clerk_legacy_phase4",
+      email: "phase4@example.com",
+      name: "Legacy Phase Four",
+    });
+
+    await db.insert(conversations).values({
+      userId: legacyUser.id,
+      title: "Recovered History",
+      model: "gpt-5",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    await db.insert(users).values({
+      clerkId: "clerk_phase4",
+      email: "phase4@example.com",
+      name: "Duplicate Phase Four",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    const { GET } = await import("../conversations/route");
+    const response = await GET(
+      createMockRequest("/api/v1/conversations?limit=100"),
+      { params: Promise.resolve({}) },
+    );
+
+    expect(response.status).toBe(200);
+    const payload = unwrapData<{
+      items: Array<{ data: { title: string } }>;
+      total: number;
+    }>(await response.json());
+
+    expect(payload.total).toBe(1);
+    expect(payload.items[0]?.data.title).toBe("Recovered History");
+
+    const rows = await db
+      .select()
+      .from(users)
+      .where(sql`lower(${users.email}) = ${"phase4@example.com"}`);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      id: legacyUser.id,
+      clerkId: "clerk_phase4",
+      name: "Phase Four",
+    });
+    expect(
+      await usersRepo.findByClerkId("clerk_legacy_phase4"),
+    ).toBeUndefined();
   });
 
   it("creates incognito conversations through REST with persisted settings", async () => {

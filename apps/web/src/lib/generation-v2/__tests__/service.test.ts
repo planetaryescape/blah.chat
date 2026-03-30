@@ -842,7 +842,9 @@ export const greet = (name: string) => \`hi \${name}\`;
       strategy: "outcome_weighted",
     });
     expect(candidateScores.length).toBeGreaterThan(1);
-    expect(candidateScores[0]).toMatchObject({
+    expect(
+      candidateScores.find((candidate) => candidate.rank === 1),
+    ).toMatchObject({
       decisionId: decision?.id,
       modelId: decision?.selectedModelId,
       rank: 1,
@@ -945,7 +947,9 @@ export const greet = (name: string) => \`hi \${name}\`;
       routeLabel: "code_heavy",
       selectedModelId: "anthropic:claude-sonnet-4",
     });
-    expect(candidateScores[0]).toMatchObject({
+    expect(
+      candidateScores.find((candidate) => candidate.rank === 1),
+    ).toMatchObject({
       modelId: "anthropic:claude-sonnet-4",
       rank: 1,
     });

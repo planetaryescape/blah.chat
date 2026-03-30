@@ -184,6 +184,10 @@ describe("useSendMessage", () => {
       {
         requestId: "req_123",
         streamUrl: "/api/v1/generations/req_123/stream",
+        assistantMessageId: "msg_assistant_123",
+        assistantMessageIds: ["msg_assistant_123"],
+        assistantModelId: "openai:gpt-5.2-chat",
+        modelIds: ["openai:gpt-5.2-chat"],
       },
       { conversationId, content: "Test" },
     );
@@ -196,6 +200,10 @@ describe("useSendMessage", () => {
       conversationId,
       requestId: "req_123",
       streamUrl: "/api/v1/generations/req_123/stream",
+      assistantMessageId: "msg_assistant_123",
+      assistantMessageIds: ["msg_assistant_123"],
+      assistantModelId: "openai:gpt-5.2-chat",
+      modelIds: ["openai:gpt-5.2-chat"],
     });
   });
 
@@ -258,6 +266,10 @@ describe("useSendMessage", () => {
     mockPost.mockResolvedValueOnce({
       requestId: "req_replay_1",
       streamUrl: "/api/v1/generations/req_replay_1/stream",
+      assistantMessageId: "msg_assistant_replay_1",
+      assistantMessageIds: ["msg_assistant_replay_1"],
+      assistantModelId: "openai:gpt-4o",
+      modelIds: ["openai:gpt-4o"],
     });
     mockMessageQueue.processQueue.mockImplementationOnce(async (sendFn) => {
       await sendFn({
@@ -310,6 +322,10 @@ describe("useSendMessage", () => {
         conversationId,
         requestId: "req_replay_1",
         streamUrl: "/api/v1/generations/req_replay_1/stream",
+        assistantMessageId: "msg_assistant_replay_1",
+        assistantMessageIds: ["msg_assistant_replay_1"],
+        assistantModelId: "openai:gpt-4o",
+        modelIds: ["openai:gpt-4o"],
       });
     });
   });

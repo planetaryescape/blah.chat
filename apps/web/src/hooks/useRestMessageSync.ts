@@ -56,6 +56,10 @@ type GenerationStartedDetail = {
   conversationId: string;
   requestId: string;
   streamUrl: string;
+  assistantMessageId?: string;
+  assistantMessageIds?: string[];
+  assistantModelId?: string;
+  modelIds?: string[];
 };
 
 interface MessageSyncOptions {
@@ -72,6 +76,42 @@ function sortMessages(messages: ApiMessage[]) {
     if (aSibling !== bSibling) return aSibling - bSibling;
     return a._id.localeCompare(b._id);
   });
+}
+
+export function createPendingAssistantMessages(input: {
+  assistantMessageId?: string;
+  assistantMessageIds?: string[];
+  assistantModelId?: string;
+  conversationId: string;
+  modelIds?: string[];
+  ts?: number;
+}) {
+  const assistantMessageIds =
+    input.assistantMessageIds && input.assistantMessageIds.length > 0
+      ? input.assistantMessageIds
+      : input.assistantMessageId
+        ? [input.assistantMessageId]
+        : [];
+  const modelIds =
+    input.modelIds && input.modelIds.length > 0
+      ? input.modelIds
+      : input.assistantModelId
+        ? [input.assistantModelId]
+        : [];
+  const ts = input.ts ?? Date.now();
+
+  return assistantMessageIds.map((assistantMessageId, index) => ({
+    _id: assistantMessageId,
+    conversationId: input.conversationId,
+    role: "assistant" as const,
+    content: "",
+    partialContent: undefined,
+    status: "pending",
+    model: modelIds[index] ?? modelIds[0],
+    createdAt: ts + index,
+    updatedAt: ts + index,
+    _creationTime: ts + index,
+  }));
 }
 
 export function extractMessagesFromPayload(payload: unknown): ApiMessage[] {
@@ -99,6 +139,16 @@ export function applyGenerationEventToMessages(
   const index = messages.findIndex(
     (message) => message._id === event.assistantMessageId,
   );
+  const shouldIgnoreUnknownNonTerminalEvent =
+    index === -1 &&
+    (event.type === "start" ||
+      event.type === "delta" ||
+      event.type === "checkpoint");
+
+  if (shouldIgnoreUnknownNonTerminalEvent) {
+    return sortMessages(messages);
+  }
+
   const existing = index === -1 ? undefined : messages[index];
   const base: ApiMessage = existing ?? {
     _id: event.assistantMessageId,
@@ -424,7 +474,21 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
         return;
       }
 
-      void fetchMessages()
+      void (async () => {
+        const pendingAssistantMessages = createPendingAssistantMessages({
+          conversationId,
+          assistantMessageId: detail.assistantMessageId,
+          assistantMessageIds: detail.assistantMessageIds,
+          assistantModelId: detail.assistantModelId,
+          modelIds: detail.modelIds,
+        });
+
+        if (pendingAssistantMessages.length > 0) {
+          await cache.messages.bulkPut(pendingAssistantMessages as any[]);
+        }
+
+        await fetchMessages();
+      })()
         .catch(() => {
           if (!cancelled) {
             setStatus("Error");

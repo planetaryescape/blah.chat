@@ -4,11 +4,15 @@ import {
   drizzle as drizzleNeon,
   type NeonHttpDatabase,
 } from "drizzle-orm/neon-http";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import {
+  drizzle as drizzleNodePg,
+  type NodePgDatabase,
+} from "drizzle-orm/node-postgres";
 import {
   drizzle as drizzlePglite,
   type PgliteDatabase,
 } from "drizzle-orm/pglite";
+import { Pool } from "pg";
 import * as schema from "./schema";
 
 export type PersistenceDb =
@@ -32,25 +36,16 @@ export function createNeonDatabase(
 export function createPostgresDatabase(
   databaseUrl: string,
 ): NodePgDatabase<typeof schema> {
-  if (
-    typeof process === "undefined" ||
-    typeof process.getBuiltinModule !== "function"
-  ) {
+  if (typeof process === "undefined") {
     throw new Error(
       "Standard Postgres connections are only available in a Node.js runtime",
     );
   }
 
-  const module = process.getBuiltinModule("module");
-  const require = module.createRequire(import.meta.url);
-  const { Pool } = require("pg") as typeof import("pg");
-  const { drizzle } =
-    require("drizzle-orm/node-postgres") as typeof import("drizzle-orm/node-postgres");
-
   const pool = new Pool({
     connectionString: databaseUrl,
   });
-  return drizzle(pool, { schema });
+  return drizzleNodePg(pool, { schema });
 }
 
 export function isNeonDatabaseUrl(databaseUrl: string): boolean {

@@ -1,5 +1,5 @@
 import {
-  createPersistenceDatabase,
+  createPostgresDatabase,
   type PersistenceDb,
   parseDatabaseEnv,
 } from "@blah-chat/persistence-postgres";
@@ -18,7 +18,7 @@ export function getPersistenceDb() {
 
   try {
     const env = parseDatabaseEnv(process.env);
-    const db = createPersistenceDatabase(env.databaseUrl);
+    const db = createPostgresDatabase(env.databaseUrl);
     globalThis.__blahPersistenceDb = db;
     return db;
   } catch (error) {

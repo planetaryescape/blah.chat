@@ -46,3 +46,4 @@ playwright-report/
 # Turborepo
 .turbo
 .beads/daemon-error
+.env*.local

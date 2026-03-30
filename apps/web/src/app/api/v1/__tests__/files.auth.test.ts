@@ -161,6 +161,7 @@ describe("file upload auth with Clerk + Postgres", () => {
           requestId: `req_phase6_${requestCounter}`,
           userMessageId: userMessage.id,
           assistantMessageIds: [assistantMessage.id],
+          modelIds: [assistantMessage.model ?? "gpt-5"],
         };
       },
     );
@@ -245,6 +246,11 @@ describe("file upload auth with Clerk + Postgres", () => {
       messageId: string;
     }>(sendJson);
     expect(processMock).toHaveBeenCalledWith(sent.requestId);
+    const legacyAttachmentQuery = vi
+      .spyOn(db.query.attachments, "findMany")
+      .mockImplementation((() => {
+        throw new Error("legacy attachment query should not be called");
+      }) as any);
 
     const listResponse = await listMessages(
       createMockRequest(
@@ -281,6 +287,7 @@ describe("file upload auth with Clerk + Postgres", () => {
         name: "photo.png",
       }),
     ]);
+    expect(legacyAttachmentQuery).not.toHaveBeenCalled();
     expect(getTokenMock).not.toHaveBeenCalled();
     expect(triggerTaskMock).not.toHaveBeenCalled();
   });

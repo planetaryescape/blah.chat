@@ -127,6 +127,18 @@ interface ChatMessageProps {
   showMessageStats?: boolean;
 }
 
+function hasHttpStatus(
+  error: unknown,
+  status: number,
+): error is { status: number } {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "status" in error &&
+    (error as { status?: unknown }).status === status
+  );
+}
+
 export interface MessageConversationContext {
   _id: string | string;
   modelRecommendation?: {
@@ -195,6 +207,8 @@ export const ChatMessage = memo(
     const isTempMessage =
       typeof message._id === "string" && message._id.startsWith("temp-");
     const apiClient = useApiClient();
+    const shouldLoadOriginalResponses =
+      !!message.isConsolidation && !isTempMessage;
 
     // Phase 4: Use new preference hooks
     const prefAlwaysShowActions = useUserPreference("alwaysShowMessageActions");
@@ -216,12 +230,22 @@ export const ChatMessage = memo(
     // Query for original responses if this is a consolidated message
     const originalResponsesQuery = useRestQuery({
       queryKey: ["message", message._id, "original-responses"],
-      queryFn: async () =>
-        apiClient.get<ApiMessageEnvelope[]>(
-          `/api/v1/messages/${message._id}/original-responses`,
-        ),
-      enabled: message.isConsolidation && !isTempMessage,
+      queryFn: async () => {
+        if (!shouldLoadOriginalResponses) return [];
+
+        try {
+          return await apiClient.get<ApiMessageEnvelope[]>(
+            `/api/v1/messages/${message._id}/original-responses`,
+          );
+        } catch (error) {
+          if (hasHttpStatus(error, 404)) return [];
+          throw error;
+        }
+      },
+      enabled: shouldLoadOriginalResponses,
       staleTime: 30_000,
+      retry: false,
+      retryOnMount: false,
     });
     const originalResponses = originalResponsesQuery.data?.map((response) => ({
       ...response.data,

@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { useApiClient } from "@/lib/api/client";
+import { ApiClientError, useApiClient } from "@/lib/api/client";
 import { useSDKClient } from "@/lib/api/sdkClient";
 
 type AvailabilityData = {
@@ -27,6 +26,22 @@ interface ByokConfig {
   hasDeepgramKey: boolean;
 }
 
+const FALLBACK_AVAILABILITY: AvailabilityData = {
+  stt: {
+    groq: true,
+    openai: true,
+    deepgram: true,
+    assemblyai: true,
+    currentProvider: "groq",
+    currentProviderKeyName: "GROQ_API_KEY",
+    hasCurrentProviderKey: true,
+  },
+  tts: {
+    deepgram: true,
+  },
+  isProduction: process.env.NODE_ENV === "production",
+};
+
 // Gateway to BYOK key field mapping
 const GATEWAY_KEY_MAP: Record<
   string,
@@ -52,41 +67,42 @@ export function useApiKeyValidation() {
   const apiClient = useApiClient();
   const sdk = useSDKClient();
 
-  const [availability, setAvailability] = useState<AvailabilityData | null>(
-    null,
-  );
-  const [loading, setLoading] = useState(true);
-
   // Fetch BYOK config via SDK
-  const { data: byokConfig } = useQuery<ByokConfig | null>({
-    queryKey: ["byok-config"],
-    queryFn: async () => {
-      try {
-        return await sdk.getByokConfig();
-      } catch {
-        return null;
-      }
-    },
-    staleTime: 30_000,
-  });
+  const { data: byokConfig, isLoading: byokLoading } =
+    useQuery<ByokConfig | null>({
+      queryKey: ["byok-config"],
+      queryFn: async () => {
+        try {
+          return await sdk.getByokConfig();
+        } catch {
+          return null;
+        }
+      },
+      staleTime: 30_000,
+    });
 
-  // TODO: Phase 15 - need REST route for API key availability check
-  useEffect(() => {
-    const fetchAvailability = async () => {
-      try {
-        const result = await apiClient.get<AvailabilityData>(
-          "/api/v1/settings/api-key-availability",
-        );
-        setAvailability(result);
-      } catch (error) {
-        console.error("Failed to fetch API key availability:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { data: availability, isLoading: availabilityLoading } =
+    useQuery<AvailabilityData>({
+      queryKey: ["api-key-availability"],
+      queryFn: async () => {
+        try {
+          return await apiClient.get<AvailabilityData>(
+            "/api/v1/settings/api-key-availability",
+          );
+        } catch (error) {
+          if (error instanceof ApiClientError && error.status === 404) {
+            return FALLBACK_AVAILABILITY;
+          }
 
-    fetchAvailability();
-  }, [apiClient]);
+          return FALLBACK_AVAILABILITY;
+        }
+      },
+      staleTime: 5 * 60_000,
+      retry: false,
+    });
+
+  const resolvedAvailability = availability ?? FALLBACK_AVAILABILITY;
+  const loading = byokLoading || availabilityLoading;
 
   // BYOK helper: check if a gateway is disabled due to missing BYOK key
   const isModelDisabledByByok = (gateway: string): boolean => {
@@ -107,7 +123,7 @@ export function useApiKeyValidation() {
     return null;
   };
 
-  if (loading || !availability) {
+  if (loading) {
     return {
       loading: true,
       stt: { enabled: false },
@@ -126,7 +142,7 @@ export function useApiKeyValidation() {
     };
   }
 
-  const { isProduction, stt, tts } = availability;
+  const { isProduction, stt, tts } = resolvedAvailability;
 
   return {
     loading: false,

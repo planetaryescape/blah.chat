@@ -14,6 +14,13 @@ CREATE TABLE users (
   updated_at bigint NOT NULL
 );
 
+CREATE TABLE user_admin_settings (
+  user_id text PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  is_admin boolean NOT NULL DEFAULT false,
+  tier text NOT NULL DEFAULT 'free',
+  updated_at bigint NOT NULL
+);
+
 CREATE TABLE conversations (
   id text PRIMARY KEY,
   user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,

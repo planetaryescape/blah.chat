@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   type ColumnDef,
   flexRender,
@@ -66,6 +66,7 @@ function UsersListSkeleton() {
 
 function UsersPageContent() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   // Date range state - fresh last 30 days on each page load
   const [dateRange, setDateRange] = useState(() => getLastNDays(30));
@@ -89,7 +90,7 @@ function UsersPageContent() {
       const res = await fetch("/api/v1/admin/users");
       if (!res.ok) return [];
       const json = await res.json();
-      return json.data ?? [];
+      return (json.data ?? []).map((item: any) => item.data ?? item);
     },
   });
 
@@ -107,7 +108,7 @@ function UsersPageContent() {
       );
       if (!res.ok) return [];
       const json = await res.json();
-      return json.data ?? [];
+      return (json.data ?? []).map((item: any) => item.data ?? item);
     },
   });
 
@@ -122,12 +123,13 @@ function UsersPageContent() {
           body: JSON.stringify({ isAdmin }),
         });
         if (!res.ok) throw new Error("Failed to update role");
+        await queryClient.invalidateQueries({ queryKey: ["admin"] });
         toast.success(isAdmin ? "Admin role granted" : "Admin role revoked");
       } catch (error: any) {
         toast.error(error.message || "Failed to update role");
       }
     },
-    [],
+    [queryClient],
   );
 
   const handleUpdateTier = useCallback(
@@ -140,12 +142,13 @@ function UsersPageContent() {
           body: JSON.stringify({ tier }),
         });
         if (!res.ok) throw new Error("Failed to update tier");
+        await queryClient.invalidateQueries({ queryKey: ["admin"] });
         toast.success(`User tier updated to ${tier}`);
       } catch (error: any) {
         toast.error(error.message || "Failed to update tier");
       }
     },
-    [],
+    [queryClient],
   );
 
   // Merge users with usage data - MUST be memoized to prevent infinite re-renders

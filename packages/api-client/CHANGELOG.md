@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.7.0](https://github.com/planetaryescape/blah.chat/compare/api-client-v0.6.0...api-client-v0.7.0) (2026-03-31)
+
+
+### Features
+
+* [] add trigger jobs and transport client ([974cbf4](https://github.com/planetaryescape/blah.chat/commit/974cbf4ccadf2353f0e3bf869ec078f316ca72b4))
+* [] cut cli chat to generation-v2 ([d2e8af3](https://github.com/planetaryescape/blah.chat/commit/d2e8af36daafcb5d10c7ab261011cb8c9f44465d))
+* [] move blob flows to r2 and postgres ([eeba2c1](https://github.com/planetaryescape/blah.chat/commit/eeba2c172b4ddc8c298cdda6ff3d8ed222ce0bb5))
+* **chat:** add per-chat integration scope ([e0f0561](https://github.com/planetaryescape/blah.chat/commit/e0f056123509bdd7ab59863cf43d3e2636fddbc4))
+* phase 15 - switch ALL remaining web surfaces from Convex to REST ([3137308](https://github.com/planetaryescape/blah.chat/commit/3137308d00fad960daff57746d7fef4c1010fe07))
+* phase 15 - templates, projects, shares, chat components cutover ([aaf5187](https://github.com/planetaryescape/blah.chat/commit/aaf51870e7c35b2ec5c8a568b4f71d27413dccab))
+* phase 15 cutover - switch web surfaces from Convex to REST/Postgres ([3ea9f68](https://github.com/planetaryescape/blah.chat/commit/3ea9f68f985e9f1c3cacc9fa8bf619800fceabfc))
+
+
+### Bug Fixes
+
+* [] fall back to Clerk cookies ([f2c4156](https://github.com/planetaryescape/blah.chat/commit/f2c415661fb97af2d242437ed24cf6d3df67f9d4))
+
 ## [0.6.0](https://github.com/planetaryescape/blah.chat/compare/api-client-v0.5.1...api-client-v0.6.0) (2026-03-30)
 
 

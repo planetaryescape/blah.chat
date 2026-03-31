@@ -921,6 +921,20 @@ export const greet = (name: string) => \`hi \${name}\`;
       capturedAt: 6_250,
     });
 
+    await db.insert(routingPolicies).values({
+      name: "test_outcome_weighted_no_exploration",
+      description: "Disable exploration for deterministic reranking assertions",
+      isActive: true,
+      strategy: "outcome_weighted",
+      config: {
+        weights: {
+          explorationRate: 0,
+        },
+      },
+      createdAt: 6_255,
+      updatedAt: 6_255,
+    });
+
     const started = await service.start({
       clerkUser: {
         clerkId: "user_outcomes",

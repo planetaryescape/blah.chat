@@ -123,7 +123,7 @@ export default function UserDetailPage({
       const res = await fetch("/api/v1/admin/users");
       if (!res.ok) throw new Error(`Failed to fetch users (${res.status})`);
       const json = await res.json();
-      return json.data ?? [];
+      return (json.data ?? []).map((item: any) => item.data ?? item);
     },
   });
 
@@ -163,7 +163,7 @@ export default function UserDetailPage({
       if (!res.ok)
         throw new Error(`Failed to fetch daily spend (${res.status})`);
       const json = await res.json();
-      return json.data ?? null;
+      return (json.data ?? []).map((item: any) => item.data ?? item);
     },
   });
 
@@ -183,7 +183,7 @@ export default function UserDetailPage({
       if (!res.ok)
         throw new Error(`Failed to fetch model breakdown (${res.status})`);
       const json = await res.json();
-      return json.data ?? null;
+      return (json.data ?? []).map((item: any) => item.data ?? item);
     },
   });
 

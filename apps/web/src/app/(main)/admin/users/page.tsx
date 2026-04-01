@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   type ColumnDef,
   flexRender,
@@ -34,12 +34,17 @@ import {
   formatCurrency,
   getLastNDays,
 } from "@/lib/utils/date";
+import {
+  type AdminUsageSummaryRow,
+  type AdminUser,
+  unwrapEntityList,
+} from "./types";
 
 type UserWithUsage = {
   _id: string;
   name: string;
   email: string;
-  imageUrl: string | undefined;
+  imageUrl?: string;
   isAdmin: boolean;
   tier?: "free" | "tier1" | "tier2";
   createdAt: number;
@@ -66,6 +71,7 @@ function UsersListSkeleton() {
 
 function UsersPageContent() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   // Date range state - fresh last 30 days on each page load
   const [dateRange, setDateRange] = useState(() => getLastNDays(30));
@@ -85,11 +91,10 @@ function UsersPageContent() {
   // TODO: Phase G - needs /api/v1/admin/users route
   const { data: users } = useQuery({
     queryKey: ["admin", "users"],
-    queryFn: async () => {
+    queryFn: async (): Promise<AdminUser[]> => {
       const res = await fetch("/api/v1/admin/users");
       if (!res.ok) return [];
-      const json = await res.json();
-      return json.data ?? [];
+      return unwrapEntityList<AdminUser>(await res.json());
     },
   });
 
@@ -101,13 +106,12 @@ function UsersPageContent() {
       dateRange.startDate,
       dateRange.endDate,
     ],
-    queryFn: async () => {
+    queryFn: async (): Promise<AdminUsageSummaryRow[]> => {
       const res = await fetch(
         `/api/v1/admin/usage-summary?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
       );
       if (!res.ok) return [];
-      const json = await res.json();
-      return json.data ?? [];
+      return unwrapEntityList<AdminUsageSummaryRow>(await res.json());
     },
   });
 
@@ -122,12 +126,15 @@ function UsersPageContent() {
           body: JSON.stringify({ isAdmin }),
         });
         if (!res.ok) throw new Error("Failed to update role");
+        await queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
         toast.success(isAdmin ? "Admin role granted" : "Admin role revoked");
-      } catch (error: any) {
-        toast.error(error.message || "Failed to update role");
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Failed to update role",
+        );
       }
     },
-    [],
+    [queryClient],
   );
 
   const handleUpdateTier = useCallback(
@@ -140,12 +147,15 @@ function UsersPageContent() {
           body: JSON.stringify({ tier }),
         });
         if (!res.ok) throw new Error("Failed to update tier");
+        await queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
         toast.success(`User tier updated to ${tier}`);
-      } catch (error: any) {
-        toast.error(error.message || "Failed to update tier");
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Failed to update tier",
+        );
       }
     },
-    [],
+    [queryClient],
   );
 
   // Merge users with usage data - MUST be memoized to prevent infinite re-renders
@@ -153,10 +163,10 @@ function UsersPageContent() {
     if (!users || !usageSummary) return [];
 
     const usageByUserId = new Map(
-      usageSummary.map((usage: any) => [usage.userId, usage]),
+      usageSummary.map((usage) => [usage.userId, usage]),
     );
 
-    return users.map((user: any) => ({
+    return users.map((user) => ({
       ...user,
       tier: user.tier,
       usage: usageByUserId.get(user._id) || {

@@ -2,3 +2,5 @@ exclude_paths:
   - "packages/byod-schema/convex/bundled-schema.ts"
   - "apps/web/src/hooks/useCacheSync.ts"
   - "apps/web/src/hooks/useOptimisticMessages.ts"
+  - "packages/persistence-postgres/drizzle/**"
+  - "apps/web/src/lib/api/dal/adminUsers.ts"

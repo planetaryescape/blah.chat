@@ -5,6 +5,7 @@ import {
   doublePrecision,
   index,
   jsonb,
+  pgEnum,
   pgTable,
   primaryKey,
   text,
@@ -97,7 +98,8 @@ export type UsageFeature =
   | "tasks"
   | "files"
   | "memory"
-  | "smart_assistant";
+  | "smart_assistant"
+  | "slides";
 
 export type UsageOperationType = "text" | "tts" | "stt" | "image" | "embedding";
 
@@ -108,6 +110,23 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   imageUrl: text("image_url"),
   createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(now),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(now),
+});
+
+export const adminUserTierEnum = pgEnum("admin_user_tier", [
+  "free",
+  "tier1",
+  "tier2",
+]);
+
+export type AdminUserTier = (typeof adminUserTierEnum.enumValues)[number];
+
+export const userAdminSettings = pgTable("user_admin_settings", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  isAdmin: boolean("is_admin").notNull().default(false),
+  tier: adminUserTierEnum("tier").notNull().default("free"),
   updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(now),
 });
 

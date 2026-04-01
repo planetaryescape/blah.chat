@@ -574,10 +574,7 @@ export default function UserDetailPage({
                       cy="50%"
                       labelLine={false}
                       label={(entry: PieLabelEntry) => {
-                        const modelName =
-                          (entry.model ?? "").split(":")[1] ??
-                          entry.model ??
-                          "Unknown";
+                        const modelName = entry.model?.split(":")[1];
                         return `${modelName}: ${formatCurrency(entry.totalCost ?? 0)}`;
                       }}
                       outerRadius={80}

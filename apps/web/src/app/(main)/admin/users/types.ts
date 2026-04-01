@@ -1,4 +1,3 @@
-import type { ApiResponse } from "@/lib/api/types";
 import type { EntityListItem } from "@/lib/utils/formatEntity";
 
 export type AdminUserTier = "free" | "tier1" | "tier2";
@@ -60,15 +59,15 @@ export interface AdminCostByType {
   slides: CostBucket;
 }
 
-export interface AdminFeatureCostBreakdown {
-  [feature: string]: {
-    total: number;
-    text: number;
-    tts: number;
-    stt: number;
-    image: number;
-  };
+interface AdminFeatureCostBucket {
+  total: number;
+  text: number;
+  tts: number;
+  stt: number;
+  image: number;
 }
+
+export type AdminFeatureCostBreakdown = Record<string, AdminFeatureCostBucket>;
 
 export interface AdminActivityStats {
   notesCount: number;
@@ -82,9 +81,10 @@ interface EntityEnvelope<T> {
   data: T;
 }
 
-interface EntityListResponse<T>
-  extends ApiResponse<Array<EntityListItem<T> | T>> {
-  data?: Array<EntityListItem<T> | T>;
+type EntityListEntry<T> = EntityListItem<T> | T;
+
+interface EntityListResponse<T> {
+  data?: EntityListEntry<T>[];
 }
 
 export function unwrapEntityList<T>(

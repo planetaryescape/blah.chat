@@ -92,21 +92,32 @@ export function toAdminUserDto(user: {
   };
 }
 
+function toMetadataRecord(publicMetadata: unknown) {
+  return publicMetadata && typeof publicMetadata === "object"
+    ? (publicMetadata as Record<string, unknown>)
+    : {};
+}
+
+function resolveIsAdmin(
+  metadata: Partial<ClerkAdminMetadata>,
+  rawMetadata: Record<string, unknown>,
+) {
+  if (metadata.isAdmin !== undefined) {
+    return metadata.isAdmin;
+  }
+
+  return typeof rawMetadata.isAdmin === "boolean" ? rawMetadata.isAdmin : false;
+}
+
 export function parseClerkAdminMetadata(
   publicMetadata: unknown,
 ): ClerkAdminMetadata {
-  const rawMetadata =
-    publicMetadata && typeof publicMetadata === "object"
-      ? (publicMetadata as Record<string, unknown>)
-      : {};
+  const rawMetadata = toMetadataRecord(publicMetadata);
   const parsed = clerkAdminMetadataSchema.safeParse(rawMetadata);
   const metadata = parsed.success ? parsed.data : {};
-  const isAdmin =
-    metadata.isAdmin ??
-    (typeof rawMetadata.isAdmin === "boolean" ? rawMetadata.isAdmin : false);
 
   return {
-    isAdmin,
+    isAdmin: resolveIsAdmin(metadata, rawMetadata),
     tier: metadata.tier ?? "free",
   };
 }

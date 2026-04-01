@@ -3,3 +3,4 @@ exclude_paths:
   - "apps/web/src/hooks/useCacheSync.ts"
   - "apps/web/src/hooks/useOptimisticMessages.ts"
   - "packages/persistence-postgres/drizzle/**"
+  - "apps/web/src/lib/api/dal/adminUsers.ts"

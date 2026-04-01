@@ -81,13 +81,13 @@ interface EntityEnvelope<T> {
   data: T;
 }
 
-type EntityListEntry<T> = EntityListItem<T> | T;
+type EntityListEntry<T extends object> = EntityListItem<T> | T;
 
-interface EntityListResponse<T> {
+interface EntityListResponse<T extends object> {
   data?: EntityListEntry<T>[];
 }
 
-export function unwrapEntityList<T>(
+export function unwrapEntityList<T extends object>(
   response: EntityListResponse<T> | null | undefined,
 ): T[] {
   return (response?.data ?? []).map((item) =>

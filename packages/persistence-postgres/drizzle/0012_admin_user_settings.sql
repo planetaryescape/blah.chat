@@ -1,7 +1,9 @@
+CREATE TYPE "public"."admin_user_tier" AS ENUM('free', 'tier1', 'tier2');
+--> statement-breakpoint
 CREATE TABLE "user_admin_settings" (
 	"user_id" text PRIMARY KEY NOT NULL,
 	"is_admin" boolean DEFAULT false NOT NULL,
-	"tier" text DEFAULT 'free' NOT NULL,
+	"tier" "admin_user_tier" DEFAULT 'free' NOT NULL,
 	"updated_at" bigint NOT NULL
 );
 --> statement-breakpoint

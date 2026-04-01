@@ -14,10 +14,12 @@ CREATE TABLE users (
   updated_at bigint NOT NULL
 );
 
+CREATE TYPE admin_user_tier AS ENUM ('free', 'tier1', 'tier2');
+
 CREATE TABLE user_admin_settings (
   user_id text PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   is_admin boolean NOT NULL DEFAULT false,
-  tier text NOT NULL DEFAULT 'free',
+  tier admin_user_tier NOT NULL DEFAULT 'free',
   updated_at bigint NOT NULL
 );
 

@@ -5,6 +5,7 @@ import {
   doublePrecision,
   index,
   jsonb,
+  pgEnum,
   pgTable,
   primaryKey,
   text,
@@ -112,14 +113,20 @@ export const users = pgTable("users", {
   updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(now),
 });
 
-export type AdminUserTier = "free" | "tier1" | "tier2";
+export const adminUserTierEnum = pgEnum("admin_user_tier", [
+  "free",
+  "tier1",
+  "tier2",
+]);
+
+export type AdminUserTier = (typeof adminUserTierEnum.enumValues)[number];
 
 export const userAdminSettings = pgTable("user_admin_settings", {
   userId: text("user_id")
     .primaryKey()
     .references(() => users.id, { onDelete: "cascade" }),
   isAdmin: boolean("is_admin").notNull().default(false),
-  tier: text("tier").$type<AdminUserTier>().notNull().default("free"),
+  tier: adminUserTierEnum("tier").notNull().default("free"),
   updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(now),
 });
 

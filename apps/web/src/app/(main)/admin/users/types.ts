@@ -3,7 +3,7 @@ import type { EntityListItem } from "@/lib/utils/formatEntity";
 
 export type AdminUserTier = "free" | "tier1" | "tier2";
 
-export type AdminUser = {
+export interface AdminUser {
   _id: string;
   clerkId: string;
   name: string;
@@ -13,24 +13,24 @@ export type AdminUser = {
   tier: AdminUserTier;
   createdAt: number;
   lastMessageDate?: string;
-};
+}
 
-export type AdminUsageSummaryRow = {
+export interface AdminUsageSummaryRow {
   userId: string;
   totalCost: number;
   totalTokens: number;
   totalRequests: number;
-};
+}
 
-export type AdminUsageSummary = {
+export interface AdminUsageSummary {
   totalCost: number;
   totalTokens: number;
   totalRequests: number;
   avgCostPerRequest: number;
   messageCount: number;
-};
+}
 
-export type AdminDailySpendRow = {
+export interface AdminDailySpendRow {
   date: string;
   messageCount: number;
   requestCount: number;
@@ -38,53 +38,61 @@ export type AdminDailySpendRow = {
   totalOutputTokens: number;
   totalTokens: number;
   totalCost: number;
-};
+}
 
-export type AdminModelBreakdownRow = {
+export interface AdminModelBreakdownRow {
   model: string;
   totalCost: number;
   totalInputTokens: number;
   totalOutputTokens: number;
   requestCount: number;
-};
+}
 
-type CostBucket = {
+interface CostBucket {
   cost: number;
-};
+}
 
-export type AdminCostByType = {
+export interface AdminCostByType {
   textGeneration: CostBucket;
   tts: CostBucket;
   transcription: CostBucket;
   images: CostBucket;
   slides: CostBucket;
-};
+}
 
-export type AdminFeatureCostBreakdown = Record<
-  string,
-  {
+export interface AdminFeatureCostBreakdown {
+  [feature: string]: {
     total: number;
     text: number;
     tts: number;
     stt: number;
     image: number;
-  }
->;
+  };
+}
 
-export type AdminActivityStats = {
+export interface AdminActivityStats {
   notesCount: number;
   projectsCount: number;
   bookmarksCount: number;
   templatesCount: number;
   tasksCount: number;
-};
+}
+
+interface EntityEnvelope<T> {
+  data: T;
+}
+
+interface EntityListResponse<T>
+  extends ApiResponse<Array<EntityListItem<T> | T>> {
+  data?: Array<EntityListItem<T> | T>;
+}
 
 export function unwrapEntityList<T>(
-  response: ApiResponse<Array<EntityListItem<T> | T>> | null | undefined,
+  response: EntityListResponse<T> | null | undefined,
 ): T[] {
   return (response?.data ?? []).map((item) =>
     typeof item === "object" && item !== null && "data" in item
-      ? item.data
+      ? (item as EntityEnvelope<T>).data
       : item,
   );
 }

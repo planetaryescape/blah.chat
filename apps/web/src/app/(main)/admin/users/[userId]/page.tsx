@@ -102,12 +102,12 @@ const FEATURE_LABELS: Record<string, string> = {
   smart_assistant: "Smart Assistant",
 };
 
-type PieLabelEntry = {
+interface PieLabelEntry {
   name?: string;
   value?: number;
   model?: string;
   totalCost?: number;
-};
+}
 
 export default function UserDetailPage({
   params,
@@ -272,7 +272,7 @@ export default function UserDetailPage({
       <div className="flex flex-col items-center justify-center h-screen gap-4">
         <p className="text-destructive font-medium">Failed to load user data</p>
         <p className="text-sm text-muted-foreground">
-          {userError?.message || "One or more API requests failed."}
+          {userError?.message ?? "One or more API requests failed."}
         </p>
         <Button variant="outline" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -573,9 +573,13 @@ export default function UserDetailPage({
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={(entry: PieLabelEntry) =>
-                        `${(entry.model ?? "").split(":")[1] || entry.model || "Unknown"}: ${formatCurrency(entry.totalCost ?? 0)}`
-                      }
+                      label={(entry: PieLabelEntry) => {
+                        const modelName =
+                          (entry.model ?? "").split(":")[1] ??
+                          entry.model ??
+                          "Unknown";
+                        return `${modelName}: ${formatCurrency(entry.totalCost ?? 0)}`;
+                      }}
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="totalCost"

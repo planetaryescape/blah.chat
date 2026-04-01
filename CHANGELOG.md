@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.36.1](https://github.com/planetaryescape/blah.chat/compare/v1.36.0...v1.36.1) (2026-04-01)
+
+
+### Bug Fixes
+
+* address admin users review feedback ([820fe22](https://github.com/planetaryescape/blah.chat/commit/820fe22ded71a3f88a8b0cc822e5b3ce75115161))
+* clear remaining admin users CI issues ([bca436a](https://github.com/planetaryescape/blah.chat/commit/bca436a5af4f55f4e2731d3f0d99a0bf82ae17b0))
+* clear residual codacy findings ([cb12e98](https://github.com/planetaryescape/blah.chat/commit/cb12e983d0f968b48ae54fceebc4213516689fb3))
+* constrain admin list envelope helper ([95a7aca](https://github.com/planetaryescape/blah.chat/commit/95a7aca3221285985e4e390f330b0e7d15917756))
+* restore admin users dashboard on postgres ([d1c58ee](https://github.com/planetaryescape/blah.chat/commit/d1c58ee80ddf41a473015e1fa8684f5a6c106c24))
+* satisfy codacy admin list typing ([9cf8540](https://github.com/planetaryescape/blah.chat/commit/9cf854049a41c6282cfe10194a967bd23d800896))
+
 ## [1.36.0](https://github.com/planetaryescape/blah.chat/compare/v1.35.2...v1.36.0) (2026-03-30)
 
 

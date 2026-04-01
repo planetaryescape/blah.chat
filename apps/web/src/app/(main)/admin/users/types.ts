@@ -77,22 +77,16 @@ export interface AdminActivityStats {
   tasksCount: number;
 }
 
-interface EntityEnvelope<T> {
-  data: T;
-}
-
-type EntityListEntry<T extends object> = EntityListItem<T> | T;
-
-interface EntityListResponse<T extends object> {
-  data?: EntityListEntry<T>[];
+interface EntityListResponse {
+  data?: unknown[];
 }
 
 export function unwrapEntityList<T extends object>(
-  response: EntityListResponse<T> | null | undefined,
+  response: EntityListResponse | null | undefined,
 ): T[] {
   return (response?.data ?? []).map((item) =>
     typeof item === "object" && item !== null && "data" in item
-      ? (item as EntityEnvelope<T>).data
-      : item,
+      ? (item as EntityListItem<T>).data
+      : (item as T),
   );
 }

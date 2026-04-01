@@ -55,14 +55,16 @@ import {
   formatCurrency,
   getLastNDays,
 } from "@/lib/utils/date";
-
-type ModelBreakdown = {
-  model: string;
-  totalCost: number;
-  totalInputTokens: number;
-  totalOutputTokens: number;
-  requestCount: number;
-};
+import {
+  type AdminActivityStats,
+  type AdminCostByType,
+  type AdminDailySpendRow,
+  type AdminFeatureCostBreakdown,
+  type AdminModelBreakdownRow,
+  type AdminUsageSummary,
+  type AdminUser,
+  unwrapEntityList,
+} from "../types";
 
 const COLORS = [
   "#8b5cf6",
@@ -100,6 +102,13 @@ const FEATURE_LABELS: Record<string, string> = {
   smart_assistant: "Smart Assistant",
 };
 
+type PieLabelEntry = {
+  name?: string;
+  value?: number;
+  model?: string;
+  totalCost?: number;
+};
+
 export default function UserDetailPage({
   params,
 }: {
@@ -114,16 +123,16 @@ export default function UserDetailPage({
 
   // TODO: Phase G - needs /api/v1/admin/users route
   const {
-    data: users,
-    isError: isUsersError,
-    error: usersError,
+    data: user,
+    isError: isUserError,
+    error: userError,
   } = useQuery({
-    queryKey: ["admin", "users"],
-    queryFn: async () => {
-      const res = await fetch("/api/v1/admin/users");
-      if (!res.ok) throw new Error(`Failed to fetch users (${res.status})`);
+    queryKey: ["admin", "users", userId],
+    queryFn: async (): Promise<AdminUser | null> => {
+      const res = await fetch(`/api/v1/admin/users/${userId}`);
+      if (!res.ok) throw new Error(`Failed to fetch user (${res.status})`);
       const json = await res.json();
-      return (json.data ?? []).map((item: any) => item.data ?? item);
+      return json.data ?? null;
     },
   });
 
@@ -136,7 +145,7 @@ export default function UserDetailPage({
       dateRange.startDate,
       dateRange.endDate,
     ],
-    queryFn: async () => {
+    queryFn: async (): Promise<AdminUsageSummary | null> => {
       const res = await fetch(
         `/api/v1/admin/users/${userId}/usage-summary?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
       );
@@ -156,14 +165,13 @@ export default function UserDetailPage({
       dateRange.startDate,
       dateRange.endDate,
     ],
-    queryFn: async () => {
+    queryFn: async (): Promise<AdminDailySpendRow[]> => {
       const res = await fetch(
         `/api/v1/admin/users/${userId}/daily-spend?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
       );
       if (!res.ok)
         throw new Error(`Failed to fetch daily spend (${res.status})`);
-      const json = await res.json();
-      return (json.data ?? []).map((item: any) => item.data ?? item);
+      return unwrapEntityList<AdminDailySpendRow>(await res.json());
     },
   });
 
@@ -176,14 +184,13 @@ export default function UserDetailPage({
       dateRange.startDate,
       dateRange.endDate,
     ],
-    queryFn: async () => {
+    queryFn: async (): Promise<AdminModelBreakdownRow[]> => {
       const res = await fetch(
         `/api/v1/admin/users/${userId}/spend-by-model?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
       );
       if (!res.ok)
         throw new Error(`Failed to fetch model breakdown (${res.status})`);
-      const json = await res.json();
-      return (json.data ?? []).map((item: any) => item.data ?? item);
+      return unwrapEntityList<AdminModelBreakdownRow>(await res.json());
     },
   });
 
@@ -196,7 +203,7 @@ export default function UserDetailPage({
       dateRange.startDate,
       dateRange.endDate,
     ],
-    queryFn: async () => {
+    queryFn: async (): Promise<AdminCostByType | null> => {
       const res = await fetch(
         `/api/v1/admin/users/${userId}/cost-by-type?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
       );
@@ -216,7 +223,7 @@ export default function UserDetailPage({
       dateRange.startDate,
       dateRange.endDate,
     ],
-    queryFn: async () => {
+    queryFn: async (): Promise<AdminFeatureCostBreakdown | null> => {
       const res = await fetch(
         `/api/v1/admin/users/${userId}/cost-by-feature?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
       );
@@ -230,7 +237,7 @@ export default function UserDetailPage({
   // TODO: Phase G - needs /api/v1/admin/users/:id/activity-stats route
   const { data: activityStats, isError: isActivityStatsError } = useQuery({
     queryKey: ["admin", "user-activity-stats", userId],
-    queryFn: async () => {
+    queryFn: async (): Promise<AdminActivityStats | null> => {
       const res = await fetch(`/api/v1/admin/users/${userId}/activity-stats`);
       if (!res.ok)
         throw new Error(`Failed to fetch activity stats (${res.status})`);
@@ -251,10 +258,8 @@ export default function UserDetailPage({
     enabled: shouldVirtualizeModels,
   });
 
-  const user = users?.find((u: any) => u._id === userId);
-
   const hasError =
-    isUsersError ||
+    isUserError ||
     isSummaryError ||
     isDailySpendError ||
     isModelBreakdownError ||
@@ -267,7 +272,7 @@ export default function UserDetailPage({
       <div className="flex flex-col items-center justify-center h-screen gap-4">
         <p className="text-destructive font-medium">Failed to load user data</p>
         <p className="text-sm text-muted-foreground">
-          {usersError?.message || "One or more API requests failed."}
+          {userError?.message || "One or more API requests failed."}
         </p>
         <Button variant="outline" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -296,8 +301,8 @@ export default function UserDetailPage({
 
   // Feature breakdown data
   const featureData = Object.entries(costByFeature)
-    .filter(([_, data]: [string, any]) => data.total > 0)
-    .map(([feature, data]: [string, any]) => ({
+    .filter(([, data]) => data.total > 0)
+    .map(([feature, data]) => ({
       name: FEATURE_LABELS[feature] || feature,
       key: feature,
       value: data.total,
@@ -311,7 +316,7 @@ export default function UserDetailPage({
     .sort((a, b) => b.value - a.value);
 
   // Prepare export data
-  const exportData = modelBreakdown.map((model: ModelBreakdown) => ({
+  const exportData = modelBreakdown.map((model) => ({
     Model: model.model,
     "Total Cost": model.totalCost.toFixed(4),
     "Input Tokens": model.totalInputTokens,
@@ -473,8 +478,8 @@ export default function UserDetailPage({
                   <TableBody>
                     {dailySpend.length > 0 ? (
                       [...dailySpend]
-                        .sort((a: any, b: any) => b.date.localeCompare(a.date))
-                        .map((day: any) => (
+                        .sort((a, b) => b.date.localeCompare(a.date))
+                        .map((day) => (
                           <TableRow key={day.date}>
                             <TableCell className="font-medium">
                               {day.date}
@@ -568,21 +573,19 @@ export default function UserDetailPage({
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={(entry: any) =>
-                        `${entry.model.split(":")[1] || entry.model}: ${formatCurrency(entry.totalCost)}`
+                      label={(entry: PieLabelEntry) =>
+                        `${(entry.model ?? "").split(":")[1] || entry.model || "Unknown"}: ${formatCurrency(entry.totalCost ?? 0)}`
                       }
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="totalCost"
                     >
-                      {modelBreakdown.map(
-                        (_entry: ModelBreakdown, index: number) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={COLORS[index % COLORS.length]}
-                          />
-                        ),
-                      )}
+                      {modelBreakdown.map((_entry, index: number) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
                     </Pie>
                     <Tooltip
                       formatter={(value) =>
@@ -611,8 +614,8 @@ export default function UserDetailPage({
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={(entry: any) =>
-                          `${entry.name}: ${formatCurrency(entry.value)}`
+                        label={(entry: PieLabelEntry) =>
+                          `${entry.name ?? "Unknown"}: ${formatCurrency(entry.value ?? 0)}`
                         }
                         outerRadius={80}
                         fill="#8884d8"
@@ -698,8 +701,8 @@ export default function UserDetailPage({
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={(entry: any) =>
-                          `${entry.name}: ${formatCurrency(entry.value)}`
+                        label={(entry: PieLabelEntry) =>
+                          `${entry.name ?? "Unknown"}: ${formatCurrency(entry.value ?? 0)}`
                         }
                         outerRadius={80}
                         fill="#8884d8"
@@ -809,7 +812,7 @@ export default function UserDetailPage({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {modelBreakdown.map((model: ModelBreakdown) => (
+                    {modelBreakdown.map((model) => (
                       <TableRow key={model.model}>
                         <TableCell className="font-medium">
                           {model.model}

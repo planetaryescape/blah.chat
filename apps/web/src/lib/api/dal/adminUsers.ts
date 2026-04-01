@@ -12,16 +12,19 @@ import {
 import { clerkClient } from "@clerk/nextjs/server";
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { z } from "zod";
+import logger from "@/lib/logger";
 import { getPersistenceDb } from "@/lib/persistence/server";
 import { formatEntity, formatEntityList } from "@/lib/utils/formatEntity";
 import "server-only";
+
+const adminUserTierValues = ["free", "tier1", "tier2"] as const;
 
 const updateRoleSchema = z.object({
   isAdmin: z.boolean(),
 });
 
 const updateTierSchema = z.object({
-  tier: z.enum(["free", "tier1", "tier2"]),
+  tier: z.enum(adminUserTierValues),
 });
 
 const dateRangeSchema = z.object({
@@ -29,10 +32,32 @@ const dateRangeSchema = z.object({
   endDate: z.string().min(1),
 });
 
+const clerkAdminMetadataSchema = z
+  .object({
+    isAdmin: z.boolean().optional(),
+    tier: z.enum(adminUserTierValues).optional(),
+  })
+  .passthrough();
+
 type ClerkAdminMetadata = {
   isAdmin: boolean;
   tier: AdminUserTier;
 };
+
+type AdminUserDto = {
+  _id: string;
+  clerkId: string;
+  name: string;
+  email: string;
+  imageUrl?: string;
+  isAdmin: boolean;
+  tier: AdminUserTier;
+  createdAt: number;
+  lastMessageDate?: string;
+};
+
+const ADMIN_SETTINGS_RECONCILE_INTERVAL_MS = 15 * 60 * 1000;
+const ADMIN_SETTINGS_RECONCILE_BATCH_SIZE = 10;
 
 function toNumber(value: unknown) {
   return typeof value === "number" ? value : Number(value ?? 0);
@@ -50,42 +75,112 @@ function emptyCostByFeature() {
   };
 }
 
+function getDateFilter(startDate: string, endDate: string) {
+  return and(
+    gte(usageRecords.date, startDate),
+    lte(usageRecords.date, endDate),
+  );
+}
+
+function toAdminUserDto(user: {
+  _id: string;
+  clerkId: string;
+  name: string;
+  email: string;
+  imageUrl: string | null;
+  isAdmin: boolean;
+  tier: AdminUserTier;
+  createdAt: number;
+  lastMessageDate?: string | null;
+}): AdminUserDto {
+  return {
+    _id: user._id,
+    clerkId: user.clerkId,
+    name: user.name,
+    email: user.email,
+    imageUrl: user.imageUrl ?? undefined,
+    isAdmin: user.isAdmin,
+    tier: user.tier,
+    createdAt: user.createdAt,
+    lastMessageDate: user.lastMessageDate ?? undefined,
+  };
+}
+
 async function getClerkMetadata(clerkId: string): Promise<ClerkAdminMetadata> {
   const clerk = await clerkClient();
   const user = await clerk.users.getUser(clerkId);
-  const metadata = (user.publicMetadata ?? {}) as {
-    isAdmin?: boolean;
-    tier?: AdminUserTier;
-  };
+  const rawMetadata =
+    user.publicMetadata && typeof user.publicMetadata === "object"
+      ? (user.publicMetadata as Record<string, unknown>)
+      : {};
+  const parsed = clerkAdminMetadataSchema.safeParse(rawMetadata);
+  const metadata = parsed.success ? parsed.data : {};
+  const coercedIsAdmin =
+    metadata.isAdmin ??
+    (typeof rawMetadata.isAdmin === "boolean" ? rawMetadata.isAdmin : false);
 
   return {
-    isAdmin: metadata.isAdmin === true,
+    isAdmin: coercedIsAdmin === true,
     tier: metadata.tier ?? "free",
   };
 }
 
-async function upsertAdminSettings(
-  userId: string,
-  input: { isAdmin?: boolean; tier?: AdminUserTier },
-) {
+async function saveAdminSettings(userId: string, input: ClerkAdminMetadata) {
   const db = getPersistenceDb();
 
   await db
     .insert(userAdminSettings)
     .values({
       userId,
-      isAdmin: input.isAdmin ?? false,
-      tier: input.tier ?? "free",
+      isAdmin: input.isAdmin,
+      tier: input.tier,
       updatedAt: Date.now(),
     })
     .onConflictDoUpdate({
       target: userAdminSettings.userId,
       set: {
-        ...(input.isAdmin !== undefined ? { isAdmin: input.isAdmin } : {}),
-        ...(input.tier !== undefined ? { tier: input.tier } : {}),
+        isAdmin: input.isAdmin,
+        tier: input.tier,
         updatedAt: Date.now(),
       },
     });
+}
+
+async function getStoredAdminSettings(userId: string) {
+  return getPersistenceDb().query.userAdminSettings.findFirst({
+    where: eq(userAdminSettings.userId, userId),
+  });
+}
+
+async function getEffectiveAdminSettings(
+  userId: string,
+  clerkId: string,
+  options?: { refreshFromClerk?: boolean },
+): Promise<ClerkAdminMetadata> {
+  const existing = await getStoredAdminSettings(userId);
+
+  if (existing && !options?.refreshFromClerk) {
+    return {
+      isAdmin: existing.isAdmin,
+      tier: existing.tier,
+    };
+  }
+
+  const metadata = await getClerkMetadata(clerkId);
+  const merged = {
+    isAdmin: metadata.isAdmin,
+    tier: existing?.tier ?? metadata.tier,
+  } satisfies ClerkAdminMetadata;
+
+  if (
+    !existing ||
+    existing.isAdmin !== merged.isAdmin ||
+    existing.tier !== merged.tier
+  ) {
+    await saveAdminSettings(userId, merged);
+  }
+
+  return merged;
 }
 
 async function updateClerkMetadata(
@@ -117,62 +212,71 @@ async function ensureUserExists(userId: string) {
   return user;
 }
 
-function getDateFilter(startDate: string, endDate: string) {
-  return and(
-    gte(usageRecords.date, startDate),
-    lte(usageRecords.date, endDate),
-  );
+function buildLatestUsageQuery(db: ReturnType<typeof getPersistenceDb>) {
+  return db
+    .select({
+      userId: usageRecords.userId,
+      lastMessageDate: sql<string>`max(${usageRecords.date})`.as(
+        "last_message_date",
+      ),
+    })
+    .from(usageRecords)
+    .groupBy(usageRecords.userId)
+    .as("latest_usage");
 }
 
 async function reconcileAdminSettings() {
   const db = getPersistenceDb();
+  const cutoff = Date.now() - ADMIN_SETTINGS_RECONCILE_INTERVAL_MS;
   const rows = await db
     .select({
       id: users.id,
       clerkId: users.clerkId,
-      isAdmin: userAdminSettings.isAdmin,
-      tier: userAdminSettings.tier,
+      settingsUserId: userAdminSettings.userId,
+      updatedAt: userAdminSettings.updatedAt,
     })
     .from(users)
     .leftJoin(userAdminSettings, eq(userAdminSettings.userId, users.id));
 
-  await Promise.all(
-    rows.map(async (row) => {
-      try {
-        const metadata = await getClerkMetadata(row.clerkId);
-        const needsUpsert =
-          row.isAdmin === null ||
-          row.isAdmin !== metadata.isAdmin ||
-          row.tier === null;
-
-        if (needsUpsert) {
-          await upsertAdminSettings(row.id, {
-            isAdmin: metadata.isAdmin,
-            tier: row.tier ?? metadata.tier,
-          });
-        }
-      } catch {
-        // Best-effort reconciliation. If Clerk fetch fails, preserve DB state.
-      }
-    }),
+  const staleRows = rows.filter(
+    (row) => row.settingsUserId === null || (row.updatedAt ?? 0) < cutoff,
   );
+
+  for (
+    let index = 0;
+    index < staleRows.length;
+    index += ADMIN_SETTINGS_RECONCILE_BATCH_SIZE
+  ) {
+    const batch = staleRows.slice(
+      index,
+      index + ADMIN_SETTINGS_RECONCILE_BATCH_SIZE,
+    );
+
+    await Promise.all(
+      batch.map(async (row) => {
+        try {
+          await getEffectiveAdminSettings(row.id, row.clerkId, {
+            refreshFromClerk: true,
+          });
+        } catch (err) {
+          logger.warn(
+            { userId: row.id, clerkId: row.clerkId, err },
+            "reconcileAdminSettings: Clerk fetch failed",
+          );
+        }
+      }),
+    );
+  }
 }
 
 export const adminUsersDAL = {
   async listUsers() {
     const db = getPersistenceDb();
-    await reconcileAdminSettings();
+    void reconcileAdminSettings().catch((err) => {
+      logger.warn({ err }, "listUsers: admin settings reconciliation failed");
+    });
 
-    const latestUsage = db
-      .select({
-        userId: usageRecords.userId,
-        lastMessageDate: sql<string>`max(${usageRecords.date})`.as(
-          "last_message_date",
-        ),
-      })
-      .from(usageRecords)
-      .groupBy(usageRecords.userId)
-      .as("latest_usage");
+    const latestUsage = buildLatestUsageQuery(db);
 
     const rows = await db
       .select({
@@ -191,7 +295,50 @@ export const adminUsersDAL = {
       .leftJoin(latestUsage, eq(latestUsage.userId, users.id))
       .orderBy(desc(users.createdAt));
 
-    return formatEntityList(rows, "user");
+    return formatEntityList(rows.map(toAdminUserDto), "user");
+  },
+
+  async getUser(userId: string) {
+    const db = getPersistenceDb();
+    const user = await ensureUserExists(userId);
+    const settings = await getEffectiveAdminSettings(userId, user.clerkId, {
+      refreshFromClerk: true,
+    });
+    const latestUsage = buildLatestUsageQuery(db);
+    const rows = await db
+      .select({
+        _id: users.id,
+        clerkId: users.clerkId,
+        name: users.name,
+        email: users.email,
+        imageUrl: users.imageUrl,
+        createdAt: users.createdAt,
+        lastMessageDate: latestUsage.lastMessageDate,
+      })
+      .from(users)
+      .leftJoin(latestUsage, eq(latestUsage.userId, users.id))
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const current = rows[0] ?? {
+      _id: user.id,
+      clerkId: user.clerkId,
+      name: user.name,
+      email: user.email,
+      imageUrl: user.imageUrl,
+      createdAt: user.createdAt,
+      lastMessageDate: null,
+    };
+
+    return formatEntity(
+      toAdminUserDto({
+        ...current,
+        isAdmin: settings.isAdmin,
+        tier: settings.tier,
+      }),
+      "user",
+      userId,
+    );
   },
 
   async listUsageSummary(input: z.input<typeof dateRangeSchema>) {
@@ -421,6 +568,7 @@ export const adminUsersDAL = {
         typeof emptyCostByFeature
       >;
       if (!(featureKey in result)) continue;
+
       const cost = toNumber(row.totalCost);
       result[featureKey].total += cost;
 
@@ -492,11 +640,14 @@ export const adminUsersDAL = {
   async updateRole(userId: string, payload: z.input<typeof updateRoleSchema>) {
     const validated = updateRoleSchema.parse(payload);
     const user = await ensureUserExists(userId);
+    const settings = await getEffectiveAdminSettings(userId, user.clerkId);
 
     await updateClerkMetadata(user.clerkId, { isAdmin: validated.isAdmin });
-    await upsertAdminSettings(userId, { isAdmin: validated.isAdmin });
+    await saveAdminSettings(userId, {
+      isAdmin: validated.isAdmin,
+      tier: settings.tier,
+    });
 
-    const metadata = await getClerkMetadata(user.clerkId);
     const updated = await getPersistenceDb().query.users.findFirst({
       where: eq(users.id, userId),
     });
@@ -508,8 +659,8 @@ export const adminUsersDAL = {
         name: updated?.name ?? user.name,
         email: updated?.email ?? user.email,
         imageUrl: updated?.imageUrl ?? user.imageUrl ?? undefined,
-        isAdmin: metadata.isAdmin,
-        tier: metadata.tier,
+        isAdmin: validated.isAdmin,
+        tier: settings.tier,
         createdAt: updated?.createdAt ?? user.createdAt,
       },
       "user",
@@ -520,11 +671,16 @@ export const adminUsersDAL = {
   async updateTier(userId: string, payload: z.input<typeof updateTierSchema>) {
     const validated = updateTierSchema.parse(payload);
     const user = await ensureUserExists(userId);
+    const settings = await getEffectiveAdminSettings(userId, user.clerkId, {
+      refreshFromClerk: true,
+    });
 
     await updateClerkMetadata(user.clerkId, { tier: validated.tier });
-    await upsertAdminSettings(userId, { tier: validated.tier });
+    await saveAdminSettings(userId, {
+      isAdmin: settings.isAdmin,
+      tier: validated.tier,
+    });
 
-    const metadata = await getClerkMetadata(user.clerkId);
     const updated = await getPersistenceDb().query.users.findFirst({
       where: eq(users.id, userId),
     });
@@ -536,7 +692,7 @@ export const adminUsersDAL = {
         name: updated?.name ?? user.name,
         email: updated?.email ?? user.email,
         imageUrl: updated?.imageUrl ?? user.imageUrl ?? undefined,
-        isAdmin: metadata.isAdmin,
+        isAdmin: settings.isAdmin,
         tier: validated.tier,
         createdAt: updated?.createdAt ?? user.createdAt,
       },

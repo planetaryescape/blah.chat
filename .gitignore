@@ -47,3 +47,6 @@ playwright-report/
 .turbo
 .beads/daemon-error
 .env*.local
+
+# Fallow cache
+.fallow/

@@ -584,9 +584,9 @@ export default function UserDetailPage({
                       fill="#8884d8"
                       dataKey="totalCost"
                     >
-                      {modelBreakdown.map((_entry, index: number) => (
+                      {modelBreakdown.map((entry: any, index: number) => (
                         <Cell
-                          key={`cell-${index}`}
+                          key={entry.name ?? entry.modelId ?? `cell-${index}`}
                           fill={COLORS[index % COLORS.length]}
                         />
                       ))}
@@ -712,8 +712,11 @@ export default function UserDetailPage({
                         fill="#8884d8"
                         dataKey="value"
                       >
-                        {costTypeData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        {costTypeData.map((entry) => (
+                          <Cell
+                            key={entry.name ?? entry.color}
+                            fill={entry.color}
+                          />
                         ))}
                       </Pie>
                       <Tooltip

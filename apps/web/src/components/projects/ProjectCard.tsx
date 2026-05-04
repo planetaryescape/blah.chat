@@ -44,8 +44,16 @@ export function ProjectCard({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       className="group relative flex flex-col h-full bg-card hover:bg-muted/10 border border-border/40 hover:border-border/80 rounded-xl overflow-hidden shadow-sm transition-all duration-300 cursor-pointer"
       onClick={() => router.push(`/projects/${project._id}`)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          router.push(`/projects/${project._id}`);
+        }
+      }}
     >
       <div className="flex flex-col flex-1 p-5">
         {/* Header */}

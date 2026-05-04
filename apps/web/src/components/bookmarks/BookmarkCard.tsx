@@ -106,9 +106,9 @@ export function BookmarkCard({ bookmark }: BookmarkCardProps) {
         {/* Tags */}
         {bookmark.tags && bookmark.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pt-3 border-t border-border/30">
-            {bookmark.tags.slice(0, 4).map((tag: any, index: number) => (
+            {bookmark.tags.slice(0, 4).map((tag: any) => (
               <Badge
-                key={`${tag}-${index}`}
+                key={tag}
                 variant="secondary"
                 className="text-xs px-2 py-0.5 bg-primary/5 text-primary/80 border-primary/10 hover:bg-primary/10 transition-colors"
               >

@@ -112,9 +112,9 @@ export function BookmarksTable({ bookmarks, onRemove }: BookmarkTableProps) {
 
         return (
           <div className="flex flex-wrap gap-1">
-            {tags.slice(0, 2).map((tag: string, index: number) => (
+            {tags.slice(0, 2).map((tag: string) => (
               <Badge
-                key={`${tag}-${index}`}
+                key={tag}
                 variant="secondary"
                 className="text-[10px] px-1.5 py-0 h-5 bg-muted/50 text-muted-foreground border-border/30"
               >

@@ -79,7 +79,7 @@ function ModelsListSkeleton() {
       <Skeleton className="h-8 w-48" />
       <div className="space-y-2">
         {[...Array(5)].map((_, i) => (
-          <Skeleton key={i} className="h-16 w-full" />
+          <Skeleton key={`model-skeleton-${i}`} className="h-16 w-full" />
         ))}
       </div>
     </div>

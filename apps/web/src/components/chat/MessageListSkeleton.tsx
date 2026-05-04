@@ -86,7 +86,7 @@ export function MessageListSkeleton({
                   <div className="space-y-2">
                     {msg.lines.map((line, j) => (
                       <Skeleton
-                        key={j}
+                        key={`${line.width}-${j}`}
                         className={cn(
                           "h-4",
                           line.width,

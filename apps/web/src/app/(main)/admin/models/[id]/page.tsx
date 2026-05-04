@@ -860,8 +860,11 @@ export default function ModelDetailPage({
                         )}
                         {h.changes && h.changes.length > 0 && (
                           <div className="mt-2 text-sm">
-                            {h.changes.map((c: any, i: any) => (
-                              <div key={i} className="text-muted-foreground">
+                            {h.changes.map((c: any) => (
+                              <div
+                                key={`${c.field}-${c.oldValue}`}
+                                className="text-muted-foreground"
+                              >
                                 <span className="font-mono">{c.field}</span>:{" "}
                                 <span className="text-red-500 line-through">
                                   {c.oldValue}

@@ -41,7 +41,7 @@ function AutoRouterSkeleton() {
       <Skeleton className="h-8 w-64" />
       <div className="grid gap-4 md:grid-cols-2">
         {[...Array(2)].map((_, i) => (
-          <Skeleton key={i} className="h-48 w-full" />
+          <Skeleton key={`router-skeleton-${i}`} className="h-48 w-full" />
         ))}
       </div>
     </div>

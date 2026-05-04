@@ -7,6 +7,14 @@ import { UserSyncError } from "@/components/auth/UserSyncError";
 import { useNewChat } from "@/hooks/useNewChat";
 import { useCurrentUser } from "@/lib/hooks/queries/useCurrentUser";
 
+function LoadingScreen({ message }: { message: string }) {
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <p className="text-muted-foreground">{message}</p>
+    </div>
+  );
+}
+
 export default function AppPageClient() {
   const { isSignedIn, isLoaded: clerkLoaded } = useAuth();
   const { startNewChat } = useNewChat();
@@ -24,11 +32,13 @@ export default function AppPageClient() {
 
   // react-doctor: navigation must follow async user-sync state.
   useEffect(() => {
-    if (!clerkLoaded || !isSignedIn) return;
-    if (userLoading) return;
-    if (!currentUser) return;
-    if (navigationStarted.current) return;
-
+    const ready =
+      clerkLoaded &&
+      isSignedIn &&
+      !userLoading &&
+      currentUser &&
+      !navigationStarted.current;
+    if (!ready) return;
     navigationStarted.current = true;
     startNewChat();
   }, [clerkLoaded, isSignedIn, userLoading, currentUser, startNewChat]);
@@ -38,20 +48,12 @@ export default function AppPageClient() {
   }
 
   if (!clerkLoaded || (isSignedIn && userLoading)) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
-    );
+    return <LoadingScreen message="Loading..." />;
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      {isSignedIn ? (
-        <p className="text-muted-foreground">Loading...</p>
-      ) : (
-        <p className="text-muted-foreground">Redirecting to sign in...</p>
-      )}
-    </div>
+    <LoadingScreen
+      message={isSignedIn ? "Loading..." : "Redirecting to sign in..."}
+    />
   );
 }

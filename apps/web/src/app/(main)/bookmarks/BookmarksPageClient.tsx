@@ -16,6 +16,26 @@ import { useBookmarks } from "@/lib/hooks/queries/useBookmarks";
 
 export const dynamic = "force-dynamic";
 
+type BookmarkLike = {
+  messagePreview?: string;
+  conversationTitle?: string;
+  note?: string;
+  tags?: string[];
+};
+
+function bookmarkMatches(b: BookmarkLike, query: string): boolean {
+  const haystack = [
+    b.messagePreview,
+    b.conversationTitle,
+    b.note,
+    b.tags?.join(" "),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(query);
+}
+
 function BookmarksPageContent() {
   const { showBookmarks, isLoading } = useFeatureToggles();
   const { data: bookmarks } = useBookmarks();
@@ -26,21 +46,8 @@ function BookmarksPageContent() {
   const filteredBookmarks = useMemo(() => {
     if (!bookmarks) return [];
     if (!searchQuery) return bookmarks;
-
     const query = searchQuery.toLowerCase();
-    return bookmarks.filter((bookmark) => {
-      const messageContent = bookmark.messagePreview?.toLowerCase() || "";
-      const conversationTitle = bookmark.conversationTitle?.toLowerCase() || "";
-      const note = bookmark.note?.toLowerCase() || "";
-      const tags = bookmark.tags?.join(" ").toLowerCase() || "";
-
-      return (
-        messageContent.includes(query) ||
-        conversationTitle.includes(query) ||
-        note.includes(query) ||
-        tags.includes(query)
-      );
-    });
+    return bookmarks.filter((b) => bookmarkMatches(b, query));
   }, [bookmarks, searchQuery]);
 
   const handleRemove = (id: string) => {

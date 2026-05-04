@@ -82,31 +82,26 @@ export function TaskManagerRenderer({
   };
 
   // Render single task
+  const renderTaskTitle = (task: any, showLink: boolean) => {
+    const completedCls =
+      task.status === "completed" ? "line-through text-muted-foreground" : "";
+    if (showLink && task.url) {
+      return (
+        <a
+          href={task.url}
+          className={`font-medium ${completedCls || "text-primary hover:underline"}`}
+        >
+          {task.title}
+        </a>
+      );
+    }
+    return <span className={`font-medium ${completedCls}`}>{task.title}</span>;
+  };
+
   const renderTask = (task: any, showLink = true) => (
     <div className="py-1">
       <div className="flex items-center gap-2">
-        {showLink && task.url ? (
-          <a
-            href={task.url}
-            className={`font-medium ${
-              task.status === "completed"
-                ? "line-through text-muted-foreground"
-                : "text-primary hover:underline"
-            }`}
-          >
-            {task.title}
-          </a>
-        ) : (
-          <span
-            className={`font-medium ${
-              task.status === "completed"
-                ? "line-through text-muted-foreground"
-                : ""
-            }`}
-          >
-            {task.title}
-          </span>
-        )}
+        {renderTaskTitle(task, showLink)}
         <span className={`text-[10px] ${getStatusColor(task.status)}`}>
           {task.status?.replace("_", " ")}
         </span>

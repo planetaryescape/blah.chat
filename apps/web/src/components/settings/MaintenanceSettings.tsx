@@ -13,29 +13,29 @@ import {
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useSDKClient } from "@/lib/api/sdkClient";
 
 export function MaintenanceSettings() {
   const sdk = useSDKClient();
-  const [isCleaningUp, setIsCleaningUp] = useState(false);
   const [deleteAll, setDeleteAll] = useState(false);
 
-  const handleCleanup = async () => {
-    setIsCleaningUp(true);
-    try {
+  const { run: handleCleanup, isPending: isCleaningUp } = useAsyncAction(
+    async () => {
       const result = await sdk.cleanupEmptyConversations({
         keepOne: !deleteAll,
       });
       toast.success(
         `Deleted ${result.deletedCount} empty conversation${result.deletedCount === 1 ? "" : "s"}`,
       );
-    } catch (error) {
-      toast.error("Failed to cleanup conversations");
-      console.error(error);
-    } finally {
-      setIsCleaningUp(false);
-    }
-  };
+    },
+    {
+      onError: (error) => {
+        toast.error("Failed to cleanup conversations");
+        console.error(error);
+      },
+    },
+  );
 
   return (
     <Card>

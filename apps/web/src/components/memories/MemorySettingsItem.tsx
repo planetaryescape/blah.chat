@@ -23,6 +23,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 interface Memory {
   _id: string;
@@ -46,18 +47,12 @@ export function MemorySettingsItem({
 }: MemorySettingsItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(memory.content);
-  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = async () => {
+  const { run: handleSave, isPending: isSaving } = useAsyncAction(async () => {
     if (!editContent.trim()) return;
-    setIsSaving(true);
-    try {
-      await onUpdate(memory._id, editContent);
-      setIsEditing(false);
-    } finally {
-      setIsSaving(false);
-    }
-  };
+    await onUpdate(memory._id, editContent);
+    setIsEditing(false);
+  });
 
   const handleOpenEdit = () => {
     setEditContent(memory.content);

@@ -18,6 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useBYOD } from "@/lib/hooks/queries/useBYODConfig";
 
 interface ConnectionBlockerProps {
@@ -26,8 +27,19 @@ interface ConnectionBlockerProps {
 
 export function ConnectionBlocker({ children }: ConnectionBlockerProps) {
   const { isEnabled, isLoading, config, error, mutate } = useBYOD();
-  const [isRetrying, setIsRetrying] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+
+  const { run: handleRetry, isPending: isRetrying } = useAsyncAction(
+    async () => {
+      await fetch("/api/v1/byod/test", { method: "POST" });
+      mutate();
+      setRetryCount((c) => c + 1);
+    },
+    {
+      // Error handled via mutate re-fetch
+      onError: () => {},
+    },
+  );
 
   if (!isEnabled && !isLoading) {
     return <>{children}</>;
@@ -52,19 +64,6 @@ export function ConnectionBlocker({ children }: ConnectionBlockerProps) {
   ) {
     return <>{children}</>;
   }
-
-  const handleRetry = async () => {
-    setIsRetrying(true);
-    try {
-      await fetch("/api/v1/byod/test", { method: "POST" });
-      mutate();
-      setRetryCount((c) => c + 1);
-    } catch {
-      // Error handled via mutate re-fetch
-    } finally {
-      setIsRetrying(false);
-    }
-  };
 
   return (
     <div className="flex items-center justify-center min-h-screen p-4">

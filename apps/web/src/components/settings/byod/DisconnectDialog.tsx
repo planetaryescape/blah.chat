@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 export interface DisconnectDialogProps {
   open: boolean;
@@ -30,11 +31,11 @@ export function DisconnectDialog({
   >("idle");
   const [error, setError] = useState<string | null>(null);
 
-  const handleDisconnect = async () => {
-    setStatus("processing");
-    setError(null);
+  const { run: handleDisconnect } = useAsyncAction(
+    async () => {
+      setStatus("processing");
+      setError(null);
 
-    try {
       const res = await fetch("/api/v1/byod", { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json();
@@ -48,11 +49,14 @@ export function DisconnectDialog({
         onOpenChange(false);
         setStatus("idle");
       }, 1000);
-    } catch (err) {
-      setStatus("error");
-      setError(err instanceof Error ? err.message : "Disconnect failed");
-    }
-  };
+    },
+    {
+      onError: (err) => {
+        setStatus("error");
+        setError(err instanceof Error ? err.message : "Disconnect failed");
+      },
+    },
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

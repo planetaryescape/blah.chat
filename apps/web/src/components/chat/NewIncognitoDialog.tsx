@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useApiClient } from "@/lib/api/client";
 
 interface NewIncognitoDialogProps {
@@ -37,14 +38,12 @@ export function NewIncognitoDialog({
   const [enableReadTools, setEnableReadTools] = useState(true);
   const [applyCustomInstructions, setApplyCustomInstructions] = useState(true);
   const [autoDeleteTimeout, setAutoDeleteTimeout] = useState("30");
-  const [isCreating, setIsCreating] = useState(false);
 
   const apiClient = useApiClient();
   const router = useRouter();
 
-  const handleCreate = async () => {
-    setIsCreating(true);
-    try {
+  const { run: handleCreate, isPending: isCreating } = useAsyncAction(
+    async () => {
       const conversation = await apiClient.post<{ _id: string }>(
         "/api/v1/conversations",
         {
@@ -68,13 +67,14 @@ export function NewIncognitoDialog({
       setEnableReadTools(true);
       setApplyCustomInstructions(true);
       setAutoDeleteTimeout("30");
-    } catch (error) {
-      console.error("Failed to create incognito chat:", error);
-      toast.error("Failed to create incognito chat");
-    } finally {
-      setIsCreating(false);
-    }
-  };
+    },
+    {
+      onError: (error) => {
+        console.error("Failed to create incognito chat:", error);
+        toast.error("Failed to create incognito chat");
+      },
+    },
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

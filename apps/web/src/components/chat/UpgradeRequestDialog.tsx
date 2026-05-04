@@ -1,7 +1,6 @@
 "use client";
 
 import { Crown, Loader2 } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useApiClient } from "@/lib/api/client";
 
 interface UpgradeRequestDialogProps {
@@ -24,12 +24,10 @@ export function UpgradeRequestDialog({
   onOpenChange,
   currentTier,
 }: UpgradeRequestDialogProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const apiClient = useApiClient();
 
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
-    try {
+  const { run: handleSubmit, isPending: isSubmitting } = useAsyncAction(
+    async () => {
       await apiClient.post("/api/v1/feedback", {
         feedbackType: "feature",
         description: `Upgrade request: User on ${currentTier} tier requesting pro model access`,
@@ -37,12 +35,9 @@ export function UpgradeRequestDialog({
       });
       toast.success("Request sent! Admins will review your upgrade request.");
       onOpenChange(false);
-    } catch (_error) {
-      toast.error("Failed to send request");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    },
+    { onError: () => toast.error("Failed to send request") },
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

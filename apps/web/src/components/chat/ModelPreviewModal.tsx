@@ -2,7 +2,7 @@
 
 import { MODEL_CONFIG } from "@blah-chat/ai/models";
 import { ArrowRightLeft, Loader2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { analytics } from "@/lib/analytics";
 import { useApiClient } from "@/lib/api/client";
 import { useSDKClient } from "@/lib/api/sdkClient";
@@ -39,7 +40,6 @@ export function ModelPreviewModal({
   userMessage,
 }: Props) {
   const [previewResponse, setPreviewResponse] = useState<string>("");
-  const [loading, setLoading] = useState(true);
   const [comparisonStartTime, setComparisonStartTime] = useState<number>(0);
 
   const currentModel = MODEL_CONFIG[currentModelId];
@@ -54,9 +54,8 @@ export function ModelPreviewModal({
   const isScrolling = useRef<"left" | "right" | null>(null);
 
   // TODO: Phase 15 - need REST route for model preview generation
-  const generatePreviewResponse = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { run: generatePreviewResponse, isPending: loading } = useAsyncAction(
+    async () => {
       const result = await apiClient.post<{ content: string }>(
         `/api/v1/conversations/${encodeURIComponent(conversationId)}/model-preview`,
         {
@@ -82,20 +81,14 @@ export function ModelPreviewModal({
         userSpentTimeComparingMs: Date.now() - comparisonStartTime,
         timestamp: Date.now(),
       });
-    } catch (error) {
-      console.error("Failed to generate preview:", error);
-      setPreviewResponse("Failed to generate preview. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }, [
-    apiClient,
-    conversationId,
-    suggestedModelId,
-    userMessage,
-    currentModelId,
-    comparisonStartTime,
-  ]);
+    },
+    {
+      onError: (error) => {
+        console.error("Failed to generate preview:", error);
+        setPreviewResponse("Failed to generate preview. Please try again.");
+      },
+    },
+  );
 
   useEffect(() => {
     if (open) {

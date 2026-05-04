@@ -23,6 +23,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { useSDKClient } from "@/lib/api/sdkClient";
 import { useCurrentUser } from "@/lib/hooks/queries/useCurrentUser";
@@ -106,8 +107,6 @@ export function CustomInstructionsForm() {
     prefCustomInstructions.moreAboutYou || "",
   );
 
-  const [isLoading, setIsLoading] = useState(false);
-
   // Sync local state when hook value changes
   useEffect(() => {
     setAboutUser(prefCustomInstructions.aboutUser || "");
@@ -122,9 +121,8 @@ export function CustomInstructionsForm() {
     setMoreAboutYou(prefCustomInstructions.moreAboutYou || "");
   }, [prefCustomInstructions]);
 
-  const handleSave = async () => {
-    setIsLoading(true);
-    try {
+  const { run: handleSave, isPending: isLoading } = useAsyncAction(
+    async () => {
       await sdk.updatePreference("customInstructions", {
         aboutUser,
         responseStyle,
@@ -135,12 +133,12 @@ export function CustomInstructionsForm() {
         moreAboutYou: moreAboutYou || undefined,
       });
       toast.success("Personalization settings saved!");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    {
+      onError: (error) =>
+        toast.error(error instanceof Error ? error.message : "Failed to save"),
+    },
+  );
 
   if (!user) {
     return (

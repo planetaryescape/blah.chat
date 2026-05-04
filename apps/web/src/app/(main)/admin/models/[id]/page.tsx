@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 const PROVIDERS = [
   "openai",
@@ -177,7 +178,6 @@ export default function ModelDetailPage({
   });
 
   const [isDirty, setIsDirty] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Load model data into form
@@ -229,9 +229,8 @@ export default function ModelDetailPage({
     setIsDirty(true);
   }, []);
 
-  const handleSave = useCallback(async () => {
-    setIsSaving(true);
-    try {
+  const { run: handleSave, isPending: isSaving } = useAsyncAction(
+    async () => {
       if (isNew) {
         // TODO: Phase G - needs POST /api/v1/admin/models
         const createRes = await fetch("/api/v1/admin/models", {
@@ -299,12 +298,12 @@ export default function ModelDetailPage({
         toast.success("Model updated");
         setIsDirty(false);
       }
-    } catch (error: any) {
-      toast.error(error.message || "Failed to save model");
-    } finally {
-      setIsSaving(false);
-    }
-  }, [isNew, formData, modelId, router]);
+    },
+    {
+      onError: (error: any) =>
+        toast.error(error.message || "Failed to save model"),
+    },
+  );
 
   const handleDeprecate = useCallback(async () => {
     if (!model) return;
@@ -332,19 +331,22 @@ export default function ModelDetailPage({
     }
   }, [model]);
 
-  const executeDelete = useCallback(async () => {
-    if (!model) return;
-    try {
+  const { run: executeDelete } = useAsyncAction(
+    async () => {
+      if (!model) return;
       // TODO: Phase G
       await fetch(`/api/v1/admin/models/${model._id}`, { method: "DELETE" });
       toast.success("Model deleted");
       router.push("/admin/models");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to delete");
-    } finally {
       setShowDeleteConfirm(false);
-    }
-  }, [model, router]);
+    },
+    {
+      onError: (error: any) => {
+        toast.error(error.message || "Failed to delete");
+        setShowDeleteConfirm(false);
+      },
+    },
+  );
 
   if (!isNew && model === undefined) {
     return (

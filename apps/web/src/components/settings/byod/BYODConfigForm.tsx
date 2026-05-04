@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 export interface BYODConfigFormProps {
   isUpdate?: boolean;
@@ -22,18 +23,16 @@ export function BYODConfigForm({
   const [connectionString, setConnectionString] = useState("");
   const [showString, setShowString] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
   const isValid =
     connectionString.length > 0 && connectionString.includes("neon.tech");
 
-  const handleSubmit = async () => {
-    if (!isValid) return;
+  const { run: handleSubmit, isPending: isLoading } = useAsyncAction(
+    async () => {
+      if (!isValid) return;
 
-    setIsLoading(true);
-    setError(null);
+      setError(null);
 
-    try {
       const res = await fetch("/api/v1/byod", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -53,14 +52,14 @@ export function BYODConfigForm({
           : "Neon database connected! Migrations will run shortly.",
       );
       onSuccess();
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to save connection",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    {
+      onError: (err) =>
+        setError(
+          err instanceof Error ? err.message : "Failed to save connection",
+        ),
+    },
+  );
 
   return (
     <div className="space-y-4">

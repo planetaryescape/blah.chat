@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import {
   useCreateTemplate,
   useUpdateTemplate,
@@ -37,22 +38,19 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
   const [prompt, setPrompt] = useState(template?.prompt || "");
   const [description, setDescription] = useState(template?.description || "");
   const [category, setCategory] = useState(template?.category || "coding");
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const createTemplateMutation = useCreateTemplate();
   const updateTemplateMutation = useUpdateTemplate();
 
   const isEditing = !!template;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || !prompt.trim()) {
-      toast.error("Name and prompt are required");
-      return;
-    }
+  const { run: submitTemplate, isPending: isSubmitting } = useAsyncAction(
+    async () => {
+      if (!name.trim() || !prompt.trim()) {
+        toast.error("Name and prompt are required");
+        return;
+      }
 
-    setIsSubmitting(true);
-    try {
       if (isEditing) {
         await updateTemplateMutation.mutateAsync({
           templateId: template._id,
@@ -72,12 +70,18 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
         toast.success("Template created");
       }
       onSuccess?.();
-    } catch (error) {
-      toast.error(`Failed to ${isEditing ? "update" : "create"} template`);
-      console.error(error);
-    } finally {
-      setIsSubmitting(false);
-    }
+    },
+    {
+      onError: (error) => {
+        toast.error(`Failed to ${isEditing ? "update" : "create"} template`);
+        console.error(error);
+      },
+    },
+  );
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    void submitTemplate();
   };
 
   return (

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useCreateNote } from "@/lib/hooks/mutations/useNoteMutations";
 
 interface CreateNoteDialogProps {
@@ -38,7 +39,6 @@ export function CreateNoteDialog({
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState(initialContent);
-  const [isSaving, setIsSaving] = useState(false);
 
   // Sync content when dialog opens with new initialContent
   useEffect(() => {
@@ -48,15 +48,13 @@ export function CreateNoteDialog({
     }
   }, [open, initialContent]);
 
-  const handleSave = async () => {
-    if (!content.trim()) {
-      toast.error("Note content cannot be empty");
-      return;
-    }
+  const { run: handleSave, isPending: isSaving } = useAsyncAction(
+    async () => {
+      if (!content.trim()) {
+        toast.error("Note content cannot be empty");
+        return;
+      }
 
-    setIsSaving(true);
-
-    try {
       const note = await createNoteMutation.mutateAsync({
         content,
         title: title.trim() || undefined,
@@ -68,13 +66,14 @@ export function CreateNoteDialog({
       onOpenChange(false);
 
       router.push(`/notes?note=${note._id}`);
-    } catch (error) {
-      console.error("Failed to save note:", error);
-      toast.error("Failed to save note");
-    } finally {
-      setIsSaving(false);
-    }
-  };
+    },
+    {
+      onError: (error) => {
+        console.error("Failed to save note:", error);
+        toast.error("Failed to save note");
+      },
+    },
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

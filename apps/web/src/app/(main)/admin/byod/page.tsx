@@ -2,7 +2,6 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, Mail, Play, RefreshCw } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,12 +20,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useFeatureFlag } from "@/hooks/usePostHogFeatureFlag";
 
 export default function BYODAdminPage() {
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isRunningMigrations, setIsRunningMigrations] = useState(false);
-  const [isSendingNotifications, setIsSendingNotifications] = useState(false);
   const isBYODEnabled = useFeatureFlag("byod");
 
   // TODO: Phase G - needs /api/v1/admin/byod/stats REST route
@@ -101,47 +98,37 @@ export default function BYODAdminPage() {
     return json.data;
   }; // TODO: Phase G
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
+  const { run: handleRefresh, isPending: isRefreshing } = useAsyncAction(
+    async () => {
       const result = await checkAllHealth({});
       toast.success(
         `Health check: ${result.healthy} healthy, ${result.unhealthy} unhealthy, ${result.outdated} outdated`,
       );
-    } catch (_error) {
-      toast.error("Health check failed");
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
+    },
+    { onError: () => toast.error("Health check failed") },
+  );
 
-  const handleRunMigrations = async () => {
-    setIsRunningMigrations(true);
-    try {
-      const result = await runMigrations({});
-      toast.success(
-        `Migrations: ${result.succeeded} succeeded, ${result.failed} failed`,
-      );
-    } catch (_error) {
-      toast.error("Migrations failed");
-    } finally {
-      setIsRunningMigrations(false);
-    }
-  };
+  const { run: handleRunMigrations, isPending: isRunningMigrations } =
+    useAsyncAction(
+      async () => {
+        const result = await runMigrations({});
+        toast.success(
+          `Migrations: ${result.succeeded} succeeded, ${result.failed} failed`,
+        );
+      },
+      { onError: () => toast.error("Migrations failed") },
+    );
 
-  const handleSendNotifications = async () => {
-    setIsSendingNotifications(true);
-    try {
-      const result = await sendNotifications({});
-      toast.success(
-        `Emails: ${result.sent} sent, ${result.skipped} skipped, ${result.failed} failed`,
-      );
-    } catch (_error) {
-      toast.error("Failed to send notifications");
-    } finally {
-      setIsSendingNotifications(false);
-    }
-  };
+  const { run: handleSendNotifications, isPending: isSendingNotifications } =
+    useAsyncAction(
+      async () => {
+        const result = await sendNotifications({});
+        toast.success(
+          `Emails: ${result.sent} sent, ${result.skipped} skipped, ${result.failed} failed`,
+        );
+      },
+      { onError: () => toast.error("Failed to send notifications") },
+    );
 
   if (isStatsError || isInstancesError) {
     return (

@@ -26,7 +26,7 @@
     "db:studio": "bun --filter=@blah-chat/persistence-postgres run db:studio",
     "package-docs:check": "bun run scripts/check-package-docs.ts",
     "trigger:dev": "bun --filter=@blah-chat/jobs run dev",
-    "prepare": "if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then lefthook install; fi",
+    "prepare": "node scripts/prepare.mjs",
     "api-client:generate": "bun --filter=@blah-chat/api-client run generate",
     "api-client:check": "bun run api-client:generate && git diff --exit-code packages/api-client/src/generated/openapi.ts",
     "api-client:version:auto": "bun run scripts/auto-bump-api-client-version.ts",

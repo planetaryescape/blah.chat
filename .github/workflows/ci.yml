@@ -8,12 +8,13 @@ on:
     branches: [main]
 
 # Workflow-level env so every job inherits cache + filter wiring.
-# - TURBO_TOKEN/TURBO_TEAM enable Turborepo Remote Cache (Vercel) when secrets exist.
+# - TURBO_TOKEN/TURBO_TEAM enable Turborepo Remote Cache (Vercel). VERCEL_TOKEN is
+#   reused as TURBO_TOKEN — they're the same kind of Vercel access token.
 # - TURBO_FILTER scopes runs to packages affected since the PR base. On push to main
 #   and workflow_dispatch it's empty, so the full graph runs (relying on cache to skip
 #   unchanged work).
 env:
-  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TOKEN: ${{ secrets.VERCEL_TOKEN }}
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
   TURBO_FILTER: ${{ github.event_name == 'pull_request' && format('--filter=...[origin/{0}]', github.base_ref) || '' }}
 

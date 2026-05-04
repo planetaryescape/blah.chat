@@ -1,0 +1,186 @@
+"use client";
+
+import { Suspense, useEffect, useRef } from "react";
+import { RecentSearches } from "@/components/search/RecentSearches";
+import { SearchBar } from "@/components/search/SearchBar";
+import { SearchFilters } from "@/components/search/SearchFilters";
+import { SearchHeader } from "@/components/search/SearchHeader";
+import { SearchResults } from "@/components/search/SearchResults";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import { useRecentSearches } from "@/hooks/useRecentSearches";
+import { useSearchFilters } from "@/hooks/useSearchFilters";
+import {
+  type SearchFilters as SearchFiltersType,
+  useSearchResults,
+} from "@/hooks/useSearchResults";
+import { useSearchState } from "@/hooks/useSearchState";
+import { analytics } from "@/lib/analytics";
+
+function SearchPageContent() {
+  // URL-persisted state
+  const { filters, setFilter, clearFilters, hasActiveFilters } =
+    useSearchFilters();
+  const { queryParam, setQueryParam, debouncedQuery, page, setPage } =
+    useSearchState();
+
+  // Convert filters to SearchFiltersType format
+  const searchFilters: SearchFiltersType = {
+    conversation: filters.conversationId,
+    from: filters.dateFrom,
+    to: filters.dateTo,
+    type: filters.messageType,
+  };
+
+  // Data fetching
+  const { results, isSearching, hasMore } = useSearchResults(
+    debouncedQuery,
+    searchFilters,
+    page,
+  );
+
+  // Local state
+  const { recentSearches, isLoading, addSearch, clearRecent } =
+    useRecentSearches();
+  const {
+    selectedCount,
+    toggleSelection,
+    selectAll,
+    clearSelection,
+    isSelected,
+  } = useBulkSelection();
+
+  // Clear selection when filter/search changes
+  useEffect(() => {
+    clearSelection();
+  }, [clearSelection]);
+
+  // Reset page when query or filters change
+  useEffect(() => {
+    if (page > 1) {
+      setPage(1);
+    }
+  }, [page, setPage]);
+
+  // Track successful searches
+  const prevQueryRef = useRef<string>("");
+  useEffect(() => {
+    if (
+      debouncedQuery &&
+      results.length > 0 &&
+      !isSearching &&
+      debouncedQuery !== prevQueryRef.current
+    ) {
+      addSearch(debouncedQuery);
+      prevQueryRef.current = debouncedQuery;
+
+      // Track search event
+      analytics.track("global_search_performed", {
+        queryText: debouncedQuery,
+        searchType: "hybrid",
+        resultsCount: results.length,
+        filterApplied: hasActiveFilters ? "active" : undefined,
+      });
+    }
+  }, [
+    debouncedQuery,
+    results.length,
+    isSearching,
+    addSearch,
+    hasActiveFilters,
+  ]);
+
+  const handleSelectRecentSearch = (query: string) => {
+    setQueryParam(query);
+  };
+
+  const handleLoadMore = () => {
+    setPage((p) => p + 1);
+  };
+
+  const handleClearFilters = () => {
+    clearFilters();
+  };
+
+  const handleActionComplete = () => {
+    // Refresh results and clear selection
+    clearSelection();
+  };
+
+  return (
+    <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
+      {/* Background gradients */}
+
+      {/* Fixed header */}
+      <div className="flex-none z-50">
+        <SearchHeader>
+          <div className="space-y-4">
+            <SearchBar
+              value={queryParam}
+              onChange={setQueryParam}
+              isSearching={isSearching}
+              focusOnMount
+            />
+            <SearchFilters
+              filters={filters}
+              onClearFilters={handleClearFilters}
+              hasActiveFilters={hasActiveFilters}
+              onFilterChange={setFilter}
+            />
+          </div>
+        </SearchHeader>
+      </div>
+
+      <ScrollArea className="flex-1 w-full min-h-0">
+        <div className="container mx-auto max-w-6xl px-4 py-8 relative">
+          {/* Show recent searches when no query */}
+          {!debouncedQuery && !queryParam && (
+            <RecentSearches
+              recentSearches={recentSearches}
+              isLoading={isLoading}
+              onSelectSearch={handleSelectRecentSearch}
+              onClearRecent={clearRecent}
+            />
+          )}
+
+          {/* Show results when searching */}
+          {(debouncedQuery || queryParam) && (
+            <SearchResults
+              results={results}
+              isLoading={isSearching}
+              query={debouncedQuery}
+              hasMore={hasMore}
+              onLoadMore={handleLoadMore}
+              hasFilters={hasActiveFilters}
+              onClearFilters={handleClearFilters}
+              selectedCount={selectedCount}
+              isSelected={isSelected}
+              toggleSelection={toggleSelection}
+              selectAll={selectAll}
+              clearSelection={clearSelection}
+              onRefresh={handleActionComplete}
+            />
+          )}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+}
+
+export default function SearchPageClient() {
+  return (
+    <Suspense fallback={<SearchPageSkeleton />}>
+      <SearchPageContent />
+    </Suspense>
+  );
+}
+
+function SearchPageSkeleton() {
+  return (
+    <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
+      <div className="flex-none z-50 p-6">
+        <div className="h-12 bg-muted/50 rounded-lg animate-pulse" />
+      </div>
+    </div>
+  );
+}

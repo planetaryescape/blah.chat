@@ -85,12 +85,17 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
 
-      - name: Merge Dependabot PR
+      - name: Enable auto-merge for Dependabot PR
         run: |
-          if gh pr merge --rebase "$PR_NUMBER" --repo "$REPO" --match-head-commit "$HEAD_SHA"; then
+          # Use --auto so GitHub queues the merge until all branch protection
+          # requirements are met (status checks, up-to-date branch, signatures).
+          # An immediate merge fails when the branch is BEHIND main even if
+          # every check passes, because the ruleset requires up-to-date branches.
+          if gh pr merge --rebase --auto "$PR_NUMBER" --repo "$REPO" --match-head-commit "$HEAD_SHA"; then
+            echo "::notice::Auto-merge enabled for PR #$PR_NUMBER"
             exit 0
           fi
-          echo "::notice::Merge skipped/failed (likely requires approval). Leaving PR open."
+          echo "::notice::Enabling auto-merge failed (token lacks permission, PR not mergeable, or head SHA changed). Leaving PR open."
           exit 0
         env:
           GH_TOKEN: ${{ secrets.MERGE_BOT_TOKEN || secrets.GITHUB_TOKEN }}

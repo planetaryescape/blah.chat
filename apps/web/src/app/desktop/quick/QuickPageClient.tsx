@@ -137,11 +137,10 @@ export default function QuickPageClient() {
   // Scroll focused item into view
   useEffect(() => {
     if (focusedIndex < 0 || !listRef.current) return;
-    const buttons = listRef.current.querySelectorAll("[data-conversation]");
-    const target = buttons.item(focusedIndex);
-    if (target) {
-      target.scrollIntoView({ block: "nearest" });
-    }
+    const buttons = Array.from(
+      listRef.current.querySelectorAll("[data-conversation]"),
+    );
+    buttons.at(focusedIndex)?.scrollIntoView({ block: "nearest" });
   }, [focusedIndex]);
 
   // Reset focus when page changes

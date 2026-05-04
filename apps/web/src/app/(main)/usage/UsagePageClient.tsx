@@ -40,14 +40,14 @@ import { UsageChartsSection } from "./_components/UsageChartsSection";
 
 export const dynamic = "force-dynamic";
 
-const FEATURE_LABELS: Record<string, string> = {
-  chat: "Chat",
-  notes: "Notes",
-  tasks: "Tasks",
-  files: "Files",
-  memory: "Memory",
-  smart_assistant: "Smart Assistant",
-};
+const FEATURE_LABELS = new Map<string, string>([
+  ["chat", "Chat"],
+  ["notes", "Notes"],
+  ["tasks", "Tasks"],
+  ["files", "Files"],
+  ["memory", "Memory"],
+  ["smart_assistant", "Smart Assistant"],
+]);
 
 interface FeatureCostBucket {
   total: number;
@@ -71,7 +71,7 @@ function buildFeatureData(costByFeature: Record<string, FeatureCostBucket>): {
   return Object.entries(costByFeature)
     .filter(([, data]) => data.total > 0)
     .map(([feature, data]) => ({
-      name: FEATURE_LABELS[feature] || feature,
+      name: FEATURE_LABELS.get(feature) ?? feature,
       key: feature,
       value: data.total,
       breakdown: {
@@ -88,7 +88,7 @@ function buildModelPieData(
   spendByModel: ModelSpend[],
 ): { name: string; value: number }[] {
   return spendByModel.map((m) => ({
-    name: m.model.split(":").pop() || m.model,
+    name: m.model.split(":").pop() ?? m.model,
     value: m.totalCost,
   }));
 }

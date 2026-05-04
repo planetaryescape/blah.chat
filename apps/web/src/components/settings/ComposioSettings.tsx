@@ -137,7 +137,9 @@ export function ComposioSettings() {
   const handleConnect = (integrationId: string) => {
     setConnectingId(integrationId);
     return connect(integrationId)
-      .catch(() => {})
+      .catch((err) => {
+        console.error("connect failed", err);
+      })
       .finally(() => {
         setConnectingId(null);
       });

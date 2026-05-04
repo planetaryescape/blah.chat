@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { CheckCircle, Loader2 } from "lucide-react";
 
 interface LoadingOverlayProps {
@@ -12,7 +12,7 @@ export function LoadingOverlay({ isLoading, message }: LoadingOverlayProps) {
   return (
     <AnimatePresence>
       {isLoading && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -24,7 +24,7 @@ export function LoadingOverlay({ isLoading, message }: LoadingOverlayProps) {
               {message ?? "Loading..."}
             </p>
           </div>
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
   );
@@ -39,7 +39,7 @@ export function SaveIndicator({ status }: SaveIndicatorProps) {
     <div className="flex items-center gap-1.5 text-xs">
       <AnimatePresence mode="wait">
         {status === "saving" && (
-          <motion.div
+          <m.div
             key="saving"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -48,10 +48,10 @@ export function SaveIndicator({ status }: SaveIndicatorProps) {
           >
             <Loader2 className="w-3 h-3 animate-spin" />
             <span>Saving...</span>
-          </motion.div>
+          </m.div>
         )}
         {status === "saved" && (
-          <motion.div
+          <m.div
             key="saved"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -60,10 +60,10 @@ export function SaveIndicator({ status }: SaveIndicatorProps) {
           >
             <CheckCircle className="w-3 h-3" />
             <span>Saved</span>
-          </motion.div>
+          </m.div>
         )}
         {status === "error" && (
-          <motion.div
+          <m.div
             key="error"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -71,7 +71,7 @@ export function SaveIndicator({ status }: SaveIndicatorProps) {
             className="flex items-center gap-1.5 text-destructive"
           >
             <span>Save failed</span>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>
@@ -90,7 +90,7 @@ export function ApplyingDiffIndicator({
   return (
     <AnimatePresence>
       {isApplying && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
@@ -101,7 +101,7 @@ export function ApplyingDiffIndicator({
             Applying changes
             {operationsCount ? ` (${operationsCount} operations)` : ""}
           </span>
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

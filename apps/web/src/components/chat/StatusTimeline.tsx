@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { Check, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -123,7 +123,7 @@ export function StatusTimeline({
   return (
     <AnimatePresence>
       {isVisible && timelineItems.length > 0 && (
-        <motion.div
+        <m.div
           key="status-timeline"
           role="log"
           aria-live="polite"
@@ -141,7 +141,7 @@ export function StatusTimeline({
               const ToolIcon = item.icon;
 
               return (
-                <motion.div
+                <m.div
                   key={item.id}
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -187,11 +187,11 @@ export function StatusTimeline({
                       </p>
                     )}
                   </div>
-                </motion.div>
+                </m.div>
               );
             })}
           </div>
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

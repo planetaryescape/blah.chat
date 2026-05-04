@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import {
   Brain,
   Copy,
@@ -322,7 +322,7 @@ export function SelectionContextMenu() {
   const menu = (
     <AnimatePresence>
       {selection.isActive && (
-        <motion.div
+        <m.div
           ref={menuRef}
           className="selection-context-menu fixed z-50"
           style={{
@@ -391,7 +391,7 @@ export function SelectionContextMenu() {
               </p>
             </div>
           </div>
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

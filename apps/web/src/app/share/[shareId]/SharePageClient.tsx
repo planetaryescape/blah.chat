@@ -2,7 +2,7 @@
 
 import { useAuth } from "@clerk/nextjs";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   AlertCircle,
   Clock,
@@ -351,7 +351,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
         <div className="absolute top-4 right-4 z-50">
           <ThemeToggle />
         </div>
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.2, 0, 0, 1] }}
@@ -404,7 +404,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
               </div>
             </div>
           </div>
-        </motion.div>
+        </m.div>
       </div>
     );
   }
@@ -415,7 +415,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
         <div className="absolute top-4 right-4 z-50">
           <ThemeToggle />
         </div>
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.2, 0, 0, 1] }}
@@ -469,7 +469,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
               </div>
             </div>
           </div>
-        </motion.div>
+        </m.div>
       </div>
     );
   }
@@ -484,7 +484,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
         <div className="absolute top-4 right-4 z-50">
           <ThemeToggle />
         </div>
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.2, 0, 0, 1] }}
@@ -538,7 +538,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
               </div>
             </div>
           </div>
-        </motion.div>
+        </m.div>
       </div>
     );
   }
@@ -745,7 +745,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
       {/* Main Content */}
       <main className="flex-1 container max-w-4xl mx-auto px-4 py-8 md:py-12 space-y-8">
         {/* Conversation Header */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -762,7 +762,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
               ? "Continue this conversation privately or collaborate with the creator."
               : "Sign in to continue this conversation or try blah.chat for free."}
           </p>
-        </motion.div>
+        </m.div>
 
         {/* Messages */}
         <div className="space-y-6 pb-20">
@@ -772,7 +772,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
 
           {/* Try blah.chat CTA - only show to unauthenticated users */}
           {!isSignedIn && authLoaded && (
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.5 }}
@@ -802,7 +802,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
                   </Button>
                 </CardContent>
               </Card>
-            </motion.div>
+            </m.div>
           )}
         </div>
       </main>

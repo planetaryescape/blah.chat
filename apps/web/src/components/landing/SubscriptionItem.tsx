@@ -1,6 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
+
 import { useEffect, useState } from "react";
 
 export function SubscriptionItem({
@@ -26,7 +27,7 @@ export function SubscriptionItem({
   }, [isVisible, index]);
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, x: -20 }}
       animate={isVisible ? { opacity: 1, x: 0 } : {}}
       transition={{ delay: index * 0.1, duration: 0.4 }}
@@ -36,7 +37,7 @@ export function SubscriptionItem({
         <span className="relative font-mono">
           {name}
           {showStrike && (
-            <motion.span
+            <m.span
               initial={{ width: 0 }}
               animate={{ width: "100%" }}
               transition={{ duration: 0.3 }}
@@ -53,6 +54,6 @@ export function SubscriptionItem({
       >
         {price}
       </span>
-    </motion.div>
+    </m.div>
   );
 }

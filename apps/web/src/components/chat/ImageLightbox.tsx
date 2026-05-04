@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import {
   ChevronLeft,
   ChevronRight,
@@ -165,7 +165,7 @@ export function ImageLightbox({
         {/* Image container - scrollable when zoomed */}
         <div className="flex items-center justify-center w-full h-full overflow-auto p-4">
           <AnimatePresence mode="wait" custom={direction}>
-            <motion.div
+            <m.div
               key={currentIndex}
               className="flex items-center justify-center min-w-full min-h-full"
               custom={direction}
@@ -186,7 +186,7 @@ export function ImageLightbox({
                   transition: "all 0.2s ease-out",
                 }}
               />
-            </motion.div>
+            </m.div>
           </AnimatePresence>
         </div>
 

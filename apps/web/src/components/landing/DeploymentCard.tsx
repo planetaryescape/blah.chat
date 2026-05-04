@@ -1,6 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
+
 import type React from "react";
 
 export function DeploymentCard({
@@ -21,7 +22,7 @@ export function DeploymentCard({
   index: number;
 }) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
@@ -49,6 +50,6 @@ export function DeploymentCard({
         {title}
       </h3>
       <p className="text-muted-foreground text-sm">{description}</p>
-    </motion.div>
+    </m.div>
   );
 }

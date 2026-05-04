@@ -14,6 +14,22 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    # Expo / React Native packages must be bumped as a set via `expo install`
+    # or `npx expo upgrade` to keep SDK versions aligned. Block individual
+    # major bumps so we don't get apps/mobile PRs that desync the SDK.
+    ignore:
+      - dependency-name: "expo"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "expo-*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@expo/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-native"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-native-*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@react-native-*/*"
+        update-types: ["version-update:semver-major"]
     groups:
       patch-updates:
         patterns:

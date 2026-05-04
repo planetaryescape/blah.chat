@@ -16,12 +16,12 @@ import { useBookmarks } from "@/lib/hooks/queries/useBookmarks";
 
 export const dynamic = "force-dynamic";
 
-type BookmarkLike = {
+interface BookmarkLike {
   messagePreview?: string;
   conversationTitle?: string;
   note?: string;
   tags?: string[];
-};
+}
 
 function bookmarkMatches(b: BookmarkLike, query: string): boolean {
   const haystack = [
@@ -105,7 +105,9 @@ function BookmarksPageContent() {
                   variant={viewMode === "grid" ? "secondary" : "ghost"}
                   size="icon"
                   className="h-7 w-7 rounded-md"
-                  onClick={() => setViewMode("grid")}
+                  onClick={() => {
+                    setViewMode("grid");
+                  }}
                   title="Grid View"
                 >
                   <LayoutGrid className="h-4 w-4" />
@@ -114,7 +116,9 @@ function BookmarksPageContent() {
                   variant={viewMode === "table" ? "secondary" : "ghost"}
                   size="icon"
                   className="h-7 w-7 rounded-md"
-                  onClick={() => setViewMode("table")}
+                  onClick={() => {
+                    setViewMode("table");
+                  }}
                   title="Table View"
                 >
                   <List className="h-4 w-4" />
@@ -126,7 +130,9 @@ function BookmarksPageContent() {
                 <Input
                   placeholder="Search bookmarks..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                  }}
                   className="pl-9 h-9 bg-muted/40 border-border/40 focus:bg-background focus:border-primary/30 transition-all text-sm"
                 />
               </div>
@@ -156,7 +162,7 @@ function BookmarksPageContent() {
             </div>
           ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
-              {filteredBookmarks.map((bookmark: any) => (
+              {filteredBookmarks.map((bookmark) => (
                 <BookmarkCard key={bookmark._id} bookmark={bookmark} />
               ))}
             </div>

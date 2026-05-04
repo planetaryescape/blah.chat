@@ -1,5 +1,15 @@
 import type { ToolRendererProps } from "./types";
 
+interface TaskLike {
+  _id?: string;
+  id?: string;
+  title?: string;
+  status?: string;
+  url?: string;
+  urgency?: string;
+  deadline?: number | string;
+}
+
 /**
  * Renderer for the manageTasks tool.
  * Displays operation-specific UI for task management.
@@ -12,7 +22,7 @@ export function TaskManagerRenderer({
 }: ToolRendererProps) {
   const operation = parsedArgs?.operation || "unknown";
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | undefined) => {
     switch (status) {
       case "completed":
         return "text-green-500";
@@ -82,7 +92,7 @@ export function TaskManagerRenderer({
   };
 
   // Render single task
-  const renderTaskTitle = (task: any, showLink: boolean) => {
+  const renderTaskTitle = (task: TaskLike, showLink: boolean) => {
     const completedCls =
       task.status === "completed" ? "line-through text-muted-foreground" : "";
     if (showLink && task.url) {
@@ -98,7 +108,7 @@ export function TaskManagerRenderer({
     return <span className={`font-medium ${completedCls}`}>{task.title}</span>;
   };
 
-  const renderTask = (task: any, showLink = true) => (
+  const renderTask = (task: TaskLike, showLink = true) => (
     <div className="py-1">
       <div className="flex items-center gap-2">
         {renderTaskTitle(task, showLink)}
@@ -131,7 +141,7 @@ export function TaskManagerRenderer({
         <div className="text-[10px] text-muted-foreground">
           Please specify which task:
         </div>
-        {candidates.slice(0, 5).map((task: any) => (
+        {candidates.slice(0, 5).map((task: TaskLike) => (
           <div key={task._id ?? task.id ?? task.title}>{renderTask(task)}</div>
         ))}
       </div>
@@ -151,7 +161,7 @@ export function TaskManagerRenderer({
 
     return (
       <div className="space-y-1.5 max-h-48 overflow-y-auto mt-1">
-        {tasks.slice(0, 10).map((task: any) => (
+        {tasks.slice(0, 10).map((task: TaskLike) => (
           <div key={task._id ?? task.id ?? task.title}>{renderTask(task)}</div>
         ))}
       </div>

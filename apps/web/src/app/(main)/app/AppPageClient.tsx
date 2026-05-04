@@ -15,6 +15,28 @@ function LoadingScreen({ message }: { message: string }) {
   );
 }
 
+interface SyncState {
+  clerkLoaded: boolean;
+  isSignedIn: boolean;
+  userLoading: boolean;
+  hasUser: boolean;
+  hasError: boolean;
+}
+
+function shouldShowError(s: SyncState) {
+  return s.isSignedIn && !s.userLoading && !s.hasUser && s.hasError;
+}
+
+function shouldShowLoading(s: SyncState) {
+  return !s.clerkLoaded || (s.isSignedIn && s.userLoading);
+}
+
+function isReady(s: SyncState, started: boolean) {
+  return (
+    s.clerkLoaded && s.isSignedIn && !s.userLoading && s.hasUser && !started
+  );
+}
+
 export default function AppPageClient() {
   const { isSignedIn, isLoaded: clerkLoaded } = useAuth();
   const { startNewChat } = useNewChat();
@@ -30,24 +52,26 @@ export default function AppPageClient() {
     redirect("/sign-in");
   }
 
+  const state: SyncState = {
+    clerkLoaded: !!clerkLoaded,
+    isSignedIn: !!isSignedIn,
+    userLoading,
+    hasUser: !!currentUser,
+    hasError: !!userError,
+  };
+
   // react-doctor: navigation must follow async user-sync state.
   useEffect(() => {
-    const ready =
-      clerkLoaded &&
-      isSignedIn &&
-      !userLoading &&
-      currentUser &&
-      !navigationStarted.current;
-    if (!ready) return;
+    if (!isReady(state, navigationStarted.current)) return;
     navigationStarted.current = true;
     startNewChat();
-  }, [clerkLoaded, isSignedIn, userLoading, currentUser, startNewChat]);
+  }, [state, startNewChat]);
 
-  if (isSignedIn && !userLoading && !currentUser && userError) {
+  if (shouldShowError(state)) {
     return <UserSyncError />;
   }
 
-  if (!clerkLoaded || (isSignedIn && userLoading)) {
+  if (shouldShowLoading(state)) {
     return <LoadingScreen message="Loading..." />;
   }
 

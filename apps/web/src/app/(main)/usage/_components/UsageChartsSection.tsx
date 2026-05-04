@@ -1,5 +1,6 @@
 "use client";
 
+import type * as React from "react";
 import {
   Area,
   AreaChart,
@@ -28,37 +29,55 @@ const COLORS = [
   "#6366f1",
 ];
 
-const COST_TYPE_COLORS: Record<string, string> = {
-  text: "#3b82f6",
-  voice: "#10b981",
-  images: "#a855f7",
-};
+const COST_TYPE_COLORS = new Map<string, string>([
+  ["text", "#3b82f6"],
+  ["voice", "#10b981"],
+  ["images", "#a855f7"],
+]);
 
-const FEATURE_COLORS: Record<string, string> = {
-  chat: "#3b82f6",
-  notes: "#10b981",
-  tasks: "#ec4899",
-  files: "#8b5cf6",
-  memory: "#6366f1",
-  smart_assistant: "#14b8a6",
-};
+const FEATURE_COLORS = new Map<string, string>([
+  ["chat", "#3b82f6"],
+  ["notes", "#10b981"],
+  ["tasks", "#ec4899"],
+  ["files", "#8b5cf6"],
+  ["memory", "#6366f1"],
+  ["smart_assistant", "#14b8a6"],
+]);
 
-type FeatureDatum = {
+function pickColor(map: Map<string, string>, key: string, fallback: string) {
+  return map.get(key) ?? fallback;
+}
+
+interface FeatureBreakdown {
+  text: number;
+  tts: number;
+  stt: number;
+  image: number;
+}
+
+interface FeatureDatum {
   key: string;
   name: string;
   value: number;
-  breakdown: { text: number; tts: number; stt: number; image: number };
-};
+  breakdown: FeatureBreakdown;
+}
 
-type ModelDatum = { name: string; value: number };
-type CostTypeDatum = { name: string; value: number };
+interface PieDatum {
+  name: string;
+  value: number;
+}
+
+interface DailySpendDatum {
+  date: string;
+  cost: number;
+}
 
 interface UsageChartsSectionProps {
-  dailySpend?: { date: string; cost: number }[];
-  modelPieData: ModelDatum[];
+  dailySpend?: DailySpendDatum[];
+  modelPieData: PieDatum[];
   featureData: FeatureDatum[];
-  costTypeData: CostTypeDatum[];
-  spendByModel?: any[];
+  costTypeData: PieDatum[];
+  spendByModel?: React.ComponentProps<typeof ModelDetailsTable>["data"];
 }
 
 export function UsageChartsSection({
@@ -134,8 +153,8 @@ export function UsageChartsSection({
                   name: f.name,
                   value: f.value,
                 }))}
-                colors={featureData.map(
-                  (f) => FEATURE_COLORS[f.key] || COLORS[0],
+                colors={featureData.map((f) =>
+                  pickColor(FEATURE_COLORS, f.key, COLORS[0]),
                 )}
               />
               <FeatureBreakdownList items={featureData} />
@@ -146,9 +165,12 @@ export function UsageChartsSection({
             <CostPie
               title="Cost by Type"
               data={costTypeData}
-              colors={costTypeData.map(
-                (entry, i) =>
-                  COST_TYPE_COLORS[entry.name.toLowerCase()] || COLORS[i],
+              colors={costTypeData.map((entry, i) =>
+                pickColor(
+                  COST_TYPE_COLORS,
+                  entry.name.toLowerCase(),
+                  COLORS[i % COLORS.length],
+                ),
               )}
             />
           )}
@@ -191,8 +213,8 @@ function CostPie({
             >
               {data.map((entry, i) => (
                 <Cell
-                  key={entry.name ?? `cell-${i}`}
-                  fill={colors?.[i] ?? COLORS[i % COLORS.length]}
+                  key={entry.name || `cell-${i}`}
+                  fill={colors ? colors[i] : COLORS[i % COLORS.length]}
                 />
               ))}
             </Pie>
@@ -215,7 +237,11 @@ function FeatureBreakdownList({ items }: { items: FeatureDatum[] }) {
             <div
               className="w-2 h-2 rounded-full"
               style={{
-                backgroundColor: FEATURE_COLORS[feature.key] || COLORS[0],
+                backgroundColor: pickColor(
+                  FEATURE_COLORS,
+                  feature.key,
+                  COLORS[0],
+                ),
               }}
             />
             <span className="font-medium">{feature.name}</span>

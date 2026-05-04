@@ -21,8 +21,11 @@ export function SearchMemoriesRenderer({
 
       {parsedResult && (
         <div className="space-y-1 max-h-48 overflow-y-auto">
-          {parsedResult.memories?.map((mem: any, i: number) => (
-            <div key={i} className="py-0.5">
+          {parsedResult.memories?.map((mem: any) => (
+            <div
+              key={mem.id ?? `${mem.category}-${mem.content}`}
+              className="py-0.5"
+            >
               <span className="font-medium text-primary">[{mem.category}]</span>{" "}
               <span className="text-muted-foreground">{mem.content}</span>
             </div>

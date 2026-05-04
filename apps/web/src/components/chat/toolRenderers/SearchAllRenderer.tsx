@@ -70,8 +70,11 @@ export function SearchAllRenderer({
 
       {parsedResult && state !== "executing" && (
         <div className="space-y-1.5 max-h-48 overflow-y-auto">
-          {results.slice(0, 8).map(({ source, item }, i) => (
-            <div key={i} className="py-1">
+          {results.slice(0, 8).map(({ source, item }) => (
+            <div
+              key={`${source}-${item.id ?? item.url ?? item.title}`}
+              className="py-1"
+            >
               <div className="flex items-center gap-2">
                 <span
                   className={`text-[9px] px-1.5 py-0.5 rounded ${getTypeColor(source)}`}

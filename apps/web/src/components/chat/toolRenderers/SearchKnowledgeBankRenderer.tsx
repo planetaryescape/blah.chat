@@ -47,10 +47,10 @@ export function SearchKnowledgeBankRenderer({
 
       {parsedResult && state !== "executing" && (
         <div className="space-y-1.5 max-h-48 overflow-y-auto">
-          {results.slice(0, 5).map((r: any, i: number) => {
+          {results.slice(0, 5).map((r: any) => {
             const SourceIcon = getSourceIcon(r.type);
             return (
-              <div key={i} className="py-1">
+              <div key={r.id ?? `${r.type}-${r.title}`} className="py-1">
                 <div className="flex items-center gap-2">
                   <SourceIcon className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                   <span className="font-medium text-foreground truncate">

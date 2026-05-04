@@ -1,10 +1,12 @@
 import { ConversationItem } from "./ConversationItem";
 
+const EMPTY_IDS: string[] = [];
+
 export function ConversationList({
   conversations,
   selectedId = null,
   onClearSelection,
-  selectedIds = [],
+  selectedIds = EMPTY_IDS,
   onToggleSelection,
 }: {
   conversations: any[];

@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/tooltip";
 import { QuickModelSwitcher } from "./QuickModelSwitcher";
 
+const EMPTY_MODELS: string[] = [];
+
 interface ComparisonTriggerProps {
   onStartComparison: (models: string[]) => void;
   isActive: boolean;
@@ -21,7 +23,7 @@ interface ComparisonTriggerProps {
 export function ComparisonTrigger({
   onStartComparison,
   isActive,
-  selectedModels = [],
+  selectedModels = EMPTY_MODELS,
   open: externalOpen,
   onOpenChange: externalOnOpenChange,
 }: ComparisonTriggerProps) {

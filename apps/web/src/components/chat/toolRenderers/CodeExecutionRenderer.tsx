@@ -69,7 +69,7 @@ export function CodeExecutionRenderer({
                 if (!img.url) {
                   return (
                     <div
-                      key={idx}
+                      key={img.storageId ?? `missing-${idx}`}
                       className="p-2 bg-yellow-500/10 text-yellow-600 rounded text-[11px]"
                     >
                       Image {idx + 1}: URL not available

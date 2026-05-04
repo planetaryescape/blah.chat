@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, X } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -21,13 +22,19 @@ export function MessageEditMode({
   onSave,
   onCancel,
 }: MessageEditModeProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    textareaRef.current?.focus();
+  }, []);
+
   return (
     <div className="space-y-3">
       <Textarea
+        ref={textareaRef}
         value={editedContent}
         onChange={(e) => onContentChange(e.target.value)}
         className="min-h-[100px] resize-none font-normal"
-        autoFocus
       />
       <div className="flex items-center gap-2">
         <Button

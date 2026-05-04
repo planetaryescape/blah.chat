@@ -125,9 +125,9 @@ export const ComparisonPanel = forwardRef<HTMLDivElement, ComparisonPanelProps>(
             />
           ) : (
             <div className="flex gap-1 items-center h-6">
-              <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" />
-              <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce delay-150" />
-              <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce delay-300" />
+              <span className="w-2 h-2 bg-primary/40 rounded-full animate-pulse" />
+              <span className="w-2 h-2 bg-primary/40 rounded-full animate-pulse delay-150" />
+              <span className="w-2 h-2 bg-primary/40 rounded-full animate-pulse delay-300" />
             </div>
           )}
         </div>

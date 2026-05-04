@@ -23,8 +23,11 @@ export function ProjectContextRenderer({
       </div>
       {items.length > 0 && state !== "executing" && (
         <div className="max-h-48 overflow-y-auto space-y-1">
-          {items.map((item: any, i: number) => (
-            <div key={i} className="text-muted-foreground">
+          {items.map((item: any) => (
+            <div
+              key={item.id ?? item.title ?? item.name ?? item.content}
+              className="text-muted-foreground"
+            >
               • {item.title || item.name || item.content?.substring(0, 50)}
             </div>
           ))}

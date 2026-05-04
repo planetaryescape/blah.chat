@@ -119,7 +119,7 @@ function SearchPageContent() {
               value={queryParam}
               onChange={setQueryParam}
               isSearching={isSearching}
-              autoFocus
+              focusOnMount
             />
             <SearchFilters
               filters={filters}

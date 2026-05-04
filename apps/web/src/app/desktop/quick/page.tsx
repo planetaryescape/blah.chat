@@ -34,6 +34,11 @@ export default function DesktopQuickPage() {
   const [page, setPage] = useState(0);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const listRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   const totalPages = Math.max(1, Math.ceil(recent.length / PAGE_SIZE));
   const recentItems = useMemo(
@@ -159,6 +164,7 @@ export default function DesktopQuickPage() {
 
           <div className="space-y-2">
             <Input
+              ref={inputRef}
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
               onKeyDown={(event) => {
@@ -168,7 +174,6 @@ export default function DesktopQuickPage() {
                 }
               }}
               placeholder="Ask anything..."
-              autoFocus
             />
             <div className="flex items-center gap-2">
               <Button

@@ -62,7 +62,8 @@ function UsersListSkeleton() {
       <Skeleton className="h-8 w-48" />
       <div className="space-y-2">
         {[...Array(5)].map((_, i) => (
-          <Skeleton key={i} className="h-16 w-full" />
+          // react-doctor: static skeleton, index key is fine
+          <Skeleton key={`user-skeleton-${i}`} className="h-16 w-full" />
         ))}
       </div>
     </div>

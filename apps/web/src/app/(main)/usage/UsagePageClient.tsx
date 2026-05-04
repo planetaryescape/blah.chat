@@ -597,9 +597,9 @@ function UsagePageContent() {
                               }
                               labelLine={{ strokeWidth: 1 }}
                             >
-                              {modelPieData.map((_: any, index: number) => (
+                              {modelPieData.map((entry: any, index: number) => (
                                 <Cell
-                                  key={`cell-${index}`}
+                                  key={entry.name ?? `cell-${index}`}
                                   fill={COLORS[index % COLORS.length]}
                                 />
                               ))}
@@ -724,7 +724,7 @@ function UsagePageContent() {
                             >
                               {costTypeData.map((entry, index) => (
                                 <Cell
-                                  key={`cell-${index}`}
+                                  key={entry.name}
                                   fill={
                                     COST_TYPE_COLORS[
                                       entry.name.toLowerCase() as keyof typeof COST_TYPE_COLORS

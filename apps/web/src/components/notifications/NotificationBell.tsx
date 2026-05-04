@@ -75,11 +75,19 @@ export function NotificationBell() {
             notifications.map((n: any) => (
               <div
                 key={n._id}
+                role="button"
+                tabIndex={0}
                 className={cn(
                   "group flex items-start gap-3 px-4 py-3 hover:bg-muted/50 cursor-pointer border-b last:border-0 transition-colors",
                   !n.read && "bg-primary/5",
                 )}
                 onClick={() => handleNotificationClick(n)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleNotificationClick(n);
+                  }
+                }}
               >
                 {/* Unread indicator dot */}
                 <div className="mt-1.5 flex-shrink-0">

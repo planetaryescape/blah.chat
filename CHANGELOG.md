@@ -1,5 +1,37 @@
 # Changelog
 
+## [1.37.0](https://github.com/planetaryescape/blah.chat/compare/v1.36.1...v1.37.0) (2026-05-04)
+
+
+### Features
+
+* migrate remaining try/finally call sites to useAsyncAction ([3f7a033](https://github.com/planetaryescape/blah.chat/commit/3f7a0332a10d1635c21d3ee019a3c685a7d69d96))
+* Reanimated wrapper hooks + useState init for impure renders ([776b970](https://github.com/planetaryescape/blah.chat/commit/776b970c988610b350dbc5d90b70ff88da9bc6fe))
+* **seo:** add per-route layout metadata for client-component pages ([ebc5ff9](https://github.com/planetaryescape/blah.chat/commit/ebc5ff97098dcdb01349737ee0f6951276c88c31))
+* **seo:** convert client pages to server-component shells with metadata ([c3fc4d6](https://github.com/planetaryescape/blah.chat/commit/c3fc4d623476c41365e9f4aff0bf5b2fc6f24e87))
+* useAsyncAction hook + migrate ~10 mobile call sites ([02ce433](https://github.com/planetaryescape/blah.chat/commit/02ce433f763d9c73fcf01e661bc98eec217f16bc))
+
+
+### Bug Fixes
+
+* **a11y/perf:** index keys, autoFocus, gradients, animations, defaults ([a9196fe](https://github.com/planetaryescape/blah.chat/commit/a9196fe83c2e3f1dea6cdd119ed09b537fa57f80))
+* **a11y:** more index keys, recharts cell keys, role+keydown on clickable divs ([46a8b12](https://github.com/planetaryescape/blah.chat/commit/46a8b123577ca4a86e05a77e74c06019b58e0c10))
+* address Codacy lint round 2 ([bb7f488](https://github.com/planetaryescape/blah.chat/commit/bb7f488bf6730434473591bbda531e3fed688e1c))
+* address Codacy lint round 3 ([4527a27](https://github.com/planetaryescape/blah.chat/commit/4527a27d2feb85f2cb43b43b946eeefe1f7b5cc9))
+* cast Buffer to Uint8Array for createDecipheriv ([26e65f3](https://github.com/planetaryescape/blah.chat/commit/26e65f34bec0915112c85d25220fa945696ab8db))
+* convert client-side router redirects to next/navigation redirect ([3def67a](https://github.com/planetaryescape/blah.chat/commit/3def67ab6a53da08c63a375ebf6987dfb81ba465))
+* drop cyclomatic complexity in flagged files ([631fd17](https://github.com/planetaryescape/blah.chat/commit/631fd17a8bf6de98fbdff778de8ddb238a0d7bab))
+* drop finally clause from chat compact handlers ([8dc6ed6](https://github.com/planetaryescape/blah.chat/commit/8dc6ed63d56b1c746a4b2791c478208b927467ba))
+* hoist useAsyncAction calls above early returns in admin/byod ([25f8cc7](https://github.com/planetaryescape/blah.chat/commit/25f8cc76715f4d5cd20c1ddf72d60878c051af3e))
+* react-doctor phase 1 — Rules-of-Hooks bugs + dead code purge ([a3c9ba9](https://github.com/planetaryescape/blah.chat/commit/a3c9ba9f2d5f53f16ad8f119bfa8fedb0212e309))
+* use Array.from + .at() for QuickPageClient scrollIntoView ([7c81df8](https://github.com/planetaryescape/blah.chat/commit/7c81df8d26e98d4c31b72b31148300398221d908))
+
+
+### Performance Improvements
+
+* extract FlashList renderItem to useCallback in mobile screens ([0b386a7](https://github.com/planetaryescape/blah.chat/commit/0b386a71f4a808ac247800866516e62033074e75))
+* lazy-load framer-motion features via LazyMotion ([507ffb5](https://github.com/planetaryescape/blah.chat/commit/507ffb5485cd3a7ee3a6fa1feadc37363b289c0d))
+
 ## [1.36.1](https://github.com/planetaryescape/blah.chat/compare/v1.36.0...v1.36.1) (2026-04-01)
 
 

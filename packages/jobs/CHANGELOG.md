@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.4.0...jobs-v0.4.1) (2026-05-04)
+
+
+### Bug Fixes
+
+* cast Buffer to Uint8Array for createDecipheriv ([26e65f3](https://github.com/planetaryescape/blah.chat/commit/26e65f34bec0915112c85d25220fa945696ab8db))
+
 ## [0.4.0](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.3.0...jobs-v0.4.0) (2026-03-29)
 
 

@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 export function AdminLimitsSettings() {
   // TODO: Phase G - needs /api/v1/admin/settings REST route
@@ -50,7 +51,6 @@ export function AdminLimitsSettings() {
   const [hardLimitEnabled, setHardLimitEnabled] = useState(true);
   const [dailyLimit, setDailyLimit] = useState(50);
   const [maxIntegrations, setMaxIntegrations] = useState(5);
-  const [isLoading, setIsLoading] = useState(false);
 
   // Load settings from query
   useEffect(() => {
@@ -63,9 +63,8 @@ export function AdminLimitsSettings() {
     }
   }, [settings]);
 
-  const handleSave = async () => {
-    setIsLoading(true);
-    try {
+  const { run: handleSave, isPending: isLoading } = useAsyncAction(
+    async () => {
       await updateSettingsMut.mutateAsync({
         defaultMonthlyBudget: monthlyBudget,
         defaultBudgetAlertThreshold: alertThreshold / 100,
@@ -74,12 +73,9 @@ export function AdminLimitsSettings() {
         maxActiveIntegrations: maxIntegrations,
       });
       toast.success("Limits and budget settings saved!");
-    } catch (_error) {
-      toast.error("Failed to save settings");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    { onError: () => toast.error("Failed to save settings") },
+  );
 
   if (!settings) {
     return (

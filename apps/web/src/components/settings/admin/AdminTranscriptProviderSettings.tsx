@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 const TRANSCRIPT_PROVIDERS = [
   {
@@ -86,7 +87,6 @@ export function AdminTranscriptProviderSettings() {
 
   const [provider, setProvider] = useState("groq");
   const [costPerMinute, setCostPerMinute] = useState(0.0067);
-  const [saving, setSaving] = useState(false);
 
   // Load settings from query
   useEffect(() => {
@@ -107,9 +107,8 @@ export function AdminTranscriptProviderSettings() {
     }
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
+  const { run: handleSave, isPending: saving } = useAsyncAction(
+    async () => {
       await updateSettingsMutation.mutateAsync({
         transcriptProvider: provider,
         transcriptCostPerMinute: costPerMinute,
@@ -117,17 +116,18 @@ export function AdminTranscriptProviderSettings() {
       toast.success(
         `Transcript provider updated to ${TRANSCRIPT_PROVIDERS.find((p) => p.value === provider)?.label}`,
       );
-    } catch (error) {
-      // Backend throws environment-aware errors (dev: specific key, prod: generic)
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Failed to update transcript provider",
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
+    },
+    {
+      onError: (error) => {
+        // Backend throws environment-aware errors (dev: specific key, prod: generic)
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Failed to update transcript provider",
+        );
+      },
+    },
+  );
 
   const hasChanges =
     provider !== settings?.transcriptProvider ||

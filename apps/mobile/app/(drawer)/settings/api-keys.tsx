@@ -18,6 +18,7 @@ import { FluidButton } from "@/components/ui/FluidButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { queryClient } from "@/lib/cache/queryClient";
 import { haptic } from "@/lib/haptics";
+import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { palette, spacing, typography } from "@/lib/theme/designSystem";
 import { createMobileSdkClient } from "@/lib/transport/httpClient";
 import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
@@ -53,23 +54,18 @@ export default function ApiKeysScreen() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [keyName, setKeyName] = useState("");
-  const [creating, setCreating] = useState(false);
   const [newKey, setNewKey] = useState<string | null>(null);
 
-  const handleCreate = useCallback(async () => {
-    if (!keyName.trim()) return;
-    setCreating(true);
-    haptic.medium();
-    try {
+  const { run: handleCreate, isPending: creating } = useAsyncAction(
+    async () => {
+      if (!keyName.trim()) return;
+      haptic.medium();
       const result = await createKeyMutation.mutateAsync(keyName.trim());
       setNewKey(result.key);
       setKeyName("");
-    } catch {
-      Alert.alert("Error", "Failed to create API key.");
-    } finally {
-      setCreating(false);
-    }
-  }, [createKeyMutation, keyName]);
+    },
+    { onError: () => Alert.alert("Error", "Failed to create API key.") },
+  );
 
   const handleRevoke = useCallback(
     (keyId: string, prefix: string) => {

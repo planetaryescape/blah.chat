@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useAssignConversations } from "@/lib/hooks/mutations/useProjectMutations";
 import { useConversations } from "@/lib/hooks/queries/useConversations";
 
@@ -42,7 +43,6 @@ export function BulkConversationAssigner({
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "current" | "unassigned">("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: conversationsData } = useConversations({ pageSize: 500 });
   const conversations = conversationsData?.items;
@@ -101,14 +101,12 @@ export function BulkConversationAssigner({
     }
   };
 
-  const handleAssign = async () => {
-    if (selectedIds.size === 0) {
-      toast.error("No conversations selected");
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
+  const { run: handleAssign, isPending: isAssigning } = useAsyncAction(
+    async () => {
+      if (selectedIds.size === 0) {
+        toast.error("No conversations selected");
+        return;
+      }
       await assignConversations.mutateAsync({
         projectId,
         conversationIds: Array.from(selectedIds),
@@ -118,22 +116,21 @@ export function BulkConversationAssigner({
       );
       setSelectedIds(new Set());
       onOpenChange(false);
-    } catch (error) {
-      toast.error("Failed to assign conversations");
-      console.error(error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    },
+    {
+      onError: (error) => {
+        toast.error("Failed to assign conversations");
+        console.error(error);
+      },
+    },
+  );
 
-  const handleUnassign = async () => {
-    if (selectedIds.size === 0) {
-      toast.error("No conversations selected");
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
+  const { run: handleUnassign, isPending: isUnassigning } = useAsyncAction(
+    async () => {
+      if (selectedIds.size === 0) {
+        toast.error("No conversations selected");
+        return;
+      }
       await assignConversations.mutateAsync({
         projectId,
         targetProjectId: null,
@@ -144,13 +141,16 @@ export function BulkConversationAssigner({
       );
       setSelectedIds(new Set());
       onOpenChange(false);
-    } catch (error) {
-      toast.error("Failed to unassign conversations");
-      console.error(error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    },
+    {
+      onError: (error) => {
+        toast.error("Failed to unassign conversations");
+        console.error(error);
+      },
+    },
+  );
+
+  const isSubmitting = isAssigning || isUnassigning;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

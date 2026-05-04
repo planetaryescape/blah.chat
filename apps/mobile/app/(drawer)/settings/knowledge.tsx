@@ -26,6 +26,7 @@ import { FluidButton } from "@/components/ui/FluidButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { queryClient } from "@/lib/cache/queryClient";
 import { haptic } from "@/lib/haptics";
+import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { palette, spacing, typography } from "@/lib/theme/designSystem";
 import { createMobileSdkClient } from "@/lib/transport/httpClient";
 import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
@@ -97,13 +98,11 @@ export default function KnowledgeBankScreen() {
   const [addType, setAddType] = useState<"text" | "url">("text");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [saving, setSaving] = useState(false);
 
-  const handleAdd = useCallback(async () => {
-    if (!title.trim()) return;
-    setSaving(true);
-    haptic.medium();
-    try {
+  const { run: handleAdd, isPending: saving } = useAsyncAction(
+    async () => {
+      if (!title.trim()) return;
+      haptic.medium();
       if (addType === "text") {
         await createSourceMutation.mutateAsync({
           type: "text",
@@ -120,12 +119,12 @@ export default function KnowledgeBankScreen() {
       setTitle("");
       setContent("");
       setSheetOpen(false);
-    } catch {
-      Alert.alert("Error", "Failed to add source. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  }, [addType, content, createSourceMutation, title]);
+    },
+    {
+      onError: () =>
+        Alert.alert("Error", "Failed to add source. Please try again."),
+    },
+  );
 
   const handleDelete = useCallback(
     (sourceId: string) => {

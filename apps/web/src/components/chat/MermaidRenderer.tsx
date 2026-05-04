@@ -95,10 +95,9 @@ export function MermaidRenderer({
     if (!codeToRender) return;
 
     const renderDiagram = async () => {
+      setError(null);
+      setIsLoading(true);
       try {
-        setError(null);
-        setIsLoading(true);
-
         const mermaid = await getMermaid();
 
         // Use built-in Mermaid themes without color overrides
@@ -172,12 +171,12 @@ export function MermaidRenderer({
             throw originalError;
           }
         }
+        setIsLoading(false);
       } catch (err) {
         // Error is caught - show clean error UI (suppressErrorRendering prevents error SVG)
         setError(
           err instanceof Error ? err.message : "Failed to render diagram",
         );
-      } finally {
         setIsLoading(false);
       }
     };

@@ -1,11 +1,11 @@
 import { Edit, Pin, Star, Trash2, X } from "lucide-react";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { cn } from "@/lib/utils";
 
 interface BulkActionBarProps {
@@ -33,16 +33,11 @@ export function BulkActionBar({
   onAutoRename,
   className,
 }: BulkActionBarProps) {
-  const [isRenaming, setIsRenaming] = useState(false);
-
-  const handleRename = async () => {
-    setIsRenaming(true);
-    try {
+  const { run: handleRename, isPending: isRenaming } = useAsyncAction(
+    async () => {
       await onAutoRename();
-    } finally {
-      setIsRenaming(false);
-    }
-  };
+    },
+  );
 
   return (
     <div

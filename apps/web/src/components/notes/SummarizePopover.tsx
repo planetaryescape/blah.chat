@@ -11,6 +11,7 @@ import {
   DialogFooter,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 const MAX_TEXT_LENGTH = 10000;
 
@@ -47,33 +48,32 @@ export function SummarizePopover({
   onSaveAsNote,
 }: SummarizePopoverProps) {
   const [summary, setSummary] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const generateSummary = async () => {
-    if (selectedText.length > MAX_TEXT_LENGTH) {
-      setError(
-        `Selection too long. Please select less than ${MAX_TEXT_LENGTH.toLocaleString()} characters.`,
-      );
-      return;
-    }
+  const { run: generateSummary, isPending: isLoading } = useAsyncAction(
+    async () => {
+      if (selectedText.length > MAX_TEXT_LENGTH) {
+        setError(
+          `Selection too long. Please select less than ${MAX_TEXT_LENGTH.toLocaleString()} characters.`,
+        );
+        return;
+      }
 
-    setIsLoading(true);
-    setError(null);
-    setSummary("");
+      setError(null);
+      setSummary("");
 
-    try {
       const result = await summarizeText(selectedText);
       setSummary(result.summary);
-    } catch (err) {
-      console.error("Failed to generate summary:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to generate summary";
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    {
+      onError: (err) => {
+        console.error("Failed to generate summary:", err);
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to generate summary";
+        setError(errorMessage);
+      },
+    },
+  );
 
   useEffect(() => {
     if (!open || !selectedText) return;

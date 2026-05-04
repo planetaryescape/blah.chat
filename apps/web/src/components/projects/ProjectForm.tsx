@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { analytics } from "@/lib/analytics";
 import {
   useCreateProject,
@@ -30,7 +31,6 @@ export function ProjectForm({ project, onSuccess }: ProjectFormProps) {
   const [description, setDescription] = useState(project?.description || "");
   const [systemPrompt, setSystemPrompt] = useState(project?.systemPrompt || "");
   const [isTemplate, setIsTemplate] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
@@ -38,16 +38,13 @@ export function ProjectForm({ project, onSuccess }: ProjectFormProps) {
   const isEditing = !!project;
 
   // Core submission logic
-  const executeSubmission = async () => {
-    setIsSubmitting(true);
+  const { run: executeSubmission, isPending: isSubmitting } = useAsyncAction(
+    async () => {
+      if (!name.trim()) {
+        toast.error("Project name is required");
+        return;
+      }
 
-    if (!name.trim()) {
-      toast.error("Project name is required");
-      setIsSubmitting(false);
-      return;
-    }
-
-    try {
       if (isEditing) {
         await updateProject.mutateAsync({
           projectId: project._id,
@@ -77,13 +74,14 @@ export function ProjectForm({ project, onSuccess }: ProjectFormProps) {
         });
       }
       onSuccess?.();
-    } catch (error) {
-      toast.error(`Failed to ${isEditing ? "update" : "create"} project`);
-      console.error(error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    },
+    {
+      onError: (error) => {
+        toast.error(`Failed to ${isEditing ? "update" : "create"} project`);
+        console.error(error);
+      },
+    },
+  );
 
   // Debounced wrapper - prevents rapid double-clicks
   const debouncedSubmit = useDebouncedCallback(executeSubmission, 500, {

@@ -6,6 +6,7 @@ import { useMediaQuery } from "usehooks-ts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useComparisonGroupState } from "@/hooks/useComparisonGroupState";
 import { useSyncedScroll } from "@/hooks/useSyncedScroll";
 import { useUserPreference } from "@/hooks/useUserPreference";
@@ -269,16 +270,16 @@ export function ComparisonView({
     });
   };
 
-  const submitVote = async (outcome: VoteOutcome, winnerId?: string) => {
-    setPendingVote({ outcome, winnerId });
-    try {
+  const { run: submitVote } = useAsyncAction(
+    async (outcome: VoteOutcome, winnerId?: string) => {
+      setPendingVote({ outcome, winnerId });
       await Promise.resolve(onVote(winnerId, outcome));
       await refetch();
       trackVote(outcome, winnerId);
-    } finally {
       setPendingVote(null);
-    }
-  };
+    },
+    { onError: () => setPendingVote(null) },
+  );
 
   const handleConsolidate = async (model: string, mode: ConsolidationMode) => {
     setShowConsolidateDialog(false);

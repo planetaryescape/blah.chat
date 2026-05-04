@@ -31,6 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useSDKClient } from "@/lib/api/sdkClient";
 
 export function CliApiKeysSettings() {
@@ -41,28 +42,22 @@ export function CliApiKeysSettings() {
     queryFn: () => sdk.listCliApiKeys(),
     staleTime: 10_000,
   });
-  const [creating, setCreating] = useState(false);
   const [newKey, setNewKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [revoking, setRevoking] = useState<string | null>(null);
   const [confirmRevoke, setConfirmRevoke] = useState<{
     id: string;
     name: string;
   } | null>(null);
 
-  const handleCreate = async () => {
-    setCreating(true);
-    try {
+  const { run: handleCreate, isPending: creating } = useAsyncAction(
+    async () => {
       const result = await sdk.createCliApiKey();
       setNewKey(result.key);
       await queryClient.invalidateQueries({ queryKey: ["cli-api-keys"] });
       toast.success("API key created");
-    } catch (_err) {
-      toast.error("Failed to create key");
-    } finally {
-      setCreating(false);
-    }
-  };
+    },
+    { onError: () => toast.error("Failed to create key") },
+  );
 
   const handleCopy = async () => {
     if (!newKey) return;
@@ -77,21 +72,18 @@ export function CliApiKeysSettings() {
     setCopied(false);
   };
 
-  const handleRevoke = async () => {
-    if (!confirmRevoke) return;
-
-    setRevoking(confirmRevoke.id);
-    try {
+  const { run: handleRevoke, isPending: isRevoking } = useAsyncAction(
+    async () => {
+      if (!confirmRevoke) return;
       await sdk.revokeCliApiKey(confirmRevoke.id);
       await queryClient.invalidateQueries({ queryKey: ["cli-api-keys"] });
       toast.success("API key revoked");
       setConfirmRevoke(null);
-    } catch (_err) {
-      toast.error("Failed to revoke key");
-    } finally {
-      setRevoking(null);
-    }
-  };
+    },
+    { onError: () => toast.error("Failed to revoke key") },
+  );
+
+  const revoking = isRevoking ? (confirmRevoke?.id ?? null) : null;
 
   if (keysLoading || !keys) {
     return (

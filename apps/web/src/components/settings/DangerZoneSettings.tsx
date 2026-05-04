@@ -22,29 +22,24 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useSDKClient } from "@/lib/api/sdkClient";
 
 export function DangerZoneSettings() {
   const { signOut } = useClerk();
   const sdk = useSDKClient();
 
-  // Export
-  const [isExporting, setIsExporting] = useState(false);
-
   // Delete data
   const [isDeleteDataOpen, setIsDeleteDataOpen] = useState(false);
   const [deleteDataConfirmation, setDeleteDataConfirmation] = useState("");
-  const [isDeletingData, setIsDeletingData] = useState(false);
 
   // Delete account
   const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
   const [deleteAccountConfirmation, setDeleteAccountConfirmation] =
     useState("");
-  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
-  const handleExport = async () => {
-    setIsExporting(true);
-    try {
+  const { run: handleExport, isPending: isExporting } = useAsyncAction(
+    async () => {
       const data = await sdk.exportUserData();
       const blob = new Blob([JSON.stringify(data, null, 2)], {
         type: "application/json",
@@ -58,47 +53,48 @@ export function DangerZoneSettings() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       toast.success("Data exported successfully");
-    } catch (error) {
-      toast.error("Failed to export data");
-      console.error(error);
-    } finally {
-      setIsExporting(false);
-    }
-  };
+    },
+    {
+      onError: (error) => {
+        toast.error("Failed to export data");
+        console.error(error);
+      },
+    },
+  );
 
-  const handleDeleteData = async () => {
-    if (deleteDataConfirmation !== "DELETE MY DATA") return;
-
-    setIsDeletingData(true);
-    try {
+  const { run: handleDeleteData, isPending: isDeletingData } = useAsyncAction(
+    async () => {
+      if (deleteDataConfirmation !== "DELETE MY DATA") return;
       await sdk.deleteUserData({ confirmationText: deleteDataConfirmation });
       toast.success("All your data has been deleted");
       setIsDeleteDataOpen(false);
       setDeleteDataConfirmation("");
-    } catch (error) {
-      toast.error("Failed to delete data");
-      console.error(error);
-    } finally {
-      setIsDeletingData(false);
-    }
-  };
+    },
+    {
+      onError: (error) => {
+        toast.error("Failed to delete data");
+        console.error(error);
+      },
+    },
+  );
 
-  const handleDeleteAccount = async () => {
-    if (deleteAccountConfirmation !== "DELETE MY ACCOUNT") return;
-
-    setIsDeletingAccount(true);
-    try {
-      await sdk.deleteUserAccount({
-        confirmationText: deleteAccountConfirmation,
-      });
-      toast.success("Your account has been deleted");
-      await signOut({ redirectUrl: "/" });
-    } catch (error) {
-      toast.error("Failed to delete account");
-      console.error(error);
-      setIsDeletingAccount(false);
-    }
-  };
+  const { run: handleDeleteAccount, isPending: isDeletingAccount } =
+    useAsyncAction(
+      async () => {
+        if (deleteAccountConfirmation !== "DELETE MY ACCOUNT") return;
+        await sdk.deleteUserAccount({
+          confirmationText: deleteAccountConfirmation,
+        });
+        toast.success("Your account has been deleted");
+        await signOut({ redirectUrl: "/" });
+      },
+      {
+        onError: (error) => {
+          toast.error("Failed to delete account");
+          console.error(error);
+        },
+      },
+    );
 
   return (
     <div className="space-y-6">

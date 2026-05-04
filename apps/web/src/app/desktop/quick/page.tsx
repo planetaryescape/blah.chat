@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useNewChatModel } from "@/hooks/useNewChatModel";
 import { useSDKClient } from "@/lib/api/sdkClient";
 import { openMainWindow } from "@/lib/desktop/ipc";
@@ -30,8 +31,6 @@ export default function DesktopQuickPage() {
 
   const [prompt, setPrompt] = useState("");
   const [recent, setRecent] = useState<Conversation[]>([]);
-  const [isLoadingRecent, setIsLoadingRecent] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [page, setPage] = useState(0);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const listRef = useRef<HTMLDivElement>(null);
@@ -42,19 +41,21 @@ export default function DesktopQuickPage() {
     [recent, page],
   );
 
-  const loadRecent = useCallback(async () => {
-    setIsLoadingRecent(true);
-    try {
+  const { run: loadRecent, isPending: isLoadingRecent } = useAsyncAction(
+    async () => {
       const data = await sdk.listConversations({ limit: 50, archived: false });
       setRecent(data.items);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to load conversations";
-      toast.error(message);
-    } finally {
-      setIsLoadingRecent(false);
-    }
-  }, [sdk]);
+    },
+    {
+      onError: (error) => {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to load conversations";
+        toast.error(message);
+      },
+    },
+  );
 
   useEffect(() => {
     loadRecent();
@@ -70,12 +71,11 @@ export default function DesktopQuickPage() {
     [router],
   );
 
-  const handleSend = useCallback(async () => {
-    const content = prompt.trim();
-    if (!content || isSubmitting) return;
+  const { run: handleSend, isPending: isSubmitting } = useAsyncAction(
+    async () => {
+      const content = prompt.trim();
+      if (!content) return;
 
-    setIsSubmitting(true);
-    try {
       const conversation = await sdk.createConversation({
         model: model,
         title: "New Chat",
@@ -88,14 +88,15 @@ export default function DesktopQuickPage() {
 
       setPrompt("");
       await openInMain(`/chat/${conversation._id}`);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to send message";
-      toast.error(message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [isSubmitting, model, openInMain, prompt, sdk]);
+    },
+    {
+      onError: (error) => {
+        const message =
+          error instanceof Error ? error.message : "Failed to send message";
+        toast.error(message);
+      },
+    },
+  );
 
   // Global keyboard handler for Escape and arrow navigation
   useEffect(() => {

@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useModels } from "@/lib/models/repository";
 
 type SelectionMode = "auto" | "manual" | null;
@@ -41,7 +42,6 @@ export function AutoRouterPreferenceModal() {
 
   const [selection, setSelection] = useState<SelectionMode>(null);
   const [manualModel, setManualModel] = useState<string>("");
-  const [isSaving, setIsSaving] = useState(false);
 
   const dbModels = useModels();
   const modelsByProvider = useMemo(() => {
@@ -55,18 +55,17 @@ export function AutoRouterPreferenceModal() {
 
   const shouldOpen = prefState?.exists === false;
 
-  const handleSave = async () => {
-    if (!selection) {
-      toast.error("Choose an option to continue");
-      return;
-    }
-    if (selection === "manual" && !manualModel) {
-      toast.error("Select a default model");
-      return;
-    }
+  const { run: handleSave, isPending: isSaving } = useAsyncAction(
+    async () => {
+      if (!selection) {
+        toast.error("Choose an option to continue");
+        return;
+      }
+      if (selection === "manual" && !manualModel) {
+        toast.error("Select a default model");
+        return;
+      }
 
-    setIsSaving(true);
-    try {
       if (selection === "auto") {
         await updatePreferences({
           preferences: { autoRouterEnabled: true },
@@ -79,13 +78,14 @@ export function AutoRouterPreferenceModal() {
           },
         });
       }
-    } catch (error) {
-      console.error("[AutoRouterPreferenceModal] Failed to save:", error);
-      toast.error("Failed to save preference");
-    } finally {
-      setIsSaving(false);
-    }
-  };
+    },
+    {
+      onError: (error) => {
+        console.error("[AutoRouterPreferenceModal] Failed to save:", error);
+        toast.error("Failed to save preference");
+      },
+    },
+  );
 
   return (
     <Dialog open={shouldOpen} onOpenChange={() => {}}>

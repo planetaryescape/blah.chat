@@ -110,10 +110,10 @@ export function CommandPalette() {
           }
         }
         setSearchResults(conversationResults);
+        setIsSearching(false);
       } catch (error) {
         console.error("Search failed:", error);
         setSearchResults([]);
-      } finally {
         setIsSearching(false);
       }
     }, 300);

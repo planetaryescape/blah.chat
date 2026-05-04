@@ -47,6 +47,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useComposioOAuth } from "@/hooks/useComposioOAuth";
 import { cn } from "@/lib/utils";
 
@@ -132,14 +133,16 @@ export function ComposioSettings() {
   ]);
 
   // Handle connect
-  const handleConnect = async (integrationId: string) => {
-    setConnectingId(integrationId);
-    try {
+  const { run: handleConnect } = useAsyncAction(
+    async (integrationId: string) => {
+      setConnectingId(integrationId);
       await connect(integrationId);
-    } finally {
       setConnectingId(null);
-    }
-  };
+    },
+    {
+      onError: () => setConnectingId(null),
+    },
+  );
 
   // Handle disconnect/cancel
   const handleDisconnect = async (integrationId: string) => {

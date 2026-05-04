@@ -33,6 +33,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useSDKClient } from "@/lib/api/sdkClient";
 
 type KeyType = "vercelGateway" | "openRouter" | "groq" | "deepgram";
@@ -104,34 +105,30 @@ function ApiKeyCard({
   const config = KEY_CONFIG[keyType];
   const [key, setKey] = useState("");
   const [showKey, setShowKey] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [removing, setRemoving] = useState(false);
 
-  const handleSave = async () => {
-    if (!key.trim()) return;
-    setSaving(true);
-    try {
+  const { run: handleSave, isPending: saving } = useAsyncAction(
+    async () => {
+      if (!key.trim()) return;
       await onSave(key);
       setKey("");
       toast.success(`${config.label} key saved and validated`);
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error, "Failed to save key"));
-    } finally {
-      setSaving(false);
-    }
-  };
+    },
+    {
+      onError: (error) =>
+        toast.error(getErrorMessage(error, "Failed to save key")),
+    },
+  );
 
-  const handleRemove = async () => {
-    setRemoving(true);
-    try {
+  const { run: handleRemove, isPending: removing } = useAsyncAction(
+    async () => {
       await onRemove();
       toast.success(`${config.label} key removed`);
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error, "Failed to remove key"));
-    } finally {
-      setRemoving(false);
-    }
-  };
+    },
+    {
+      onError: (error) =>
+        toast.error(getErrorMessage(error, "Failed to remove key")),
+    },
+  );
 
   return (
     <Card>

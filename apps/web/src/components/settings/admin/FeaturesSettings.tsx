@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 export function FeaturesSettings() {
   // TODO: Phase G - needs /api/v1/admin/settings REST route
@@ -47,7 +48,6 @@ export function FeaturesSettings() {
   const [proModelsEnabled, setProModelsEnabled] = useState(false);
   const [tier1DailyLimit, setTier1DailyLimit] = useState(1);
   const [tier2MonthlyLimit, setTier2MonthlyLimit] = useState(50);
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (settings) {
@@ -57,21 +57,17 @@ export function FeaturesSettings() {
     }
   }, [settings]);
 
-  const handleSave = async () => {
-    setIsLoading(true);
-    try {
+  const { run: handleSave, isPending: isLoading } = useAsyncAction(
+    async () => {
       await updateSettingsMutation.mutateAsync({
         proModelsEnabled,
         tier1DailyProModelLimit: tier1DailyLimit,
         tier2MonthlyProModelLimit: tier2MonthlyLimit,
       });
       toast.success("Pro model settings saved!");
-    } catch (_error) {
-      toast.error("Failed to save settings");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    { onError: () => toast.error("Failed to save settings") },
+  );
 
   if (!settings) {
     return (

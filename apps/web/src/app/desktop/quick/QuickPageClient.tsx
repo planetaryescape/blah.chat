@@ -129,7 +129,9 @@ export default function QuickPageClient() {
       }
     };
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    return () => {
+      window.removeEventListener("keydown", handler);
+    };
   }, [recentItems, focusedIndex, openInMain]);
 
   // Scroll focused item into view
@@ -137,7 +139,9 @@ export default function QuickPageClient() {
     if (focusedIndex < 0 || !listRef.current) return;
     const buttons = listRef.current.querySelectorAll("[data-conversation]");
     const target = buttons.item(focusedIndex);
-    target?.scrollIntoView({ block: "nearest" });
+    if (target) {
+      target.scrollIntoView({ block: "nearest" });
+    }
   }, [focusedIndex]);
 
   // Reset focus when page changes

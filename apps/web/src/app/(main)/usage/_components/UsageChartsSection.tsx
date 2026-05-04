@@ -214,7 +214,7 @@ function CostPie({
               {data.map((entry, i) => (
                 <Cell
                   key={entry.name || `cell-${i}`}
-                  fill={colors ? colors[i] : COLORS[i % COLORS.length]}
+                  fill={colors?.at(i) ?? COLORS.at(i % COLORS.length) ?? "#000"}
                 />
               ))}
             </Pie>

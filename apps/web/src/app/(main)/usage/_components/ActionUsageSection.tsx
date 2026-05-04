@@ -14,16 +14,10 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-interface ActionStats {
-  copy_message?: number;
-  bookmark_message?: number;
-  save_as_note?: number;
-  branch_message?: number;
-  regenerate_message?: number;
-}
+type ActionStats = Map<string, number>;
 
 interface ActionItem {
-  key: keyof ActionStats;
+  key: string;
   icon: LucideIcon;
   label: string;
 }
@@ -37,10 +31,16 @@ const ACTION_ITEMS: ActionItem[] = [
 ];
 
 interface ActionUsageSectionProps {
-  actionStats?: ActionStats;
+  actionStats?: Record<string, number | undefined>;
 }
 
 export function ActionUsageSection({ actionStats }: ActionUsageSectionProps) {
+  const stats: ActionStats = new Map(
+    Object.entries(actionStats ?? {}).filter(
+      (entry): entry is [string, number] => typeof entry[1] === "number",
+    ),
+  );
+
   return (
     <AccordionItem value="actions" className="border rounded-lg px-4">
       <AccordionTrigger>Action Button Usage</AccordionTrigger>
@@ -51,7 +51,7 @@ export function ActionUsageSection({ actionStats }: ActionUsageSectionProps) {
               key={key}
               icon={Icon}
               label={label}
-              count={actionStats?.[key] ?? 0}
+              count={stats.get(key) ?? 0}
             />
           ))}
         </div>

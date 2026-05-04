@@ -27,15 +27,15 @@ function StreamingIndicator() {
   return (
     <div className="flex gap-1 items-center h-4 mt-2">
       <span
-        className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"
+        className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-pulse"
         style={{ animationDelay: "0ms" }}
       />
       <span
-        className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"
+        className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-pulse"
         style={{ animationDelay: "150ms" }}
       />
       <span
-        className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"
+        className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-pulse"
         style={{ animationDelay: "300ms" }}
       />
     </div>

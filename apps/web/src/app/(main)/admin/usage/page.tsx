@@ -191,7 +191,7 @@ export default function UsagePage() {
         <div className="container mx-auto max-w-7xl px-4 py-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div className="space-y-1">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold text-foreground">
                 Usage & Costs
               </h1>
               <p className="text-muted-foreground">

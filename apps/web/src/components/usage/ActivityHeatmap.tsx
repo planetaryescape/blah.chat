@@ -41,7 +41,7 @@ export function ActivityHeatmap({
         <div className="flex flex-col gap-[2px] mr-1 pt-4">
           {dayLabels.map((day, i) => (
             <div
-              key={i}
+              key={`${day}-${i}`}
               className="h-[10px] w-[10px] text-[8px] text-muted-foreground flex items-center justify-center"
             >
               {i % 2 === 1 ? day : ""}
@@ -77,8 +77,11 @@ export function ActivityHeatmap({
       {/* Legend */}
       <div className="flex items-center justify-end gap-1 mt-2 text-[10px] text-muted-foreground">
         <span>Less</span>
-        {intensityColors.map((color, i) => (
-          <div key={i} className={`h-[10px] w-[10px] rounded-[2px] ${color}`} />
+        {intensityColors.map((color) => (
+          <div
+            key={color}
+            className={`h-[10px] w-[10px] rounded-[2px] ${color}`}
+          />
         ))}
         <span>More</span>
       </div>

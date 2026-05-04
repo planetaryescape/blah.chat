@@ -52,8 +52,11 @@ export function QueryHistoryRenderer({
 
       {parsedResult && state !== "executing" && (
         <div className="space-y-1.5 max-h-48 overflow-y-auto">
-          {results.slice(0, 5).map((r: any, i: number) => (
-            <div key={i} className="py-1">
+          {results.slice(0, 5).map((r: any) => (
+            <div
+              key={r.id ?? r.messageId ?? `${r.conversationId}-${r.role}`}
+              className="py-1"
+            >
               <div className="flex items-center gap-2">
                 <a
                   href={r.url}

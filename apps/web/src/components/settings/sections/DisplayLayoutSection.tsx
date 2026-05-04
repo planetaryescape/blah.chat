@@ -56,6 +56,7 @@ export function DisplayLayoutSection({
           {widthOptions.map(({ value, label, description }) => (
             <label
               key={value}
+              aria-label={`${label}: ${description}`}
               className={cn(
                 "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
                 chatWidth === value

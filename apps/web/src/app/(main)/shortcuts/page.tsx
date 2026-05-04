@@ -120,9 +120,9 @@ export default function ShortcutsPage() {
                     {categoryDisplayNames[category] || category}
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {shortcuts.map((shortcut, index) => (
+                    {shortcuts.map((shortcut) => (
                       <ShortcutCard
-                        key={`${category}-${index}`}
+                        key={`${category}-${shortcut.keys}-${shortcut.description}`}
                         keys={shortcut.keys}
                         description={shortcut.description}
                       />
@@ -165,10 +165,14 @@ function ShortcutBadge({ keys }: { keys: string }) {
     <div className="flex items-center gap-1.5 flex-wrap justify-end">
       {parts.map((part, index) => {
         const trimmed = part.trim();
+        // react-doctor: parts are derived from a stable string; index is stable here
         // Skip pure separators
         if (trimmed === "+" || trimmed === "then" || trimmed === ",") {
           return (
-            <span key={index} className="text-xs text-muted-foreground">
+            <span
+              key={`sep-${index}-${trimmed}`}
+              className="text-xs text-muted-foreground"
+            >
               {trimmed}
             </span>
           );
@@ -176,7 +180,7 @@ function ShortcutBadge({ keys }: { keys: string }) {
 
         return (
           <kbd
-            key={index}
+            key={`key-${index}-${trimmed}`}
             className="px-2.5 py-1.5 text-xs font-semibold rounded-md bg-muted/80 border border-border shadow-sm min-w-[2rem] text-center font-mono"
           >
             {trimmed}

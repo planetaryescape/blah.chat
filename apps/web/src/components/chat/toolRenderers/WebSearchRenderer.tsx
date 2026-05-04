@@ -34,8 +34,8 @@ export function WebSearchRenderer({
             </div>
           )}
 
-          {results.slice(0, 5).map((r: any, i: number) => (
-            <div key={i} className="py-1">
+          {results.slice(0, 5).map((r: any) => (
+            <div key={r.url ?? r.title} className="py-1">
               <a
                 href={r.url}
                 target="_blank"

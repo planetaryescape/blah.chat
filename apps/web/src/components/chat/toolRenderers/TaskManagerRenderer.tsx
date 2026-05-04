@@ -136,8 +136,8 @@ export function TaskManagerRenderer({
         <div className="text-[10px] text-muted-foreground">
           Please specify which task:
         </div>
-        {candidates.slice(0, 5).map((task: any, i: number) => (
-          <div key={i}>{renderTask(task)}</div>
+        {candidates.slice(0, 5).map((task: any) => (
+          <div key={task._id ?? task.id ?? task.title}>{renderTask(task)}</div>
         ))}
       </div>
     );
@@ -156,8 +156,8 @@ export function TaskManagerRenderer({
 
     return (
       <div className="space-y-1.5 max-h-48 overflow-y-auto mt-1">
-        {tasks.slice(0, 10).map((task: any, i: number) => (
-          <div key={i}>{renderTask(task)}</div>
+        {tasks.slice(0, 10).map((task: any) => (
+          <div key={task._id ?? task.id ?? task.title}>{renderTask(task)}</div>
         ))}
       </div>
     );

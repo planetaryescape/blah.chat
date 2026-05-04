@@ -25,8 +25,7 @@ export function ProjectsEmptyState({
         </div>
       </div>
 
-      {/* Heading with gradient text */}
-      <h2 className="text-2xl font-semibold tracking-tight mb-3 bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">
+      <h2 className="text-2xl font-semibold tracking-tight mb-3 text-foreground">
         Create Your First Project
       </h2>
 

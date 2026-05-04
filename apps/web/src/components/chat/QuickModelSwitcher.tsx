@@ -39,6 +39,8 @@ import { ModelSelectorItem } from "./ModelSelectorItem";
 import { SelectedModelsChips } from "./SelectedModelsChips";
 import { UpgradeRequestDialog } from "./UpgradeRequestDialog";
 
+const EMPTY_MODELS: string[] = [];
+
 interface QuickModelSwitcherProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -58,7 +60,7 @@ export function QuickModelSwitcher({
   currentModel,
   onSelectModel,
   mode = "single",
-  selectedModels = [],
+  selectedModels = EMPTY_MODELS,
   onSelectedModelsChange,
   showTrigger = false,
   currentTokenUsage,

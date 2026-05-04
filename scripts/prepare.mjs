@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -21,13 +20,10 @@ const lefthookBin = join(
   process.platform === "win32" ? "lefthook.cmd" : "lefthook",
 );
 
-if (!existsSync(lefthookBin)) {
-  // node_modules not installed yet (rare — prepare runs after install). Skip silently.
-  process.exit(0);
-}
-
 try {
   execFileSync(lefthookBin, ["install"], { stdio: "inherit" });
 } catch (err) {
-  console.warn("[prepare] lefthook install skipped:", err?.message ?? err);
+  if (err?.code !== "ENOENT") {
+    console.warn("[prepare] lefthook install skipped:", err?.message ?? err);
+  }
 }

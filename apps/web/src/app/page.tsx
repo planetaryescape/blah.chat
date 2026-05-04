@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useInView, useScroll, useTransform } from "framer-motion";
+import { m, useInView, useScroll, useTransform } from "framer-motion";
 import {
   ArrowRight,
   Brain,
@@ -121,7 +121,7 @@ export default function LandingPage() {
         ref={heroRef}
         className="min-h-screen flex flex-col items-center justify-center px-4 pt-20 pb-12 relative overflow-hidden"
       >
-        <motion.div
+        <m.div
           style={{ y: heroY, opacity: heroOpacity }}
           className="max-w-5xl mx-auto text-center relative z-10"
         >
@@ -136,7 +136,7 @@ export default function LandingPage() {
           </h1>
 
           {/* Subhead */}
-          <motion.p
+          <m.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 2, duration: 0.6 }}
@@ -147,10 +147,10 @@ export default function LandingPage() {
               Switch mid-chat. Compare responses.
             </span>{" "}
             Own your data.
-          </motion.p>
+          </m.p>
 
           {/* CTAs */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 2.3, duration: 0.6 }}
@@ -176,11 +176,11 @@ export default function LandingPage() {
                 Self-host
               </Link>
             </Button>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
 
         {/* Scroll indicator */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 3, duration: 0.5 }}
@@ -189,7 +189,7 @@ export default function LandingPage() {
           <span className="font-mono text-muted-foreground text-sm">
             scroll<span className="cursor-blink">_</span>
           </span>
-        </motion.div>
+        </m.div>
 
         {/* Background grid */}
         <div
@@ -204,7 +204,7 @@ export default function LandingPage() {
       {/* ===== SECTION 2: THE PROBLEM ===== */}
       <section className="py-20 md:py-32 bg-foreground text-background relative">
         <div ref={problemRef} className="container px-4 max-w-3xl mx-auto">
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={problemInView ? { opacity: 1 } : {}}
             transition={{ duration: 0.6 }}
@@ -229,7 +229,7 @@ export default function LandingPage() {
             </div>
 
             {/* Total */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 20 }}
               animate={problemInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 1.5, duration: 0.5 }}
@@ -239,24 +239,24 @@ export default function LandingPage() {
               <span className="font-mono text-2xl md:text-3xl font-black text-destructive">
                 $96+/mo
               </span>
-            </motion.div>
+            </m.div>
 
-            <motion.p
+            <m.p
               initial={{ opacity: 0 }}
               animate={problemInView ? { opacity: 1 } : {}}
               transition={{ delay: 1.8, duration: 0.5 }}
               className="mt-8 text-background/50 text-center italic"
             >
               ...for scattered superpowers you can barely remember to use.
-            </motion.p>
-          </motion.div>
+            </m.p>
+          </m.div>
         </div>
       </section>
 
       {/* ===== SECTION 3: THE SOLUTION ===== */}
       <section className="py-20 md:py-32 relative overflow-hidden">
         <div className="container px-4 max-w-4xl mx-auto text-center">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -269,7 +269,7 @@ export default function LandingPage() {
               Access every model. Switch mid-conversation. Keep context forever.
               Pay once.
             </p>
-          </motion.div>
+          </m.div>
 
           {/* Feature pills */}
           <div className="flex flex-wrap justify-center gap-3 max-w-3xl mx-auto">
@@ -288,7 +288,7 @@ export default function LandingPage() {
       {/* ===== SECTION 4: DEPLOYMENT SPECTRUM ===== */}
       <section className="py-20 md:py-32 bg-zinc-950">
         <div className="container px-4 max-w-6xl mx-auto">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -300,7 +300,7 @@ export default function LandingPage() {
             <p className="text-zinc-400 text-lg max-w-xl mx-auto">
               From fully managed to fully yours. Pick your level of control.
             </p>
-          </motion.div>
+          </m.div>
 
           {/* Spectrum line */}
           <div className="relative mb-8 hidden md:block">
@@ -350,7 +350,7 @@ export default function LandingPage() {
           </div>
 
           {/* GitHub link */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
@@ -366,14 +366,14 @@ export default function LandingPage() {
               github.com/planetaryescape/blah.chat
               <ExternalLink className="w-3 h-3" />
             </Link>
-          </motion.div>
+          </m.div>
         </div>
       </section>
 
       {/* ===== SECTION 5: FEATURES GRID ===== */}
       <section className="py-20 md:py-32 bg-zinc-950">
         <div className="container px-4 max-w-6xl mx-auto">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -385,7 +385,7 @@ export default function LandingPage() {
             <p className="text-zinc-400 text-lg">
               Everything you need. Nothing you don't.
             </p>
-          </motion.div>
+          </m.div>
 
           {/* Bento grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
@@ -479,7 +479,7 @@ export default function LandingPage() {
       {/* ===== SECTION 6: TRUST ===== */}
       <section className="py-20 md:py-32 bg-zinc-950 border-t border-zinc-900">
         <div className="container px-4 max-w-5xl mx-auto">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -491,7 +491,7 @@ export default function LandingPage() {
             <p className="text-zinc-400 text-lg">
               No black boxes. No hidden costs. No data hostage.
             </p>
-          </motion.div>
+          </m.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <TrustBlock icon={Github} title="// CODE_IS_PUBLIC" index={0}>
@@ -545,7 +545,7 @@ export default function LandingPage() {
       {/* ===== SECTION 7: CTA ===== */}
       <section className="py-24 md:py-40 bg-zinc-950 relative overflow-hidden">
         <div className="container px-4 max-w-2xl mx-auto text-center relative z-10">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
@@ -588,7 +588,7 @@ export default function LandingPage() {
                 </Link>
               </Button>
             </div>
-          </motion.div>
+          </m.div>
         </div>
 
         {/* Background glow */}

@@ -1,7 +1,7 @@
 "use client";
 
 import { MODEL_CONFIG } from "@blah-chat/ai/models";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { Eye, Lightbulb, X } from "lucide-react";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -133,7 +133,7 @@ export function ModelRecommendationBanner({
 
   return (
     <AnimatePresence>
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: -10, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
@@ -193,7 +193,7 @@ export function ModelRecommendationBanner({
             </Button>
           </div>
         </div>
-      </motion.div>
+      </m.div>
     </AnimatePresence>
   );
 }

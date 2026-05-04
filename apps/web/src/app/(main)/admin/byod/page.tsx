@@ -49,6 +49,50 @@ export default function BYODAdminPage() {
     },
   });
 
+  const { run: handleRefresh, isPending: isRefreshing } = useAsyncAction(
+    async () => {
+      const res = await fetch("/api/v1/admin/byod/health-check", {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("Failed");
+      const result = (await res.json()).data;
+      toast.success(
+        `Health check: ${result.healthy} healthy, ${result.unhealthy} unhealthy, ${result.outdated} outdated`,
+      );
+    },
+    { onError: () => toast.error("Health check failed") },
+  );
+
+  const { run: handleRunMigrations, isPending: isRunningMigrations } =
+    useAsyncAction(
+      async () => {
+        const res = await fetch("/api/v1/admin/byod/run-migrations", {
+          method: "POST",
+        });
+        if (!res.ok) throw new Error("Failed");
+        const result = (await res.json()).data;
+        toast.success(
+          `Migrations: ${result.succeeded} succeeded, ${result.failed} failed`,
+        );
+      },
+      { onError: () => toast.error("Migrations failed") },
+    );
+
+  const { run: handleSendNotifications, isPending: isSendingNotifications } =
+    useAsyncAction(
+      async () => {
+        const res = await fetch("/api/v1/admin/byod/send-notifications", {
+          method: "POST",
+        });
+        if (!res.ok) throw new Error("Failed");
+        const result = (await res.json()).data;
+        toast.success(
+          `Emails: ${result.sent} sent, ${result.skipped} skipped, ${result.failed} failed`,
+        );
+      },
+      { onError: () => toast.error("Failed to send notifications") },
+    );
+
   // Feature flag check
   if (isBYODEnabled === undefined) {
     return (
@@ -70,65 +114,6 @@ export default function BYODAdminPage() {
       </div>
     );
   }
-
-  const checkAllHealth = async (_args: any) => {
-    const res = await fetch("/api/v1/admin/byod/health-check", {
-      method: "POST",
-    });
-    if (!res.ok) throw new Error("Failed");
-    const json = await res.json();
-    return json.data;
-  }; // TODO: Phase G
-
-  const runMigrations = async (_args: any) => {
-    const res = await fetch("/api/v1/admin/byod/run-migrations", {
-      method: "POST",
-    });
-    if (!res.ok) throw new Error("Failed");
-    const json = await res.json();
-    return json.data;
-  }; // TODO: Phase G
-
-  const sendNotifications = async (_args: any) => {
-    const res = await fetch("/api/v1/admin/byod/send-notifications", {
-      method: "POST",
-    });
-    if (!res.ok) throw new Error("Failed");
-    const json = await res.json();
-    return json.data;
-  }; // TODO: Phase G
-
-  const { run: handleRefresh, isPending: isRefreshing } = useAsyncAction(
-    async () => {
-      const result = await checkAllHealth({});
-      toast.success(
-        `Health check: ${result.healthy} healthy, ${result.unhealthy} unhealthy, ${result.outdated} outdated`,
-      );
-    },
-    { onError: () => toast.error("Health check failed") },
-  );
-
-  const { run: handleRunMigrations, isPending: isRunningMigrations } =
-    useAsyncAction(
-      async () => {
-        const result = await runMigrations({});
-        toast.success(
-          `Migrations: ${result.succeeded} succeeded, ${result.failed} failed`,
-        );
-      },
-      { onError: () => toast.error("Migrations failed") },
-    );
-
-  const { run: handleSendNotifications, isPending: isSendingNotifications } =
-    useAsyncAction(
-      async () => {
-        const result = await sendNotifications({});
-        toast.success(
-          `Emails: ${result.sent} sent, ${result.skipped} skipped, ${result.failed} failed`,
-        );
-      },
-      { onError: () => toast.error("Failed to send notifications") },
-    );
 
   if (isStatsError || isInstancesError) {
     return (

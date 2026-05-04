@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.46.1](https://github.com/planetaryescape/blah.chat/compare/desktop-v0.46.0...desktop-v0.46.1) (2026-05-04)
+
+
+### Bug Fixes
+
+* stop release-please cascade and unblock desktop DMG build ([3e6998b](https://github.com/planetaryescape/blah.chat/commit/3e6998b38f04d0c31e097cce5a06d20123219c47))
+
 ## [0.46.0](https://github.com/planetaryescape/blah.chat/compare/desktop-v0.45.0...desktop-v0.46.0) (2026-05-04)
 
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.37.1](https://github.com/planetaryescape/blah.chat/compare/v1.37.0...v1.37.1) (2026-05-04)
+
+
+### Bug Fixes
+
+* **prepare:** drop existsSync to satisfy Codacy security rule ([bc7a9aa](https://github.com/planetaryescape/blah.chat/commit/bc7a9aa06a4ac66037ec3423231d5c6602eece58))
+* stop release-please cascade and unblock desktop DMG build ([3e6998b](https://github.com/planetaryescape/blah.chat/commit/3e6998b38f04d0c31e097cce5a06d20123219c47))
+
 ## [1.37.0](https://github.com/planetaryescape/blah.chat/compare/v1.36.1...v1.37.0) (2026-05-04)
 
 

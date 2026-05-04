@@ -340,6 +340,7 @@ function ChatPageContent({
   // Track if we've completed initial load to prevent premature redirects
   const initialLoadComplete = useRef(false);
 
+  // react-doctor: navigation must follow async state
   useEffect(() => {
     // Wait for query to finish loading (undefined = loading, null = not found)
     if (conversation === undefined) {

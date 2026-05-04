@@ -10,6 +10,7 @@ import { SettingsRow } from "@/components/settings/SettingsRow";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { FluidButton } from "@/components/ui/FluidButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { queryClient } from "@/lib/cache/queryClient";
 import { haptic } from "@/lib/haptics";
 import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { palette, spacing, typography } from "@/lib/theme/designSystem";
@@ -29,11 +30,19 @@ export default function DangerZoneScreen() {
       const client = createMobileSdkClient(() => getToken());
       return client.deleteUserData({ confirmationText });
     },
+    onSuccess: () => {
+      // Wipe all cached data — user nuked their data on the server.
+      queryClient.invalidateQueries();
+    },
   });
   const deleteAccountMutation = useMutation({
     mutationFn: async (confirmationText: string) => {
       const client = createMobileSdkClient(() => getToken());
       return client.deleteUserAccount({ confirmationText });
+    },
+    onSuccess: () => {
+      // Wipe all cached data — account is gone.
+      queryClient.invalidateQueries();
     },
   });
 

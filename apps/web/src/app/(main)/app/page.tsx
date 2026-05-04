@@ -1,14 +1,13 @@
 "use client";
 
 import { useAuth } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+import { redirect } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { UserSyncError } from "@/components/auth/UserSyncError";
 import { useNewChat } from "@/hooks/useNewChat";
 import { useCurrentUser } from "@/lib/hooks/queries/useCurrentUser";
 
 export default function AppPage() {
-  const router = useRouter();
   const { isSignedIn, isLoaded: clerkLoaded } = useAuth();
   const { startNewChat } = useNewChat();
   const navigationStarted = useRef(false);
@@ -19,12 +18,11 @@ export default function AppPage() {
     error: userError,
   } = useCurrentUser({ enabled: clerkLoaded && !!isSignedIn });
 
-  useEffect(() => {
-    if (clerkLoaded && !isSignedIn) {
-      router.push("/sign-in");
-    }
-  }, [clerkLoaded, isSignedIn, router]);
+  if (clerkLoaded && !isSignedIn) {
+    redirect("/sign-in");
+  }
 
+  // react-doctor: navigation must follow async user-sync state.
   useEffect(() => {
     if (!clerkLoaded || !isSignedIn) return;
     if (userLoading) return;

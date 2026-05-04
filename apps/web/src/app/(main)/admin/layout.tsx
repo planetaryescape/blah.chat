@@ -1,8 +1,7 @@
 "use client";
 
 import { useAuth, useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { redirect } from "next/navigation";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import { AdminSidebar } from "@/components/sidebar/admin-sidebar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -16,19 +15,7 @@ export default function AdminLayout({
   const { user, isLoaded: userLoaded } = useUser();
   const isAdmin =
     (user?.publicMetadata as { isAdmin?: boolean })?.isAdmin === true;
-  const router = useRouter();
   const isLoading = !authLoaded || !userLoaded;
-
-  useEffect(() => {
-    if (isLoading) return;
-    if (!isSignedIn) {
-      router.push("/sign-in");
-      return;
-    }
-    if (!isAdmin) {
-      router.push("/");
-    }
-  }, [isSignedIn, isLoading, isAdmin, router]);
 
   if (isLoading) {
     return (
@@ -38,8 +25,12 @@ export default function AdminLayout({
     );
   }
 
-  if (!isSignedIn || !isAdmin) {
-    return null;
+  if (!isSignedIn) {
+    redirect("/sign-in");
+  }
+
+  if (!isAdmin) {
+    redirect("/");
   }
 
   return (

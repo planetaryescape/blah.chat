@@ -13,7 +13,7 @@ export function AskForClarificationRenderer({
   if (!clarification || state === "executing") return null;
 
   return (
-    <div className="border-l-4 border-amber-500 bg-amber-500/10 p-4 rounded-r-lg my-2">
+    <div className="border border-amber-500/40 bg-amber-500/10 p-4 rounded-lg my-2">
       <div className="flex items-center gap-2 mb-2">
         <HelpCircle className="h-4 w-4 text-amber-500" />
         <span className="font-semibold text-amber-500">

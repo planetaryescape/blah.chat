@@ -27,6 +27,7 @@ function ChatPageContent() {
   const authLoading = !authLoaded;
 
   // Redirect unauthenticated users to sign-in
+  // react-doctor: navigation must follow async state
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.push("/sign-in");

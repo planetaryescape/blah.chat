@@ -80,10 +80,10 @@ export function NotesWorkspace() {
       noteId: note._id,
       title,
       content,
-      tags: tags
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean),
+      tags: tags.split(",").flatMap((tag) => {
+        const trimmed = tag.trim();
+        return trimmed ? [trimmed] : [];
+      }),
       isPinned,
     });
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { Brain, PenLine, Sparkles, Zap } from "lucide-react";
-import { useMemo } from "react";
+import { useState } from "react";
 import { useStarterSuggestions } from "@/hooks/useStarterSuggestions";
 
 function getTimeOfDay(): "morning" | "afternoon" | "evening" {
@@ -39,11 +39,11 @@ export function EmptyScreen({
 }: EmptyScreenProps) {
   const { visibleSuggestions } = useStarterSuggestions();
 
-  const greeting = useMemo(() => {
+  const [greeting] = useState(() => {
     const timeOfDay = getTimeOfDay();
     const greetings = TIME_GREETINGS[timeOfDay];
     return greetings[Math.floor(Math.random() * greetings.length)];
-  }, []);
+  });
 
   const isReturningUser = (conversationCount ?? 0) >= 2;
   const title = isReturningUser

@@ -83,8 +83,9 @@ function MessageBubbleComponent({
   const isComplete = message.status === "complete";
   const rawContent = message.partialContent || message.content || "";
   const createdAt = message._creationTime ?? message.createdAt;
-  const shouldAnimateEntry =
-    Date.now() - createdAt < 5000 || hasRecentBranchTransition();
+  const [shouldAnimateEntry] = useState(
+    () => Date.now() - createdAt < 5000 || hasRecentBranchTransition(),
+  );
 
   const [copied, setCopied] = useState(false);
 

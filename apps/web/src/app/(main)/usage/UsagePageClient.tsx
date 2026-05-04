@@ -49,6 +49,50 @@ const FEATURE_LABELS: Record<string, string> = {
   smart_assistant: "Smart Assistant",
 };
 
+interface FeatureCostBucket {
+  total: number;
+  text: number;
+  tts: number;
+  stt: number;
+  image: number;
+}
+
+interface ModelSpend {
+  model: string;
+  totalCost: number;
+}
+
+function buildFeatureData(costByFeature: Record<string, FeatureCostBucket>): {
+  name: string;
+  key: string;
+  value: number;
+  breakdown: { text: number; tts: number; stt: number; image: number };
+}[] {
+  return Object.entries(costByFeature)
+    .filter(([, data]) => data.total > 0)
+    .map(([feature, data]) => ({
+      name: FEATURE_LABELS[feature] || feature,
+      key: feature,
+      value: data.total,
+      breakdown: {
+        text: data.text,
+        tts: data.tts,
+        stt: data.stt,
+        image: data.image,
+      },
+    }))
+    .sort((a, b) => b.value - a.value);
+}
+
+function buildModelPieData(
+  spendByModel: ModelSpend[],
+): { name: string; value: number }[] {
+  return spendByModel.map((m) => ({
+    name: m.model.split(":").pop() || m.model,
+    value: m.totalCost,
+  }));
+}
+
 function UsagePageContent() {
   const [dateRange, setDateRange] = useState(() => getLastNDays(30));
   const showTasks = useUserPreference("showTasks");
@@ -140,28 +184,11 @@ function UsagePageContent() {
     : [];
 
   // Feature breakdown data
-  const featureData = costByFeature
-    ? Object.entries(costByFeature)
-        .filter(([_, data]: [string, any]) => data.total > 0)
-        .map(([feature, data]: [string, any]) => ({
-          name: FEATURE_LABELS[feature] || feature,
-          key: feature,
-          value: data.total,
-          breakdown: {
-            text: data.text,
-            tts: data.tts,
-            stt: data.stt,
-            image: data.image,
-          },
-        }))
-        .sort((a, b) => b.value - a.value)
-    : [];
+  const featureData = costByFeature ? buildFeatureData(costByFeature) : [];
 
-  const modelPieData =
-    spendByModel?.slice(0, 6).map((m: any) => ({
-      name: m.model.split(":").pop() || m.model,
-      value: m.totalCost,
-    })) || [];
+  const modelPieData = spendByModel
+    ? buildModelPieData(spendByModel.slice(0, 6))
+    : [];
 
   return (
     <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
@@ -386,7 +413,7 @@ function UsagePageContent() {
                         <div className="space-y-1">
                           {percentileRanking.modelRankings
                             .slice(0, 3)
-                            .map((m: any) => (
+                            .map((m: { model: string; percentile: number }) => (
                               <div
                                 key={m.model}
                                 className="flex justify-between text-xs"

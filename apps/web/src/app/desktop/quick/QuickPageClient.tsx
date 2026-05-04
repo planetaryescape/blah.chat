@@ -107,7 +107,10 @@ export default function QuickPageClient() {
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       const total = recentItems.length;
-      if (event.key === "Escape") return window.close();
+      if (event.key === "Escape") {
+        window.close();
+        return;
+      }
       if (event.key === "ArrowDown" && total > 0) {
         event.preventDefault();
         setFocusedIndex((p) => (p < total - 1 ? p + 1 : 0));
@@ -118,9 +121,11 @@ export default function QuickPageClient() {
         setFocusedIndex((p) => (p > 0 ? p - 1 : total - 1));
         return;
       }
-      if (event.key === "Enter") {
-        const conversation = recentItems[focusedIndex];
-        if (conversation) void openInMain(`/chat/${conversation._id}`);
+      if (event.key === "Enter" && focusedIndex >= 0) {
+        const conversation = recentItems.at(focusedIndex);
+        if (conversation) {
+          void openInMain(`/chat/${conversation._id}`);
+        }
       }
     };
     window.addEventListener("keydown", handler);
@@ -131,7 +136,8 @@ export default function QuickPageClient() {
   useEffect(() => {
     if (focusedIndex < 0 || !listRef.current) return;
     const buttons = listRef.current.querySelectorAll("[data-conversation]");
-    buttons[focusedIndex]?.scrollIntoView({ block: "nearest" });
+    const target = buttons.item(focusedIndex);
+    target?.scrollIntoView({ block: "nearest" });
   }, [focusedIndex]);
 
   // Reset focus when page changes
@@ -154,7 +160,9 @@ export default function QuickPageClient() {
             <Input
               ref={inputRef}
               value={prompt}
-              onChange={(event) => setPrompt(event.target.value)}
+              onChange={(event) => {
+                setPrompt(event.target.value);
+              }}
               onKeyDown={(event) => {
                 if (event.key === "Enter" && !event.shiftKey) {
                   event.preventDefault();
@@ -165,7 +173,9 @@ export default function QuickPageClient() {
             />
             <div className="flex items-center gap-2">
               <Button
-                onClick={() => void handleSend()}
+                onClick={() => {
+                  void handleSend();
+                }}
                 disabled={isSubmitting || prompt.trim().length === 0}
                 className="gap-2"
               >
@@ -179,7 +189,9 @@ export default function QuickPageClient() {
 
               <Button
                 variant="outline"
-                onClick={() => void openInMain("/search")}
+                onClick={() => {
+                  void openInMain("/search");
+                }}
                 className="gap-2"
               >
                 <Search className="h-4 w-4" />
@@ -194,7 +206,13 @@ export default function QuickPageClient() {
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
               Recent Chats
             </h2>
-            <Button variant="ghost" size="sm" onClick={() => void loadRecent()}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                void loadRecent();
+              }}
+            >
               Refresh
             </Button>
           </div>
@@ -215,7 +233,9 @@ export default function QuickPageClient() {
                   type="button"
                   key={conversation._id}
                   data-conversation
-                  onClick={() => void openInMain(`/chat/${conversation._id}`)}
+                  onClick={() => {
+                    void openInMain(`/chat/${conversation._id}`);
+                  }}
                   className={`w-full text-left rounded-md border px-3 py-2 transition-colors ${
                     index === focusedIndex
                       ? "border-primary/60 bg-accent"
@@ -239,7 +259,9 @@ export default function QuickPageClient() {
                 variant="ghost"
                 size="sm"
                 disabled={page === 0}
-                onClick={() => setPage((p) => p - 1)}
+                onClick={() => {
+                  setPage((p) => p - 1);
+                }}
                 className="gap-1"
               >
                 <ChevronLeft className="h-3 w-3" />
@@ -252,7 +274,9 @@ export default function QuickPageClient() {
                 variant="ghost"
                 size="sm"
                 disabled={page >= totalPages - 1}
-                onClick={() => setPage((p) => p + 1)}
+                onClick={() => {
+                  setPage((p) => p + 1);
+                }}
                 className="gap-1"
               >
                 Next

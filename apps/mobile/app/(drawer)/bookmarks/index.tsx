@@ -229,6 +229,17 @@ export default function BookmarksListScreen() {
 
   const isLoading = bookmarks === undefined;
 
+  const renderBookmarkItem = useCallback(
+    ({ item }: { item: BookmarkItem }) => (
+      <BookmarkCard
+        bookmark={item}
+        onPress={() => handleBookmarkPress(item)}
+        onLongPress={() => handleBookmarkLongPress(item)}
+      />
+    ),
+    [handleBookmarkPress, handleBookmarkLongPress],
+  );
+
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: "transparent" }}
@@ -319,13 +330,7 @@ export default function BookmarksListScreen() {
       ) : (
         <FlashList<BookmarkItem>
           data={filteredBookmarks}
-          renderItem={({ item }) => (
-            <BookmarkCard
-              bookmark={item}
-              onPress={() => handleBookmarkPress(item)}
-              onLongPress={() => handleBookmarkLongPress(item)}
-            />
-          )}
+          renderItem={renderBookmarkItem}
           keyExtractor={(item) => item._id}
           contentContainerStyle={{
             paddingVertical: spacing.sm,

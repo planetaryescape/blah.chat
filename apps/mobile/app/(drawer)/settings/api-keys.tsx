@@ -118,6 +118,67 @@ export default function ApiKeysScreen() {
     </TouchableOpacity>
   );
 
+  const renderApiKeyItem = useCallback(
+    ({ item }: { item: NonNullable<typeof keysQuery.data>[number] }) => (
+      <View
+        style={{
+          backgroundColor: palette.glassLow,
+          borderRadius: 12,
+          padding: spacing.md,
+          marginBottom: spacing.sm,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: typography.bodyMedium,
+              fontSize: 14,
+              color: palette.starlight,
+            }}
+          >
+            {item.name || "Unnamed Key"}
+          </Text>
+          <TouchableOpacity
+            onPress={() => handleRevoke(item._id, item.keyPrefix)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Trash2 size={16} color={palette.error} />
+          </TouchableOpacity>
+        </View>
+        <Text
+          style={{
+            fontFamily: typography.mono || typography.body,
+            fontSize: 12,
+            color: palette.starlightDim,
+            marginTop: 4,
+          }}
+        >
+          {item.keyPrefix}...
+        </Text>
+        <Text
+          style={{
+            fontFamily: typography.body,
+            fontSize: 11,
+            color: palette.starlightDim,
+            marginTop: 2,
+          }}
+        >
+          Created {formatDate(item.createdAt)}
+          {item.lastUsedAt
+            ? ` · Last used ${formatDate(item.lastUsedAt)}`
+            : " · Never used"}
+        </Text>
+      </View>
+    ),
+    [handleRevoke],
+  );
+
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: "transparent" }}
@@ -174,63 +235,7 @@ export default function ApiKeysScreen() {
           data={keysQuery.data}
           keyExtractor={(item) => item._id}
           contentContainerStyle={{ padding: spacing.md }}
-          renderItem={({ item }) => (
-            <View
-              style={{
-                backgroundColor: palette.glassLow,
-                borderRadius: 12,
-                padding: spacing.md,
-                marginBottom: spacing.sm,
-              }}
-            >
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Text
-                  style={{
-                    fontFamily: typography.bodyMedium,
-                    fontSize: 14,
-                    color: palette.starlight,
-                  }}
-                >
-                  {item.name || "Unnamed Key"}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => handleRevoke(item._id, item.keyPrefix)}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Trash2 size={16} color={palette.error} />
-                </TouchableOpacity>
-              </View>
-              <Text
-                style={{
-                  fontFamily: typography.mono || typography.body,
-                  fontSize: 12,
-                  color: palette.starlightDim,
-                  marginTop: 4,
-                }}
-              >
-                {item.keyPrefix}...
-              </Text>
-              <Text
-                style={{
-                  fontFamily: typography.body,
-                  fontSize: 11,
-                  color: palette.starlightDim,
-                  marginTop: 2,
-                }}
-              >
-                Created {formatDate(item.createdAt)}
-                {item.lastUsedAt
-                  ? ` · Last used ${formatDate(item.lastUsedAt)}`
-                  : " · Never used"}
-              </Text>
-            </View>
-          )}
+          renderItem={renderApiKeyItem}
         />
       )}
 

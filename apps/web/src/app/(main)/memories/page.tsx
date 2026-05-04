@@ -1,8 +1,13 @@
-"use client";
-
 import { Loader2 } from "lucide-react";
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { MemoriesClientPage } from "@/components/memories/MemoriesClientPage";
+
+export const metadata: Metadata = {
+  title: "Memories",
+  description:
+    "Browse and edit the long-term memories the assistant has built about you.",
+};
 
 export default function MemoriesPage() {
   return (

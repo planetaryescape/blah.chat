@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "positions": [
+    {
+      "symbol": "AAPL",
+      "name": "Apple Inc.",
+      "transactions": [
+        {
+          "id": "mn7dclmdghkmne7wzma",
+          "type": "BUY",
+          "date": "2026-03-26",
+          "qty": 25,
+          "pricePerShare": 252.62
+        },
+        {
+          "id": "mn7dd2pnut0xzyvhz0k",
+          "type": "BUY",
+          "date": "2025-03-26",
+          "qty": 22,
+          "pricePerShare": 221.53
+        },
+        {
+          "id": "mn7ddbl4cvq8yza6l1s",
+          "type": "BUY",
+          "date": "2024-03-26",
+          "qty": 12,
+          "pricePerShare": 169.71
+        }
+      ]
+    },
+    {
+      "symbol": "NVDA",
+      "name": "NVIDIA Corporation",
+      "transactions": []
+    },
+    {
+      "symbol": "MSFT",
+      "name": "Microsoft Corporation",
+      "transactions": []
+    }
+  ]
+}

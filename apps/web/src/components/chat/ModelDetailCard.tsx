@@ -25,9 +25,13 @@ export function ModelDetailCard({
     [config],
   );
 
-  if (!config) return null;
+  const ProviderIcon = useMemo(
+    () => (config ? getProviderIcon(config.provider) : null),
+    [config],
+  );
 
-  const ProviderIcon = getProviderIcon(config.provider);
+  if (!config || !ProviderIcon) return null;
+
   const contextDisplay = formatContextWindow(config.contextWindow);
 
   return (

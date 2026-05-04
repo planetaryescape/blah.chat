@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { palette, spacing, typography } from "@/lib/theme/designSystem";
 import { getWebView, webViewAvailable } from "@/lib/webview";
@@ -213,13 +213,11 @@ function MathFallback({ latex, isBlock }: MathRendererProps) {
 function MathRendererComponent({ latex, isBlock = false }: MathRendererProps) {
   const [height, setHeight] = useState(isBlock ? 60 : 30);
   const [loading, setLoading] = useState(true);
+  const WebViewComponent = useMemo(
+    () => (webViewAvailable ? getWebView() : null),
+    [],
+  );
 
-  // If WebView is not available, show fallback
-  if (!webViewAvailable) {
-    return <MathFallback latex={latex} isBlock={isBlock} />;
-  }
-
-  const WebViewComponent = getWebView();
   if (!WebViewComponent) {
     return <MathFallback latex={latex} isBlock={isBlock} />;
   }

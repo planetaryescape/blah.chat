@@ -30,34 +30,31 @@ function createInitialFallback(code: string): string {
   return `<pre class="shiki" style="background-color:#24292e;color:#e1e4e8"><code>${escapeHtml(code)}</code></pre>`;
 }
 
-export function CodeBlock({ code, language, inline }: CodeBlockProps) {
+function InlineCode({ code }: { code: string }) {
+  return (
+    <code
+      className={cn(
+        "px-1.5 py-0.5 rounded text-sm font-mono",
+        "bg-muted/80 text-foreground",
+        "border border-border/20",
+        "dark:bg-gradient-to-br dark:from-[oklch(28%_0.03_260)] dark:to-[oklch(25%_0.02_260)]",
+        "dark:text-[oklch(88%_0.02_260)]",
+        "dark:border-[oklch(35%_0.04_260)]",
+        "dark:shadow-[inset_0_1px_0_oklch(40%_0.02_260_/_0.15),_0_1px_2px_oklch(0%_0_0_/_0.2)]",
+        "hover:bg-muted dark:hover:from-[oklch(30%_0.03_260)] dark:hover:to-[oklch(27%_0.02_260)]",
+        "transition-colors",
+      )}
+    >
+      {code}
+    </code>
+  );
+}
+
+function BlockCode({ code, language }: { code: string; language?: string }) {
   const [highlightResult, setHighlightResult] =
     useState<HighlightResult | null>(null);
   const codeRef = useRef(code);
   const languageRef = useRef(language);
-
-  if (inline) {
-    return (
-      <code
-        className={cn(
-          "px-1.5 py-0.5 rounded text-sm font-mono",
-          // Light mode
-          "bg-muted/80 text-foreground",
-          "border border-border/20",
-          // Dark mode - bespoke slate/violet aesthetic
-          "dark:bg-gradient-to-br dark:from-[oklch(28%_0.03_260)] dark:to-[oklch(25%_0.02_260)]",
-          "dark:text-[oklch(88%_0.02_260)]",
-          "dark:border-[oklch(35%_0.04_260)]",
-          "dark:shadow-[inset_0_1px_0_oklch(40%_0.02_260_/_0.15),_0_1px_2px_oklch(0%_0_0_/_0.2)]",
-          // Hover states
-          "hover:bg-muted dark:hover:from-[oklch(30%_0.03_260)] dark:hover:to-[oklch(27%_0.02_260)]",
-          "transition-colors",
-        )}
-      >
-        {code}
-      </code>
-    );
-  }
 
   // Defer syntax highlighting to avoid blocking during streaming
   useEffect(() => {
@@ -119,4 +116,9 @@ export function CodeBlock({ code, language, inline }: CodeBlockProps) {
       </div>
     </div>
   );
+}
+
+export function CodeBlock({ code, language, inline }: CodeBlockProps) {
+  if (inline) return <InlineCode code={code} />;
+  return <BlockCode code={code} language={language} />;
 }

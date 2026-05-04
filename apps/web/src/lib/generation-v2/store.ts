@@ -100,8 +100,6 @@ export class RedisGenerationEventStore implements GenerationEventStore {
   }
 }
 
-export const UpstashGenerationEventStore = RedisGenerationEventStore;
-
 export class MemoryGenerationEventStore implements GenerationEventStore {
   private readonly events = new Map<string, GenerationEvent[]>();
   private readonly cancelled = new Set<string>();

@@ -3,7 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { File, Paths } from "expo-file-system";
 import { useRouter } from "expo-router";
 import { AlertTriangle } from "lucide-react-native";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Alert, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SettingsRow } from "@/components/settings/SettingsRow";
@@ -11,6 +11,7 @@ import { SettingsSection } from "@/components/settings/SettingsSection";
 import { FluidButton } from "@/components/ui/FluidButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { haptic } from "@/lib/haptics";
+import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { palette, spacing, typography } from "@/lib/theme/designSystem";
 import { createMobileSdkClient } from "@/lib/transport/httpClient";
 
@@ -36,59 +37,55 @@ export default function DangerZoneScreen() {
     },
   });
 
-  const [exporting, setExporting] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleteAccountText, setDeleteAccountText] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showAccountConfirm, setShowAccountConfirm] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
-  const handleExport = useCallback(async () => {
-    setExporting(true);
-    haptic.medium();
-    try {
+  const { run: handleExport, isPending: exporting } = useAsyncAction(
+    async () => {
+      haptic.medium();
       const data = await exportDataMutation.mutateAsync();
       const json = JSON.stringify(data, null, 2);
       const fileName = `blahchat-export-${Date.now()}.json`;
       const file = new File(Paths.document, fileName);
       file.write(json);
       Alert.alert("Export Complete", `Data saved to ${fileName}`);
-    } catch {
-      Alert.alert("Error", "Failed to export data.");
-    } finally {
-      setExporting(false);
-    }
-  }, [exportDataMutation]);
+    },
+    {
+      onError: () => Alert.alert("Error", "Failed to export data."),
+    },
+  );
 
-  const handleDeleteData = useCallback(async () => {
-    if (deleteConfirmText !== "DELETE MY DATA") return;
-    setDeleting(true);
-    haptic.error();
-    try {
+  const { run: handleDeleteData, isPending: deletingData } = useAsyncAction(
+    async () => {
+      if (deleteConfirmText !== "DELETE MY DATA") return;
+      haptic.error();
       await deleteDataMutation.mutateAsync("DELETE MY DATA");
       setShowDeleteConfirm(false);
       setDeleteConfirmText("");
       Alert.alert("Done", "All data has been deleted.");
       router.back();
-    } catch {
-      Alert.alert("Error", "Failed to delete data.");
-    } finally {
-      setDeleting(false);
-    }
-  }, [deleteConfirmText, deleteDataMutation, router]);
+    },
+    {
+      onError: () => Alert.alert("Error", "Failed to delete data."),
+    },
+  );
 
-  const handleDeleteAccount = useCallback(async () => {
-    if (deleteAccountText !== "DELETE MY ACCOUNT") return;
-    setDeleting(true);
-    haptic.error();
-    try {
-      await deleteAccountMutation.mutateAsync("DELETE MY ACCOUNT");
-      await signOut();
-    } catch {
-      Alert.alert("Error", "Failed to delete account.");
-      setDeleting(false);
-    }
-  }, [deleteAccountMutation, deleteAccountText, signOut]);
+  const { run: handleDeleteAccount, isPending: deletingAccount } =
+    useAsyncAction(
+      async () => {
+        if (deleteAccountText !== "DELETE MY ACCOUNT") return;
+        haptic.error();
+        await deleteAccountMutation.mutateAsync("DELETE MY ACCOUNT");
+        await signOut();
+      },
+      {
+        onError: () => Alert.alert("Error", "Failed to delete account."),
+      },
+    );
+
+  const deleting = deletingData || deletingAccount;
 
   return (
     <SafeAreaView

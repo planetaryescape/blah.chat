@@ -24,6 +24,7 @@ import { FluidButton } from "@/components/ui/FluidButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { queryClient } from "@/lib/cache/queryClient";
 import { haptic } from "@/lib/haptics";
+import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { palette, spacing, typography } from "@/lib/theme/designSystem";
 import { createMobileSdkClient } from "@/lib/transport/httpClient";
 import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
@@ -100,30 +101,35 @@ export default function IntegrationsScreen() {
     return filtered;
   }, [activeCategory, searchQuery]);
 
+  const { run: runConnect } = useAsyncAction(
+    async (integrationId: string) => {
+      const result =
+        await initiateConnectionMutation.mutateAsync(integrationId);
+      if (result.redirectUrl) {
+        await WebBrowser.openAuthSessionAsync(
+          result.redirectUrl,
+          "blahchat://composio/callback",
+        );
+      }
+      await queryClient.invalidateQueries({
+        queryKey: ["mobile", "composio-connections"],
+      });
+      setSheetOpen(false);
+    },
+    {
+      onError: () =>
+        Alert.alert("Error", "Failed to start connection. Please try again."),
+    },
+  );
+
   const handleConnect = useCallback(
     async (integrationId: string) => {
       haptic.medium();
       setConnectingId(integrationId);
-      try {
-        const result =
-          await initiateConnectionMutation.mutateAsync(integrationId);
-        if (result.redirectUrl) {
-          await WebBrowser.openAuthSessionAsync(
-            result.redirectUrl,
-            "blahchat://composio/callback",
-          );
-        }
-        await queryClient.invalidateQueries({
-          queryKey: ["mobile", "composio-connections"],
-        });
-        setSheetOpen(false);
-      } catch {
-        Alert.alert("Error", "Failed to start connection. Please try again.");
-      } finally {
-        setConnectingId(null);
-      }
+      await runConnect(integrationId);
+      setConnectingId(null);
     },
-    [initiateConnectionMutation],
+    [runConnect],
   );
 
   const handleDisconnect = useCallback(

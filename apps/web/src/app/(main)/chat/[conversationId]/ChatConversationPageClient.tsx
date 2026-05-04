@@ -202,15 +202,15 @@ function ChatPageContent({
       }>(`/api/v1/conversations/${validConversationId}/compact`, {
         targetModel: conversationAny.model,
       });
+      setIsCompacting(false);
       toast.success("Conversation compacted");
       router.push(`/chat/${newConversationId}`);
     } catch (error) {
+      setIsCompacting(false);
       toast.error(
         `Failed to auto-compress: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
       autoCompressTriggeredRef.current = false; // Allow retry on error
-    } finally {
-      setIsCompacting(false);
     }
   }, [apiClient, validConversationId, conversationAny?.model, router]);
 
@@ -244,15 +244,15 @@ function ChatPageContent({
       }>(`/api/v1/conversations/${validConversationId}/compact`, {
         targetModel: conversationAny?.model,
       });
+      setIsCompacting(false);
       toast.success("Conversation compacted");
       setShowCompactModal(false);
       router.push(`/chat/${newConversationId}`);
     } catch (error) {
+      setIsCompacting(false);
       toast.error(
         `Failed to compact: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
-    } finally {
-      setIsCompacting(false);
     }
   };
 
@@ -682,15 +682,15 @@ function ChatPageContent({
                               targetModel: blockedModel.modelId,
                             },
                           );
+                        setIsCompacting(false);
                         toast.success("Conversation compacted");
                         setBlockedModel(null);
                         router.push(`/chat/${newConversationId}`);
                       } catch (error) {
+                        setIsCompacting(false);
                         toast.error(
                           `Failed to compact: ${error instanceof Error ? error.message : "Unknown error"}`,
                         );
-                      } finally {
-                        setIsCompacting(false);
                       }
                     }}
                     isCompacting={isCompacting}

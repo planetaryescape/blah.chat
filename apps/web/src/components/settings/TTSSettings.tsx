@@ -181,13 +181,17 @@ export function TTSSettings({
                     variant="outline"
                     role="combobox"
                     aria-expanded={voiceOpen}
+                    aria-controls="tts-voice-listbox"
                     className="w-full justify-between font-normal"
                   >
                     {selectedVoice?.label ?? "Select voice..."}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <PopoverContent
+                  id="tts-voice-listbox"
+                  className="w-[--radix-popover-trigger-width] p-0"
+                >
                   <Command>
                     <CommandInput placeholder="Search voices..." />
                     <CommandList>

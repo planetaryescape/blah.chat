@@ -48,7 +48,7 @@ function AutoRouterSkeleton() {
   );
 }
 
-function _AutoRouterPageContent() {
+function AutoRouterPageContent() {
   const config = useRouterConfig();
 
   // TODO: Phase G - needs /api/v1/admin/auto-router/config REST route
@@ -320,7 +320,7 @@ function _AutoRouterPageContent() {
 export default function AutoRouterPage() {
   return (
     <Suspense fallback={<AutoRouterSkeleton />}>
-      <_AutoRouterPageContent />
+      <AutoRouterPageContent />
     </Suspense>
   );
 }

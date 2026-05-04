@@ -95,7 +95,7 @@ function SearchPageContent() {
   };
 
   const handleLoadMore = () => {
-    setPage(page + 1);
+    setPage((p) => p + 1);
   };
 
   const handleClearFilters = () => {

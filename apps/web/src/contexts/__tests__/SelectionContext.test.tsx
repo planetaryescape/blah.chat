@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SelectionProvider, useSelection } from "../SelectionContext";
 
@@ -17,18 +18,20 @@ function TestHarness() {
   );
 }
 
-let clearSelectionRef: (() => void) | null = null;
+const clearSelectionRef: { current: (() => void) | null } = { current: null };
 
 function SelectionConsumer() {
   const { clearSelection } = useSelection();
-  clearSelectionRef = clearSelection;
+  React.useEffect(() => {
+    clearSelectionRef.current = clearSelection;
+  }, [clearSelection]);
   return null;
 }
 
 describe("SelectionContext mobile focus safety", () => {
   beforeEach(() => {
     mobileState = { isMobile: false, isTouchDevice: false };
-    clearSelectionRef = null;
+    clearSelectionRef.current = null;
   });
 
   it("does not clear native selection on mobile mouseup", () => {
@@ -73,7 +76,7 @@ describe("SelectionContext mobile focus safety", () => {
     (input as HTMLTextAreaElement).focus();
     expect(document.activeElement).toBe(input);
 
-    act(() => clearSelectionRef?.());
+    act(() => clearSelectionRef.current?.());
 
     expect(removeAllRanges).not.toHaveBeenCalled();
   });

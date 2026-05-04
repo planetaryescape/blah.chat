@@ -35,10 +35,6 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
     ? (conversationId as string)
     : null;
 
-  if (!validConversationId) {
-    return null;
-  }
-
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [expiresIn, setExpiresIn] = useState<number | undefined>(7);
@@ -50,6 +46,7 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
   // TODO: Phase G - needs /api/v1/shares REST route
   const { data: existingShare } = useQuery({
     queryKey: ["share", validConversationId],
+    enabled: !!validConversationId,
     queryFn: async () => {
       const res = await fetch(
         `/api/v1/shares?conversationId=${validConversationId}`,
@@ -59,9 +56,6 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
       return json.data ?? null;
     },
   });
-  void {
-    conversationId: validConversationId,
-  };
   const createShare = async (args: any) => {
     const res = await fetch("/api/v1/shares", {
       method: "POST",
@@ -97,6 +91,10 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
       setShareUrl(`${window.location.origin}/share/${existingShare.shareId}`);
     }
   }, [existingShare]);
+
+  if (!validConversationId) {
+    return null;
+  }
 
   const handleShare = async () => {
     try {

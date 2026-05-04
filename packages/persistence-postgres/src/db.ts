@@ -4,7 +4,7 @@ import {
   drizzle as drizzleNeon,
   type NeonHttpDatabase,
 } from "drizzle-orm/neon-http";
-import { type NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import {
   drizzle as drizzlePglite,
   type PgliteDatabase,

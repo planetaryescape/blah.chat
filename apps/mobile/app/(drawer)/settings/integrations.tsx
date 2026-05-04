@@ -57,6 +57,11 @@ export default function IntegrationsScreen() {
         redirectUrl: "blahchat://composio/callback",
       });
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["mobile", "composio-connections"],
+      });
+    },
   });
   const revokeConnectionMutation = useMutation({
     mutationFn: async (integrationId: string) => {

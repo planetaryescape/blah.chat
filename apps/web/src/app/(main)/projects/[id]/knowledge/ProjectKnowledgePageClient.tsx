@@ -195,6 +195,7 @@ export default function ProjectKnowledgePage({
 
       setUploading(true);
       try {
+        // react-doctor: awaits are sequential by design (upload URL → put → register)
         for (const file of acceptedFiles) {
           const upload = await requestJson<{
             uploadUrl: string;

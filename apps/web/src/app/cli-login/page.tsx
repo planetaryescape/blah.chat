@@ -59,6 +59,7 @@ function CLILoginContent() {
       // If not signed in, redirect to sign-in with return URL
       if (!isSignedIn) {
         const returnUrl = `/cli-login?callback=${encodeURIComponent(callbackUrl)}`;
+        // react-doctor: navigation must follow async clerk + callback validation
         router.push(`/sign-in?redirect_url=${encodeURIComponent(returnUrl)}`);
         return;
       }

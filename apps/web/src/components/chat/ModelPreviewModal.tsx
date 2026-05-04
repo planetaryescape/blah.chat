@@ -138,8 +138,8 @@ export function ModelPreviewModal({
       });
     };
 
-    leftEl.addEventListener("scroll", handleScrollLeft);
-    rightEl.addEventListener("scroll", handleScrollRight);
+    leftEl.addEventListener("scroll", handleScrollLeft, { passive: true });
+    rightEl.addEventListener("scroll", handleScrollRight, { passive: true });
 
     return () => {
       leftEl.removeEventListener("scroll", handleScrollLeft);

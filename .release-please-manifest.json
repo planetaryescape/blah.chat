@@ -1,5 +1,5 @@
 {
-  ".": "1.36.1",
+  ".": "1.37.0",
   "packages/api-client": "0.7.0",
   "packages/ai": "0.3.0",
   "packages/shared": "0.4.0",
@@ -15,7 +15,7 @@
   "packages/speech": "0.1.0",
   "packages/storage": "0.1.0",
   "packages/persistence-convex": "0.1.0",
-  "packages/jobs": "0.4.0",
+  "packages/jobs": "0.4.1",
   "packages/bible-core": "0.1.0",
   "packages/bible-service": "0.1.0",
   "packages/diagrams-mermaid": "0.1.0",
@@ -28,5 +28,5 @@
   "packages/cognitive-memory": "0.2.0",
   "packages/integrations-composio": "0.1.0",
   "apps/cli": "0.6.0",
-  "apps/desktop": "0.45.0"
+  "apps/desktop": "0.46.0"
 }

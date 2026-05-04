@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type {
   DimensionValue,
   LayoutChangeEvent,
@@ -7,13 +7,8 @@ import type {
   ViewStyle,
 } from "react-native";
 import { StyleSheet, View } from "react-native";
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
+import { useShimmerTranslate } from "@/lib/hooks/animated/useShimmerTranslate";
 import { layout, palette } from "@/lib/theme/designSystem";
 
 type ShimmerPlaceholderProps = {
@@ -30,7 +25,6 @@ export function ShimmerPlaceholder({
   style,
 }: ShimmerPlaceholderProps) {
   const [measuredWidth, setMeasuredWidth] = useState(0);
-  const progress = useSharedValue(0);
 
   const fallbackWidth = typeof width === "number" ? width : 120;
   const containerWidth = measuredWidth || fallbackWidth;
@@ -39,27 +33,7 @@ export function ShimmerPlaceholder({
     [containerWidth],
   );
 
-  useEffect(() => {
-    progress.value = 0;
-    progress.value = withRepeat(
-      withTiming(1, {
-        duration: 1200,
-        easing: Easing.linear,
-      }),
-      -1,
-      false,
-    );
-  }, [progress]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateX:
-          -shimmerBandWidth +
-          progress.value * (containerWidth + shimmerBandWidth * 2),
-      },
-    ],
-  }));
+  const animatedStyle = useShimmerTranslate(containerWidth, shimmerBandWidth);
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const nextWidth = event.nativeEvent.layout.width;

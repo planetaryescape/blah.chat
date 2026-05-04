@@ -1,12 +1,6 @@
-import { useEffect } from "react";
 import { View } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
+import { usePulse } from "@/lib/hooks/animated/usePulse";
 import { layout, palette, spacing } from "@/lib/theme/designSystem";
 
 /**
@@ -14,22 +8,7 @@ import { layout, palette, spacing } from "@/lib/theme/designSystem";
  * Shows immediately after user sends to indicate AI is processing.
  */
 export function MessageSkeleton() {
-  const opacity = useSharedValue(0.3);
-
-  useEffect(() => {
-    opacity.value = withRepeat(
-      withSequence(
-        withTiming(0.7, { duration: 800 }),
-        withTiming(0.3, { duration: 800 }),
-      ),
-      -1,
-      false,
-    );
-  }, [opacity]);
-
-  const shimmerStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
+  const shimmerStyle = usePulse({ min: 0.3, max: 0.7, duration: 800 });
 
   return (
     <View

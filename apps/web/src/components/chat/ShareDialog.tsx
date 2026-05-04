@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Check, Clock, Copy, Share2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -82,8 +82,11 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
   }; // TODO: Phase G
 
   // Check if share is expired
-  const isExpired =
-    existingShare?.expiresAt && existingShare.expiresAt < Date.now();
+  const isExpired = useMemo(
+    () =>
+      existingShare?.expiresAt ? existingShare.expiresAt < Date.now() : false,
+    [existingShare?.expiresAt],
+  );
 
   // Set share URL if exists
   useEffect(() => {

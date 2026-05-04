@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 
 export default function SignUpScreen() {
@@ -24,25 +25,23 @@ export default function SignUpScreen() {
   const [pendingVerification, setPendingVerification] = useState(false);
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
   const [isFocused, setIsFocused] = useState<
     "email" | "password" | "code" | null
   >(null);
 
-  const handleSignUp = async () => {
-    if (!isLoaded || !signUp) {
-      console.log("[mobile][sign-up] Not ready", {
-        isLoaded,
-        signUp: !!signUp,
-      });
-      return;
-    }
+  const { run: handleSignUp, isPending: signUpLoading } = useAsyncAction(
+    async () => {
+      if (!isLoaded || !signUp) {
+        console.log("[mobile][sign-up] Not ready", {
+          isLoaded,
+          signUp: !!signUp,
+        });
+        return;
+      }
 
-    setLoading(true);
-    setError("");
-    console.log("[mobile][sign-up] Attempting sign up for:", email);
+      setError("");
+      console.log("[mobile][sign-up] Attempting sign up for:", email);
 
-    try {
       await signUp.create({
         emailAddress: email,
         password,
@@ -51,30 +50,30 @@ export default function SignUpScreen() {
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       console.log("[mobile][sign-up] Verification email sent");
       setPendingVerification(true);
-    } catch (err: any) {
-      const msg =
-        err.errors?.[0]?.message || err.message || "Failed to sign up";
-      console.log("[mobile][sign-up] Error:", msg, err);
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    {
+      onError: (err: any) => {
+        const msg =
+          err?.errors?.[0]?.message || err?.message || "Failed to sign up";
+        console.log("[mobile][sign-up] Error:", msg, err);
+        setError(msg);
+      },
+    },
+  );
 
-  const handleVerify = async () => {
-    if (!isLoaded || !signUp) {
-      console.log("[mobile][sign-up] Not ready for verify", {
-        isLoaded,
-        signUp: !!signUp,
-      });
-      return;
-    }
+  const { run: handleVerify, isPending: verifyLoading } = useAsyncAction(
+    async () => {
+      if (!isLoaded || !signUp) {
+        console.log("[mobile][sign-up] Not ready for verify", {
+          isLoaded,
+          signUp: !!signUp,
+        });
+        return;
+      }
 
-    setLoading(true);
-    setError("");
-    console.log("[mobile][sign-up] Attempting verification");
+      setError("");
+      console.log("[mobile][sign-up] Attempting verification");
 
-    try {
       const result = await signUp.attemptEmailAddressVerification({
         code,
       });
@@ -89,15 +88,20 @@ export default function SignUpScreen() {
         console.log("[mobile][sign-up] Unexpected status:", result.status);
         setError("Verification requires additional steps.");
       }
-    } catch (err: any) {
-      const msg =
-        err.errors?.[0]?.message || err.message || "Invalid verification code";
-      console.log("[mobile][sign-up] Verify error:", msg, err);
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    {
+      onError: (err: any) => {
+        const msg =
+          err?.errors?.[0]?.message ||
+          err?.message ||
+          "Invalid verification code";
+        console.log("[mobile][sign-up] Verify error:", msg, err);
+        setError(msg);
+      },
+    },
+  );
+
+  const loading = signUpLoading || verifyLoading;
 
   if (pendingVerification) {
     const isVerifyDisabled = loading || code.length < 6;

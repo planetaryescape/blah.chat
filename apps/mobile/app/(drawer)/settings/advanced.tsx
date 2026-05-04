@@ -17,6 +17,7 @@ import { FluidButton } from "@/components/ui/FluidButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { queryClient } from "@/lib/cache/queryClient";
 import { haptic } from "@/lib/haptics";
+import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { palette, spacing, typography } from "@/lib/theme/designSystem";
 import { createMobileSdkClient } from "@/lib/transport/httpClient";
 
@@ -57,22 +58,21 @@ function KeyCard({
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState("");
   const [visible, setVisible] = useState(false);
-  const [saving, setSaving] = useState(false);
   const info = KEY_LABELS[keyType];
 
-  const handleSave = async () => {
-    if (!value.trim()) return;
-    setSaving(true);
-    try {
+  const { run: handleSave, isPending: saving } = useAsyncAction(
+    async () => {
+      if (!value.trim()) return;
       await onSave(value.trim());
       setValue("");
       setEditing(false);
-    } catch {
-      Alert.alert("Validation Failed", "The API key could not be validated.");
-    } finally {
-      setSaving(false);
-    }
-  };
+    },
+    {
+      onError: () => {
+        Alert.alert("Validation Failed", "The API key could not be validated.");
+      },
+    },
+  );
 
   const handleRemove = () => {
     Alert.alert("Remove Key", `Remove ${info.label} key?`, [

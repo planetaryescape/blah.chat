@@ -37,6 +37,7 @@ import {
 import type { Doc, Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import { useSendMessage, useStarterSuggestions } from "@/lib/hooks";
+import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { createLocalConversationId } from "@/lib/hooks/useMessages";
 import { usePreferences } from "@/lib/hooks/usePreferences";
 import {
@@ -83,7 +84,6 @@ export default function NewChatScreen() {
   const [isThinkingPickerOpen, setIsThinkingPickerOpen] = useState(false);
   const [isTemplatePickerOpen, setIsTemplatePickerOpen] = useState(false);
   const [isComparePickerOpen, setIsComparePickerOpen] = useState(false);
-  const [isSending, setIsSending] = useState(false);
   const [draftText, setDraftText] = useState("");
   const [draftAttachments, setDraftAttachments] = useState<AttachmentInput[]>(
     [],
@@ -181,111 +181,98 @@ export default function NewChatScreen() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleSend = useCallback(
+  const { run: handleSend, isPending: isSending } = useAsyncAction(
     async ({ content, attachments }: ChatInputSendPayload) => {
-      if (isSending) return;
-      setIsSending(true);
       setScrollToBottomKey((current) => current + 1);
 
       haptic.medium();
 
       const now = Date.now();
 
-      try {
-        const optimisticUserMessage: Message = {
-          _id: `optimistic-user-${now}` as Id<"messages">,
-          _creationTime: now,
-          conversationId: "new" as Id<"conversations">,
-          userId: "me" as Id<"users">,
-          role: "user",
-          content,
-          status: "complete",
-          createdAt: now,
-          updatedAt: now,
-          siblingIndex: 0,
-          isActiveBranch: true,
-        };
+      const optimisticUserMessage: Message = {
+        _id: `optimistic-user-${now}` as Id<"messages">,
+        _creationTime: now,
+        conversationId: "new" as Id<"conversations">,
+        userId: "me" as Id<"users">,
+        role: "user",
+        content,
+        status: "complete",
+        createdAt: now,
+        updatedAt: now,
+        siblingIndex: 0,
+        isActiveBranch: true,
+      };
 
-        const optimisticAssistantMessage: Message = {
-          _id: `optimistic-assistant-${now}` as Id<"messages">,
-          _creationTime: now + 1,
-          conversationId: "new" as Id<"conversations">,
-          userId: "assistant" as Id<"users">,
-          role: "assistant",
-          content: "",
-          status: "pending",
+      const optimisticAssistantMessage: Message = {
+        _id: `optimistic-assistant-${now}` as Id<"messages">,
+        _creationTime: now + 1,
+        conversationId: "new" as Id<"conversations">,
+        userId: "assistant" as Id<"users">,
+        role: "assistant",
+        content: "",
+        status: "pending",
+        model: selectedModel,
+        createdAt: now + 1,
+        updatedAt: now + 1,
+        siblingIndex: 0,
+        isActiveBranch: true,
+      };
+
+      setOptimisticMessages([
+        optimisticUserMessage,
+        optimisticAssistantMessage,
+      ]);
+
+      const localConversationId = createLocalConversationId();
+      insertConversationIntoCache(
+        queryClient,
+        buildLocalConversation({
+          conversationId: localConversationId,
           model: selectedModel,
-          createdAt: now + 1,
-          updatedAt: now + 1,
-          siblingIndex: 0,
-          isActiveBranch: true,
-        };
+          createdAt: now,
+        }),
+      );
 
-        setOptimisticMessages([
-          optimisticUserMessage,
-          optimisticAssistantMessage,
-        ]);
-
-        const localConversationId = createLocalConversationId();
-        insertConversationIntoCache(
-          queryClient,
-          buildLocalConversation({
-            conversationId: localConversationId,
+      try {
+        const result = await sendMessage({
+          localConversationId,
+          createConversation: {
             model: selectedModel,
-            createdAt: now,
-          }),
-        );
+          },
+          content,
+          ...(isComparisonMode
+            ? { models: selectedModels }
+            : { modelId: selectedModel }),
+          thinkingEffort,
+          attachments,
+        });
 
-        try {
-          const result = await sendMessage({
-            localConversationId,
-            createConversation: {
-              model: selectedModel,
-            },
-            content,
-            ...(isComparisonMode
-              ? { models: selectedModels }
-              : { modelId: selectedModel }),
-            thinkingEffort,
-            attachments,
-          });
+        clearChatDraft(draftKey);
+        setDraftText("");
+        setDraftAttachments([]);
 
-          clearChatDraft(draftKey);
-          setDraftText("");
-          setDraftAttachments([]);
-
-          router.replace(`/(drawer)/chat/${result.conversationId}`);
-        } catch (_sendError) {
-          queryClient.removeQueries({
-            queryKey: ["mobile", "conversation", localConversationId],
-            exact: true,
-          });
-          queryClient.removeQueries({
-            queryKey: ["mobile", "messages", localConversationId],
-            exact: true,
-          });
-          await queryClient.invalidateQueries({
-            queryKey: ["mobile", "conversations"],
-          });
-          throw _sendError;
-        }
-      } catch (_error) {
-        haptic.error();
-        setOptimisticMessages([]);
-      } finally {
-        setIsSending(false);
+        router.replace(`/(drawer)/chat/${result.conversationId}`);
+      } catch (_sendError) {
+        queryClient.removeQueries({
+          queryKey: ["mobile", "conversation", localConversationId],
+          exact: true,
+        });
+        queryClient.removeQueries({
+          queryKey: ["mobile", "messages", localConversationId],
+          exact: true,
+        });
+        await queryClient.invalidateQueries({
+          queryKey: ["mobile", "conversations"],
+        });
+        throw _sendError;
       }
     },
-    [
-      draftKey,
-      isComparisonMode,
-      isSending,
-      router,
-      selectedModel,
-      selectedModels,
-      sendMessage,
-      thinkingEffort,
-    ],
+    {
+      onError: () => {
+        haptic.error();
+        setOptimisticMessages([]);
+      },
+    },
   );
 
   const handleModelSelect = useCallback((modelId: string) => {

@@ -13,6 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 interface AddMemoryDialogProps {
   open: boolean;
@@ -29,19 +30,12 @@ export function AddMemoryDialog({
   onAdd,
 }: AddMemoryDialogProps) {
   const [content, setContent] = useState("");
-  const [isAdding, setIsAdding] = useState(false);
-
-  const handleAdd = async () => {
+  const { run: handleAdd, isPending: isAdding } = useAsyncAction(async () => {
     if (!content.trim()) return;
-    setIsAdding(true);
-    try {
-      await onAdd(content);
-      setContent("");
-      onOpenChange(false);
-    } finally {
-      setIsAdding(false);
-    }
-  };
+    await onAdd(content);
+    setContent("");
+    onOpenChange(false);
+  });
 
   const handleClose = () => {
     onOpenChange(false);

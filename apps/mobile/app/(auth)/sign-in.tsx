@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 
 export default function SignInScreen() {
@@ -24,25 +25,23 @@ export default function SignInScreen() {
   const [code, setCode] = useState("");
   const [pendingVerification, setPendingVerification] = useState(false);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
   const [isFocused, setIsFocused] = useState<
     "email" | "password" | "code" | null
   >(null);
 
-  const handleSignIn = async () => {
-    if (!isLoaded || !signIn) {
-      console.log("[mobile][sign-in] Not ready", {
-        isLoaded,
-        signIn: !!signIn,
-      });
-      return;
-    }
+  const { run: handleSignIn, isPending: signInLoading } = useAsyncAction(
+    async () => {
+      if (!isLoaded || !signIn) {
+        console.log("[mobile][sign-in] Not ready", {
+          isLoaded,
+          signIn: !!signIn,
+        });
+        return;
+      }
 
-    setLoading(true);
-    setError("");
-    console.log("[mobile][sign-in] Attempting sign in for:", email);
+      setError("");
+      console.log("[mobile][sign-in] Attempting sign in for:", email);
 
-    try {
       const result = await signIn.create({
         identifier: email,
         password,
@@ -81,24 +80,24 @@ export default function SignInScreen() {
         console.log("[mobile][sign-in] Unexpected status:", result.status);
         setError("Unable to complete sign in. Please try again.");
       }
-    } catch (err: any) {
-      const msg =
-        err.errors?.[0]?.message || err.message || "Failed to sign in";
-      console.log("[mobile][sign-in] Error:", msg, err);
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    {
+      onError: (err: any) => {
+        const msg =
+          err?.errors?.[0]?.message || err?.message || "Failed to sign in";
+        console.log("[mobile][sign-in] Error:", msg, err);
+        setError(msg);
+      },
+    },
+  );
 
-  const handleVerify = async () => {
-    if (!isLoaded || !signIn) return;
+  const { run: handleVerify, isPending: verifyLoading } = useAsyncAction(
+    async () => {
+      if (!isLoaded || !signIn) return;
 
-    setLoading(true);
-    setError("");
-    console.log("[mobile][sign-in] Attempting email verification");
+      setError("");
+      console.log("[mobile][sign-in] Attempting email verification");
 
-    try {
       const result = await signIn.attemptFirstFactor({
         strategy: "email_code",
         code,
@@ -117,15 +116,20 @@ export default function SignInScreen() {
         );
         setError("Verification incomplete. Please try again.");
       }
-    } catch (err: any) {
-      const msg =
-        err.errors?.[0]?.message || err.message || "Invalid verification code";
-      console.log("[mobile][sign-in] Verify error:", msg, err);
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    {
+      onError: (err: any) => {
+        const msg =
+          err?.errors?.[0]?.message ||
+          err?.message ||
+          "Invalid verification code";
+        console.log("[mobile][sign-in] Verify error:", msg, err);
+        setError(msg);
+      },
+    },
+  );
+
+  const loading = signInLoading || verifyLoading;
 
   if (pendingVerification) {
     const isVerifyDisabled = loading || code.length < 6;

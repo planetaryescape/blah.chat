@@ -50,6 +50,7 @@ import {
   useTriggerAutoTag,
   useUpdateNote,
 } from "@/lib/hooks";
+import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
 
@@ -76,9 +77,13 @@ export default function NoteDetailScreen() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProjectPickerOpen, setIsProjectPickerOpen] = useState(false);
   const [isShareSheetOpen, setIsShareSheetOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isAutoTagging, setIsAutoTagging] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+
+  const { run: runAutosave, isPending: isSaving } = useAsyncAction(
+    async (newContent: string, noteId: Id<"notes">) => {
+      await updateNote({ noteId, content: newContent });
+    },
+  );
 
   const autosaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasInitializedRef = useRef(false);
@@ -119,21 +124,12 @@ export default function NoteDetailScreen() {
         clearTimeout(autosaveTimeoutRef.current);
       }
 
-      autosaveTimeoutRef.current = setTimeout(async () => {
+      autosaveTimeoutRef.current = setTimeout(() => {
         if (!note) return;
-
-        setIsSaving(true);
-        try {
-          await updateNote({
-            noteId: note._id,
-            content: newContent,
-          });
-        } finally {
-          setIsSaving(false);
-        }
+        void runAutosave(newContent, note._id);
       }, AUTOSAVE_DELAY);
     },
-    [note, updateNote],
+    [note, runAutosave],
   );
 
   const handleContentChange = useCallback(
@@ -263,27 +259,29 @@ export default function NoteDetailScreen() {
     [note, acceptTag],
   );
 
-  const handleAutoTag = useCallback(async () => {
-    if (!note || !note.content || note.content.length < 50) return;
-
-    setIsAutoTagging(true);
-    haptic.medium();
-    setIsMenuOpen(false);
-
-    try {
-      const result = await triggerAutoTag({ noteId: note._id });
+  const { run: runAutoTag, isPending: isAutoTagging } = useAsyncAction(
+    async (noteIdArg: Id<"notes">) => {
+      const result = await triggerAutoTag({ noteId: noteIdArg });
       if (result?.appliedTags?.length) {
         Alert.alert("Tags Added", `Added ${result.appliedTags.length} tag(s)`);
       } else {
         Alert.alert("No Tags", "Could not generate tags for this note");
       }
-    } catch {
-      haptic.error();
-      Alert.alert("Error", "Failed to generate tags");
-    } finally {
-      setIsAutoTagging(false);
-    }
-  }, [note, triggerAutoTag]);
+    },
+    {
+      onError: () => {
+        haptic.error();
+        Alert.alert("Error", "Failed to generate tags");
+      },
+    },
+  );
+
+  const handleAutoTag = useCallback(() => {
+    if (!note || !note.content || note.content.length < 50) return;
+    haptic.medium();
+    setIsMenuOpen(false);
+    void runAutoTag(note._id);
+  }, [note, runAutoTag]);
 
   const handleOpenSourceChat = useCallback(() => {
     if (!note?.sourceConversationId) return;

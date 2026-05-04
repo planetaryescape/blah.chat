@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Text, TextInput, View } from "react-native";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
 import type { Doc, Id } from "@/lib/convex";
+import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
 
@@ -111,13 +112,21 @@ export function ConversationActionSheet({
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [mode, setMode] = useState<SheetMode>("menu");
   const [title, setTitle] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const snapPoints = useMemo(() => {
     if (mode === "rename") return ["38%"];
     if (mode === "confirm-delete") return ["34%"];
     return ["52%"];
   }, [mode]);
+
+  const {
+    run: runActionInternal,
+    isPending: isSubmitting,
+    reset: resetSubmitting,
+  } = useAsyncAction(async (action: () => Promise<void>) => {
+    await action();
+    bottomSheetRef.current?.close();
+  });
 
   useEffect(() => {
     if (!isOpen || !conversation) return;
@@ -129,25 +138,19 @@ export function ConversationActionSheet({
     (index: number) => {
       if (index === -1) {
         setMode("menu");
-        setIsSubmitting(false);
+        resetSubmitting();
         onClose();
       }
     },
-    [onClose],
+    [onClose, resetSubmitting],
   );
 
   const runAction = useCallback(
-    async (action: () => Promise<void>) => {
+    (action: () => Promise<void>) => {
       if (!conversation || isSubmitting) return;
-      setIsSubmitting(true);
-      try {
-        await action();
-        bottomSheetRef.current?.close();
-      } finally {
-        setIsSubmitting(false);
-      }
+      void runActionInternal(action);
     },
-    [conversation, isSubmitting],
+    [conversation, isSubmitting, runActionInternal],
   );
 
   if (!isOpen || !conversation) return null;

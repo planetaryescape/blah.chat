@@ -8,6 +8,7 @@ import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
 import type { Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import { useCreateNoteShare, useToggleNoteShare } from "@/lib/hooks";
+import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
 
@@ -33,7 +34,6 @@ export function NoteShareSheet({ isOpen, onClose, note }: NoteShareSheetProps) {
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const [password, setPassword] = useState("");
   const [selectedExpiry, setSelectedExpiry] = useState<number | undefined>(7);
-  const [isCreating, setIsCreating] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const createShare = useCreateNoteShare();
@@ -59,13 +59,10 @@ export function NoteShareSheet({ isOpen, onClose, note }: NoteShareSheetProps) {
     [onClose],
   );
 
-  const handleCreateShare = useCallback(async () => {
-    if (!note) return;
-
-    setIsCreating(true);
-    haptic.medium();
-
-    try {
+  const { run: handleCreateShare, isPending: isCreating } = useAsyncAction(
+    async () => {
+      if (!note) return;
+      haptic.medium();
       await createShare({
         noteId: note._id,
         password: password.trim() || undefined,
@@ -73,13 +70,14 @@ export function NoteShareSheet({ isOpen, onClose, note }: NoteShareSheetProps) {
       });
       setPassword("");
       toast({ title: "Share link created", preset: "done", haptic: "success" });
-    } catch (_e) {
-      haptic.error();
-      toast({ title: "Failed to create share link", preset: "error" });
-    } finally {
-      setIsCreating(false);
-    }
-  }, [note, password, selectedExpiry, createShare]);
+    },
+    {
+      onError: () => {
+        haptic.error();
+        toast({ title: "Failed to create share link", preset: "error" });
+      },
+    },
+  );
 
   const handleToggleShare = useCallback(
     async (isActive: boolean) => {

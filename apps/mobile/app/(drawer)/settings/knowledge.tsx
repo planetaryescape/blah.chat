@@ -159,6 +159,78 @@ export default function KnowledgeBankScreen() {
     </TouchableOpacity>
   );
 
+  const renderSourceItem = useCallback(
+    ({ item }: { item: NonNullable<typeof sources>[number] }) => {
+      const Icon = TYPE_ICONS[item.type] || FileText;
+      const statusColor = STATUS_COLORS[item.status] || palette.starlightDim;
+      return (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: palette.glassLow,
+            borderRadius: 12,
+            padding: spacing.md,
+            marginBottom: spacing.sm,
+            gap: spacing.sm,
+          }}
+        >
+          <Icon size={20} color={palette.starlightDim} />
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                fontFamily: typography.bodyMedium,
+                fontSize: 14,
+                color: palette.starlight,
+              }}
+              numberOfLines={1}
+            >
+              {item.title}
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.xs,
+                marginTop: 2,
+              }}
+            >
+              <View
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: statusColor,
+                }}
+              />
+              <Text
+                style={{
+                  fontFamily: typography.body,
+                  fontSize: 11,
+                  color: palette.starlightDim,
+                }}
+              >
+                {item.status}
+                {item.chunkCount ? ` · ${item.chunkCount} chunks` : ""}
+              </Text>
+            </View>
+          </View>
+          {item.status === "processing" ? (
+            <Loader2 size={18} color={palette.roseQuartz} />
+          ) : (
+            <TouchableOpacity
+              onPress={() => handleDelete(item._id)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Trash2 size={18} color={palette.error} />
+            </TouchableOpacity>
+          )}
+        </View>
+      );
+    },
+    [handleDelete],
+  );
+
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: "transparent" }}
@@ -215,75 +287,7 @@ export default function KnowledgeBankScreen() {
           data={sources}
           keyExtractor={(item) => item._id}
           contentContainerStyle={{ padding: spacing.md }}
-          renderItem={({ item }) => {
-            const Icon = TYPE_ICONS[item.type] || FileText;
-            const statusColor =
-              STATUS_COLORS[item.status] || palette.starlightDim;
-            return (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  backgroundColor: palette.glassLow,
-                  borderRadius: 12,
-                  padding: spacing.md,
-                  marginBottom: spacing.sm,
-                  gap: spacing.sm,
-                }}
-              >
-                <Icon size={20} color={palette.starlightDim} />
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      fontFamily: typography.bodyMedium,
-                      fontSize: 14,
-                      color: palette.starlight,
-                    }}
-                    numberOfLines={1}
-                  >
-                    {item.title}
-                  </Text>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: spacing.xs,
-                      marginTop: 2,
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: 3,
-                        backgroundColor: statusColor,
-                      }}
-                    />
-                    <Text
-                      style={{
-                        fontFamily: typography.body,
-                        fontSize: 11,
-                        color: palette.starlightDim,
-                      }}
-                    >
-                      {item.status}
-                      {item.chunkCount ? ` · ${item.chunkCount} chunks` : ""}
-                    </Text>
-                  </View>
-                </View>
-                {item.status === "processing" ? (
-                  <Loader2 size={18} color={palette.roseQuartz} />
-                ) : (
-                  <TouchableOpacity
-                    onPress={() => handleDelete(item._id)}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <Trash2 size={18} color={palette.error} />
-                  </TouchableOpacity>
-                )}
-              </View>
-            );
-          }}
+          renderItem={renderSourceItem}
         />
       )}
 

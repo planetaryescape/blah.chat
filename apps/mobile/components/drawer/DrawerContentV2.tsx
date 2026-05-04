@@ -502,6 +502,27 @@ export function DrawerContentV2({ navigation }: DrawerContentComponentProps) {
   const isLoading = conversations === undefined;
   const isActionSheetOpen = !!actionConversation;
 
+  const renderConversationItem = useCallback(
+    ({ item }: { item: GroupedConversationItem }) => {
+      if (item.kind === "header") {
+        return <ConversationSectionHeader label={item.label} />;
+      }
+      return (
+        <ConversationRow
+          conversation={item.conversation}
+          isActive={selectedConversationId === item.conversation._id}
+          onPress={() => handleConversationPress(item.conversation._id)}
+          onLongPress={() => handleConversationLongPress(item.conversation)}
+        />
+      );
+    },
+    [
+      selectedConversationId,
+      handleConversationPress,
+      handleConversationLongPress,
+    ],
+  );
+
   return (
     <View
       style={{
@@ -615,22 +636,7 @@ export function DrawerContentV2({ navigation }: DrawerContentComponentProps) {
           <FlashList<GroupedConversationItem>
             data={groupedConversationItems}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => {
-              if (item.kind === "header") {
-                return <ConversationSectionHeader label={item.label} />;
-              }
-
-              return (
-                <ConversationRow
-                  conversation={item.conversation}
-                  isActive={selectedConversationId === item.conversation._id}
-                  onPress={() => handleConversationPress(item.conversation._id)}
-                  onLongPress={() =>
-                    handleConversationLongPress(item.conversation)
-                  }
-                />
-              );
-            }}
+            renderItem={renderConversationItem}
           />
         )}
       </View>

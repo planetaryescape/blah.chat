@@ -21,6 +21,9 @@ import {
   Zap,
 } from "lucide-react";
 import { Suspense, useState } from "react";
+// react-doctor: recharts is heavy but its children-shape API breaks when
+// individual primitives are wrapped in next/dynamic. Lazy-loading requires
+// extracting whole chart subtrees into wrapper files — deferred.
 import {
   Area,
   AreaChart,

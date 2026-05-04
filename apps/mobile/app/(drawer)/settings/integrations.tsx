@@ -165,6 +165,128 @@ export default function IntegrationsScreen() {
     </TouchableOpacity>
   );
 
+  const renderConnectionItem = useCallback(
+    ({ item }: { item: NonNullable<typeof connections>[number] }) => {
+      const statusColor = STATUS_COLORS[item.status] || palette.starlightDim;
+      const isActive = item.status === "active";
+      return (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: palette.glassLow,
+            borderRadius: 12,
+            padding: spacing.md,
+            marginBottom: spacing.sm,
+            gap: spacing.sm,
+          }}
+        >
+          <Link2 size={20} color={palette.starlightDim} />
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                fontFamily: typography.bodyMedium,
+                fontSize: 14,
+                color: palette.starlight,
+              }}
+            >
+              {item.integrationName || item.integrationId}
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.xs,
+                marginTop: 2,
+              }}
+            >
+              <View
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: statusColor,
+                }}
+              />
+              <Text
+                style={{
+                  fontFamily: typography.body,
+                  fontSize: 11,
+                  color: palette.starlightDim,
+                }}
+              >
+                {item.status}
+              </Text>
+            </View>
+          </View>
+          {isActive ? (
+            <AnimatedPressable
+              onPress={() =>
+                handleDisconnect(
+                  item.integrationId,
+                  item.integrationName || item.integrationId,
+                )
+              }
+            >
+              <Unlink size={18} color={palette.error} />
+            </AnimatedPressable>
+          ) : (
+            <AnimatedPressable
+              onPress={() => handleConnect(item.integrationId)}
+            >
+              <Text
+                style={{
+                  fontFamily: typography.bodyMedium,
+                  fontSize: 12,
+                  color: palette.roseQuartz,
+                }}
+              >
+                {item.status === "expired" ? "Reconnect" : "Connect"}
+              </Text>
+            </AnimatedPressable>
+          )}
+        </View>
+      );
+    },
+    [handleConnect, handleDisconnect],
+  );
+
+  type CategoryItem = { key: "all" | IntegrationCategory; label: string };
+
+  const renderCategoryItem = useCallback(
+    ({ item }: { item: CategoryItem }) => (
+      <AnimatedPressable
+        onPress={() => {
+          haptic.selection();
+          setActiveCategory(item.key);
+        }}
+        style={{
+          paddingHorizontal: spacing.sm,
+          paddingVertical: 6,
+          borderRadius: 16,
+          backgroundColor:
+            activeCategory === item.key
+              ? palette.roseQuartzDim
+              : palette.glassLow,
+        }}
+      >
+        <Text
+          style={{
+            fontFamily: typography.bodyMedium,
+            fontSize: 12,
+            color:
+              activeCategory === item.key
+                ? palette.starlight
+                : palette.starlightDim,
+          }}
+        >
+          {item.label}
+        </Text>
+      </AnimatedPressable>
+    ),
+    [activeCategory],
+  );
+
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: "transparent" }}
@@ -229,89 +351,7 @@ export default function IntegrationsScreen() {
           data={connections}
           keyExtractor={(item) => item._id}
           contentContainerStyle={{ padding: spacing.md }}
-          renderItem={({ item }) => {
-            const statusColor =
-              STATUS_COLORS[item.status] || palette.starlightDim;
-            const isActive = item.status === "active";
-            return (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  backgroundColor: palette.glassLow,
-                  borderRadius: 12,
-                  padding: spacing.md,
-                  marginBottom: spacing.sm,
-                  gap: spacing.sm,
-                }}
-              >
-                <Link2 size={20} color={palette.starlightDim} />
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      fontFamily: typography.bodyMedium,
-                      fontSize: 14,
-                      color: palette.starlight,
-                    }}
-                  >
-                    {item.integrationName || item.integrationId}
-                  </Text>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: spacing.xs,
-                      marginTop: 2,
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: 3,
-                        backgroundColor: statusColor,
-                      }}
-                    />
-                    <Text
-                      style={{
-                        fontFamily: typography.body,
-                        fontSize: 11,
-                        color: palette.starlightDim,
-                      }}
-                    >
-                      {item.status}
-                    </Text>
-                  </View>
-                </View>
-                {isActive ? (
-                  <AnimatedPressable
-                    onPress={() =>
-                      handleDisconnect(
-                        item.integrationId,
-                        item.integrationName || item.integrationId,
-                      )
-                    }
-                  >
-                    <Unlink size={18} color={palette.error} />
-                  </AnimatedPressable>
-                ) : (
-                  <AnimatedPressable
-                    onPress={() => handleConnect(item.integrationId)}
-                  >
-                    <Text
-                      style={{
-                        fontFamily: typography.bodyMedium,
-                        fontSize: 12,
-                        color: palette.roseQuartz,
-                      }}
-                    >
-                      {item.status === "expired" ? "Reconnect" : "Connect"}
-                    </Text>
-                  </AnimatedPressable>
-                )}
-              </View>
-            );
-          }}
+          renderItem={renderConnectionItem}
         />
       )}
 
@@ -383,36 +423,7 @@ export default function IntegrationsScreen() {
               keyExtractor={(item) => item.key}
               style={{ marginBottom: spacing.md }}
               contentContainerStyle={{ gap: spacing.xs }}
-              renderItem={({ item }) => (
-                <AnimatedPressable
-                  onPress={() => {
-                    haptic.selection();
-                    setActiveCategory(item.key);
-                  }}
-                  style={{
-                    paddingHorizontal: spacing.sm,
-                    paddingVertical: 6,
-                    borderRadius: 16,
-                    backgroundColor:
-                      activeCategory === item.key
-                        ? palette.roseQuartzDim
-                        : palette.glassLow,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: typography.bodyMedium,
-                      fontSize: 12,
-                      color:
-                        activeCategory === item.key
-                          ? palette.starlight
-                          : palette.starlightDim,
-                    }}
-                  >
-                    {item.label}
-                  </Text>
-                </AnimatedPressable>
-              )}
+              renderItem={renderCategoryItem}
             />
 
             {/* Integration list */}

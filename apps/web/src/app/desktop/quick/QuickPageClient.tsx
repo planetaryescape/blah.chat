@@ -106,33 +106,21 @@ export default function QuickPageClient() {
   // Global keyboard handler for Escape and arrow navigation
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        window.close();
+      const total = recentItems.length;
+      if (event.key === "Escape") return window.close();
+      if (event.key === "ArrowDown" && total > 0) {
+        event.preventDefault();
+        setFocusedIndex((p) => (p < total - 1 ? p + 1 : 0));
         return;
       }
-
-      // Arrow key navigation in recent list
-      if (event.key === "ArrowDown" && recentItems.length > 0) {
+      if (event.key === "ArrowUp" && total > 0) {
         event.preventDefault();
-        setFocusedIndex((prev) =>
-          prev < recentItems.length - 1 ? prev + 1 : 0,
-        );
+        setFocusedIndex((p) => (p > 0 ? p - 1 : total - 1));
+        return;
       }
-      if (event.key === "ArrowUp" && recentItems.length > 0) {
-        event.preventDefault();
-        setFocusedIndex((prev) =>
-          prev > 0 ? prev - 1 : recentItems.length - 1,
-        );
-      }
-      if (
-        event.key === "Enter" &&
-        focusedIndex >= 0 &&
-        focusedIndex < recentItems.length
-      ) {
+      if (event.key === "Enter") {
         const conversation = recentItems[focusedIndex];
-        if (conversation) {
-          void openInMain(`/chat/${conversation._id}`);
-        }
+        if (conversation) void openInMain(`/chat/${conversation._id}`);
       }
     };
     window.addEventListener("keydown", handler);

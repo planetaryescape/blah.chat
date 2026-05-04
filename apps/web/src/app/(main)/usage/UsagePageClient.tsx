@@ -5,37 +5,19 @@ import {
   Bookmark,
   Calendar,
   CheckSquare,
-  Copy,
   DollarSign,
   FileText,
   Flame,
   Folder,
-  GitBranch,
   Image,
   Key,
   Loader2,
   MessageSquare,
-  RotateCcw,
   TrendingUp,
   Trophy,
   Zap,
 } from "lucide-react";
 import { Suspense, useState } from "react";
-// react-doctor: recharts is heavy but its children-shape API breaks when
-// individual primitives are wrapped in next/dynamic. Lazy-loading requires
-// extracting whole chart subtrees into wrapper files — deferred.
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { DateRangePicker } from "@/components/admin/DateRangePicker";
 import { UsageKPICard } from "@/components/admin/UsageKPICard";
 import {
@@ -46,7 +28,6 @@ import {
 } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ActivityHeatmap } from "@/components/usage/ActivityHeatmap";
-import { ModelDetailsTable } from "@/components/usage/ModelDetailsTable";
 import { UsageLoadingSkeleton } from "@/components/usage/UsageLoadingSkeleton";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import {
@@ -54,32 +35,10 @@ import {
   formatCurrency,
   getLastNDays,
 } from "@/lib/utils/date";
+import { ActionUsageSection } from "./_components/ActionUsageSection";
+import { UsageChartsSection } from "./_components/UsageChartsSection";
 
 export const dynamic = "force-dynamic";
-
-const COLORS = [
-  "#8b5cf6",
-  "#ec4899",
-  "#f59e0b",
-  "#10b981",
-  "#3b82f6",
-  "#6366f1",
-];
-
-const COST_TYPE_COLORS = {
-  text: "#3b82f6",
-  voice: "#10b981",
-  images: "#a855f7",
-};
-
-const FEATURE_COLORS: Record<string, string> = {
-  chat: "#3b82f6",
-  notes: "#10b981",
-  tasks: "#ec4899",
-  files: "#8b5cf6",
-  memory: "#6366f1",
-  smart_assistant: "#14b8a6",
-};
 
 const FEATURE_LABELS: Record<string, string> = {
   chat: "Chat",
@@ -458,300 +417,15 @@ function UsagePageContent() {
               </AccordionContent>
             </AccordionItem>
 
-            {/* Action Usage */}
-            <AccordionItem value="actions" className="border rounded-lg px-4">
-              <AccordionTrigger>Action Button Usage</AccordionTrigger>
-              <AccordionContent className="pt-4 pb-6">
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  <div className="rounded-lg border p-4 flex items-center gap-3">
-                    <Copy className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <div className="text-2xl font-bold">
-                        {actionStats?.copy_message ?? 0}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Messages Copied
-                      </div>
-                    </div>
-                  </div>
-                  <div className="rounded-lg border p-4 flex items-center gap-3">
-                    <Bookmark className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <div className="text-2xl font-bold">
-                        {actionStats?.bookmark_message ?? 0}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Bookmarks Created
-                      </div>
-                    </div>
-                  </div>
-                  <div className="rounded-lg border p-4 flex items-center gap-3">
-                    <FileText className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <div className="text-2xl font-bold">
-                        {actionStats?.save_as_note ?? 0}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Saved as Notes
-                      </div>
-                    </div>
-                  </div>
-                  <div className="rounded-lg border p-4 flex items-center gap-3">
-                    <GitBranch className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <div className="text-2xl font-bold">
-                        {actionStats?.branch_message ?? 0}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Branches Created
-                      </div>
-                    </div>
-                  </div>
-                  <div className="rounded-lg border p-4 flex items-center gap-3">
-                    <RotateCcw className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <div className="text-2xl font-bold">
-                        {actionStats?.regenerate_message ?? 0}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Regenerations
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
+            <ActionUsageSection actionStats={actionStats} />
 
-            {/* Charts */}
-            <AccordionItem value="charts" className="border rounded-lg px-4">
-              <AccordionTrigger>Charts & Breakdown</AccordionTrigger>
-              <AccordionContent className="pt-4 pb-6 space-y-6">
-                {/* Daily Spend Chart */}
-                {dailySpend && dailySpend.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-3">Daily Spend</h4>
-                    <div className="h-[300px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={dailySpend}>
-                          <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                          <XAxis
-                            dataKey="date"
-                            tick={{ fontSize: 10 }}
-                            tickFormatter={(val) =>
-                              new Date(val).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                              })
-                            }
-                          />
-                          <YAxis
-                            tick={{ fontSize: 10 }}
-                            tickFormatter={(val) => `$${val.toFixed(2)}`}
-                          />
-                          <Tooltip
-                            formatter={(val) => [
-                              `$${(val as number).toFixed(4)}`,
-                              "Cost",
-                            ]}
-                            labelFormatter={(label) =>
-                              new Date(label).toLocaleDateString("en-US", {
-                                weekday: "short",
-                                month: "short",
-                                day: "numeric",
-                              })
-                            }
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="cost"
-                            stroke="#8b5cf6"
-                            fill="#8b5cf6"
-                            fillOpacity={0.3}
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                )}
-
-                {/* Pie Charts */}
-                <div className="grid gap-6 lg:grid-cols-2">
-                  {/* Model Breakdown */}
-                  {modelPieData.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-3">
-                        Spend by Model
-                      </h4>
-                      <div className="h-[250px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={modelPieData}
-                              dataKey="value"
-                              nameKey="name"
-                              cx="50%"
-                              cy="50%"
-                              outerRadius={80}
-                              label={({ name, percent }) =>
-                                `${name} (${((percent ?? 0) * 100).toFixed(0)}%)`
-                              }
-                              labelLine={{ strokeWidth: 1 }}
-                            >
-                              {modelPieData.map((entry: any, index: number) => (
-                                <Cell
-                                  key={entry.name ?? `cell-${index}`}
-                                  fill={COLORS[index % COLORS.length]}
-                                />
-                              ))}
-                            </Pie>
-                            <Tooltip
-                              formatter={(val) => [
-                                `$${(val as number).toFixed(4)}`,
-                                "Cost",
-                              ]}
-                            />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Cost by Feature */}
-                  {featureData.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-3">
-                        Cost by Feature
-                      </h4>
-                      <div className="h-[250px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={featureData}
-                              dataKey="value"
-                              nameKey="name"
-                              cx="50%"
-                              cy="50%"
-                              outerRadius={80}
-                              label={({ name, percent }) =>
-                                `${name} (${((percent ?? 0) * 100).toFixed(0)}%)`
-                              }
-                              labelLine={{ strokeWidth: 1 }}
-                            >
-                              {featureData.map((entry) => (
-                                <Cell
-                                  key={`cell-${entry.key}`}
-                                  fill={FEATURE_COLORS[entry.key] || COLORS[0]}
-                                />
-                              ))}
-                            </Pie>
-                            <Tooltip
-                              formatter={(val) => [
-                                `$${(val as number).toFixed(4)}`,
-                                "Cost",
-                              ]}
-                            />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                      {/* Sub-breakdown */}
-                      <div className="mt-4 space-y-2">
-                        {featureData.map((feature) => (
-                          <div
-                            key={feature.key}
-                            className="text-xs text-muted-foreground"
-                          >
-                            <div className="flex items-center gap-2 mb-1">
-                              <div
-                                className="w-2 h-2 rounded-full"
-                                style={{
-                                  backgroundColor:
-                                    FEATURE_COLORS[feature.key] || COLORS[0],
-                                }}
-                              />
-                              <span className="font-medium">
-                                {feature.name}
-                              </span>
-                              <span className="ml-auto">
-                                ${feature.value.toFixed(4)}
-                              </span>
-                            </div>
-                            <div className="ml-4 flex flex-wrap gap-x-3 gap-y-0.5">
-                              {feature.breakdown.text > 0 && (
-                                <span>
-                                  Text: ${feature.breakdown.text.toFixed(4)}
-                                </span>
-                              )}
-                              {feature.breakdown.tts > 0 && (
-                                <span>
-                                  TTS: ${feature.breakdown.tts.toFixed(4)}
-                                </span>
-                              )}
-                              {feature.breakdown.stt > 0 && (
-                                <span>
-                                  STT: ${feature.breakdown.stt.toFixed(4)}
-                                </span>
-                              )}
-                              {feature.breakdown.image > 0 && (
-                                <span>
-                                  Image: ${feature.breakdown.image.toFixed(4)}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Cost by Type */}
-                  {costTypeData.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-3">Cost by Type</h4>
-                      <div className="h-[250px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={costTypeData}
-                              dataKey="value"
-                              nameKey="name"
-                              cx="50%"
-                              cy="50%"
-                              outerRadius={80}
-                              label={({ name, percent }) =>
-                                `${name} (${((percent ?? 0) * 100).toFixed(0)}%)`
-                              }
-                              labelLine={{ strokeWidth: 1 }}
-                            >
-                              {costTypeData.map((entry, index) => (
-                                <Cell
-                                  key={entry.name}
-                                  fill={
-                                    COST_TYPE_COLORS[
-                                      entry.name.toLowerCase() as keyof typeof COST_TYPE_COLORS
-                                    ] || COLORS[index]
-                                  }
-                                />
-                              ))}
-                            </Pie>
-                            <Tooltip
-                              formatter={(val) => [
-                                `$${(val as number).toFixed(4)}`,
-                                "Cost",
-                              ]}
-                            />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Model Details Table */}
-                {spendByModel && spendByModel.length > 0 && (
-                  <ModelDetailsTable data={spendByModel} />
-                )}
-              </AccordionContent>
-            </AccordionItem>
+            <UsageChartsSection
+              dailySpend={dailySpend}
+              modelPieData={modelPieData}
+              featureData={featureData}
+              costTypeData={costTypeData}
+              spendByModel={spendByModel}
+            />
           </Accordion>
         </div>
       </ScrollArea>

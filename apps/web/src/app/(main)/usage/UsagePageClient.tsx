@@ -97,7 +97,6 @@ function UsagePageContent() {
   const [dateRange, setDateRange] = useState(() => getLastNDays(30));
   const showTasks = useUserPreference("showTasks");
 
-  // TODO: Phase G - needs /api/v1/usage/* REST routes
   const fetchUsage = async (path: string, params?: Record<string, string>) => {
     const qs = params ? `?${new URLSearchParams(params).toString()}` : "";
     const res = await fetch(`/api/v1/usage/${path}${qs}`);

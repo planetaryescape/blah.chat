@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, Mail, Play, RefreshCw } from "lucide-react";
+import { notFound } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,11 +23,12 @@ import {
 } from "@/components/ui/table";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useFeatureFlag } from "@/hooks/usePostHogFeatureFlag";
+import { featureFlags } from "@/lib/featureFlags";
 
 export default function BYODAdminPage() {
+  if (!featureFlags.adminFull) notFound();
   const isBYODEnabled = useFeatureFlag("byod");
 
-  // TODO: Phase G - needs /api/v1/admin/byod/stats REST route
   const { data: stats, isError: isStatsError } = useQuery({
     queryKey: ["admin", "byod", "stats"],
     queryFn: async () => {

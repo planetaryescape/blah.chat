@@ -34,7 +34,7 @@ vi.mock("@/lib/logger", () => ({
 vi.mock("server-only", () => ({}));
 
 vi.mock("@trigger.dev/sdk", () => ({
-  tasks: { trigger: vi.fn(async () => ({ id: "trigger-id" })) },
+  tasks: { trigger: vi.fn(() => Promise.resolve({ id: "trigger-id" })) },
 }));
 
 async function seedNote(opts: { clerkId: string; tags?: string[] }) {
@@ -53,7 +53,8 @@ async function seedNote(opts: { clerkId: string; tags?: string[] }) {
       tags: opts.tags ?? [],
     })
     .returning();
-  return { user, note: note! };
+  if (!note) throw new Error("seedNote: insert returned no row");
+  return { user, note };
 }
 
 describe("notes tags route", () => {
@@ -63,7 +64,7 @@ describe("notes tags route", () => {
     db = await createTestPersistenceDb();
     authMock.mockResolvedValue({
       userId: "clerk_notes_tags",
-      getToken: vi.fn(async () => null),
+      getToken: vi.fn(() => Promise.resolve(null)),
     });
     currentUserMock.mockResolvedValue({
       id: "clerk_notes_tags",

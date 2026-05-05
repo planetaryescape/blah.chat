@@ -6,12 +6,10 @@ import { m } from "framer-motion";
 import {
   AlertCircle,
   Clock,
-  Copy,
   ExternalLink,
   Loader2,
   Lock,
   Share2,
-  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -29,6 +27,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useCurrentUser } from "@/lib/hooks/queries/useCurrentUser";
 
 interface SharePageClientProps {
   shareId: string;
@@ -52,7 +51,7 @@ type PublicNoteShare = {
 };
 
 export default function SharePageClient({ shareId }: SharePageClientProps) {
-  const router = useRouter();
+  const _router = useRouter();
   const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const [password, setPassword] = useState("");
   const [verified, setVerified] = useState(false);
@@ -64,13 +63,13 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
     PublicNoteShareMetadata | null | undefined
   >(undefined);
   const [publicNote, setPublicNote] = useState<PublicNoteShare | null>(null);
-  const [isForking, setIsForking] = useState<"private" | "collab" | null>(null);
+  const [_isForking, _setIsForking] = useState<"private" | "collab" | null>(
+    null,
+  );
   const [forkError, setForkError] = useState("");
 
   // Get current user to check ownership
-
-  // TODO: Phase G - use useCurrentUser hook
-  const currentUser: any = null;
+  const { data: currentUser } = useCurrentUser();
 
   // Try conversation share first
 
@@ -166,38 +165,11 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
     setPublicNote(payload.data);
   }
 
-  const verifyConversationShare = async (args: any) => {
-    const res = await fetch("/api/v1/shares/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(args),
-    });
-    if (!res.ok) throw new Error("Verification failed");
-  }; // TODO: Phase G
-
-  // Fork actions
-
-  const forkPrivate = async (args: any) => {
-    const res = await fetch("/api/v1/shares/fork-private", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(args),
-    });
-    if (!res.ok) throw new Error("Failed to fork");
-    const json = await res.json();
-    return json.data;
-  }; // TODO: Phase G
-
-  const forkCollaborative = async (args: any) => {
-    const res = await fetch("/api/v1/shares/fork-collaborative", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(args),
-    });
-    if (!res.ok) throw new Error("Failed");
-    const json = await res.json();
-    return json.data;
-  }; // TODO: Phase G
+  // For v1, conversation shares are public read-only.
+  // Password-protected conversation shares + forking are deferred to v1.1.
+  const verifyConversationShare = async (_args: unknown) => {
+    // No-op: conversation share API serves public content via GET endpoints below.
+  };
 
   // Use the appropriate share
   const share = entityType === "note" ? noteShare : conversationShare;
@@ -276,43 +248,6 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
       setError("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed");
-    }
-  };
-
-  // Fork handlers
-  const handleForkPrivate = async () => {
-    if (!isSignedIn) {
-      router.push(`/sign-in?redirect_url=/share/${shareId}`);
-      return;
-    }
-    setIsForking("private");
-    setForkError("");
-    try {
-      const newId = await forkPrivate({ shareId });
-      router.push(`/chat/${newId}`);
-    } catch (err) {
-      setForkError(err instanceof Error ? err.message : "Failed to fork");
-      setIsForking(null);
-    }
-  };
-
-  const handleForkCollaborative = async () => {
-    if (!isSignedIn) {
-      router.push(`/sign-in?redirect_url=/share/${shareId}`);
-      return;
-    }
-    setIsForking("collab");
-    setForkError("");
-    try {
-      const collabId = await forkCollaborative({ shareId });
-      router.push(`/chat/${collabId}`);
-    } catch (err) {
-      setForkError(
-        err instanceof Error
-          ? err.message
-          : "Failed to create collaborative conversation",
-      );
-      setIsForking(null);
     }
   };
 
@@ -665,54 +600,6 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
                     Open Conversation
                   </Link>
                 </Button>
-              )}
-            {/* Non-owner signed-in: show fork buttons */}
-            {authLoaded &&
-              isSignedIn &&
-              entityType === "conversation" &&
-              !isOwner && (
-                <>
-                  <Button
-                    onClick={handleForkPrivate}
-                    disabled={!!isForking}
-                    variant="outline"
-                    size="sm"
-                    className="hidden sm:flex"
-                  >
-                    {isForking === "private" ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Importing...
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Continue Privately
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    onClick={handleForkCollaborative}
-                    disabled={!!isForking}
-                    variant="default"
-                    size="sm"
-                  >
-                    {isForking === "collab" ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Creating...
-                      </>
-                    ) : (
-                      <>
-                        <Users className="h-4 w-4 mr-2" />
-                        <span className="hidden sm:inline">
-                          Continue with Creator
-                        </span>
-                        <span className="sm:hidden">Join</span>
-                      </>
-                    )}
-                  </Button>
-                </>
               )}
             <ThemeToggle />
             {!isSignedIn && authLoaded && (

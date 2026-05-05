@@ -1,4 +1,5 @@
 import {
+  type AdminUserTier,
   bookmarks,
   cliApiKeys,
   composioConnections,
@@ -12,6 +13,7 @@ import {
   tasks,
   templates,
   usageRecords,
+  userAdminSettings,
   userApiKeys,
   userPreferences,
   users,
@@ -28,6 +30,8 @@ export type ApiUser = {
   email: string;
   name: string;
   imageUrl?: string;
+  tier: AdminUserTier;
+  isAdmin: boolean;
   createdAt: number;
   updatedAt: number;
 };
@@ -39,13 +43,18 @@ async function getOwnedUser(clerkUserId: string) {
 }
 
 export async function getCurrentUser(clerkUserId: string): Promise<ApiUser> {
-  const { user } = await getOwnedUser(clerkUserId);
+  const { db, user } = await getOwnedUser(clerkUserId);
+  const adminSettings = await db.query.userAdminSettings.findFirst({
+    where: eq(userAdminSettings.userId, user.id),
+  });
   return {
     _id: user.id,
     clerkId: user.clerkId,
     email: user.email,
     name: user.name,
     imageUrl: user.imageUrl ?? undefined,
+    tier: adminSettings?.tier ?? "free",
+    isAdmin: adminSettings?.isAdmin ?? false,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };

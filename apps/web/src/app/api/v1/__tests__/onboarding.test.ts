@@ -51,7 +51,7 @@ describe("onboarding routes", () => {
     });
     authMock.mockResolvedValue({
       userId: "clerk_onboarding",
-      getToken: vi.fn(async () => null),
+      getToken: vi.fn(() => Promise.resolve(null)),
     });
     currentUserMock.mockResolvedValue({
       id: "clerk_onboarding",

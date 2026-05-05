@@ -70,7 +70,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 export default function UsagePage() {
   const [dateRange, setDateRange] = useState(() => getLastNDays(30));
 
-  // TODO: Phase G - needs admin usage REST routes
   const { data: monthlyTotal } = useQuery({
     queryKey: ["admin", "usage", "monthly-total"],
     queryFn: async () => {

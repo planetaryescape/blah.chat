@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/planetaryescape/blah.chat/compare/auto-router-v0.4.0...auto-router-v0.5.0) (2026-05-05)
+
+
+### Features
+
+* phase G admin settings + auto-router config (with runtime swap) ([23ea07d](https://github.com/planetaryescape/blah.chat/commit/23ea07d466e7551c90f7bca1d2054eb5b3f527da))
+
 ## [0.4.0](https://github.com/planetaryescape/blah.chat/compare/auto-router-v0.3.0...auto-router-v0.4.0) (2026-03-29)
 
 

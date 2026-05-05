@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.49.0](https://github.com/planetaryescape/blah.chat/compare/desktop-v0.48.0...desktop-v0.49.0) (2026-05-05)
+
+
+### Features
+
+* add desktop app shell and automated release pipeline ([6dddde1](https://github.com/planetaryescape/blah.chat/commit/6dddde1e62a3d520e3d3e4a856f88e10ff74fe4c))
+* desktop companion controls ([503fe2e](https://github.com/planetaryescape/blah.chat/commit/503fe2e9aea9ad48b9d1f948914470113df77b00))
+* desktop remaining review items — offline fallback, cross-platform CI, companion polish, badge API ([21de474](https://github.com/planetaryescape/blah.chat/commit/21de474e7d81d16113e6667b00934b89a1b4a3f4))
+* **desktop:** add update check and one-click install flow ([28d0842](https://github.com/planetaryescape/blah.chat/commit/28d0842935d344eaef93e957f3fd3da7cbac113d))
+* **web:** add desktop updater manifest endpoint ([7f5fe3c](https://github.com/planetaryescape/blah.chat/commit/7f5fe3ccfe09dac62ed8ee03f854eb5f77b1db6c))
+
+
+### Bug Fixes
+
+* [] point desktop build at existing icon ([516e61f](https://github.com/planetaryescape/blah.chat/commit/516e61f84fa5665dc22ff5c03bbda7b489d49dd0))
+* avoid waiting for desktop notarization ([6a8841d](https://github.com/planetaryescape/blah.chat/commit/6a8841d2a8534c85923c15866283e6b2418494ac))
+* desktop app security, UX, and code quality overhaul ([12a9c46](https://github.com/planetaryescape/blah.chat/commit/12a9c4655ad8cb01497282cbd126d54a7398f283))
+* **desktop:** regen icon.icns + skip prepare on CI ([daaf2aa](https://github.com/planetaryescape/blah.chat/commit/daaf2aa49751bf5de46eee8c0b66522ba47ec0dc))
+* **desktop:** strip stray [] placeholder from changelog bullet ([3c70d4c](https://github.com/planetaryescape/blah.chat/commit/3c70d4c01b578ef693daa251f56e232378e978d4))
+* harden desktop release checks and docs ([c3370ea](https://github.com/planetaryescape/blah.chat/commit/c3370eab3a770ff9ee9b4a9360894d69bc2b3bf0))
+* require Developer ID cert for desktop release ([08877a8](https://github.com/planetaryescape/blah.chat/commit/08877a81c8adc1e892c4177978a0372174502b95))
+* skip desktop build on non-mac CI hosts ([60fe91e](https://github.com/planetaryescape/blah.chat/commit/60fe91e009ce38e39717c0ac0cfab2d89f6800a7))
+* stabilize desktop build and updater defaults ([00f91cf](https://github.com/planetaryescape/blah.chat/commit/00f91cf01701a6a78ebbed1daf65f3b0aff2c097))
+* stabilize reranking service test ([9762401](https://github.com/planetaryescape/blah.chat/commit/9762401070b24291c4cbe8c1e4d4e156207717d6))
+* stop release-please cascade and unblock desktop DMG build ([3e6998b](https://github.com/planetaryescape/blah.chat/commit/3e6998b38f04d0c31e097cce5a06d20123219c47))
+
 ## [0.48.0](https://github.com/planetaryescape/blah.chat/compare/desktop-v0.47.0...desktop-v0.48.0) (2026-05-05)
 
 

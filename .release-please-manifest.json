@@ -1,10 +1,10 @@
 {
-  ".": "1.37.2",
+  ".": "1.38.0",
   "packages/api-client": "0.7.0",
   "packages/ai": "0.3.0",
-  "packages/shared": "0.4.0",
+  "packages/shared": "0.5.0",
   "packages/config": "0.1.0",
-  "packages/auto-router": "0.4.0",
+  "packages/auto-router": "0.5.0",
   "packages/sdk": "0.2.0",
   "packages/content-core": "0.1.0",
   "packages/content-ingest": "0.1.0",
@@ -27,5 +27,5 @@
   "packages/cognitive-memory": "0.2.0",
   "packages/integrations-composio": "0.1.0",
   "apps/cli": "0.6.0",
-  "apps/desktop": "0.48.0"
+  "apps/desktop": "0.49.0"
 }

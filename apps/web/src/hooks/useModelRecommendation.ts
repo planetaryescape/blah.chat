@@ -26,7 +26,7 @@ export function useModelRecommendation({
   messages,
   onModelChange,
 }: UseModelRecommendationOptions) {
-  // Preview modal state
+  // Preview modal state — driven by ModelRecommendationBanner.onPreview.
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewModelId, setPreviewModelId] = useState<string | null>(null);
 
@@ -47,7 +47,7 @@ export function useModelRecommendation({
     [onModelChange],
   );
 
-  // Open preview modal for a model
+  // Open preview modal for a model.
   const handlePreviewModel = useCallback((modelId: string) => {
     setPreviewModelId(modelId);
     setPreviewModalOpen(true);
@@ -85,22 +85,11 @@ export function useModelRecommendation({
     }
   }, [messages, switchedModelId, switchedModelAt, conversation?.model]);
 
-  // Listen for model preview events (from recommendation banner)
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const customEvent = e as CustomEvent<{ modelId: string }>;
-      setPreviewModelId(customEvent.detail.modelId);
-      setPreviewModalOpen(true);
-    };
-    window.addEventListener("open-model-preview", handler);
-    return () => window.removeEventListener("open-model-preview", handler);
-  }, []);
-
   return {
     // Preview modal
     previewModalOpen,
-    setPreviewModalOpen,
     previewModelId,
+    setPreviewModalOpen,
 
     // Set-as-default prompt
     showSetDefaultPrompt,

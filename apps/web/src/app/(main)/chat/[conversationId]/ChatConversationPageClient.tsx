@@ -49,7 +49,9 @@ import { useRestMessageSync } from "@/hooks/useRestMessageSync";
 import { useTemplateInsertion } from "@/hooks/useTemplateInsertion";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { useApiClient } from "@/lib/api/client";
+import { featureFlags } from "@/lib/featureFlags";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
+import { deriveTokenUsage } from "@/lib/utils/deriveTokenUsage";
 
 function ChatPageContent({
   params,
@@ -125,9 +127,8 @@ function ChatPageContent({
   // Feature toggles for conditional UI elements
   const features = useFeatureToggles();
 
-  // Token usage query (needed before model selection for blocking)
-  // TODO: token usage query needs REST endpoint
-  const tokenUsage = undefined;
+  // Token usage derived from loaded messages (drives auto-compress + blocking).
+  const tokenUsage = useMemo(() => deriveTokenUsage(messages), [messages]);
 
   // State for model switch blocking
   const [blockedModel, setBlockedModel] = useState<{
@@ -261,7 +262,40 @@ function ChatPageContent({
     router.push("/chat");
   };
 
-  const [thinkingEffort, setThinkingEffort] = useState<ThinkingEffort>("none");
+  // Thinking effort persists per conversation. Read once when conversation
+  // loads, then PATCH on user change. Avoids T3-style "settings reset on
+  // model switch" footgun.
+  const persistedThinkingEffort =
+    (conversationAny?.thinkingEffort as ThinkingEffort | undefined) ?? "none";
+  const [thinkingEffort, setThinkingEffortLocal] = useState<ThinkingEffort>(
+    persistedThinkingEffort,
+  );
+  useEffect(() => {
+    setThinkingEffortLocal(persistedThinkingEffort);
+  }, [persistedThinkingEffort]);
+  const apiClientForEffort = useApiClient();
+  const setThinkingEffort = useCallback(
+    (next: ThinkingEffort) => {
+      setThinkingEffortLocal(next);
+      if (validConversationId) {
+        apiClientForEffort
+          .patch(
+            `/api/v1/conversations/${encodeURIComponent(validConversationId)}`,
+            {
+              thinkingEffort: next,
+            },
+          )
+          .catch((err) => {
+            console.warn(
+              "thinking-effort persist failed",
+              validConversationId,
+              err,
+            );
+          });
+      }
+    },
+    [apiClientForEffort, validConversationId],
+  );
   const [attachments, setAttachments] = useState<
     Array<{
       type: "file" | "image" | "audio";
@@ -581,22 +615,6 @@ function ChatPageContent({
                       />
                     )}
 
-                  {/* Set Default Model Prompt (shows after successful generation) */}
-                  {modelRecommendation.showSetDefaultPrompt &&
-                    modelRecommendation.switchedModelId &&
-                    validConversationId && (
-                      <SetDefaultModelPrompt
-                        modelId={modelRecommendation.switchedModelId}
-                        modelName={
-                          MODEL_CONFIG[modelRecommendation.switchedModelId]
-                            ?.name ?? modelRecommendation.switchedModelId
-                        }
-                        conversationId={validConversationId}
-                        onSetDefault={modelRecommendation.handleSetAsDefault}
-                        onDismiss={modelRecommendation.dismissSetDefaultPrompt}
-                      />
-                    )}
-
                   {/* Preview Modal */}
                   {modelRecommendation.previewModalOpen &&
                     modelRecommendation.previewModelId &&
@@ -619,6 +637,22 @@ function ChatPageContent({
                           messages?.find((m) => m.role === "user")?.content ??
                           ""
                         }
+                      />
+                    )}
+
+                  {/* Set Default Model Prompt (shows after successful generation) */}
+                  {modelRecommendation.showSetDefaultPrompt &&
+                    modelRecommendation.switchedModelId &&
+                    validConversationId && (
+                      <SetDefaultModelPrompt
+                        modelId={modelRecommendation.switchedModelId}
+                        modelName={
+                          MODEL_CONFIG[modelRecommendation.switchedModelId]
+                            ?.name ?? modelRecommendation.switchedModelId
+                        }
+                        conversationId={validConversationId}
+                        onSetDefault={modelRecommendation.handleSetAsDefault}
+                        onDismiss={modelRecommendation.dismissSetDefaultPrompt}
                       />
                     )}
 
@@ -734,8 +768,8 @@ function ChatPageContent({
           </div>
         </ResizablePanel>
 
-        {/* Canvas Panel - hidden on mobile */}
-        {documentId && !isMobile && (
+        {/* Canvas Panel - flag-gated, hidden on mobile */}
+        {featureFlags.canvas && documentId && !isMobile && (
           <>
             <ResizableHandle withHandle />
             <ResizablePanel defaultSize={55} minSize={25}>

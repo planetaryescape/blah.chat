@@ -54,7 +54,7 @@ export function VersionHistoryPanel({ documentId }: VersionHistoryPanelProps) {
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 text-sm">
-                    {entry.source === "llm_diff" ? (
+                    {entry.source === "ai_edit" ? (
                       <Bot className="w-4 h-4 text-primary shrink-0" />
                     ) : (
                       <User className="w-4 h-4 shrink-0" />
@@ -68,9 +68,9 @@ export function VersionHistoryPanel({ documentId }: VersionHistoryPanelProps) {
                     <Clock className="w-3 h-3" />
                     {formatDistanceToNow(entry.createdAt, { addSuffix: true })}
                   </div>
-                  {entry.diff && (
+                  {entry.diffSummary && (
                     <p className="mt-1 text-xs text-muted-foreground truncate">
-                      {getChangeDescription(entry.diff)}
+                      {getChangeDescription(entry.diffSummary)}
                     </p>
                   )}
                 </div>

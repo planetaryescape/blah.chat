@@ -59,10 +59,12 @@ export function useCanvasHistory(documentId: string | undefined) {
   });
 
   const invalidate = useCallback(() => {
-    queryClient.invalidateQueries({
+    void queryClient.invalidateQueries({
       queryKey: ["canvas-document", documentId],
     });
-    queryClient.invalidateQueries({ queryKey: ["canvas-history", documentId] });
+    void queryClient.invalidateQueries({
+      queryKey: ["canvas-history", documentId],
+    });
   }, [queryClient, documentId]);
 
   const updateContentMutation = useMutation({

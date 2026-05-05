@@ -411,11 +411,13 @@ export const modelChangeLog = pgTable(
 `notes.tags` is currently `text[]`. The TODO at `apps/web/src/components/ui/minimal-tag-input.tsx:23` calls `POST/DELETE /api/v1/notes/:id/tags`. Two options:
 
 **Option A — keep `text[]`, mutate via SQL `array_append`/`array_remove`:**
+
 - Simpler, no new table.
 - Matches `bookmarks` pattern (`bookmarks` also uses `text[]`).
 - Can't query tags as first-class entities (e.g. tag autocomplete across notes).
 
 **Option B — new `noteTags` junction:**
+
 - `(noteId, tag)` rows.
 - Enables global tag list, normalized search.
 - BYOD allowlist already declares `noteTags`.

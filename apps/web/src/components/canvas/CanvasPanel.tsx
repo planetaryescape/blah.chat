@@ -72,10 +72,10 @@ export function CanvasPanel({ documentId, onClose }: CanvasPanelProps) {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: ["canvas-document", documentId],
       });
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: ["canvas-history", documentId],
       });
     },

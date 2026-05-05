@@ -23,21 +23,22 @@ describe("ShareDialog", () => {
     vi.clearAllMocks();
     vi.stubGlobal(
       "fetch",
-      vi.fn(async (url: string) => {
+      vi.fn((url: string) => {
         if (url.includes("/api/v1/shares") && !url.includes("?")) {
-          return {
+          return Promise.resolve({
             ok: true,
-            json: async () => ({
-              status: "success",
-              data: { shareId: "share-abc123" },
-            }),
-          };
+            json: () =>
+              Promise.resolve({
+                status: "success",
+                data: { shareId: "share-abc123" },
+              }),
+          } as Response);
         }
         // GET share query
-        return {
+        return Promise.resolve({
           ok: false,
-          json: async () => ({ status: "error" }),
-        };
+          json: () => Promise.resolve({ status: "error" }),
+        } as Response);
       }),
     );
   });
@@ -128,33 +129,34 @@ describe("ShareDialog", () => {
     });
   });
 
-  it("toggle calls PATCH /api/v1/shares/<shareId> with {isActive}", async () => {
+  it("toggle calls PATCH share id with {isActive}", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn((url: string, init?: RequestInit) => {
         if (url.includes("/api/v1/shares/by-conversation")) {
           return Promise.resolve({
             ok: true,
-            json: async () => ({
-              status: "success",
-              data: {
-                shareId: "share-abc123",
-                isActive: true,
-                expiresAt: Date.now() + 86_400_000,
-              },
-            }),
+            json: () =>
+              Promise.resolve({
+                status: "success",
+                data: {
+                  shareId: "share-abc123",
+                  isActive: true,
+                  expiresAt: Date.now() + 86_400_000,
+                },
+              }),
           } as Response);
         }
         // PATCH /api/v1/shares/share-abc123
         if (url === "/api/v1/shares/share-abc123" && init?.method === "PATCH") {
           return Promise.resolve({
             ok: true,
-            json: async () => ({ status: "success" }),
+            json: () => Promise.resolve({ status: "success" }),
           } as Response);
         }
         return Promise.resolve({
           ok: false,
-          json: async () => ({ status: "error" }),
+          json: () => Promise.resolve({ status: "error" }),
         } as Response);
       }),
     );
@@ -175,12 +177,13 @@ describe("ShareDialog", () => {
         );
       });
       expect(patchCall).toBeTruthy();
-      const body = JSON.parse(String((patchCall![1] as RequestInit).body));
+      if (!patchCall) throw new Error("Missing share PATCH call");
+      const body = JSON.parse(String((patchCall[1] as RequestInit).body));
       expect(body).toEqual({ isActive: false });
     });
   });
 
-  it("extend calls PATCH /api/v1/shares/<shareId> with {expiresAt}", async () => {
+  it("extend calls PATCH share id with {expiresAt}", async () => {
     const futureTs = Date.now() + 86_400_000;
     vi.stubGlobal(
       "fetch",
@@ -188,26 +191,27 @@ describe("ShareDialog", () => {
         if (url.includes("/api/v1/shares/by-conversation")) {
           return Promise.resolve({
             ok: true,
-            json: async () => ({
-              status: "success",
-              data: {
-                shareId: "share-abc123",
-                isActive: true,
-                // Expired so the "Extend Expiration" UI renders
-                expiresAt: Date.now() - 1000,
-              },
-            }),
+            json: () =>
+              Promise.resolve({
+                status: "success",
+                data: {
+                  shareId: "share-abc123",
+                  isActive: true,
+                  // Expired so the "Extend Expiration" UI renders
+                  expiresAt: Date.now() - 1000,
+                },
+              }),
           } as Response);
         }
         if (url === "/api/v1/shares/share-abc123" && init?.method === "PATCH") {
           return Promise.resolve({
             ok: true,
-            json: async () => ({ status: "success" }),
+            json: () => Promise.resolve({ status: "success" }),
           } as Response);
         }
         return Promise.resolve({
           ok: false,
-          json: async () => ({ status: "error" }),
+          json: () => Promise.resolve({ status: "error" }),
         } as Response);
       }),
     );
@@ -229,7 +233,8 @@ describe("ShareDialog", () => {
         );
       });
       expect(patchCall).toBeTruthy();
-      const body = JSON.parse(String((patchCall![1] as RequestInit).body));
+      if (!patchCall) throw new Error("Missing share PATCH call");
+      const body = JSON.parse(String((patchCall[1] as RequestInit).body));
       expect(body).toHaveProperty("expiresAt");
       expect(typeof body.expiresAt).toBe("number");
       // Reasonable future timestamp (relative to test start)

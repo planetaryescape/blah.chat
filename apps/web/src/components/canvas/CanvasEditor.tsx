@@ -69,10 +69,10 @@ export function CanvasEditor({
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: ["canvas-document", document._id],
       });
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: ["canvas-history", document._id],
       });
     },

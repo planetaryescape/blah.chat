@@ -62,13 +62,11 @@ function AutoRouterPageContent() {
       });
       if (!res.ok) {
         let message = `Failed (${res.status})`;
-        try {
-          const json = await res.json();
-          message =
-            typeof json?.error === "string"
-              ? json.error
-              : (json?.error?.message ?? message);
-        } catch {}
+        const json = await res.json().catch(() => null);
+        message =
+          typeof json?.error === "string"
+            ? json.error
+            : (json?.error?.message ?? message);
         throw new Error(message);
       }
     },

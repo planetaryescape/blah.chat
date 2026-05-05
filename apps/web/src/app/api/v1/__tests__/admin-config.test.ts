@@ -72,9 +72,13 @@ const adminUpdateMock = vi.mocked(updateAdminSettings);
 const routerMock = vi.mocked(getAutoRouterConfig);
 const routerUpdateMock = vi.mocked(updateAutoRouterConfig);
 
-type RouteContext = { params: Promise<Record<string, string | string[]>> };
-type AuthContext = RouteContext & { userId: string };
-type RouteHandler = (req: NextRequest, ctx: AuthContext) => Promise<Response>;
+interface RouteContext {
+  params: Promise<Record<string, string | string[]>>;
+}
+interface AuthContext extends RouteContext {
+  userId: string;
+}
+type RouteHandler = (...args: [NextRequest, AuthContext]) => Promise<Response>;
 
 const makeReq = (
   url: string,

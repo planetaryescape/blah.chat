@@ -8,14 +8,14 @@ import { useCanvasHistory } from "../useCanvasHistory";
 
 interface FetchMockState {
   document: { _id: string; version: number; content: string } | null;
-  history: Array<{
+  history: {
     _id: string;
     version: number;
     content: string;
     documentId: string;
     source: string;
     createdAt: number;
-  }>;
+  }[];
 }
 
 const state: FetchMockState = {
@@ -62,30 +62,32 @@ beforeEach(() => {
 
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (url: string, init?: RequestInit) => {
+    vi.fn((url: string, init?: RequestInit) => {
       if (url.endsWith("/history?order=asc&limit=200")) {
-        return {
+        return Promise.resolve({
           ok: true,
-          json: async () => ({ status: "success", data: state.history }),
-        } as Response;
+          json: () =>
+            Promise.resolve({ status: "success", data: state.history }),
+        } as Response);
       }
       if (url.endsWith("/restore") && init?.method === "POST") {
-        return {
+        return Promise.resolve({
           ok: true,
-          json: async () => ({ status: "success" }),
-        } as Response;
+          json: () => Promise.resolve({ status: "success" }),
+        } as Response);
       }
       if (url.includes("/api/v1/documents/doc-123") && !init) {
-        return {
+        return Promise.resolve({
           ok: true,
-          json: async () => ({ status: "success", data: state.document }),
-        } as Response;
+          json: () =>
+            Promise.resolve({ status: "success", data: state.document }),
+        } as Response);
       }
       // PATCH on document
-      return {
+      return Promise.resolve({
         ok: true,
-        json: async () => ({ status: "success" }),
-      } as Response;
+        json: () => Promise.resolve({ status: "success" }),
+      } as Response);
     }),
   );
 });
@@ -144,10 +146,11 @@ describe("useCanvasHistory", () => {
 
     const fetchCalls = vi.mocked(fetch).mock.calls;
     const patchCall = fetchCalls.find(
-      ([_url, init]) => (init as RequestInit | undefined)?.method === "PATCH",
+      ([, init]) => (init as RequestInit | undefined)?.method === "PATCH",
     );
     expect(patchCall).toBeTruthy();
-    const body = JSON.parse(String((patchCall![1] as RequestInit).body));
+    if (!patchCall) throw new Error("Missing document PATCH call");
+    const body = JSON.parse(String((patchCall[1] as RequestInit).body));
     expect(body.content).toBe("v1 content");
     expect(body.source).toBe("user_edit");
   });
@@ -164,7 +167,8 @@ describe("useCanvasHistory", () => {
       .mocked(fetch)
       .mock.calls.find(([url]) => String(url).endsWith("/restore"));
     expect(restoreCall).toBeTruthy();
-    const body = JSON.parse(String((restoreCall![1] as RequestInit).body));
+    if (!restoreCall) throw new Error("Missing restore call");
+    const body = JSON.parse(String((restoreCall[1] as RequestInit).body));
     expect(body.revisionId).toBe("rev-1");
   });
 

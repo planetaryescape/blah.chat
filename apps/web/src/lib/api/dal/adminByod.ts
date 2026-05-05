@@ -14,6 +14,14 @@ function n(value: unknown): number {
   return typeof value === "number" ? value : Number(value ?? 0);
 }
 
+function optionalString(value: string | null) {
+  return value ?? undefined;
+}
+
+function optionalNumber(value: number | null) {
+  return value ?? undefined;
+}
+
 type ByodInstanceRow = {
   id: string;
   userId: string;
@@ -31,13 +39,13 @@ function toByodInstance(row: ByodInstanceRow) {
   return {
     _id: row.id,
     userId: row.userId,
-    userEmail: row.userEmail ?? undefined,
-    userName: row.userName ?? undefined,
-    neonProjectId: row.neonProjectId ?? undefined,
+    userEmail: optionalString(row.userEmail),
+    userName: optionalString(row.userName),
+    neonProjectId: optionalString(row.neonProjectId),
     connectionStatus: row.connectionStatus,
-    connectionError: row.connectionError ?? undefined,
-    lastHealthCheck: row.lastHealthCheck ?? undefined,
-    healthLatencyMs: row.healthLatencyMs ?? undefined,
+    connectionError: optionalString(row.connectionError),
+    lastHealthCheck: optionalNumber(row.lastHealthCheck),
+    healthLatencyMs: optionalNumber(row.healthLatencyMs),
     createdAt: row.createdAt,
   };
 }

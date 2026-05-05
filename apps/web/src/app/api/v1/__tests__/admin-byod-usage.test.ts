@@ -81,9 +81,13 @@ import { adminByodDAL } from "@/lib/api/dal/adminByod";
 import { adminUsageDAL } from "@/lib/api/dal/adminUsageAggregate";
 import { userAnalyticsDAL } from "@/lib/api/dal/userAnalytics";
 
-type RouteContext = { params: Promise<Record<string, string | string[]>> };
-type AuthContext = RouteContext & { userId: string };
-type RouteHandler = (req: NextRequest, ctx: AuthContext) => Promise<Response>;
+interface RouteContext {
+  params: Promise<Record<string, string | string[]>>;
+}
+interface AuthContext extends RouteContext {
+  userId: string;
+}
+type RouteHandler = (...args: [NextRequest, AuthContext]) => Promise<Response>;
 
 const makeReq = (
   url: string,

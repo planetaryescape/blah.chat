@@ -40,6 +40,7 @@ formatEntity({
 **File:** `apps/web/src/app/api/v1/import/conversations/route.ts`
 
 **Handler:**
+
 - `withErrorHandling(withUserAuth(...))` wrapper
 - Parse with `zod` schema (max 1000 conversations per call, max 5000 messages per conversation)
 - For each conversation, in a single transaction per conversation:

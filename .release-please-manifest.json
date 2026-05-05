@@ -14,7 +14,6 @@
   "packages/rag-core": "0.1.0",
   "packages/speech": "0.1.0",
   "packages/storage": "0.1.0",
-  "packages/persistence-convex": "0.1.0",
   "packages/jobs": "0.5.0",
   "packages/bible-core": "0.1.0",
   "packages/bible-service": "0.1.0",

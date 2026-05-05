@@ -15,6 +15,18 @@ const authMock = vi.fn();
 const currentUserMock = vi.fn();
 let db: Awaited<ReturnType<typeof createTestPersistenceDb>>;
 
+type Envelope<T> = { status: string; data?: T };
+type ErrorEnvelope = {
+  status: string;
+  error?: {
+    code?: string;
+    details?: {
+      currentVersion?: number;
+      currentContent?: string;
+    };
+  };
+};
+
 vi.mock("@clerk/nextjs/server", () => ({
   auth: authMock,
   currentUser: currentUserMock,
@@ -85,7 +97,7 @@ describe("canvas history + restore (Postgres)", () => {
 
     authMock.mockResolvedValue({
       userId: "clerk_canvas",
-      getToken: vi.fn(async () => null),
+      getToken: vi.fn(() => Promise.resolve(null)),
     });
     currentUserMock.mockResolvedValue({
       id: "clerk_canvas",
@@ -109,7 +121,10 @@ describe("canvas history + restore (Postgres)", () => {
     );
     expect(res.status).toBe(201);
     return unwrapData<{ _id: string; version: number }>(
-      (await res.json()) as any,
+      (await res.json()) as unknown as Envelope<{
+        _id: string;
+        version: number;
+      }>,
     );
   }
 
@@ -123,9 +138,11 @@ describe("canvas history + restore (Postgres)", () => {
       { params: Promise.resolve({ id: doc._id }) },
     );
     expect(res.status).toBe(200);
-    const data = unwrapData<
-      Array<{ data: { version: number; content: string } }>
-    >((await res.json()) as any);
+    const data = unwrapData<{ data: { version: number; content: string } }[]>(
+      (await res.json()) as unknown as Envelope<
+        { data: { version: number; content: string } }[]
+      >,
+    );
     expect(data.length).toBe(1);
     expect(data[0]?.data.version).toBe(1);
     expect(data[0]?.data.content).toBe("v1");
@@ -143,7 +160,10 @@ describe("canvas history + restore (Postgres)", () => {
     );
     expect(res.status).toBe(200);
     const updated = unwrapData<{ version: number; content: string }>(
-      (await res.json()) as any,
+      (await res.json()) as unknown as Envelope<{
+        version: number;
+        content: string;
+      }>,
     );
     expect(updated.version).toBe(2);
     expect(updated.content).toBe("v2");
@@ -181,7 +201,7 @@ describe("canvas history + restore (Postgres)", () => {
       { params: Promise.resolve({ id: doc._id }) },
     );
     expect(conflictRes.status).toBe(409);
-    const body = (await conflictRes.json()) as any;
+    const body = (await conflictRes.json()) as unknown as ErrorEnvelope;
     expect(body.status).toBe("error");
     expect(body.error?.code).toBe("version_conflict");
     expect(body.error?.details?.currentVersion).toBe(2);
@@ -233,13 +253,14 @@ describe("canvas history + restore (Postgres)", () => {
       .from(documentRevisions)
       .where(eq(documentRevisions.documentId, doc._id))
       .orderBy(documentRevisions.version);
-    const v1Rev = initialRevs.find((r) => r.version === 1)!;
+    const v1Rev = initialRevs.find((r) => r.version === 1);
+    expect(v1Rev).toBeDefined();
 
     const restoreRoute = await import("../documents/[id]/restore/route");
     const res = await restoreRoute.POST(
       createMockRequest(`/api/v1/documents/${doc._id}/restore`, {
         method: "POST",
-        body: { revisionId: v1Rev.id },
+        body: { revisionId: v1Rev?.id },
       }),
       { params: Promise.resolve({ id: doc._id }) },
     );
@@ -274,7 +295,7 @@ describe("canvas history + restore (Postgres)", () => {
     });
     authMock.mockResolvedValue({
       userId: "clerk_other",
-      getToken: vi.fn(async () => null),
+      getToken: vi.fn(() => Promise.resolve(null)),
     });
     currentUserMock.mockResolvedValue({
       id: "clerk_other",

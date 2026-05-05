@@ -27,6 +27,8 @@ CREATE TABLE conversations (
   archived boolean NOT NULL DEFAULT false,
   starred boolean NOT NULL DEFAULT false,
   thinking_effort text NOT NULL DEFAULT 'none',
+  mode text NOT NULL DEFAULT 'chat',
+  active_document_id text,
   created_at bigint NOT NULL,
   updated_at bigint NOT NULL
 );

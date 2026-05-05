@@ -75,7 +75,6 @@ function ChatPageContent({
     conversationId && conversationId !== "undefined" ? conversationId : null;
 
   const conversation = useConversationResource(validConversationId);
-  const conversationAny = conversation as any;
   const { data: integrationEvents = [] } =
     useConversationIntegrationEvents(validConversationId);
   const {
@@ -89,7 +88,7 @@ function ChatPageContent({
   const user = null;
 
   // Canvas auto-sync with conversation mode and navigation
-  const isDocumentMode = conversationAny?.mode === "document";
+  const isDocumentMode = conversation?.mode === "document";
   const { handleClose: handleCanvasClose } = useCanvasAutoSync({
     conversationId: validConversationId ?? undefined,
     isDocumentMode,
@@ -100,7 +99,7 @@ function ChatPageContent({
 
   // Optimistic UI: Overlay local optimistic messages on top of server state
   const { messages, addOptimisticMessages } = useOptimisticMessages({
-    serverMessages: serverMessages as any,
+    serverMessages,
   });
 
   // Announce new messages to screen readers
@@ -147,7 +146,7 @@ function ChatPageContent({
   const { selectedModel, displayModel, modelLoading, handleModelChange } =
     useChatModelSelection({
       conversationId: validConversationId ?? undefined,
-      conversation: conversationAny,
+      conversation,
       user,
       defaultModel,
       tokenUsage,
@@ -159,7 +158,7 @@ function ChatPageContent({
     isSaving: integrationsSaving,
   } = useConversationIntegrationSelection({
     conversationId: validConversationId,
-    initialSelectedIntegrationIds: conversationAny?.selectedIntegrationIds,
+    initialSelectedIntegrationIds: conversation?.selectedIntegrationIds,
   });
 
   // Context limit enforcement (uses displayModel for accurate percentage)
@@ -194,14 +193,14 @@ function ChatPageContent({
 
   // Auto-compress at 75% when setting is enabled
   const triggerAutoCompress = useCallback(async () => {
-    if (!validConversationId || !conversationAny?.model) return;
+    if (!validConversationId || !conversation?.model) return;
 
     setIsCompacting(true);
     try {
       const { conversationId: newConversationId } = await apiClient.post<{
         conversationId: string;
       }>(`/api/v1/conversations/${validConversationId}/compact`, {
-        targetModel: conversationAny.model,
+        targetModel: conversation.model,
       });
       setIsCompacting(false);
       toast.success("Conversation compacted");
@@ -213,7 +212,7 @@ function ChatPageContent({
       );
       autoCompressTriggeredRef.current = false; // Allow retry on error
     }
-  }, [apiClient, validConversationId, conversationAny?.model, router]);
+  }, [apiClient, validConversationId, conversation?.model, router]);
 
   useEffect(() => {
     if (
@@ -222,7 +221,7 @@ function ChatPageContent({
       !autoCompressTriggeredRef.current &&
       !isCompacting &&
       validConversationId &&
-      conversationAny?.model
+      conversation?.model
     ) {
       autoCompressTriggeredRef.current = true;
       triggerAutoCompress();
@@ -232,7 +231,7 @@ function ChatPageContent({
     shouldAutoCompress,
     isCompacting,
     validConversationId,
-    conversationAny?.model,
+    conversation?.model,
     triggerAutoCompress,
   ]);
 
@@ -243,7 +242,7 @@ function ChatPageContent({
       const { conversationId: newConversationId } = await apiClient.post<{
         conversationId: string;
       }>(`/api/v1/conversations/${validConversationId}/compact`, {
-        targetModel: conversationAny?.model,
+        targetModel: conversation?.model,
       });
       setIsCompacting(false);
       toast.success("Conversation compacted");
@@ -266,7 +265,7 @@ function ChatPageContent({
   // loads, then PATCH on user change. Avoids T3-style "settings reset on
   // model switch" footgun.
   const persistedThinkingEffort =
-    (conversationAny?.thinkingEffort as ThinkingEffort | undefined) ?? "none";
+    (conversation?.thinkingEffort as ThinkingEffort | undefined) ?? "none";
   const [thinkingEffort, setThinkingEffortLocal] = useState<ThinkingEffort>(
     persistedThinkingEffort,
   );
@@ -297,13 +296,13 @@ function ChatPageContent({
     [apiClientForEffort, validConversationId],
   );
   const [attachments, setAttachments] = useState<
-    Array<{
+    {
       type: "file" | "image" | "audio";
       name: string;
       storageId: string;
       mimeType: string;
       size: number;
-    }>
+    }[]
   >([]);
 
   // URL state for comparison view toggles
@@ -333,10 +332,31 @@ function ChatPageContent({
 
   // Model recommendation (extracted to hook)
   const modelRecommendation = useModelRecommendation({
-    conversation: conversationAny,
+    conversation,
     messages,
     onModelChange: handleModelChange,
   });
+
+  const handleBlockedModelCompact = useCallback(async () => {
+    if (!validConversationId || !blockedModel) return;
+    setIsCompacting(true);
+    try {
+      const { conversationId: newConversationId } = await apiClient.post<{
+        conversationId: string;
+      }>(`/api/v1/conversations/${validConversationId}/compact`, {
+        targetModel: blockedModel.modelId,
+      });
+      setIsCompacting(false);
+      toast.success("Conversation compacted");
+      setBlockedModel(null);
+      router.push(`/chat/${newConversationId}`);
+    } catch (error) {
+      setIsCompacting(false);
+      toast.error(
+        `Failed to compact: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }, [apiClient, blockedModel, router, validConversationId]);
 
   // Keyboard shortcuts (⌘J for model switcher, ⌘; for templates)
   useChatKeyboardShortcuts({
@@ -497,7 +517,7 @@ function ChatPageContent({
         <ResizablePanel defaultSize={documentId ? 45 : 100} minSize={30}>
           <div className="flex flex-col h-full">
             <ChatHeader
-              conversation={conversationAny}
+              conversation={conversation}
               conversationId={validConversationId!}
               selectedModel={displayModel}
               modelLoading={modelLoading}
@@ -585,7 +605,7 @@ function ChatPageContent({
                       <VirtualizedMessageList
                         key={validConversationId}
                         conversationId={validConversationId!}
-                        conversation={conversationAny}
+                        conversation={conversation}
                         messages={transcriptEntries}
                         chatWidth={chatWidth}
                         onVote={handleVote}
@@ -595,7 +615,7 @@ function ChatPageContent({
                         }
                         showModelNames={showModelNames ?? false}
                         highlightMessageId={highlightMessageId}
-                        isCollaborative={conversationAny?.isCollaborative}
+                        isCollaborative={conversation?.isCollaborative}
                         onScrollReady={setIsScrollReady}
                         isGenerating={isGenerating}
                       />
@@ -604,11 +624,11 @@ function ChatPageContent({
 
                   {/* Model Recommendation Banner */}
                   {enableModelRecs !== false &&
-                    conversationAny?.modelRecommendation &&
-                    !conversationAny.modelRecommendation.dismissed &&
+                    conversation?.modelRecommendation &&
+                    !conversation.modelRecommendation.dismissed &&
                     validConversationId && (
                       <ModelRecommendationBanner
-                        recommendation={conversationAny.modelRecommendation}
+                        recommendation={conversation.modelRecommendation}
                         conversationId={validConversationId}
                         onSwitch={modelRecommendation.handleSwitchModel}
                         onPreview={modelRecommendation.handlePreviewModel}
@@ -618,13 +638,13 @@ function ChatPageContent({
                   {/* Preview Modal */}
                   {modelRecommendation.previewModalOpen &&
                     modelRecommendation.previewModelId &&
-                    conversationAny?.modelRecommendation &&
+                    conversation?.modelRecommendation &&
                     validConversationId && (
                       <ModelPreviewModal
                         open={modelRecommendation.previewModalOpen}
                         onOpenChange={modelRecommendation.setPreviewModalOpen}
                         currentModelId={
-                          conversationAny.modelRecommendation.currentModelId
+                          conversation.modelRecommendation.currentModelId
                         }
                         suggestedModelId={modelRecommendation.previewModelId}
                         currentResponse={
@@ -704,30 +724,7 @@ function ChatPageContent({
                     }
                     currentTokens={totalTokens}
                     onStartFresh={handleStartFresh}
-                    onCompact={async () => {
-                      if (!validConversationId || !blockedModel) return;
-                      setIsCompacting(true);
-                      try {
-                        const { conversationId: newConversationId } =
-                          await apiClient.post<{
-                            conversationId: string;
-                          }>(
-                            `/api/v1/conversations/${validConversationId}/compact`,
-                            {
-                              targetModel: blockedModel.modelId,
-                            },
-                          );
-                        setIsCompacting(false);
-                        toast.success("Conversation compacted");
-                        setBlockedModel(null);
-                        router.push(`/chat/${newConversationId}`);
-                      } catch (error) {
-                        setIsCompacting(false);
-                        toast.error(
-                          `Failed to compact: ${error instanceof Error ? error.message : "Unknown error"}`,
-                        );
-                      }
-                    }}
+                    onCompact={handleBlockedModelCompact}
                     isCompacting={isCompacting}
                   />
                 </motion.div>

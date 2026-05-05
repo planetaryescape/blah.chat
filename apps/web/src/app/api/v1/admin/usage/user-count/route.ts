@@ -1,12 +1,12 @@
 import { users } from "@blah-chat/persistence-postgres";
 import { sql } from "drizzle-orm";
-import { type NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { withAdminAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { getPersistenceDb } from "@/lib/persistence/server";
 import { formatEntity } from "@/lib/utils/formatEntity";
 
-async function getHandler(_req: NextRequest) {
+async function getHandler() {
   const db = getPersistenceDb();
   const [row] = await db
     .select({ count: sql<number>`count(*)::int` })

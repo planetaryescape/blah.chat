@@ -1,6 +1,8 @@
 /**
  * @vitest-environment node
  */
+
+import type { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -40,10 +42,9 @@ vi.mock("@/lib/api/middleware/auth", async () => {
   return {
     ...actual,
     withAdminAuth:
-      (handler: (req: Request, ctx: any) => Promise<Response>) =>
-      async (req: Request, ctx?: any) => {
-        const isAdmin =
-          (req.headers as Headers)?.get?.("x-test-is-admin") !== "false";
+      (handler: RouteHandler) =>
+      async (req: NextRequest, ctx: RouteContext) => {
+        const isAdmin = req.headers.get("x-test-is-admin") !== "false";
         if (!isAdmin) {
           return new Response(
             JSON.stringify({
@@ -54,15 +55,14 @@ vi.mock("@/lib/api/middleware/auth", async () => {
           );
         }
         return handler(req, {
-          params: ctx?.params ?? Promise.resolve({}),
+          params: ctx.params,
           userId: "admin_user_1",
         });
       },
     withUserAuth:
-      (handler: (req: Request, ctx: any) => Promise<Response>) =>
-      async (req: Request, ctx?: any) =>
+      (handler: RouteHandler) => async (req: NextRequest, ctx: RouteContext) =>
         handler(req, {
-          params: ctx?.params ?? Promise.resolve({}),
+          params: ctx.params,
           userId: "user_1",
         }),
   };
@@ -81,14 +81,20 @@ import { adminByodDAL } from "@/lib/api/dal/adminByod";
 import { adminUsageDAL } from "@/lib/api/dal/adminUsageAggregate";
 import { userAnalyticsDAL } from "@/lib/api/dal/userAnalytics";
 
+type RouteContext = { params: Promise<Record<string, string | string[]>> };
+type AuthContext = RouteContext & { userId: string };
+type RouteHandler = (req: NextRequest, ctx: AuthContext) => Promise<Response>;
+
 const makeReq = (
   url: string,
   init?: RequestInit & { isAdmin?: boolean },
-): Request => {
+): NextRequest => {
   const headers = new Headers(init?.headers);
   if (init?.isAdmin === false) headers.set("x-test-is-admin", "false");
-  return new Request(url, { ...init, headers });
+  return new Request(url, { ...init, headers }) as unknown as NextRequest;
 };
+
+const routeContext: RouteContext = { params: Promise.resolve({}) };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -99,21 +105,19 @@ describe("/api/v1/admin/byod/* routes", () => {
     vi.mocked(adminByodDAL.getStats).mockResolvedValue({
       status: "success",
       data: { totalInstances: 3, activeInstances: 2 },
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof adminByodDAL.getStats>>);
     const { GET } = await import("../admin/byod/stats/route");
     const ok = await GET(
-      makeReq("http://t/api/v1/admin/byod/stats") as any,
-      {
-        params: Promise.resolve({}),
-      } as any,
+      makeReq("http://t/api/v1/admin/byod/stats"),
+      routeContext,
     );
     expect(ok.status).toBe(200);
     const json = await ok.json();
     expect(json.data?.totalInstances).toBe(3);
 
     const denied = await GET(
-      makeReq("http://t/api/v1/admin/byod/stats", { isAdmin: false }) as any,
-      { params: Promise.resolve({}) } as any,
+      makeReq("http://t/api/v1/admin/byod/stats", { isAdmin: false }),
+      routeContext,
     );
     expect(denied.status).toBe(403);
   });
@@ -122,15 +126,15 @@ describe("/api/v1/admin/byod/* routes", () => {
     vi.mocked(adminByodDAL.healthCheck).mockResolvedValue({
       status: "success",
       data: { jobId: "health-abc", configId: "cfg_1", scope: "single" },
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof adminByodDAL.healthCheck>>);
     const { POST } = await import("../admin/byod/health-check/route");
     const res = await POST(
       makeReq("http://t/api/v1/admin/byod/health-check", {
         method: "POST",
         body: JSON.stringify({ configId: "cfg_1" }),
         headers: { "Content-Type": "application/json" },
-      }) as any,
-      { params: Promise.resolve({}) } as any,
+      }),
+      routeContext,
     );
     expect(res.status).toBe(202);
     expect(adminByodDAL.healthCheck).toHaveBeenCalledWith({
@@ -142,7 +146,7 @@ describe("/api/v1/admin/byod/* routes", () => {
     vi.mocked(adminByodDAL.sendNotifications).mockResolvedValue({
       status: "success",
       data: { attempted: 2, sent: 2, failed: 0, results: [] },
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof adminByodDAL.sendNotifications>>);
     const { POST } = await import("../admin/byod/send-notifications/route");
     const res = await POST(
       makeReq("http://t/api/v1/admin/byod/send-notifications", {
@@ -150,17 +154,17 @@ describe("/api/v1/admin/byod/* routes", () => {
         body: JSON.stringify({
           configIds: ["a", "b"],
           subject: "Maintenance",
-          body: "<p>Heads up</p>",
+          body: "Heads up",
         }),
         headers: { "Content-Type": "application/json" },
-      }) as any,
-      { params: Promise.resolve({}) } as any,
+      }),
+      routeContext,
     );
     expect(res.status).toBe(200);
     expect(adminByodDAL.sendNotifications).toHaveBeenCalledWith({
       configIds: ["a", "b"],
       subject: "Maintenance",
-      body: "<p>Heads up</p>",
+      body: "Heads up",
     });
   });
 });
@@ -170,11 +174,11 @@ describe("/api/v1/admin/usage/* routes", () => {
     vi.mocked(adminUsageDAL.monthlyTotal).mockResolvedValue({
       status: "success",
       data: { month: "2026-05", cost: 12.5 },
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof adminUsageDAL.monthlyTotal>>);
     const { GET } = await import("../admin/usage/monthly-total/route");
     const res = await GET(
-      makeReq("http://t/api/v1/admin/usage/monthly-total") as any,
-      { params: Promise.resolve({}) } as any,
+      makeReq("http://t/api/v1/admin/usage/monthly-total"),
+      routeContext,
     );
     expect(res.status).toBe(200);
     const json = await res.json();
@@ -185,11 +189,11 @@ describe("/api/v1/admin/usage/* routes", () => {
     vi.mocked(adminUsageDAL.dailySpend).mockResolvedValue({
       status: "success",
       data: [],
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof adminUsageDAL.dailySpend>>);
     const { GET } = await import("../admin/usage/daily-spend/route");
     const res = await GET(
-      makeReq("http://t/api/v1/admin/usage/daily-spend?days=14") as any,
-      { params: Promise.resolve({}) } as any,
+      makeReq("http://t/api/v1/admin/usage/daily-spend?days=14"),
+      routeContext,
     );
     expect(res.status).toBe(200);
     expect(adminUsageDAL.dailySpend).toHaveBeenCalledWith({ days: "14" });
@@ -199,13 +203,13 @@ describe("/api/v1/admin/usage/* routes", () => {
     vi.mocked(adminUsageDAL.costByFeature).mockResolvedValue({
       status: "success",
       data: {},
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof adminUsageDAL.costByFeature>>);
     const { GET } = await import("../admin/usage/cost-by-feature/route");
     const res = await GET(
       makeReq(
         "http://t/api/v1/admin/usage/cost-by-feature?startDate=2026-04-01&endDate=2026-04-30",
-      ) as any,
-      { params: Promise.resolve({}) } as any,
+      ),
+      routeContext,
     );
     expect(res.status).toBe(200);
     expect(adminUsageDAL.costByFeature).toHaveBeenCalledWith({
@@ -220,13 +224,11 @@ describe("/api/v1/usage/* (current user) routes", () => {
     vi.mocked(userAnalyticsDAL.summary).mockResolvedValue({
       status: "success",
       data: { totalCost: 1 },
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof userAnalyticsDAL.summary>>);
     const { GET } = await import("../usage/summary/route");
     const res = await GET(
-      makeReq("http://t/api/v1/usage/summary") as any,
-      {
-        params: Promise.resolve({}),
-      } as any,
+      makeReq("http://t/api/v1/usage/summary"),
+      routeContext,
     );
     expect(res.status).toBe(200);
     expect(userAnalyticsDAL.summary).toHaveBeenCalledWith("user_1", {
@@ -239,13 +241,11 @@ describe("/api/v1/usage/* (current user) routes", () => {
     vi.mocked(userAnalyticsDAL.streaks).mockResolvedValue({
       status: "success",
       data: { current: 3, longest: 7 },
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof userAnalyticsDAL.streaks>>);
     const { GET } = await import("../usage/streaks/route");
     const res = await GET(
-      makeReq("http://t/api/v1/usage/streaks") as any,
-      {
-        params: Promise.resolve({}),
-      } as any,
+      makeReq("http://t/api/v1/usage/streaks"),
+      routeContext,
     );
     expect(res.status).toBe(200);
     expect(userAnalyticsDAL.streaks).toHaveBeenCalledWith("user_1");

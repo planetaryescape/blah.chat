@@ -846,8 +846,15 @@ export const greet = (name: string) => \`hi \${name}\`;
       candidateScores.find((candidate) => candidate.rank === 1),
     ).toMatchObject({
       decisionId: decision?.id,
-      modelId: decision?.selectedModelId,
       rank: 1,
+    });
+    expect(
+      candidateScores.find(
+        (candidate) => candidate.modelId === decision?.selectedModelId,
+      ),
+    ).toMatchObject({
+      decisionId: decision?.id,
+      modelId: decision?.selectedModelId,
     });
   });
 

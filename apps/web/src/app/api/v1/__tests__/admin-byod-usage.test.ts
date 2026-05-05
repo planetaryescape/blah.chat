@@ -43,16 +43,17 @@ vi.mock("@/lib/api/middleware/auth", async () => {
   return {
     ...actual,
     withAdminAuth:
-      (handler: RouteHandler) =>
-      async (req: NextRequest, ctx: RouteContext) => {
+      (handler: RouteHandler) => (req: NextRequest, ctx: RouteContext) => {
         const isAdmin = req.headers.get("x-test-is-admin") !== "false";
         if (!isAdmin) {
-          return new Response(
-            JSON.stringify({
-              status: "error",
-              error: { message: "Admin only" },
-            }),
-            { status: 403 },
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                status: "error",
+                error: { message: "Admin only" },
+              }),
+              { status: 403 },
+            ),
           );
         }
         return handler(req, {
@@ -61,7 +62,7 @@ vi.mock("@/lib/api/middleware/auth", async () => {
         });
       },
     withUserAuth:
-      (handler: RouteHandler) => async (req: NextRequest, ctx: RouteContext) =>
+      (handler: RouteHandler) => (req: NextRequest, ctx: RouteContext) =>
         handler(req, {
           params: ctx.params,
           userId: "user_1",

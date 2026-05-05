@@ -92,6 +92,13 @@
       "when": 1774915200000,
       "tag": "0012_admin_user_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1777970372515,
+      "tag": "0013_bitter_hemingway",
+      "breakpoints": true
     }
   ]
 }

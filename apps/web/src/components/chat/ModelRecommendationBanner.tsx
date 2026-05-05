@@ -21,9 +21,9 @@ interface ModelRecommendation {
 interface Props {
   recommendation: ModelRecommendation;
   conversationId: string;
-  onSwitch: (modelId: string) => void;
+  onSwitch: (...args: [string]) => void;
   /** Optional: open ModelPreviewModal for the suggested model. */
-  onPreview?: (modelId: string) => void;
+  onPreview?: (...args: [string]) => void;
 }
 
 export function ModelRecommendationBanner({
@@ -168,7 +168,9 @@ export function ModelRecommendationBanner({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onPreview(recommendation.suggestedModelId)}
+                  onClick={() => {
+                    onPreview(recommendation.suggestedModelId);
+                  }}
                   className="h-7 text-xs"
                 >
                   Preview

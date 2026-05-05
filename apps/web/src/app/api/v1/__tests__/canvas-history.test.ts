@@ -15,8 +15,11 @@ const authMock = vi.fn();
 const currentUserMock = vi.fn();
 let db: Awaited<ReturnType<typeof createTestPersistenceDb>>;
 
-type Envelope<T> = { status: string; data?: T };
-type ErrorEnvelope = {
+interface Envelope<T> {
+  status: string;
+  data?: T;
+}
+interface ErrorEnvelope {
   status: string;
   error?: {
     code?: string;
@@ -25,7 +28,7 @@ type ErrorEnvelope = {
       currentContent?: string;
     };
   };
-};
+}
 
 vi.mock("@clerk/nextjs/server", () => ({
   auth: authMock,

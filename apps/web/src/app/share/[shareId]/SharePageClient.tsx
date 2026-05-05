@@ -12,7 +12,6 @@ import {
   Share2,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/brand/Logo";
 import { ChatMessage } from "@/components/chat/ChatMessage";
@@ -51,7 +50,6 @@ type PublicNoteShare = {
 };
 
 export default function SharePageClient({ shareId }: SharePageClientProps) {
-  const _router = useRouter();
   const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const [password, setPassword] = useState("");
   const [verified, setVerified] = useState(false);
@@ -63,9 +61,6 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
     PublicNoteShareMetadata | null | undefined
   >(undefined);
   const [publicNote, setPublicNote] = useState<PublicNoteShare | null>(null);
-  const [_isForking, _setIsForking] = useState<"private" | "collab" | null>(
-    null,
-  );
   const [forkError, setForkError] = useState("");
 
   // Get current user to check ownership
@@ -167,7 +162,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
 
   // For v1, conversation shares are public read-only.
   // Password-protected conversation shares + forking are deferred to v1.1.
-  const verifyConversationShare = async (_args: unknown) => {
+  const verifyConversationShare = async () => {
     // No-op: conversation share API serves public content via GET endpoints below.
   };
 
@@ -217,7 +212,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
         if (entityType === "note") {
           await verifyNoteShareAccess();
         } else if (entityType === "conversation") {
-          await verifyConversationShare({ shareId });
+          await verifyConversationShare();
         }
         setVerified(true);
       } catch (err) {
@@ -239,10 +234,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
       if (entityType === "note") {
         await verifyNoteShareAccess(password || undefined);
       } else {
-        await verifyConversationShare({
-          shareId,
-          password: password || undefined,
-        });
+        await verifyConversationShare();
       }
       setVerified(true);
       setError("");

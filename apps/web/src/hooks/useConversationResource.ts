@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { ThinkingEffort } from "@/components/chat/ThinkingEffortSelector";
 
-export type ConversationResource = {
+export interface ConversationResource {
   _id: string;
   title: string;
   model: string;
   mode?: string | null;
-  thinkingEffort?: string | null;
+  thinkingEffort?: ThinkingEffort | null;
   isCollaborative?: boolean;
   selectedIntegrationIds?: string[];
   modelRecommendation?: {
@@ -23,7 +24,7 @@ export type ConversationResource = {
   lastMessageAt?: number;
   createdAt: number;
   updatedAt: number;
-};
+}
 
 export function useConversationResource(conversationId?: string | null) {
   const [conversation, setConversation] = useState<

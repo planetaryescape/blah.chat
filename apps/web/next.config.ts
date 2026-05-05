@@ -8,9 +8,9 @@ const withBundleAnalyzer = bundleAnalyzer({
 });
 
 const appVersion =
-  process.env.APP_VERSION ||
-  process.env.VERCEL_GIT_COMMIT_SHA ||
-  process.env.GITHUB_SHA ||
+  process.env.APP_VERSION ??
+  process.env.VERCEL_GIT_COMMIT_SHA ??
+  process.env.GITHUB_SHA ??
   "dev";
 
 const nextConfig: NextConfig = {

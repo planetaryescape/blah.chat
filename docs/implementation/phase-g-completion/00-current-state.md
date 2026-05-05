@@ -74,6 +74,7 @@ apps/web/src/lib/models/repository.ts                                      5
 ## Schema inventory (`packages/persistence-postgres/src/schema.ts`)
 
 45 tables exist. Relevant for Phase G:
+
 - `users`, `userPreferences`, `userAdminSettings`, `userApiKeys`, `cliApiKeys`
 - `conversations`, `messages`, `attachments`, `messageEdges`, `messageToolCalls`, `messageSources`, `sourceMetadata`
 - `notes`, `tasks`, `bookmarks`, `projects`, `templates`, `conversationShares`
@@ -87,6 +88,7 @@ apps/web/src/lib/models/repository.ts                                      5
 - `fileChunks`, `knowledgeSources`, `knowledgeChunks`
 
 **Missing tables (Cat C):**
+
 - `canvasDocuments`, `canvasHistory` — referenced in `packages/shared/src/byod/tables.ts` BYOD allowlist
 - `notifications` — referenced in BYOD allowlist
 - `userOnboarding` — onboarding tour completion
@@ -97,6 +99,7 @@ apps/web/src/lib/models/repository.ts                                      5
 ## DAL inventory (`apps/web/src/lib/api/dal`)
 
 Existing DAL files:
+
 - `adminUsers.ts` (with `.shared.ts` schemas) — has `getUsageSummary`, `getDailySpend`, `getSpendByModel`, `getCostByType`, `getCostByFeature`, `getActivityStats` etc, all keyed by **target user id**. Reusable for `/usage/*` (user's own data).
 - `bookmarks.ts`, `notes.ts`, `tasks.ts`, `projects.ts`, `templates.ts`, `memories.ts`, `cliApiKeys.ts`, `cliChat.ts`
 - `conversations.ts`, `messages.ts`, `comparisons.ts`, `shares.ts`, `feedback.ts`, `starterSuggestions.ts`
@@ -105,6 +108,7 @@ Existing DAL files:
 - `userData.ts`, `users.ts`, `preferences.ts`, `jobs.ts`, `sidebarAnalytics.ts`
 
 **Missing DALs (Cat C):**
+
 - `canvas.ts`
 - `notifications.ts`
 - `onboarding.ts`

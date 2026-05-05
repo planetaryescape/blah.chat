@@ -151,6 +151,7 @@ const proAccess = currentUser
 ```
 
 Where:
+
 - `isFreeTierAllowedModel(modelId, user)` lives in `apps/web/src/lib/ai/tier.ts` (extract from existing logic if scattered, or new).
 - `FREE_DAILY_LIMIT` from `adminSettings.value.defaultDailyMessageLimit` once that's wired (PR 3). Until then, hardcode 50 with a `// TODO(phase-g-admin-settings)` linking to PR 3.
 

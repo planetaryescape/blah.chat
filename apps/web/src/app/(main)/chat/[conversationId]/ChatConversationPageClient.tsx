@@ -264,8 +264,7 @@ function ChatPageContent({
   // Thinking effort persists per conversation. Read once when conversation
   // loads, then PATCH on user change. Avoids T3-style "settings reset on
   // model switch" footgun.
-  const persistedThinkingEffort =
-    (conversation?.thinkingEffort as ThinkingEffort | undefined) ?? "none";
+  const persistedThinkingEffort = conversation?.thinkingEffort ?? "none";
   const [thinkingEffort, setThinkingEffortLocal] = useState<ThinkingEffort>(
     persistedThinkingEffort,
   );
@@ -276,22 +275,21 @@ function ChatPageContent({
   const setThinkingEffort = useCallback(
     (next: ThinkingEffort) => {
       setThinkingEffortLocal(next);
-      if (validConversationId) {
-        apiClientForEffort
-          .patch(
-            `/api/v1/conversations/${encodeURIComponent(validConversationId)}`,
-            {
-              thinkingEffort: next,
-            },
-          )
-          .catch((err) => {
-            console.warn(
-              "thinking-effort persist failed",
-              validConversationId,
-              err,
-            );
-          });
-      }
+      if (!validConversationId) return;
+      void apiClientForEffort
+        .patch(
+          `/api/v1/conversations/${encodeURIComponent(validConversationId)}`,
+          {
+            thinkingEffort: next,
+          },
+        )
+        .catch((err) => {
+          console.warn(
+            "thinking-effort persist failed",
+            validConversationId,
+            err,
+          );
+        });
     },
     [apiClientForEffort, validConversationId],
   );

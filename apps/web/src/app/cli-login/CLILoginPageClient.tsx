@@ -19,9 +19,12 @@ function CLILoginContent() {
   const [error, setError] = useState<string | null>(null);
   const [redirecting, setRedirecting] = useState(false);
 
-  // TODO: Phase G - needs /api/v1/cli/auth REST route
   const createCliKey = async () => {
-    const res = await fetch("/api/v1/cli/auth", { method: "POST" });
+    const res = await fetch("/api/v1/cli/api-keys", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "CLI Login" }),
+    });
     if (!res.ok) throw new Error("Failed to create API key");
     const json = await res.json();
     return json.data;

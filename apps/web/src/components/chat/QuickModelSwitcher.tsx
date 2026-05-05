@@ -72,12 +72,11 @@ export function QuickModelSwitcher({
   );
   const { favorites, toggleFavorite, isFavorite } = useFavoriteModels();
   const { recents, addRecent } = useRecentModels();
-  // TODO: Phase 15 - need REST route for pro model access check
   const { data: currentUser } = useCurrentUser();
   const proAccess = currentUser
     ? {
-        canUse: true,
-        tier: "free" as string,
+        canUse: currentUser.tier !== "free",
+        tier: currentUser.tier,
         remainingDaily: null as number | null,
         remainingMonthly: null as number | null,
       }

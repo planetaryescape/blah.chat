@@ -9,6 +9,7 @@ import {
   Users,
   Zap,
 } from "lucide-react";
+import { notFound } from "next/navigation";
 import { useState } from "react";
 // react-doctor: recharts is heavy but its children-shape API breaks when
 // individual primitives are wrapped in next/dynamic. Lazy-loading requires
@@ -66,8 +67,10 @@ const FEATURE_LABELS: Record<string, string> = {
 };
 
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { featureFlags } from "@/lib/featureFlags";
 
 export default function UsagePage() {
+  if (!featureFlags.adminFull) notFound();
   const [dateRange, setDateRange] = useState(() => getLastNDays(30));
 
   const { data: monthlyTotal } = useQuery({
@@ -119,10 +122,10 @@ export default function UsagePage() {
   const { data: userCount } = useQuery({
     queryKey: ["admin", "user-count"],
     queryFn: async () => {
-      const res = await fetch("/api/v1/admin/user-count");
+      const res = await fetch("/api/v1/admin/usage/user-count");
       if (!res.ok) return 0;
       const json = await res.json();
-      return json.data ?? 0;
+      return json.data?.count ?? 0;
     },
   });
 

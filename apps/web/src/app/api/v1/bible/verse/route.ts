@@ -2,8 +2,8 @@ import { type NextRequest, NextResponse } from "next/server";
 import { osisToDisplay } from "@/lib/bible/utils";
 import { formatEntity, formatErrorEntity } from "@/lib/utils/formatEntity";
 
-// Simple in-memory cache for bible verses (replaces old cache)
-// TODO: Phase 15 - migrate to Postgres or Redis cache
+// Simple in-memory cache for bible verses.
+// PERF: per-instance LRU; promote to Redis or Postgres ttsCache-style table only if traffic warrants it.
 const verseCache = new Map<
   string,
   { reference: string; text: string; version: string }

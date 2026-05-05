@@ -89,12 +89,6 @@
       "package-name": "@blah-chat/storage",
       "include-component-in-tag": true
     },
-    "packages/persistence-convex": {
-      "release-type": "node",
-      "component": "persistence-convex",
-      "package-name": "@blah-chat/persistence-convex",
-      "include-component-in-tag": true
-    },
     "packages/jobs": {
       "release-type": "node",
       "component": "jobs",

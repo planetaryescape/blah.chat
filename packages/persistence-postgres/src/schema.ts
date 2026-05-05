@@ -239,6 +239,48 @@ export const userOnboarding = pgTable("user_onboarding", {
   updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(now),
 });
 
+export type NotificationType =
+  | "share_viewed"
+  | "comparison_complete"
+  | "generation_failed"
+  | "byod_health"
+  | "system";
+
+export interface NotificationData {
+  conversationId?: string;
+  shareId?: string;
+  byodSourceId?: string;
+  href?: string;
+  [key: string]: unknown;
+}
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: text("id").primaryKey().$defaultFn(id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: text("type").$type<NotificationType>().notNull(),
+    title: text("title").notNull(),
+    message: text("message").notNull(),
+    data: jsonb("data").$type<NotificationData>(),
+    read: boolean("read").notNull().default(false),
+    readAt: bigint("read_at", { mode: "number" }),
+    dismissedAt: bigint("dismissed_at", { mode: "number" }),
+    dedupKey: text("dedup_key"),
+    createdAt: bigint("created_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+  },
+  (t) => [
+    index("notifications_by_user_created").on(t.userId, t.createdAt),
+    index("notifications_by_dedup")
+      .on(t.userId, t.type, t.dedupKey)
+      .where(sql`${t.dedupKey} is not null`),
+  ],
+);
+
 export const userPreferences = pgTable(
   "user_preferences",
   {

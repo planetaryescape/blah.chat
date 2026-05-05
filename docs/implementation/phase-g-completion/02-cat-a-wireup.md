@@ -13,6 +13,7 @@ Pure repointing. The route exists; the page is calling the wrong URL or stubbing
 **File:** `apps/web/src/app/cli-login/CLILoginPageClient.tsx:22-28`
 
 **Change:**
+
 ```ts
 // before
 const res = await fetch("/api/v1/cli/auth", { method: "POST" });
@@ -43,6 +44,7 @@ return json.data;       // { key, keyPrefix, email, name }
 **Existing route:** `apps/web/src/app/api/v1/shares/[id]/route.ts` `PATCH` accepts `{ isActive }` or `{ expiresAt }`.
 
 **Change:**
+
 ```ts
 // existingShare query — already correct (GET /api/v1/shares?conversationId=)
 

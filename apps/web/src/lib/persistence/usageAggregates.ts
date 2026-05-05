@@ -27,18 +27,23 @@ export interface DateRange {
   endDate: string; // YYYY-MM-DD
 }
 
+function combineWhere(filters: SQL[]): SQL | undefined {
+  if (filters.length === 0) return undefined;
+  if (filters.length === 1) return filters[0];
+  return and(...filters);
+}
+
 function whereOf(opts: {
   userId?: string;
   startDate?: string;
   endDate?: string;
 }): SQL | undefined {
-  const filters: SQL[] = [];
-  if (opts.userId) filters.push(eq(usageRecords.userId, opts.userId));
-  if (opts.startDate) filters.push(gte(usageRecords.date, opts.startDate));
-  if (opts.endDate) filters.push(lte(usageRecords.date, opts.endDate));
-  if (filters.length === 0) return undefined;
-  if (filters.length === 1) return filters[0];
-  return and(...filters);
+  const filters = [
+    opts.userId ? eq(usageRecords.userId, opts.userId) : undefined,
+    opts.startDate ? gte(usageRecords.date, opts.startDate) : undefined,
+    opts.endDate ? lte(usageRecords.date, opts.endDate) : undefined,
+  ].filter((filter): filter is SQL => Boolean(filter));
+  return combineWhere(filters);
 }
 
 function n(value: unknown): number {

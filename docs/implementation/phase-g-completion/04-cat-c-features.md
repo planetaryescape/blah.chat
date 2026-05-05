@@ -21,6 +21,7 @@ Plus `conversations.activeCanvasDocumentId` column.
 **File:** `apps/web/src/lib/persistence/canvas.ts`
 
 Functions:
+
 ```ts
 listCanvasDocuments(userId: string, opts?: { conversationId?: string; cursor?: string; limit?: number })
 getCanvasDocument(userId: string, documentId: string)
@@ -35,6 +36,7 @@ setActiveCanvasDocument(userId: string, conversationId: string, documentId: stri
 ```
 
 **`updateCanvasContent` is the hot path:**
+
 - Acquire row-level lock on `canvas_documents` (`SELECT FOR UPDATE` inside transaction).
 - If `expectedVersion` provided and `current.contentVersion !== expectedVersion`: return `{ conflict: true, current }` instead of writing — front-end's `ConflictDialog` resolves.
 - Else: increment `contentVersion`, write `content`, append `canvasHistory` row with new version.
@@ -56,7 +58,9 @@ Wraps persistence with envelope formatting. All methods take `userId`.
 | `/api/v1/conversations/[id]/active-canvas` | `PATCH` | Body: `{ documentId: string \| null }` |
 
 **Versioning details:**
+
 - `PATCH /canvas/documents/[id]` body:
+
   ```ts
   {
     content?: string;
@@ -68,11 +72,13 @@ Wraps persistence with envelope formatting. All methods take `userId`.
     title?: string;
   }
   ```
+
 - Response on conflict: HTTP 409 with `formatErrorEntity({ message: "Version conflict", currentVersion, currentContent }, ...)`.
 
 ### Wire-up (PR 5)
 
 Replace stubs in:
+
 - `apps/web/src/components/canvas/CanvasPanel.tsx:22-28` → `useCanvasDocument(documentId)` hook backed by `useQuery(['canvas-document', id])`. `updateContent` mutation calls `PATCH /canvas/documents/[id]`.
 - `apps/web/src/components/canvas/CanvasEditor.tsx:39` → uses content from hook.
 - `apps/web/src/components/canvas/CanvasToolbar.tsx:48` → exposes rename/archive mutations.
@@ -82,6 +88,7 @@ Replace stubs in:
 ### Realtime sync (Phase G+, optional but planned)
 
 For multi-tab editing the conflict dialog handles divergence. For "AI is writing while user is too" we need a stream. **Not blocking for Phase G**; document as follow-up:
+
 - Option: SSE endpoint `/api/v1/canvas/documents/[id]/stream` emitting version bumps.
 - Option: client polls `contentVersion` every 3s when panel is open.
 
@@ -141,6 +148,7 @@ dismiss(userId, notificationId)
 ### Notification producers (PR 3, side-effect wiring)
 
 Where notifications get inserted today:
+
 - `share_viewed` — when an anonymous viewer hits `/share/[shareId]` ([already has hook in `apps/web/src/lib/persistence/conversationShares.ts`?] — verify; if not, add insert in the share view route)
 - `comparison_complete` — when last assistant in a comparison group completes (insert in generation v2 service, behind feature flag from `adminSettings.features.notifications`)
 - `generation_failed` — on generation failure (existing failure-injection tests should cover)
@@ -230,6 +238,7 @@ setOnboardingFlag(userId, flag: keyof OnboardingFlags, value: boolean)
 | `/api/v1/onboarding/reset` | `POST` |
 
 PATCH body:
+
 ```ts
 {
   tourCompleted?: boolean;
@@ -304,6 +313,7 @@ Each panel only PATCHes its sub-namespace (e.g. `{ features: { canvasMode: true 
 ### Consumer wiring
 
 **Critical:** features the rest of the app gates on must read from this table:
+
 - `features.canvasMode` → `ChatConversationPageClient` won't render `<CanvasPanel>` if disabled.
 - `features.comparisonMode` → comparison UI hidden if disabled.
 - `features.notifications` → `NotificationBell` hidden if disabled.
@@ -324,12 +334,14 @@ Schema in §6 of [01-schema-additions.md](./01-schema-additions.md). Route in §
 ### Consumer wiring (PR 5)
 
 The auto-router runtime (in `packages/auto-router`) currently reads its config from constants. Refactor to:
+
 1. Default config from `defaultAutoRouterConfig`
 2. Override from `autoRouterConfig` singleton (server-side cached, 30s TTL)
 
 Add a method `loadAutoRouterConfig()` invoked at runtime startup of the router (e.g. inside `apps/web/src/lib/router/index.ts`).
 
 `apps/web/src/lib/models/repository.ts` `useRouterConfig()`:
+
 - For admins: fetch `/api/v1/admin/auto-router/config`
 - For non-admins: fetch `/api/v1/auto-router/public` (NEW small route returning public-safe subset like `enabled` + `defaultStrategy`)
 

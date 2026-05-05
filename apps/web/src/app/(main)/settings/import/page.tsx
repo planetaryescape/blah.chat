@@ -26,7 +26,6 @@ export default function ImportPage() {
   const [importData, setImportData] = useState<ImportData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // TODO: Phase G - needs /api/v1/import REST route
   const importConversations = async (args: any) => {
     const res = await fetch("/api/v1/import/conversations", {
       method: "POST",

@@ -1,6 +1,7 @@
 import {
   conversations,
   createConversationRepository,
+  createMessageRepository,
   messages,
 } from "@blah-chat/persistence-postgres";
 import { and, desc, eq, sql } from "drizzle-orm";
@@ -41,6 +42,27 @@ const updateConversationSchema = z
     selectedIntegrationIds: z.array(z.string()).optional(),
   })
   .partial();
+
+const importMessageSchema = z.object({
+  role: z.enum(["user", "assistant", "system"]),
+  content: z.string(),
+  createdAt: z.number().int().optional(),
+  model: z.string().optional(),
+});
+
+const importConversationSchema = z.object({
+  title: z.string().min(1).max(200),
+  model: z.string().optional(),
+  systemPrompt: z.string().optional(),
+  createdAt: z.number().int().optional(),
+  messages: z.array(importMessageSchema),
+});
+
+const importBatchSchema = z.object({
+  conversations: z.array(importConversationSchema).min(1).max(500),
+});
+
+const DEFAULT_IMPORT_MODEL = "openai/gpt-5";
 
 async function getOwnedConversation(userId: string, conversationId: string) {
   const db = getPersistenceDb();
@@ -491,6 +513,93 @@ export const conversationsDAL = {
       { deletedCount: toDelete.length },
       "maintenance",
       "cleanup",
+    );
+  },
+
+  importBatch: async (
+    userId: string,
+    payload: z.input<typeof importBatchSchema>,
+  ) => {
+    const validated = importBatchSchema.parse(payload);
+    const db = getPersistenceDb();
+    const user = await ensureCurrentPersistenceUser(userId);
+    const conversationsRepo = createConversationRepository(db);
+    const messagesRepo = createMessageRepository(db);
+
+    const conversationIds: string[] = [];
+    const errors: Array<{ index: number; title: string; reason: string }> = [];
+
+    for (const [index, payloadConv] of validated.conversations.entries()) {
+      try {
+        const model =
+          payloadConv.model ??
+          payloadConv.messages.find((m) => m.model)?.model ??
+          DEFAULT_IMPORT_MODEL;
+
+        const conversation = await conversationsRepo.create({
+          userId: user.id,
+          title: payloadConv.title,
+          model,
+        });
+
+        let lastMessageId: string | null = null;
+        for (const [msgIndex, msg] of payloadConv.messages.entries()) {
+          const created = await messagesRepo.create({
+            conversationId: conversation.id,
+            userId: msg.role === "user" ? user.id : undefined,
+            role: msg.role,
+            content: msg.content,
+            status: "complete",
+            model: msg.role === "assistant" ? (msg.model ?? model) : undefined,
+            parentMessageIds: lastMessageId ? [lastMessageId] : [],
+            siblingIndex: 0,
+          });
+          lastMessageId = created.id;
+
+          if (msg.createdAt) {
+            await db
+              .update(messages)
+              .set({ createdAt: msg.createdAt, updatedAt: msg.createdAt })
+              .where(eq(messages.id, created.id));
+          }
+
+          if (msgIndex === payloadConv.messages.length - 1) {
+            await conversationsRepo.setActiveLeaf({
+              conversationId: conversation.id,
+              activeLeafMessageId: created.id,
+            });
+          }
+        }
+
+        if (payloadConv.createdAt) {
+          await db
+            .update(conversations)
+            .set({
+              createdAt: payloadConv.createdAt,
+              updatedAt: payloadConv.createdAt,
+            })
+            .where(eq(conversations.id, conversation.id));
+        }
+
+        conversationIds.push(conversation.id);
+      } catch (error) {
+        errors.push({
+          index,
+          title: payloadConv.title,
+          reason: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    return formatEntity(
+      {
+        success: errors.length === 0,
+        importedCount: conversationIds.length,
+        conversationIds,
+        errors,
+      },
+      "import_result",
+      `import-${Date.now()}`,
     );
   },
 };

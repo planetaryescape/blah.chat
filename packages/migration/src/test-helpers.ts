@@ -26,6 +26,7 @@ CREATE TABLE conversations (
   pinned boolean NOT NULL DEFAULT false,
   archived boolean NOT NULL DEFAULT false,
   starred boolean NOT NULL DEFAULT false,
+  thinking_effort text NOT NULL DEFAULT 'none',
   created_at bigint NOT NULL,
   updated_at bigint NOT NULL
 );

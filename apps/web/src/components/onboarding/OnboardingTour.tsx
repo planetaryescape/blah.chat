@@ -200,7 +200,7 @@ export function OnboardingTour({ children }: { children: React.ReactNode }) {
         tourSkipped: args.skipped,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["onboarding"] });
+      void queryClient.invalidateQueries({ queryKey: ["onboarding"] });
     },
   });
 

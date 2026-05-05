@@ -42,32 +42,37 @@ export async function getOnboarding(clerkUserId: string) {
   return created;
 }
 
+interface OnboardingPatch {
+  tourCompleted?: boolean;
+  tourSkipped?: boolean;
+  autoRouterPreferenceSet?: boolean;
+  flags?: OnboardingFlags;
+}
+
+function resolveTourCompletedAt(
+  current: OnboardingRow,
+  next: boolean,
+  now: number,
+) {
+  if (next === current.tourCompleted) return current.tourCompletedAt;
+  return next ? now : null;
+}
+
 export async function updateOnboarding(
   clerkUserId: string,
-  patch: Partial<{
-    tourCompleted: boolean;
-    tourSkipped: boolean;
-    autoRouterPreferenceSet: boolean;
-    flags: OnboardingFlags;
-  }>,
+  patch: OnboardingPatch,
 ) {
   const row = await getOnboarding(clerkUserId);
   const db = getPersistenceDb();
   const now = Date.now();
   const nextTourCompleted = patch.tourCompleted ?? row.tourCompleted;
-  const nextTourCompletedAt =
-    patch.tourCompleted && !row.tourCompleted
-      ? now
-      : patch.tourCompleted === false
-        ? null
-        : row.tourCompletedAt;
 
   const [updated] = await db
     .update(userOnboarding)
     .set({
       tourCompleted: nextTourCompleted,
       tourSkipped: patch.tourSkipped ?? row.tourSkipped,
-      tourCompletedAt: nextTourCompletedAt,
+      tourCompletedAt: resolveTourCompletedAt(row, nextTourCompleted, now),
       autoRouterPreferenceSet:
         patch.autoRouterPreferenceSet ?? row.autoRouterPreferenceSet,
       flags: patch.flags ? { ...row.flags, ...patch.flags } : row.flags,

@@ -221,10 +221,8 @@ export const documentRevisions = pgTable(
   ],
 );
 
-export interface OnboardingFlags {
-  /** Custom feature-flag-style toggles surfaced via `flags`. */
-  [key: string]: boolean | string | number | null;
-}
+/** Custom feature-flag-style toggles surfaced via `flags`. */
+export type OnboardingFlags = Record<string, boolean | string | number | null>;
 
 export const userOnboarding = pgTable("user_onboarding", {
   userId: text("user_id")

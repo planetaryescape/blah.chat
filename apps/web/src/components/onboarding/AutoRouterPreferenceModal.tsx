@@ -80,9 +80,7 @@ export function AutoRouterPreferenceModal() {
     return restGrouped;
   }, [dbModels]);
 
-  const shouldOpen = onboarding
-    ? onboarding.autoRouterPreferenceSet === false
-    : false;
+  const shouldOpen = onboarding ? !onboarding.autoRouterPreferenceSet : false;
 
   const { run: handleSave, isPending: isSaving } = useAsyncAction(
     async () => {
@@ -109,7 +107,7 @@ export function AutoRouterPreferenceModal() {
       }
 
       await markAutoRouterPreferenceSet();
-      queryClient.invalidateQueries({ queryKey: ["onboarding"] });
+      await queryClient.invalidateQueries({ queryKey: ["onboarding"] });
     },
     {
       onError: (error) => {

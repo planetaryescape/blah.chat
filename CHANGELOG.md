@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.38.0](https://github.com/planetaryescape/blah.chat/compare/v1.37.2...v1.38.0) (2026-05-05)
+
+
+### Features
+
+* phase G missing REST routes (import, notes-tags, meeting-extract) ([6269895](https://github.com/planetaryescape/blah.chat/commit/6269895869ab1fa85ea4b4c0e92a565d17a323b0))
+* phase G notifications backend + CI gate ([9ef12f7](https://github.com/planetaryescape/blah.chat/commit/9ef12f787d268e1b6929e74cfb02c83e64dac99a))
+* phase G onboarding backend ([32ae3d3](https://github.com/planetaryescape/blah.chat/commit/32ae3d3cf81760eb3499421a0c544ac76647d668))
+
+
+### Bug Fixes
+
+* address Codacy lint flags on phase G onboarding PR ([dcb3b6f](https://github.com/planetaryescape/blah.chat/commit/dcb3b6f9debaf923fe3dc08ec198a7372871df7c))
+
 ## [1.37.2](https://github.com/planetaryescape/blah.chat/compare/v1.37.1...v1.37.2) (2026-05-05)
 
 

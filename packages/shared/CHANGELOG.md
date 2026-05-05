@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/planetaryescape/blah.chat/compare/shared-v0.4.0...shared-v0.5.0) (2026-05-05)
+
+
+### Features
+
+* phase G onboarding backend ([32ae3d3](https://github.com/planetaryescape/blah.chat/commit/32ae3d3cf81760eb3499421a0c544ac76647d668))
+
 ## [0.4.0](https://github.com/planetaryescape/blah.chat/compare/shared-v0.3.0...shared-v0.4.0) (2026-03-02)
 
 

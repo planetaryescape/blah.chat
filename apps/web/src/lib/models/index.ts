@@ -18,11 +18,7 @@ export {
   getStaticModel,
   getStaticModels,
   modelExists,
-  useAllModels,
   useModel,
-  useModelHistory,
-  useModelProfiles,
-  useModelStats,
   useModels,
   useRouterConfig,
 } from "./repository";

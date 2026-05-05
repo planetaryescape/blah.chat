@@ -64,12 +64,16 @@ export interface GenerationStreamEvent {
   reason?: string;
 }
 
+export type UserTier = "free" | "tier1" | "tier2";
+
 export interface User {
   _id: string;
   clerkId: string;
   email: string;
   name: string;
   imageUrl?: string;
+  tier: UserTier;
+  isAdmin: boolean;
   createdAt: number;
   updatedAt: number;
 }

@@ -9,3 +9,6 @@ exclude_paths:
   # The file is regenerated on every release, so manual fixes don't stick.
   - "CHANGELOG.md"
   - "**/CHANGELOG.md"
+  # Phase planning docs intentionally use dense tables and repeated rollout
+  # sections; product docs should not block static code analysis.
+  - "docs/implementation/phase-g-completion/**"

@@ -18,7 +18,6 @@ import { Switch } from "@/components/ui/switch";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 export function FeaturesSettings() {
-  // TODO: Phase G - needs /api/v1/admin/settings REST route
   const { data: settings } = useQuery({
     queryKey: ["admin", "settings"],
     queryFn: async () => {
@@ -50,19 +49,22 @@ export function FeaturesSettings() {
   const [tier2MonthlyLimit, setTier2MonthlyLimit] = useState(50);
 
   useEffect(() => {
-    if (settings) {
-      setProModelsEnabled(settings.proModelsEnabled ?? false);
-      setTier1DailyLimit(settings.tier1DailyProModelLimit ?? 1);
-      setTier2MonthlyLimit(settings.tier2MonthlyProModelLimit ?? 50);
+    const proTier = settings?.proTier;
+    if (proTier) {
+      setProModelsEnabled(proTier.proModelsEnabled ?? false);
+      setTier1DailyLimit(proTier.tier1DailyProModelLimit ?? 1);
+      setTier2MonthlyLimit(proTier.tier2MonthlyProModelLimit ?? 50);
     }
   }, [settings]);
 
   const { run: handleSave, isPending: isLoading } = useAsyncAction(
     async () => {
       await updateSettingsMutation.mutateAsync({
-        proModelsEnabled,
-        tier1DailyProModelLimit: tier1DailyLimit,
-        tier2MonthlyProModelLimit: tier2MonthlyLimit,
+        proTier: {
+          proModelsEnabled,
+          tier1DailyProModelLimit: tier1DailyLimit,
+          tier2MonthlyProModelLimit: tier2MonthlyLimit,
+        },
       });
       toast.success("Pro model settings saved!");
     },

@@ -57,6 +57,11 @@ export interface ClassifyInput {
   hasAttachments?: boolean;
   attachmentTypes?: string[];
   currentContextTokens?: number;
+  /**
+   * Per-call classifier config override. Merged on top of the router's
+   * constructor-time config. Useful for runtime-tunable admin settings.
+   */
+  classifierConfig?: Partial<ClassifierConfig>;
 }
 
 export interface SelectModelInput {
@@ -219,6 +224,10 @@ export function createRouter(config?: RouterConfig): Router {
         input.message,
       ]);
 
+      const effectiveConfig: ClassifierConfig = input.classifierConfig
+        ? { ...classifierConfig, ...input.classifierConfig }
+        : classifierConfig;
+
       return classifyFn({
         message: input.message,
         messageEmbedding,
@@ -226,7 +235,7 @@ export function createRouter(config?: RouterConfig): Router {
         hasAttachments: input.hasAttachments,
         attachmentTypes: input.attachmentTypes,
         currentContextTokens: input.currentContextTokens,
-        config: classifierConfig,
+        config: effectiveConfig,
       });
     },
 

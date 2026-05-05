@@ -1,5 +1,6 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { editor } from "monaco-editor";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -35,9 +36,48 @@ export function CanvasEditor({
   onDelete,
 }: CanvasEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const queryClient = useQueryClient();
 
-  // TODO: Phase G - Canvas has no Postgres table yet
-  const updateContent = async (_args: any) => {};
+  const updateMutation = useMutation({
+    mutationFn: async (args: {
+      documentId: string;
+      content: string;
+      expectedVersion?: number;
+      source: "user_edit" | "ai_edit" | "conflict_resolution" | "restore";
+      diff?: string;
+    }) => {
+      const res = await fetch(
+        `/api/v1/documents/${encodeURIComponent(args.documentId)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            content: args.content,
+            expectedVersion: args.expectedVersion,
+            source: args.source,
+            diffSummary: args.diff,
+          }),
+        },
+      );
+      if (!res.ok) {
+        const errorBody = await res.json().catch(() => null);
+        throw Object.assign(new Error("Save failed"), {
+          status: res.status,
+          body: errorBody,
+        });
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ["canvas-document", document._id],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["canvas-history", document._id],
+      });
+    },
+  });
+  const updateContent = updateMutation.mutateAsync;
 
   // Local content for immediate UI
   const [localContent, setLocalContent] = useState(document.content);

@@ -2,8 +2,8 @@
 
 import { MODEL_CONFIG } from "@blah-chat/ai/models";
 import { AnimatePresence, m } from "framer-motion";
-import { Eye, Lightbulb, X } from "lucide-react";
-import { useEffect } from "react";
+import { Lightbulb, X } from "lucide-react";
+import { type Dispatch, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { analytics } from "@/lib/analytics";
 import { useApiClient } from "@/lib/api/client";
@@ -21,8 +21,9 @@ interface ModelRecommendation {
 interface Props {
   recommendation: ModelRecommendation;
   conversationId: string;
-  onSwitch: (modelId: string) => void;
-  onPreview: (modelId: string) => void;
+  onSwitch: Dispatch<string>;
+  /** Optional: open ModelPreviewModal for the suggested model. */
+  onPreview?: Dispatch<string>;
 }
 
 export function ModelRecommendationBanner({
@@ -102,16 +103,6 @@ export function ModelRecommendationBanner({
     window.dispatchEvent(new CustomEvent("focus-chat-input"));
   };
 
-  const handlePreview = () => {
-    analytics.track("recommendation_preview_clicked", {
-      conversationId,
-      currentModel: recommendation.currentModelId,
-      suggestedModel: recommendation.suggestedModelId,
-      timestamp: Date.now(),
-    });
-    onPreview(recommendation.suggestedModelId);
-  };
-
   const handleDisableRecommendations = async () => {
     analytics.track("recommendation_disabled_globally", {
       conversationId,
@@ -170,18 +161,21 @@ export function ModelRecommendationBanner({
           {/* Actions */}
           <div className="flex items-center justify-between gap-2 pt-1">
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePreview}
-                className="h-7 text-xs"
-              >
-                <Eye className="h-3 w-3 mr-1" />
-                Compare
-              </Button>
               <Button size="sm" onClick={handleSwitch} className="h-7 text-xs">
                 Switch to {suggestedModel.name}
               </Button>
+              {onPreview && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    onPreview(recommendation.suggestedModelId);
+                  }}
+                  className="h-7 text-xs"
+                >
+                  Preview
+                </Button>
+              )}
             </div>
             <Button
               variant="ghost"

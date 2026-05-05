@@ -14,6 +14,8 @@ import {
   MODEL_CONFIG,
   type ModelConfig,
 } from "@blah-chat/ai/models";
+import type { AutoRouterConfigValue } from "@blah-chat/persistence-postgres";
+import { useQuery } from "@tanstack/react-query";
 
 // ============================================================================
 // React Hooks (client-side, reactive)
@@ -46,52 +48,22 @@ export function useModel(modelId: string | undefined): ModelConfig | undefined {
 }
 
 /**
- * Hook to get model profiles for auto-router
- * TODO: Phase 15 - need REST route for model profiles
+ * Hook to read the global auto-router configuration. Admin-only — endpoint
+ * returns 403 for non-admins, in which case the hook resolves to `undefined`
+ * and consumers fall back to defaults baked into the runtime.
  */
-export function useModelProfiles(): undefined {
-  return undefined;
-}
-
-/**
- * Hook to get auto-router configuration
- * TODO: Phase 15 - need REST route for router config
- */
-export function useRouterConfig(): any {
-  return undefined;
-}
-
-/**
- * Hook to get model history
- * TODO: Phase 15 - need REST route for model history
- */
-export function useModelHistory(
-  _modelId: string | undefined,
-  _limit?: number,
-): undefined {
-  return undefined;
-}
-
-/**
- * Hook to get model stats (for admin)
- * TODO: Phase 15 - need REST route for model stats
- */
-export function useModelStats():
-  | {
-      total: number;
-      byStatus: { active: number; deprecated: number; beta: number };
-      byProvider: Record<string, number>;
-    }
-  | undefined {
-  return undefined;
-}
-
-/**
- * Hook to get all models including internal (for admin)
- * TODO: Phase 15 - need REST route for admin model list
- */
-export function useAllModels(): any {
-  return undefined;
+export function useRouterConfig(): AutoRouterConfigValue | undefined {
+  const { data } = useQuery({
+    queryKey: ["admin", "auto-router-config"],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/admin/auto-router/config");
+      if (!res.ok) return undefined;
+      const json = await res.json();
+      return json.data as AutoRouterConfigValue | undefined;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  return data;
 }
 
 // ============================================================================

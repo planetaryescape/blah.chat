@@ -93,6 +93,51 @@ export function withOptionalAuth(
   };
 }
 
+/**
+ * Like `withUserAuth` but additionally requires the Clerk session to carry
+ * `publicMetadata.isAdmin === true`. Returns 403 otherwise.
+ */
+export function withAdminAuth(
+  handler: (
+    req: NextRequest,
+    context: UserOnlyAuthContext,
+  ) => Promise<Response>,
+) {
+  return async (
+    req: NextRequest,
+    context: { params: Promise<Record<string, string | string[]>> },
+  ) => {
+    try {
+      const result = await auth();
+      if (!result.userId) {
+        return NextResponse.json(formatErrorEntity("Authentication required"), {
+          status: 401,
+        });
+      }
+      const isAdmin =
+        (result.sessionClaims?.publicMetadata as { isAdmin?: boolean })
+          ?.isAdmin === true;
+      if (!isAdmin) {
+        return NextResponse.json(formatErrorEntity("Admin only"), {
+          status: 403,
+        });
+      }
+      return await handler(req, { ...context, userId: result.userId });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      logger.error(
+        { error: errorMessage, stack: errorStack, url: req.url },
+        "Admin auth middleware error",
+      );
+      return NextResponse.json(formatErrorEntity("Internal server error"), {
+        status: 500,
+      });
+    }
+  };
+}
+
 export function withUserAuth(
   handler: (
     req: NextRequest,

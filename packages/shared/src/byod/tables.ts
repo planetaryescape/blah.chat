@@ -74,6 +74,9 @@ export const BYOD_TABLES = [
 
   // Notifications
   "notifications",
+
+  // Onboarding
+  "userOnboarding",
 ] as const;
 
 export type BYODTable = (typeof BYOD_TABLES)[number];

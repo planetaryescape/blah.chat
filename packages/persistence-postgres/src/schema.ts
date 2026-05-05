@@ -221,6 +221,26 @@ export const documentRevisions = pgTable(
   ],
 );
 
+export interface OnboardingFlags {
+  /** Custom feature-flag-style toggles surfaced via `flags`. */
+  [key: string]: boolean | string | number | null;
+}
+
+export const userOnboarding = pgTable("user_onboarding", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  tourCompleted: boolean("tour_completed").notNull().default(false),
+  tourSkipped: boolean("tour_skipped").notNull().default(false),
+  tourCompletedAt: bigint("tour_completed_at", { mode: "number" }),
+  autoRouterPreferenceSet: boolean("auto_router_preference_set")
+    .notNull()
+    .default(false),
+  flags: jsonb("flags").$type<OnboardingFlags>().notNull().default({}),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(now),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(now),
+});
+
 export const userPreferences = pgTable(
   "user_preferences",
   {

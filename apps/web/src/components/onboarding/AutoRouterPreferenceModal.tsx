@@ -1,6 +1,7 @@
 "use client";
 
 import { getModelsByProvider } from "@blah-chat/ai/utils";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -28,17 +29,43 @@ import { useModels } from "@/lib/models/repository";
 
 type SelectionMode = "auto" | "manual" | null;
 
-export function AutoRouterPreferenceModal() {
-  // TODO: Phase G - needs preferences REST route
-  const prefState: any = { exists: true };
+interface OnboardingState {
+  autoRouterPreferenceSet: boolean;
+}
 
-  const updatePreferences = async (args: any) => {
-    await fetch("/api/v1/preferences", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(args),
-    });
-  }; // TODO: Phase G
+async function fetchOnboardingState(): Promise<OnboardingState> {
+  const res = await fetch("/api/v1/onboarding");
+  if (!res.ok) throw new Error("Failed to fetch onboarding");
+  const json = await res.json();
+  return json.data as OnboardingState;
+}
+
+async function markAutoRouterPreferenceSet() {
+  await fetch("/api/v1/onboarding", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ autoRouterPreferenceSet: true }),
+  });
+}
+
+async function updatePreferences(args: {
+  preferences: Record<string, unknown>;
+}) {
+  await fetch("/api/v1/preferences", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(args),
+  });
+}
+
+export function AutoRouterPreferenceModal() {
+  const queryClient = useQueryClient();
+  const { data: onboarding } = useQuery({
+    queryKey: ["onboarding"],
+    queryFn: fetchOnboardingState,
+    staleTime: 60_000,
+    retry: false,
+  });
 
   const [selection, setSelection] = useState<SelectionMode>(null);
   const [manualModel, setManualModel] = useState<string>("");
@@ -53,7 +80,9 @@ export function AutoRouterPreferenceModal() {
     return restGrouped;
   }, [dbModels]);
 
-  const shouldOpen = prefState?.exists === false;
+  const shouldOpen = onboarding
+    ? onboarding.autoRouterPreferenceSet === false
+    : false;
 
   const { run: handleSave, isPending: isSaving } = useAsyncAction(
     async () => {
@@ -78,6 +107,9 @@ export function AutoRouterPreferenceModal() {
           },
         });
       }
+
+      await markAutoRouterPreferenceSet();
+      queryClient.invalidateQueries({ queryKey: ["onboarding"] });
     },
     {
       onError: (error) => {

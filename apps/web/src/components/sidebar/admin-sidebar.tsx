@@ -4,7 +4,6 @@ import { UserButton } from "@clerk/nextjs";
 import {
   ArrowLeft,
   BarChart3,
-  Bot,
   MessageSquare,
   Settings,
   Sliders,
@@ -26,15 +25,22 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { featureFlags } from "@/lib/featureFlags";
 
-const ADMIN_MENU_ITEMS = [
+const ALWAYS_ON_ITEMS = [
   { icon: MessageSquare, label: "Feedback", href: "/admin/feedback" },
   { icon: Users, label: "Users", href: "/admin/users" },
-  { icon: Bot, label: "Models", href: "/admin/models" },
+];
+
+const FLAG_GATED_ITEMS = [
   { icon: Sliders, label: "Auto-Router", href: "/admin/auto-router" },
   { icon: Settings, label: "Settings", href: "/admin/settings" },
   { icon: BarChart3, label: "Usage", href: "/admin/usage" },
 ];
+
+const ADMIN_MENU_ITEMS = featureFlags.adminFull
+  ? [...ALWAYS_ON_ITEMS, ...FLAG_GATED_ITEMS]
+  : ALWAYS_ON_ITEMS;
 
 export function AdminSidebar() {
   const pathname = usePathname();

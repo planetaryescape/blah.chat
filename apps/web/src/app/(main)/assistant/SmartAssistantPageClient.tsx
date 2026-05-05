@@ -54,8 +54,6 @@ export default function SmartAssistantPage() {
   const [error, setError] = useState("");
   const [meetingDate, setMeetingDate] = useState<Date>(new Date());
 
-  // Actions
-  // TODO: Phase G - needs meeting extraction REST route
   const extractFromMeeting = async (args: any) => {
     const res = await fetch("/api/v1/actions/extract-meeting", {
       method: "POST",

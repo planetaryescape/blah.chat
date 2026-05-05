@@ -404,6 +404,28 @@ export async function deleteNote(clerkUserId: string, noteId: string) {
   return { deleted: true, noteId: note.id };
 }
 
+export async function addNoteTag(
+  clerkUserId: string,
+  noteId: string,
+  tag: string,
+) {
+  const { note } = await assertOwnedNote(clerkUserId, noteId);
+  return updateNote(clerkUserId, noteId, {
+    tags: Array.from(new Set([...(note.tags ?? []), tag])),
+  });
+}
+
+export async function removeNoteTag(
+  clerkUserId: string,
+  noteId: string,
+  tag: string,
+) {
+  const { note } = await assertOwnedNote(clerkUserId, noteId);
+  return updateNote(clerkUserId, noteId, {
+    tags: (note.tags ?? []).filter((existingTag) => existingTag !== tag),
+  });
+}
+
 export async function triggerNoteAutoTag(
   clerkUserId: string,
   noteId: string,

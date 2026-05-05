@@ -3,6 +3,12 @@ import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// Skip on CI — git hooks aren't needed in non-interactive runs, and
+// bun-on-Windows trips on the lefthook.cmd path during prepare.
+if (process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true") {
+  process.exit(0);
+}
+
 try {
   execFileSync("git", ["rev-parse", "--is-inside-work-tree"], {
     stdio: "ignore",

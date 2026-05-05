@@ -47,7 +47,7 @@ describe("import conversations route", () => {
     });
     authMock.mockResolvedValue({
       userId: "clerk_import",
-      getToken: vi.fn(async () => null),
+      getToken: vi.fn(() => Promise.resolve(null)),
     });
     currentUserMock.mockResolvedValue({
       id: "clerk_import",
@@ -112,7 +112,8 @@ describe("import conversations route", () => {
       "Imported B",
     ]);
 
-    const firstConvId = data.conversationIds[0]!;
+    const firstConvId = data.conversationIds[0];
+    if (!firstConvId) throw new Error("expected at least one imported id");
     const firstConvMessages = await db
       .select()
       .from(messagesTable)

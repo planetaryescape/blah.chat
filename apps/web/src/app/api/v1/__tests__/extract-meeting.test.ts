@@ -63,7 +63,7 @@ describe("extract-meeting route", () => {
     });
     authMock.mockResolvedValue({
       userId: "clerk_meeting",
-      getToken: vi.fn(async () => null),
+      getToken: vi.fn(() => Promise.resolve(null)),
     });
     currentUserMock.mockResolvedValue({
       id: "clerk_meeting",
@@ -112,17 +112,17 @@ describe("extract-meeting route", () => {
     const json = (await response.json()) as {
       status: string;
       data?: {
-        tasks: Array<{ title: string }>;
-        notes: Array<{ title: string }>;
+        tasks: { title: string }[];
+        notes: { title: string }[];
       };
     };
     const data = unwrapData<{
-      tasks: Array<{ title: string }>;
-      notes: Array<{ title: string }>;
+      tasks: { title: string }[];
+      notes: { title: string }[];
     }>(json);
 
     expect(data.tasks).toHaveLength(1);
-    expect(data.tasks[0]!.title).toBe("Send recap");
+    expect(data.tasks[0]?.title).toBe("Send recap");
     expect(data.notes).toHaveLength(1);
     expect(generateObjectMock).toHaveBeenCalledTimes(1);
 
@@ -131,7 +131,7 @@ describe("extract-meeting route", () => {
       .from(usageRecordsTable)
       .where(eq(usageRecordsTable.feature, "smart_assistant"));
     expect(usage).toHaveLength(1);
-    expect(usage[0]!.inputTokens).toBe(200);
-    expect(usage[0]!.outputTokens).toBe(80);
+    expect(usage[0]?.inputTokens).toBe(200);
+    expect(usage[0]?.outputTokens).toBe(80);
   });
 });

@@ -43,20 +43,19 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
   const [copied, setCopied] = useState(false);
   const [extendExpiresIn, setExtendExpiresIn] = useState<number | undefined>(7);
 
-  // TODO: Phase G - needs /api/v1/shares REST route
   const { data: existingShare } = useQuery({
     queryKey: ["share", validConversationId],
     enabled: !!validConversationId,
     queryFn: async () => {
       const res = await fetch(
-        `/api/v1/shares?conversationId=${validConversationId}`,
+        `/api/v1/shares/by-conversation?conversationId=${validConversationId}`,
       );
       if (!res.ok) return null;
       const json = await res.json();
       return json.data ?? null;
     },
   });
-  const createShare = async (args: any) => {
+  const createShare = async (args: Record<string, unknown>) => {
     const res = await fetch("/api/v1/shares", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -65,21 +64,26 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
     if (!res.ok) throw new Error("Failed");
     const json = await res.json();
     return json.data?.shareId;
-  }; // TODO: Phase G
-  const toggleShare = async (args: any) => {
-    await fetch("/api/v1/shares/toggle", {
-      method: "POST",
+  };
+  const toggleShare = async (args: { shareId: string; isActive: boolean }) => {
+    const res = await fetch(`/api/v1/shares/${args.shareId}`, {
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(args),
+      body: JSON.stringify({ isActive: args.isActive }),
     });
-  }; // TODO: Phase G
-  const extendExpiration = async (args: any) => {
-    await fetch("/api/v1/shares/extend", {
-      method: "POST",
+    if (!res.ok) throw new Error("Failed to toggle share");
+  };
+  const extendExpiration = async (args: {
+    shareId: string;
+    expiresAt: number;
+  }) => {
+    const res = await fetch(`/api/v1/shares/${args.shareId}`, {
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(args),
+      body: JSON.stringify({ expiresAt: args.expiresAt }),
     });
-  }; // TODO: Phase G
+    if (!res.ok) throw new Error("Failed to extend expiration");
+  };
 
   // Check if share is expired
   const isExpired = useMemo(
@@ -131,18 +135,21 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
   };
 
   const handleToggle = async (isActive: boolean) => {
+    if (!existingShare?.shareId) return;
     try {
-      await toggleShare({ conversationId: validConversationId, isActive });
+      await toggleShare({ shareId: existingShare.shareId, isActive });
     } catch (error) {
       console.error("Failed to toggle share:", error);
     }
   };
 
   const handleExtendExpiration = async () => {
+    if (!existingShare?.shareId || !extendExpiresIn) return;
     try {
+      const expiresAt = Date.now() + extendExpiresIn * 24 * 60 * 60 * 1000;
       await extendExpiration({
-        conversationId: validConversationId,
-        expiresIn: extendExpiresIn,
+        shareId: existingShare.shareId,
+        expiresAt,
       });
       analytics.track("share_expiration_extended", {
         expiresIn: extendExpiresIn,

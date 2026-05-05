@@ -14,7 +14,6 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
 export function AdminSearchSettings() {
-  // TODO: Phase G - needs /api/v1/admin/settings REST route
   const queryClient = useQueryClient();
   const { data: settings } = useQuery({
     queryKey: ["admin", "settings"],
@@ -45,15 +44,18 @@ export function AdminSearchSettings() {
 
   // Load settings from query
   useEffect(() => {
-    if (settings) {
-      setHybridSearchEnabled(settings.enableHybridSearch ?? false);
+    const search = settings?.search;
+    if (search) {
+      setHybridSearchEnabled(search.hybridEnabled ?? false);
     }
   }, [settings]);
 
   const handleToggleChange = async (checked: boolean) => {
     setHybridSearchEnabled(checked);
     try {
-      await updateSettingsMut.mutateAsync({ enableHybridSearch: checked });
+      await updateSettingsMut.mutateAsync({
+        search: { hybridEnabled: checked },
+      });
       toast.success(`Hybrid search ${checked ? "enabled" : "disabled"}`);
     } catch (_error) {
       toast.error("Failed to update settings");

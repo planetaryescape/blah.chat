@@ -308,11 +308,20 @@ export class GenerationV2Service {
     }
 
     try {
+      const { getAutoRouterConfig } = await import(
+        "@/lib/persistence/autoRouter"
+      );
+      const adminCfg = await getAutoRouterConfig();
       const classified = await classifierRouter.classify({
         message: input.message,
         hasAttachments: input.hasAttachments,
         attachmentTypes: input.attachmentTypes,
         currentContextTokens: undefined,
+        classifierConfig: {
+          confidenceThreshold: adminCfg.classifierConfidenceThreshold,
+          topK: adminCfg.classifierTopK,
+          fallbackEnabled: adminCfg.classifierFallbackEnabled,
+        },
       });
 
       return {

@@ -148,6 +148,30 @@ export const conversations = pgTable("conversations", {
   pinned: boolean("pinned").notNull().default(false),
   archived: boolean("archived").notNull().default(false),
   starred: boolean("starred").notNull().default(false),
+  /** Per-conversation reasoning effort: "none" | "low" | "medium" | "high". */
+  thinkingEffort: text("thinking_effort").notNull().default("none"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(now),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(now),
+});
+
+/**
+ * Canvas documents — artifact-style files belonging to a user, optionally
+ * linked to the conversation that originated them.
+ */
+export const documents = pgTable("documents", {
+  id: text("id").primaryKey().$defaultFn(id),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  conversationId: text("conversation_id").references(() => conversations.id, {
+    onDelete: "set null",
+  }),
+  title: text("title").notNull(),
+  content: text("content").notNull().default(""),
+  /** "code" | "prose" — matches the ArtifactCard documentType. */
+  documentType: text("document_type").notNull().default("prose"),
+  language: text("language"),
+  version: bigint("version", { mode: "number" }).notNull().default(1),
   createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(now),
   updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(now),
 });
@@ -1573,6 +1597,83 @@ export const conversationSharesRelations = relations(
 );
 
 // ---------------------------------------------------------------------------
+// Admin tunables — global singletons keyed by id = "global"
+// ---------------------------------------------------------------------------
+
+export interface AdminSettingsValue {
+  limits: {
+    defaultMonthlyBudget: number; // USD
+    defaultBudgetAlertThreshold: number; // 0..1
+    budgetHardLimitEnabled: boolean;
+    defaultDailyMessageLimit: number;
+    defaultMaxIntegrations: number;
+  };
+  features: {
+    canvasMode: boolean;
+    comparisonMode: boolean;
+    voiceInput: boolean;
+    imageGeneration: boolean;
+    codeExecution: boolean;
+    autoRouter: boolean;
+  };
+  proTier: {
+    proModelsEnabled: boolean;
+    /** 0 = unlimited */
+    tier1DailyProModelLimit: number;
+    /** 0 = unlimited */
+    tier2MonthlyProModelLimit: number;
+  };
+  search: {
+    hybridEnabled: boolean;
+    rrfK: number;
+    maxResults: number;
+    embeddingsEnabled: boolean;
+  };
+  memory: {
+    maxMemoriesPerUser: number;
+    autoExtractionEnabled: boolean;
+    consolidationIntervalDays: number;
+    /** Auto-extract memories every N user/assistant messages (3..20). */
+    extractEveryNMessages: number;
+  };
+  transcriptProvider: {
+    provider: "groq" | "openai" | "deepgram" | "assemblyai";
+    costPerMinute: number;
+  };
+}
+
+export const adminSettings = pgTable("admin_settings", {
+  id: text("id").primaryKey(),
+  value: jsonb("value").$type<AdminSettingsValue>().notNull(),
+  updatedBy: text("updated_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(now),
+});
+
+export interface AutoRouterConfigValue {
+  /** Safety multiplier on context window when picking a model. e.g. 1.2 = 20% buffer. */
+  contextBuffer: number;
+  /** Token count above which the router switches to long-context-capable models. */
+  longContextThreshold: number;
+  /** Minimum similarity confidence to skip LLM fallback. 0..1. */
+  classifierConfidenceThreshold: number;
+  /** Number of similar example queries the classifier consults before voting. */
+  classifierTopK: number;
+  /** When confidence is below threshold, fall back to LLM disambiguation. */
+  classifierFallbackEnabled: boolean;
+}
+
+export const autoRouterConfig = pgTable("auto_router_config", {
+  id: text("id").primaryKey(),
+  value: jsonb("value").$type<AutoRouterConfigValue>().notNull(),
+  updatedBy: text("updated_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(now),
+});
+
+// ---------------------------------------------------------------------------
 // Inferred types
 // ---------------------------------------------------------------------------
 
@@ -1594,3 +1695,5 @@ export type KnowledgeSource = typeof knowledgeSources.$inferSelect;
 export type ByodNeonConfig = typeof byodNeonConfigs.$inferSelect;
 export type ByodMigrationLog = typeof byodMigrationLogs.$inferSelect;
 export type ConversationShare = typeof conversationShares.$inferSelect;
+export type AdminSettings = typeof adminSettings.$inferSelect;
+export type AutoRouterConfig = typeof autoRouterConfig.$inferSelect;

@@ -8,6 +8,7 @@ import {
   Settings2,
   Sliders,
 } from "lucide-react";
+import { notFound } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { featureFlags } from "@/lib/featureFlags";
 import { useRouterConfig } from "@/lib/models";
 
 const DEFAULT_CONFIG = {
@@ -51,15 +53,24 @@ function AutoRouterSkeleton() {
 function AutoRouterPageContent() {
   const config = useRouterConfig();
 
-  // TODO: Phase G - needs /api/v1/admin/auto-router/config REST route
   const updateConfigMutation = {
-    mutateAsync: async (data: any) => {
+    mutateAsync: async (data: Record<string, unknown>) => {
       const res = await fetch("/api/v1/admin/auto-router/config", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Failed");
+      if (!res.ok) {
+        let message = `Failed (${res.status})`;
+        try {
+          const json = await res.json();
+          message =
+            typeof json?.error === "string"
+              ? json.error
+              : (json?.error?.message ?? message);
+        } catch {}
+        throw new Error(message);
+      }
     },
   };
 
@@ -318,6 +329,7 @@ function AutoRouterPageContent() {
 }
 
 export default function AutoRouterPage() {
+  if (!featureFlags.adminFull) notFound();
   return (
     <Suspense fallback={<AutoRouterSkeleton />}>
       <AutoRouterPageContent />

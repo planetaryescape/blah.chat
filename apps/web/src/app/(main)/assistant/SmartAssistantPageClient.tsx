@@ -67,7 +67,6 @@ export default function SmartAssistantPage() {
     return json.data;
   };
 
-  // TODO: Phase G - needs tasks REST route
   const createTask = async (args: any) => {
     const res = await fetch("/api/v1/tasks", {
       method: "POST",

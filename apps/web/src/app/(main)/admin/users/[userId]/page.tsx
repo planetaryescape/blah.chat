@@ -124,7 +124,6 @@ export default function UserDetailPage({
   // Date range state - fresh last 30 days on each page load
   const [dateRange, setDateRange] = useState(() => getLastNDays(30));
 
-  // TODO: Phase G - needs /api/v1/admin/users route
   const {
     data: user,
     isError: isUserError,
@@ -139,7 +138,6 @@ export default function UserDetailPage({
     },
   });
 
-  // TODO: Phase G - needs /api/v1/admin/users/:id/usage-summary route
   const { data: summary, isError: isSummaryError } = useQuery({
     queryKey: [
       "admin",
@@ -159,7 +157,6 @@ export default function UserDetailPage({
     },
   });
 
-  // TODO: Phase G - needs /api/v1/admin/users/:id/daily-spend route
   const { data: dailySpend, isError: isDailySpendError } = useQuery({
     queryKey: [
       "admin",
@@ -178,7 +175,6 @@ export default function UserDetailPage({
     },
   });
 
-  // TODO: Phase G - needs /api/v1/admin/users/:id/spend-by-model route
   const { data: modelBreakdown, isError: isModelBreakdownError } = useQuery({
     queryKey: [
       "admin",
@@ -197,7 +193,6 @@ export default function UserDetailPage({
     },
   });
 
-  // TODO: Phase G - needs /api/v1/admin/users/:id/cost-by-type route
   const { data: costByType, isError: isCostByTypeError } = useQuery({
     queryKey: [
       "admin",
@@ -217,7 +212,6 @@ export default function UserDetailPage({
     },
   });
 
-  // TODO: Phase G - needs /api/v1/admin/users/:id/cost-by-feature route
   const { data: costByFeature, isError: isCostByFeatureError } = useQuery({
     queryKey: [
       "admin",
@@ -237,7 +231,6 @@ export default function UserDetailPage({
     },
   });
 
-  // TODO: Phase G - needs /api/v1/admin/users/:id/activity-stats route
   const { data: activityStats, isError: isActivityStatsError } = useQuery({
     queryKey: ["admin", "user-activity-stats", userId],
     queryFn: async (): Promise<AdminActivityStats | null> => {

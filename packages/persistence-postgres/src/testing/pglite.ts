@@ -36,6 +36,7 @@ CREATE TABLE conversations (
   pinned boolean NOT NULL DEFAULT false,
   archived boolean NOT NULL DEFAULT false,
   starred boolean NOT NULL DEFAULT false,
+  thinking_effort text NOT NULL DEFAULT 'none',
   created_at bigint NOT NULL,
   updated_at bigint NOT NULL
 );
@@ -593,6 +594,33 @@ CREATE TABLE routing_examples (
   embedding vector,
   metadata jsonb,
   created_at bigint NOT NULL
+);
+
+CREATE TABLE documents (
+  id text PRIMARY KEY,
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  conversation_id text REFERENCES conversations(id) ON DELETE SET NULL,
+  title text NOT NULL,
+  content text NOT NULL DEFAULT '',
+  document_type text NOT NULL DEFAULT 'prose',
+  language text,
+  version bigint NOT NULL DEFAULT 1,
+  created_at bigint NOT NULL,
+  updated_at bigint NOT NULL
+);
+
+CREATE TABLE admin_settings (
+  id text PRIMARY KEY,
+  value jsonb NOT NULL,
+  updated_by text REFERENCES users(id) ON DELETE SET NULL,
+  updated_at bigint NOT NULL
+);
+
+CREATE TABLE auto_router_config (
+  id text PRIMARY KEY,
+  value jsonb NOT NULL,
+  updated_by text REFERENCES users(id) ON DELETE SET NULL,
+  updated_at bigint NOT NULL
 );
 `;
 

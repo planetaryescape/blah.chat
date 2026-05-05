@@ -15,7 +15,6 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 
 export function AdminMemorySettings() {
-  // TODO: Phase G - needs /api/v1/admin/settings REST route
   const queryClient = useQueryClient();
   const { data: settings } = useQuery({
     queryKey: ["admin", "settings"],
@@ -47,9 +46,10 @@ export function AdminMemorySettings() {
 
   // Load settings from query
   useEffect(() => {
-    if (settings) {
-      setAutoExtractEnabled(settings.autoMemoryExtractEnabled ?? true);
-      setExtractInterval(settings.autoMemoryExtractInterval ?? 5);
+    const memory = settings?.memory;
+    if (memory) {
+      setAutoExtractEnabled(memory.autoExtractionEnabled ?? true);
+      setExtractInterval(memory.extractEveryNMessages ?? 5);
     }
   }, [settings]);
 
@@ -57,7 +57,7 @@ export function AdminMemorySettings() {
     setAutoExtractEnabled(checked);
     try {
       await updateSettingsMut.mutateAsync({
-        autoMemoryExtractEnabled: checked,
+        memory: { autoExtractionEnabled: checked },
       });
       toast.success(`Memory extraction ${checked ? "enabled" : "disabled"}`);
     } catch (_error) {
@@ -70,7 +70,7 @@ export function AdminMemorySettings() {
     const newInterval = value[0];
     try {
       await updateSettingsMut.mutateAsync({
-        autoMemoryExtractInterval: newInterval,
+        memory: { extractEveryNMessages: newInterval },
       });
       toast.success(`Extraction interval updated to ${newInterval} messages`);
     } catch (_error) {

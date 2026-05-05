@@ -19,7 +19,6 @@ import { Switch } from "@/components/ui/switch";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 export function AdminLimitsSettings() {
-  // TODO: Phase G - needs /api/v1/admin/settings REST route
   const queryClient = useQueryClient();
   const { data: settings } = useQuery({
     queryKey: ["admin", "settings"],
@@ -54,23 +53,26 @@ export function AdminLimitsSettings() {
 
   // Load settings from query
   useEffect(() => {
-    if (settings) {
-      setMonthlyBudget(settings.defaultMonthlyBudget ?? 10);
-      setAlertThreshold((settings.defaultBudgetAlertThreshold ?? 0.8) * 100);
-      setHardLimitEnabled(settings.budgetHardLimitEnabled ?? true);
-      setDailyLimit(settings.defaultDailyMessageLimit ?? 50);
-      setMaxIntegrations(settings.maxActiveIntegrations ?? 5);
+    const limits = settings?.limits;
+    if (limits) {
+      setMonthlyBudget(limits.defaultMonthlyBudget ?? 10);
+      setAlertThreshold((limits.defaultBudgetAlertThreshold ?? 0.8) * 100);
+      setHardLimitEnabled(limits.budgetHardLimitEnabled ?? true);
+      setDailyLimit(limits.defaultDailyMessageLimit ?? 50);
+      setMaxIntegrations(limits.defaultMaxIntegrations ?? 5);
     }
   }, [settings]);
 
   const { run: handleSave, isPending: isLoading } = useAsyncAction(
     async () => {
       await updateSettingsMut.mutateAsync({
-        defaultMonthlyBudget: monthlyBudget,
-        defaultBudgetAlertThreshold: alertThreshold / 100,
-        budgetHardLimitEnabled: hardLimitEnabled,
-        defaultDailyMessageLimit: dailyLimit,
-        maxActiveIntegrations: maxIntegrations,
+        limits: {
+          defaultMonthlyBudget: monthlyBudget,
+          defaultBudgetAlertThreshold: alertThreshold / 100,
+          budgetHardLimitEnabled: hardLimitEnabled,
+          defaultDailyMessageLimit: dailyLimit,
+          defaultMaxIntegrations: maxIntegrations,
+        },
       });
       toast.success("Limits and budget settings saved!");
     },

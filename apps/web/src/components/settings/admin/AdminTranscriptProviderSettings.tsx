@@ -80,7 +80,6 @@ function useUpdateAdminSettings() {
 }
 
 export function AdminTranscriptProviderSettings() {
-  // TODO: Phase G - needs /api/v1/admin/settings REST route
   const { data: settings } = useAdminSettings();
 
   const updateSettingsMutation = useUpdateAdminSettings();
@@ -90,9 +89,10 @@ export function AdminTranscriptProviderSettings() {
 
   // Load settings from query
   useEffect(() => {
-    if (settings) {
-      setProvider(settings.transcriptProvider ?? "groq");
-      setCostPerMinute(settings.transcriptCostPerMinute ?? 0.0067);
+    const tp = settings?.transcriptProvider;
+    if (tp) {
+      setProvider(tp.provider ?? "groq");
+      setCostPerMinute(tp.costPerMinute ?? 0.0067);
     }
   }, [settings]);
 
@@ -110,8 +110,10 @@ export function AdminTranscriptProviderSettings() {
   const { run: handleSave, isPending: saving } = useAsyncAction(
     async () => {
       await updateSettingsMutation.mutateAsync({
-        transcriptProvider: provider,
-        transcriptCostPerMinute: costPerMinute,
+        transcriptProvider: {
+          provider,
+          costPerMinute,
+        },
       });
       toast.success(
         `Transcript provider updated to ${TRANSCRIPT_PROVIDERS.find((p) => p.value === provider)?.label}`,
@@ -130,8 +132,8 @@ export function AdminTranscriptProviderSettings() {
   );
 
   const hasChanges =
-    provider !== settings?.transcriptProvider ||
-    costPerMinute !== settings?.transcriptCostPerMinute;
+    provider !== settings?.transcriptProvider?.provider ||
+    costPerMinute !== settings?.transcriptProvider?.costPerMinute;
 
   if (!settings) {
     return (

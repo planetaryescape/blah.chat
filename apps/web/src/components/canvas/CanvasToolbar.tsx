@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import {
   Check,
   Copy,
@@ -45,8 +46,25 @@ export function CanvasToolbar({
   const { setShowHistoryPanel } = useCanvasContext();
   const [copied, setCopied] = useState(false);
 
-  // TODO: Phase G - Canvas has no Postgres table yet
-  const document: any = null;
+  const { data: document } = useQuery<{
+    _id: string;
+    title: string;
+    content: string;
+    documentType: "code" | "prose";
+    language?: string;
+  } | null>({
+    queryKey: ["canvas-document", documentId],
+    enabled: !!documentId,
+    queryFn: async () => {
+      if (!documentId) return null;
+      const res = await fetch(
+        `/api/v1/documents/${encodeURIComponent(documentId)}`,
+      );
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data ?? null;
+    },
+  });
 
   const {
     canUndo,

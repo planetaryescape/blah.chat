@@ -150,6 +150,10 @@ export const conversations = pgTable("conversations", {
   starred: boolean("starred").notNull().default(false),
   /** Per-conversation reasoning effort: "none" | "low" | "medium" | "high". */
   thinkingEffort: text("thinking_effort").notNull().default("none"),
+  /** Conversation rendering mode: "chat" | "document". Drives canvas auto-open. */
+  mode: text("mode").notNull().default("chat"),
+  /** Loose pointer to the canvas document currently bound to this conversation. */
+  activeDocumentId: text("active_document_id"),
   createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(now),
   updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(now),
 });
@@ -175,6 +179,47 @@ export const documents = pgTable("documents", {
   createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(now),
   updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(now),
 });
+
+/**
+ * Append-only revision log for `documents`. Stores full content snapshots
+ * per version (TOAST-friendly; render diffs lazily). Sources:
+ *   - "user_edit" — interactive panel edit
+ *   - "ai_edit"   — assistant-driven edit during a generation
+ *   - "conflict_resolution" — output of ConflictDialog merge
+ *   - "restore"   — explicit jump-to-version creates a new revision
+ */
+export type DocumentRevisionSource =
+  | "user_edit"
+  | "ai_edit"
+  | "conflict_resolution"
+  | "restore";
+
+export const documentRevisions = pgTable(
+  "document_revisions",
+  {
+    id: text("id").primaryKey().$defaultFn(id),
+    documentId: text("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    version: bigint("version", { mode: "number" }).notNull(),
+    content: text("content").notNull(),
+    diffSummary: text("diff_summary"),
+    source: text("source").$type<DocumentRevisionSource>().notNull(),
+    messageId: text("message_id").references(() => messages.id, {
+      onDelete: "set null",
+    }),
+    createdAt: bigint("created_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+  },
+  (t) => [
+    index("document_revisions_by_document").on(t.documentId, t.version),
+    index("document_revisions_by_user").on(t.userId),
+  ],
+);
 
 export const userPreferences = pgTable(
   "user_preferences",
@@ -1697,3 +1742,5 @@ export type ByodMigrationLog = typeof byodMigrationLogs.$inferSelect;
 export type ConversationShare = typeof conversationShares.$inferSelect;
 export type AdminSettings = typeof adminSettings.$inferSelect;
 export type AutoRouterConfig = typeof autoRouterConfig.$inferSelect;
+export type Document = typeof documents.$inferSelect;
+export type DocumentRevision = typeof documentRevisions.$inferSelect;

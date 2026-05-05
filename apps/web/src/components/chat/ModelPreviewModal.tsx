@@ -53,7 +53,6 @@ export function ModelPreviewModal({
   const rightScrollRef = useRef<HTMLDivElement>(null);
   const isScrolling = useRef<"left" | "right" | null>(null);
 
-  // TODO: Phase 15 - need REST route for model preview generation
   const { run: generatePreviewResponse, isPending: loading } = useAsyncAction(
     async () => {
       const result = await apiClient.post<{ content: string }>(

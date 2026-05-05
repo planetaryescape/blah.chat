@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  addNoteTag,
   createNote,
   createNoteShare,
   createProjectNote,
@@ -9,6 +10,7 @@ import {
   getNoteShareMetadata,
   listNotes,
   listProjectNotes,
+  removeNoteTag,
   toggleNoteShare,
   triggerNoteAutoTag,
   updateNote,
@@ -42,6 +44,10 @@ const noteShareSchema = z.object({
 
 const toggleNoteShareSchema = z.object({
   isActive: z.boolean(),
+});
+
+const noteTagSchema = z.object({
+  tag: z.string().min(1),
 });
 
 export const notesDAL = {
@@ -131,6 +137,26 @@ export const notesDAL = {
   triggerAutoTag: async (clerkUserId: string, noteId: string) => {
     const result = await triggerNoteAutoTag(clerkUserId, noteId);
     return formatEntity(result, "note", noteId);
+  },
+
+  addTag: async (
+    clerkUserId: string,
+    noteId: string,
+    payload: z.input<typeof noteTagSchema>,
+  ) => {
+    const validated = noteTagSchema.parse(payload);
+    const note = await addNoteTag(clerkUserId, noteId, validated.tag);
+    return formatEntity(note, "note", note._id);
+  },
+
+  removeTag: async (
+    clerkUserId: string,
+    noteId: string,
+    payload: z.input<typeof noteTagSchema>,
+  ) => {
+    const validated = noteTagSchema.parse(payload);
+    const note = await removeNoteTag(clerkUserId, noteId, validated.tag);
+    return formatEntity(note, "note", note._id);
   },
 
   createShare: async (

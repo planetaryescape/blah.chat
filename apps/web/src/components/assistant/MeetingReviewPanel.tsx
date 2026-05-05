@@ -80,9 +80,6 @@ export function MeetingReviewPanel({
     tasks.length > 0 ? "tasks" : "notes",
   );
 
-  // Fetch projects for assignment
-
-  // TODO: Phase G - use REST projects endpoint
   const { data: projects = [] } = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {

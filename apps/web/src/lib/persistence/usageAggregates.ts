@@ -27,12 +27,6 @@ export interface DateRange {
   endDate: string; // YYYY-MM-DD
 }
 
-function combineWhere(filters: SQL[]): SQL | undefined {
-  if (filters.length === 0) return undefined;
-  if (filters.length === 1) return filters[0];
-  return and(...filters);
-}
-
 function whereOf(opts: {
   userId?: string;
   startDate?: string;
@@ -43,7 +37,10 @@ function whereOf(opts: {
     opts.startDate ? gte(usageRecords.date, opts.startDate) : undefined,
     opts.endDate ? lte(usageRecords.date, opts.endDate) : undefined,
   ].filter((filter): filter is SQL => Boolean(filter));
-  return combineWhere(filters);
+  return filters.reduce<SQL | undefined>(
+    (where, filter) => (where ? and(where, filter) : filter),
+    undefined,
+  );
 }
 
 function n(value: unknown): number {

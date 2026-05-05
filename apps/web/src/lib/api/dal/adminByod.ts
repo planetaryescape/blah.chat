@@ -14,6 +14,38 @@ function n(value: unknown): number {
   return typeof value === "number" ? value : Number(value ?? 0);
 }
 
+type ByodInstanceRow = {
+  id: string;
+  userId: string;
+  userEmail: string | null;
+  userName: string | null;
+  neonProjectId: string | null;
+  connectionStatus: string;
+  connectionError: string | null;
+  lastHealthCheck: number | null;
+  healthLatencyMs: number | null;
+  createdAt: number;
+};
+
+function toByodInstance(row: ByodInstanceRow) {
+  return {
+    _id: row.id,
+    userId: row.userId,
+    userEmail: row.userEmail ?? undefined,
+    userName: row.userName ?? undefined,
+    neonProjectId: row.neonProjectId ?? undefined,
+    connectionStatus: row.connectionStatus,
+    connectionError: row.connectionError ?? undefined,
+    lastHealthCheck: row.lastHealthCheck ?? undefined,
+    healthLatencyMs: row.healthLatencyMs ?? undefined,
+    createdAt: row.createdAt,
+  };
+}
+
+function filterInstancesByStatus(rows: ByodInstanceRow[], status?: string) {
+  return status ? rows.filter((row) => row.connectionStatus === status) : rows;
+}
+
 const optionalConfigIdSchema = z.object({
   configId: z.string().optional(),
 });
@@ -89,22 +121,9 @@ export const adminByodDAL = {
       .orderBy(desc(byodNeonConfigs.createdAt))
       .limit(limit);
 
-    const items = (
-      opts.status
-        ? rows.filter((r) => r.connectionStatus === opts.status)
-        : rows
-    ).map((r) => ({
-      _id: r.id,
-      userId: r.userId,
-      userEmail: r.userEmail ?? undefined,
-      userName: r.userName ?? undefined,
-      neonProjectId: r.neonProjectId ?? undefined,
-      connectionStatus: r.connectionStatus,
-      connectionError: r.connectionError ?? undefined,
-      lastHealthCheck: r.lastHealthCheck ?? undefined,
-      healthLatencyMs: r.healthLatencyMs ?? undefined,
-      createdAt: r.createdAt,
-    }));
+    const items = filterInstancesByStatus(rows, opts.status).map(
+      toByodInstance,
+    );
 
     return formatEntityList(items, "byod_instance");
   },
@@ -176,12 +195,12 @@ export const adminByodDAL = {
         )})`,
       );
 
-    const results: Array<{
+    const results: {
       configId: string;
       email?: string;
       delivered: boolean;
       reason?: string;
-    }> = [];
+    }[] = [];
 
     for (const r of recipients) {
       if (!r.email) {

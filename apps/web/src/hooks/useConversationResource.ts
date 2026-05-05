@@ -2,11 +2,22 @@
 
 import { useEffect, useState } from "react";
 
-type ConversationResource = {
+export type ConversationResource = {
   _id: string;
   title: string;
   model: string;
+  mode?: string | null;
+  thinkingEffort?: string | null;
+  isCollaborative?: boolean;
   selectedIntegrationIds?: string[];
+  modelRecommendation?: {
+    suggestedModelId: string;
+    currentModelId: string;
+    estimatedSavings: { percentSaved: number };
+    reasoning: string;
+    dismissed: boolean;
+    createdAt: number;
+  };
   archived?: boolean;
   messageCount?: number;
   lastMessageAt?: number;

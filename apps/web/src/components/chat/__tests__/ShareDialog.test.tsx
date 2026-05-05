@@ -131,9 +131,9 @@ describe("ShareDialog", () => {
   it("toggle calls PATCH /api/v1/shares/<shareId> with {isActive}", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async (url: string, init?: RequestInit) => {
+      vi.fn((url: string, init?: RequestInit) => {
         if (url.includes("/api/v1/shares/by-conversation")) {
-          return {
+          return Promise.resolve({
             ok: true,
             json: async () => ({
               status: "success",
@@ -143,19 +143,19 @@ describe("ShareDialog", () => {
                 expiresAt: Date.now() + 86_400_000,
               },
             }),
-          } as Response;
+          } as Response);
         }
         // PATCH /api/v1/shares/share-abc123
         if (url === "/api/v1/shares/share-abc123" && init?.method === "PATCH") {
-          return {
+          return Promise.resolve({
             ok: true,
             json: async () => ({ status: "success" }),
-          } as Response;
+          } as Response);
         }
-        return {
+        return Promise.resolve({
           ok: false,
           json: async () => ({ status: "error" }),
-        } as Response;
+        } as Response);
       }),
     );
 
@@ -184,9 +184,9 @@ describe("ShareDialog", () => {
     const futureTs = Date.now() + 86_400_000;
     vi.stubGlobal(
       "fetch",
-      vi.fn(async (url: string, init?: RequestInit) => {
+      vi.fn((url: string, init?: RequestInit) => {
         if (url.includes("/api/v1/shares/by-conversation")) {
-          return {
+          return Promise.resolve({
             ok: true,
             json: async () => ({
               status: "success",
@@ -197,18 +197,18 @@ describe("ShareDialog", () => {
                 expiresAt: Date.now() - 1000,
               },
             }),
-          } as Response;
+          } as Response);
         }
         if (url === "/api/v1/shares/share-abc123" && init?.method === "PATCH") {
-          return {
+          return Promise.resolve({
             ok: true,
             json: async () => ({ status: "success" }),
-          } as Response;
+          } as Response);
         }
-        return {
+        return Promise.resolve({
           ok: false,
           json: async () => ({ status: "error" }),
-        } as Response;
+        } as Response);
       }),
     );
 

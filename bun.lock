@@ -5,10 +5,6 @@
     "": {
       "name": "blah-chat",
       "dependencies": {
-        "@opentui/core-darwin-x64": "0.1.80",
-        "@opentui/core-linux-arm64": "0.1.80",
-        "@opentui/core-linux-x64": "0.1.80",
-        "@opentui/core-win32-x64": "0.1.80",
         "bible-passage-reference-parser": "^3.1.0",
       },
       "devDependencies": {
@@ -112,7 +108,6 @@
         "expo-system-ui": "~6.0.9",
         "expo-updates": "~29.0.16",
         "expo-web-browser": "~15.0.10",
-        "katex": "^0.16.45",
         "lucide-react-native": "^0.577.0",
         "nativewind": "^4.1.0",
         "process": "^0.11.10",
@@ -365,7 +360,7 @@
     },
     "packages/api-client": {
       "name": "@blah-chat/api-client",
-      "version": "0.7.0",
+      "version": "0.7.1",
       "dependencies": {
         "eventsource-parser": "^3.0.6",
         "openapi-fetch": "^0.15.0",
@@ -563,15 +558,6 @@
     },
     "packages/notes-core": {
       "name": "@blah-chat/notes-core",
-      "version": "0.1.0",
-      "devDependencies": {
-        "@blah-chat/config": "workspace:*",
-        "tsup": "^8.5.0",
-        "typescript": "^5.9.3",
-      },
-    },
-    "packages/persistence-convex": {
-      "name": "@blah-chat/persistence-convex",
       "version": "0.1.0",
       "devDependencies": {
         "@blah-chat/config": "workspace:*",
@@ -1073,8 +1059,6 @@
     "@blah-chat/mobile": ["@blah-chat/mobile@workspace:apps/mobile"],
 
     "@blah-chat/notes-core": ["@blah-chat/notes-core@workspace:packages/notes-core"],
-
-    "@blah-chat/persistence-convex": ["@blah-chat/persistence-convex@workspace:packages/persistence-convex"],
 
     "@blah-chat/persistence-postgres": ["@blah-chat/persistence-postgres@workspace:packages/persistence-postgres"],
 

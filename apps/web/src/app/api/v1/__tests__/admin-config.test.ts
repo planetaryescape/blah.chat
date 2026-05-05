@@ -1,6 +1,8 @@
 /**
  * @vitest-environment node
  */
+
+import type { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // `server-only` is a runtime barrel that throws if imported in the browser. In
@@ -26,11 +28,10 @@ vi.mock("@/lib/api/middleware/auth", async () => {
   return {
     ...actual,
     withAdminAuth:
-      (handler: (req: Request, ctx: any) => Promise<Response>) =>
-      async (req: Request, ctx?: any) => {
+      (handler: RouteHandler) =>
+      async (req: NextRequest, ctx: RouteContext) => {
         // Allow per-test override of admin status via req header.
-        const isAdmin =
-          (req.headers as Headers)?.get?.("x-test-is-admin") !== "false";
+        const isAdmin = req.headers.get("x-test-is-admin") !== "false";
         if (!isAdmin) {
           return new Response(
             JSON.stringify({
@@ -41,7 +42,7 @@ vi.mock("@/lib/api/middleware/auth", async () => {
           );
         }
         return handler(req, {
-          params: ctx?.params ?? Promise.resolve({}),
+          params: ctx.params,
           userId: "admin_user_1",
         });
       },
@@ -71,14 +72,20 @@ const adminUpdateMock = vi.mocked(updateAdminSettings);
 const routerMock = vi.mocked(getAutoRouterConfig);
 const routerUpdateMock = vi.mocked(updateAutoRouterConfig);
 
+type RouteContext = { params: Promise<Record<string, string | string[]>> };
+type AuthContext = RouteContext & { userId: string };
+type RouteHandler = (req: NextRequest, ctx: AuthContext) => Promise<Response>;
+
 const makeReq = (
   url: string,
   init?: RequestInit & { isAdmin?: boolean },
-): Request => {
+): NextRequest => {
   const headers = new Headers(init?.headers);
   if (init?.isAdmin === false) headers.set("x-test-is-admin", "false");
-  return new Request(url, { ...init, headers });
+  return new Request(url, { ...init, headers }) as unknown as NextRequest;
 };
+
+const routeContext: RouteContext = { params: Promise.resolve({}) };
 
 describe("/api/v1/admin/settings", () => {
   beforeEach(() => {
@@ -120,14 +127,12 @@ describe("/api/v1/admin/settings", () => {
         extractEveryNMessages: 5,
       },
       transcriptProvider: { provider: "groq", costPerMinute: 0.0067 },
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof getAdminSettings>>);
 
     const { GET } = await import("../admin/settings/route");
     const res = await GET(
-      makeReq("http://t/api/v1/admin/settings") as any,
-      {
-        params: Promise.resolve({}),
-      } as any,
+      makeReq("http://t/api/v1/admin/settings"),
+      routeContext,
     );
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -138,8 +143,8 @@ describe("/api/v1/admin/settings", () => {
   it("GET requires admin (403 for non-admin)", async () => {
     const { GET } = await import("../admin/settings/route");
     const res = await GET(
-      makeReq("http://t/api/v1/admin/settings", { isAdmin: false }) as any,
-      { params: Promise.resolve({}) } as any,
+      makeReq("http://t/api/v1/admin/settings", { isAdmin: false }),
+      routeContext,
     );
     expect(res.status).toBe(403);
   });
@@ -153,15 +158,15 @@ describe("/api/v1/admin/settings", () => {
         defaultDailyMessageLimit: 50,
         defaultMaxIntegrations: 5,
       },
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof updateAdminSettings>>);
     const { PATCH } = await import("../admin/settings/route");
     const res = await PATCH(
       makeReq("http://t/api/v1/admin/settings", {
         method: "PATCH",
         body: JSON.stringify({ limits: { defaultMonthlyBudget: 20 } }),
         headers: { "Content-Type": "application/json" },
-      }) as any,
-      { params: Promise.resolve({}) } as any,
+      }),
+      routeContext,
     );
     expect(res.status).toBe(200);
     expect(adminUpdateMock).toHaveBeenCalledWith("admin_user_1", {
@@ -176,8 +181,8 @@ describe("/api/v1/admin/settings", () => {
         method: "PATCH",
         body: JSON.stringify({ totallyMadeUp: 1 }),
         headers: { "Content-Type": "application/json" },
-      }) as any,
-      { params: Promise.resolve({}) } as any,
+      }),
+      routeContext,
     );
     // withErrorHandling turns a thrown ZodError into a 4xx response.
     expect(res.status).toBeGreaterThanOrEqual(400);
@@ -201,8 +206,8 @@ describe("/api/v1/admin/auto-router/config", () => {
     });
     const { GET } = await import("../admin/auto-router/config/route");
     const res = await GET(
-      makeReq("http://t/api/v1/admin/auto-router/config") as any,
-      { params: Promise.resolve({}) } as any,
+      makeReq("http://t/api/v1/admin/auto-router/config"),
+      routeContext,
     );
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -223,8 +228,8 @@ describe("/api/v1/admin/auto-router/config", () => {
         method: "PATCH",
         body: JSON.stringify({ classifierConfidenceThreshold: 0.9 }),
         headers: { "Content-Type": "application/json" },
-      }) as any,
-      { params: Promise.resolve({}) } as any,
+      }),
+      routeContext,
     );
     expect(res.status).toBe(200);
     expect(routerUpdateMock).toHaveBeenCalledWith("admin_user_1", {
@@ -239,8 +244,8 @@ describe("/api/v1/admin/auto-router/config", () => {
         method: "PATCH",
         body: JSON.stringify({ classifierConfidenceThreshold: 1.5 }),
         headers: { "Content-Type": "application/json" },
-      }) as any,
-      { params: Promise.resolve({}) } as any,
+      }),
+      routeContext,
     );
     expect(res.status).toBeGreaterThanOrEqual(400);
     expect(res.status).toBeLessThan(500);
@@ -255,8 +260,8 @@ describe("/api/v1/admin/auto-router/config", () => {
         body: JSON.stringify({ classifierTopK: 7 }),
         headers: { "Content-Type": "application/json" },
         isAdmin: false,
-      }) as any,
-      { params: Promise.resolve({}) } as any,
+      }),
+      routeContext,
     );
     expect(res.status).toBe(403);
     expect(routerUpdateMock).not.toHaveBeenCalled();

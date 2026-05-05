@@ -40,19 +40,24 @@ export interface SendEmailResult {
 
 const DEFAULT_FROM = "blah.chat <noreply@blah.chat>";
 
+function undelivered(reason: string): SendEmailResult {
+  return { delivered: false, reason };
+}
+
+function getFromAddress(input: SendEmailInput): string {
+  return input.from ?? process.env.RESEND_FROM_EMAIL ?? DEFAULT_FROM;
+}
+
 export async function sendEmail(
   input: SendEmailInput,
 ): Promise<SendEmailResult> {
   const client = getResendClient();
   if (!client) {
-    return {
-      delivered: false,
-      reason: "RESEND_API_KEY not configured",
-    };
+    return undelivered("RESEND_API_KEY not configured");
   }
 
   const result = await client.emails.send({
-    from: input.from ?? process.env.RESEND_FROM_EMAIL ?? DEFAULT_FROM,
+    from: getFromAddress(input),
     to: input.to,
     subject: input.subject,
     html: input.html,
@@ -62,10 +67,7 @@ export async function sendEmail(
   });
 
   if (result.error) {
-    return {
-      delivered: false,
-      reason: result.error.message ?? "Resend send failed",
-    };
+    return undelivered(result.error.message ?? "Resend send failed");
   }
 
   return { delivered: true, id: result.data?.id };

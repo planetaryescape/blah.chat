@@ -28,16 +28,11 @@ export interface DateRange {
 }
 
 function dateBetween(startDate?: string, endDate?: string): SQL | undefined {
-  if (!startDate && !endDate) return undefined;
-  if (startDate && endDate) {
-    return and(
-      gte(usageRecords.date, startDate),
-      lte(usageRecords.date, endDate),
-    );
-  }
-  return startDate
-    ? gte(usageRecords.date, startDate)
-    : lte(usageRecords.date, endDate as string);
+  const filters: SQL[] = [];
+  if (startDate) filters.push(gte(usageRecords.date, startDate));
+  if (endDate) filters.push(lte(usageRecords.date, endDate));
+  if (filters.length === 0) return undefined;
+  return filters.length === 1 ? filters[0] : and(...filters);
 }
 
 function whereOf(opts: {

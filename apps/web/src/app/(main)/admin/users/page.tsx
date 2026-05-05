@@ -89,7 +89,6 @@ function UsersPageContent() {
   // Virtualization ref (must be before early return)
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
-  // TODO: Phase G - needs /api/v1/admin/users route
   const { data: users } = useQuery({
     queryKey: ["admin", "users"],
     queryFn: async (): Promise<AdminUser[]> => {
@@ -99,7 +98,6 @@ function UsersPageContent() {
     },
   });
 
-  // TODO: Phase G - needs /api/v1/admin/usage-summary route
   const { data: usageSummary } = useQuery({
     queryKey: [
       "admin",
@@ -120,7 +118,6 @@ function UsersPageContent() {
   const handleToggleAdmin = useCallback(
     async (userId: string, isAdmin: boolean) => {
       try {
-        // TODO: Phase G - needs /api/v1/admin/users/:id/role route
         const res = await fetch(`/api/v1/admin/users/${userId}/role`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -141,7 +138,6 @@ function UsersPageContent() {
   const handleUpdateTier = useCallback(
     async (userId: string, tier: "free" | "tier1" | "tier2") => {
       try {
-        // TODO: Phase G - needs /api/v1/admin/users/:id/tier route
         const res = await fetch(`/api/v1/admin/users/${userId}/tier`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },

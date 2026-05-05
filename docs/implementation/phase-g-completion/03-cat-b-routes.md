@@ -13,6 +13,7 @@ Routes that don't exist but the underlying data already lives in Postgres. Each 
 **Page:** `apps/web/src/app/(main)/settings/import/page.tsx`
 
 **Client payload:**
+
 ```ts
 {
   conversations: Array<{
@@ -28,6 +29,7 @@ Routes that don't exist but the underlying data already lives in Postgres. Each 
 ```
 
 **Response (envelope):**
+
 ```ts
 formatEntity({
   success: boolean,
@@ -68,6 +70,7 @@ formatEntity({
 ### B2a — `GET /api/v1/admin/byod/stats`
 
 **Response:**
+
 ```ts
 formatEntity({
   totalInstances: number,
@@ -170,6 +173,7 @@ All non-admin. `withUserAuth`.
 **DAL:** new `apps/web/src/lib/api/dal/userAnalytics.ts`. Wraps `usageAggregates` helpers (B4 refactor) with current user's id.
 
 **New helpers needed in `usageAggregates.ts`:**
+
 - `getStreakStats(userId)` — longest streak, current streak
 - `getHeatmap(userId, days)` — array of 365 entries
 - `getPercentileRanking(userId)` — your messages/cost vs all users (precomputed daily? for now, run on demand with row-count cap)
@@ -185,6 +189,7 @@ All non-admin. `withUserAuth`.
 **Page:** `apps/web/src/app/(main)/assistant/SmartAssistantPageClient.tsx:60`
 
 **Client payload:**
+
 ```ts
 {
   text: string;                 // raw transcript or note text
@@ -196,6 +201,7 @@ All non-admin. `withUserAuth`.
 **Behavior:** stateless LLM action. Calls Anthropic via existing `@blah-chat/ai` SDK with the existing `meetingExtractionPrompt` (already in `packages/backend/convex/lib/prompts/` per migration history — verify location post-migration; if missing, port from git history).
 
 **Response:**
+
 ```ts
 formatEntity({
   attendees: string[],
@@ -210,6 +216,7 @@ formatEntity({
 **DAL:** new `apps/web/src/lib/api/dal/meetingExtraction.ts`. Streamed? No — atomic action.
 
 **Implementation:**
+
 - Read prompt from `apps/web/src/lib/prompts/meetingExtraction.ts` (port from packages/backend if needed; centralized per CLAUDE.md rule)
 - Call LLM with `usageRecord.feature = "meeting_extraction"` for cost tracking
 - Optionally call `tasksDAL.createBatch(...)` for auto-create
@@ -279,6 +286,7 @@ Mirror `apps/web/src/app/api/v1/bookmarks/[id]/tags/route.ts` exactly.
 | `GET /api/v1/admin/models/[id]/history?limit=10` | Read from `modelChangeLog`. |
 
 **DAL:** new `apps/web/src/lib/api/dal/adminModels.ts` exposing:
+
 - `list({ status?, provider?, q?, cursor?, limit? })`
 - `get(modelId)`
 - `create(input, actorId)`
@@ -294,6 +302,7 @@ Mirror `apps/web/src/app/api/v1/bookmarks/[id]/tags/route.ts` exactly.
 **Side effect:** `MODEL_CONFIG` consumers in chat (model picker, auto-router) MUST start using the merged view, not the static config. Add a `getEffectiveModels()` server-side helper. Wire `useModels()` hook to a new `/api/v1/models` GET route (paginated for clients) that returns the merged set.
 
 **This unblocks `apps/web/src/lib/models/repository.ts`** TODOs:
+
 - `useModelProfiles` — return `?` from `routingPolicies` (separate table, exists)
 - `useRouterConfig` — call `/api/v1/admin/auto-router/config` (B3) — but only for admins; non-admin returns `undefined`
 - `useModelHistory` — call `/api/v1/admin/models/[id]/history` (admin only)
@@ -311,6 +320,7 @@ Mirror `apps/web/src/app/api/v1/bookmarks/[id]/tags/route.ts` exactly.
 **Behavior:** generates a preview of how a different model would respond to the most recent user prompt in the conversation. Stateless LLM call.
 
 **Body:**
+
 ```ts
 {
   modelId: string;
@@ -319,6 +329,7 @@ Mirror `apps/web/src/app/api/v1/bookmarks/[id]/tags/route.ts` exactly.
 ```
 
 **Response:**
+
 ```ts
 formatEntity({
   modelId: string,
@@ -329,6 +340,7 @@ formatEntity({
 ```
 
 **Implementation:**
+
 - Load conversation messages (latest assistant turn replayed against new model)
 - Run model with `streaming: false`, capture text + tokens + cost
 - Insert `usageRecord` with `feature = "model_preview"`
@@ -374,6 +386,7 @@ apps/web/src/lib/api/dal/
 ## Cat B PR scope
 
 **PR 4 (after PR 3 schema lands):**
+
 - B1 — import (no schema dep)
 - B4 — admin/usage aggregates
 - B5 — /usage current user

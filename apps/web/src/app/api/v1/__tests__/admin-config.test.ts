@@ -4,6 +4,7 @@
 
 import type { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { withAdminAuth } from "@/lib/api/middleware/auth";
 
 // `server-only` is a runtime barrel that throws if imported in the browser. In
 // vitest (node env) it has no effect — stub it so DAL imports resolve.
@@ -75,10 +76,7 @@ const routerUpdateMock = vi.mocked(updateAutoRouterConfig);
 interface RouteContext {
   params: Promise<Record<string, string | string[]>>;
 }
-interface AuthContext extends RouteContext {
-  userId: string;
-}
-type RouteHandler = (...args: [NextRequest, AuthContext]) => Promise<Response>;
+type RouteHandler = Parameters<typeof withAdminAuth>[0];
 
 const makeReq = (
   url: string,

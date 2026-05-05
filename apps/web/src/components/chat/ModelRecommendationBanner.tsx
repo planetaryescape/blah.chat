@@ -3,7 +3,7 @@
 import { MODEL_CONFIG } from "@blah-chat/ai/models";
 import { AnimatePresence, m } from "framer-motion";
 import { Lightbulb, X } from "lucide-react";
-import { useEffect } from "react";
+import { type Dispatch, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { analytics } from "@/lib/analytics";
 import { useApiClient } from "@/lib/api/client";
@@ -21,9 +21,9 @@ interface ModelRecommendation {
 interface Props {
   recommendation: ModelRecommendation;
   conversationId: string;
-  onSwitch: (...args: [string]) => void;
+  onSwitch: Dispatch<string>;
   /** Optional: open ModelPreviewModal for the suggested model. */
-  onPreview?: (...args: [string]) => void;
+  onPreview?: Dispatch<string>;
 }
 
 export function ModelRecommendationBanner({

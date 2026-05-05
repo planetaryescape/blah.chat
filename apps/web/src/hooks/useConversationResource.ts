@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { ThinkingEffort } from "@/components/chat/ThinkingEffortSelector";
 
 export interface ConversationResource {
   _id: string;
   title: string;
   model: string;
   mode?: string | null;
-  thinkingEffort?: ThinkingEffort | null;
+  thinkingEffort?: "none" | "low" | "medium" | "high" | null;
   isCollaborative?: boolean;
   selectedIntegrationIds?: string[];
   modelRecommendation?: {

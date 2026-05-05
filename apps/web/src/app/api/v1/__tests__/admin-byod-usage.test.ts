@@ -4,6 +4,7 @@
 
 import type { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { withAdminAuth } from "@/lib/api/middleware/auth";
 
 vi.mock("server-only", () => ({}));
 
@@ -84,10 +85,7 @@ import { userAnalyticsDAL } from "@/lib/api/dal/userAnalytics";
 interface RouteContext {
   params: Promise<Record<string, string | string[]>>;
 }
-interface AuthContext extends RouteContext {
-  userId: string;
-}
-type RouteHandler = (...args: [NextRequest, AuthContext]) => Promise<Response>;
+type RouteHandler = Parameters<typeof withAdminAuth>[0];
 
 const makeReq = (
   url: string,

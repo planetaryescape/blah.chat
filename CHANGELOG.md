@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.37.2](https://github.com/planetaryescape/blah.chat/compare/v1.37.1...v1.37.2) (2026-05-05)
+
+
+### Bug Fixes
+
+* **desktop:** regen icon.icns + skip prepare on CI ([daaf2aa](https://github.com/planetaryescape/blah.chat/commit/daaf2aa49751bf5de46eee8c0b66522ba47ec0dc))
+
 ## [1.37.1](https://github.com/planetaryescape/blah.chat/compare/v1.37.0...v1.37.1) (2026-05-04)
 
 

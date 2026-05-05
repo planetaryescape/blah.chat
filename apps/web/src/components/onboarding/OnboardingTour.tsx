@@ -1,9 +1,37 @@
 "use client";
 
 import { TourProvider, useTour } from "@reactour/tour";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useCallback, useEffect, useRef } from "react";
 import { useDarkMode } from "@/hooks/useDarkMode";
+
+interface OnboardingState {
+  tourCompleted: boolean;
+  tourSkipped: boolean;
+  autoRouterPreferenceSet: boolean;
+}
+
+async function fetchOnboarding(): Promise<OnboardingState> {
+  const res = await fetch("/api/v1/onboarding");
+  if (!res.ok) throw new Error("Failed to fetch onboarding");
+  const json = await res.json();
+  return json.data as OnboardingState;
+}
+
+async function patchOnboarding(
+  patch: Partial<{
+    tourCompleted: boolean;
+    tourSkipped: boolean;
+  }>,
+) {
+  const res = await fetch("/api/v1/onboarding", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) throw new Error("Failed to update onboarding");
+}
 
 /**
  * Controller component that must be inside TourProvider to access useTour()
@@ -156,32 +184,33 @@ const TOUR_STEPS = [
  */
 export function OnboardingTour({ children }: { children: React.ReactNode }) {
   const { isDarkMode, isLoaded: themeLoaded } = useDarkMode();
+  const queryClient = useQueryClient();
 
-  // TODO: Phase G - needs onboarding REST routes or new table
-  const onboarding: any = { tourCompleted: true, tourSkipped: false };
-  const initializeOnboarding = async () => {
-    /* TODO: Phase G */
-  };
-  const completeTour = async (_args: any) => {
-    /* TODO: Phase G */
-  };
+  const { data: onboarding } = useQuery({
+    queryKey: ["onboarding"],
+    queryFn: fetchOnboarding,
+    staleTime: 60_000,
+    retry: false,
+  });
+
+  const completeTourMutation = useMutation({
+    mutationFn: (args: { skipped: boolean }) =>
+      patchOnboarding({
+        tourCompleted: !args.skipped,
+        tourSkipped: args.skipped,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["onboarding"] });
+    },
+  });
 
   const hasCompletedRef = useRef(false);
 
-  // Initialize onboarding if needed
-  useEffect(() => {
-    if (onboarding === undefined) return;
-    if (onboarding === null) {
-      initializeOnboarding();
-    }
-  }, [onboarding, initializeOnboarding]);
-
-  // Handle tour completion - called when tour closes
   const handleTourComplete = useCallback(() => {
     if (hasCompletedRef.current) return;
     hasCompletedRef.current = true;
-    completeTour({ skipped: false });
-  }, [completeTour]);
+    completeTourMutation.mutate({ skipped: false });
+  }, [completeTourMutation]);
 
   // Only apply styles after theme is loaded
   const styles = themeLoaded

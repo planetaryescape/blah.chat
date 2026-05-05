@@ -239,7 +239,6 @@ export function UISettings({ focusSettingKey }: UISettingsProps) {
             variant="outline"
             onClick={async () => {
               try {
-                // TODO: Phase 15 - need REST route for onboarding reset
                 await fetch("/api/v1/onboarding/reset", { method: "POST" });
                 toast.success("Tour reset! Reload to see it again.");
                 setTimeout(() => {

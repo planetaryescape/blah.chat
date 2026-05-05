@@ -636,6 +636,17 @@ CREATE TABLE auto_router_config (
   updated_by text REFERENCES users(id) ON DELETE SET NULL,
   updated_at bigint NOT NULL
 );
+
+CREATE TABLE user_onboarding (
+  user_id text PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  tour_completed boolean NOT NULL DEFAULT false,
+  tour_skipped boolean NOT NULL DEFAULT false,
+  tour_completed_at bigint,
+  auto_router_preference_set boolean NOT NULL DEFAULT false,
+  flags jsonb NOT NULL DEFAULT '{}',
+  created_at bigint NOT NULL,
+  updated_at bigint NOT NULL
+);
 `;
 
 export async function createTestPersistenceDb() {

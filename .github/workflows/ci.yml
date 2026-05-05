@@ -90,6 +90,13 @@ jobs:
             exit 1
           fi
 
+      - name: Block residual Phase G/15 markers
+        run: |
+          if grep -RE 'Phase\s?(G|15)' apps/web/src; then
+            echo "Residual Phase G/15 markers detected. The Convex to Postgres migration is complete; remove leftover TODOs."
+            exit 1
+          fi
+
   test:
     name: Unit & Integration Tests
     runs-on: ubuntu-latest

@@ -748,6 +748,19 @@ describe("GenerationV2Service", () => {
       input: { source: "test_seed" },
       createdAt: 9_500,
     });
+    await db.insert(routingPolicies).values({
+      name: "test_sticky_route_no_exploration",
+      description: "Disable exploration for deterministic sticky assertions",
+      isActive: true,
+      strategy: "outcome_weighted",
+      config: {
+        weights: {
+          explorationRate: 0,
+        },
+      },
+      createdAt: 9_600,
+      updatedAt: 9_600,
+    });
 
     const secondStarted = await service.start({
       clerkUser: {

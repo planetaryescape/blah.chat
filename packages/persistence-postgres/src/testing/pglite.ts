@@ -647,6 +647,22 @@ CREATE TABLE user_onboarding (
   created_at bigint NOT NULL,
   updated_at bigint NOT NULL
 );
+
+CREATE TABLE notifications (
+  id text PRIMARY KEY,
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type text NOT NULL,
+  title text NOT NULL,
+  message text NOT NULL,
+  data jsonb,
+  read boolean NOT NULL DEFAULT false,
+  read_at bigint,
+  dismissed_at bigint,
+  dedup_key text,
+  created_at bigint NOT NULL
+);
+CREATE INDEX notifications_by_user_created ON notifications (user_id, created_at);
+CREATE INDEX notifications_by_dedup ON notifications (user_id, type, dedup_key) WHERE dedup_key IS NOT NULL;
 `;
 
 export async function createTestPersistenceDb() {

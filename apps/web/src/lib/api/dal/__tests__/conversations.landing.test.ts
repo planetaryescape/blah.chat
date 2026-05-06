@@ -86,7 +86,9 @@ describe("getOrCreateLandingConversation", () => {
 
   it("creates a new conversation with the default model when user has none", async () => {
     const user = await seedUser();
-    const { getOrCreateLandingConversation } = await import("../conversations");
+    const { getOrCreateLandingConversation } = await import(
+      "../landingConversation"
+    );
 
     const id = await getOrCreateLandingConversation(CLERK_ID);
 
@@ -113,7 +115,9 @@ describe("getOrCreateLandingConversation", () => {
       model: "openai/gpt-4o",
     });
 
-    const { getOrCreateLandingConversation } = await import("../conversations");
+    const { getOrCreateLandingConversation } = await import(
+      "../landingConversation"
+    );
     const id = await getOrCreateLandingConversation(CLERK_ID);
 
     expect(id).toBe(newer.id);
@@ -138,7 +142,9 @@ describe("getOrCreateLandingConversation", () => {
       siblingIndex: 0,
     });
 
-    const { getOrCreateLandingConversation } = await import("../conversations");
+    const { getOrCreateLandingConversation } = await import(
+      "../landingConversation"
+    );
     const id = await getOrCreateLandingConversation(CLERK_ID);
 
     expect(id).not.toBe(filled.id);
@@ -155,7 +161,9 @@ describe("getOrCreateLandingConversation", () => {
       isIncognito: true,
     });
 
-    const { getOrCreateLandingConversation } = await import("../conversations");
+    const { getOrCreateLandingConversation } = await import(
+      "../landingConversation"
+    );
     const id = await getOrCreateLandingConversation(CLERK_ID);
 
     const created = await db.query.conversations.findFirst({
@@ -178,7 +186,9 @@ describe("getOrCreateLandingConversation", () => {
       .set({ archived: true })
       .where(eq(conversationsTable.id, archived.id));
 
-    const { getOrCreateLandingConversation } = await import("../conversations");
+    const { getOrCreateLandingConversation } = await import(
+      "../landingConversation"
+    );
     const id = await getOrCreateLandingConversation(CLERK_ID);
 
     expect(id).not.toBe(archived.id);
@@ -201,7 +211,9 @@ describe("getOrCreateLandingConversation", () => {
       updatedAt: Date.now(),
     });
 
-    const { getOrCreateLandingConversation } = await import("../conversations");
+    const { getOrCreateLandingConversation } = await import(
+      "../landingConversation"
+    );
     const id = await getOrCreateLandingConversation(CLERK_ID);
 
     expect(id).toBe(empty.id);
@@ -221,7 +233,9 @@ describe("getOrCreateLandingConversation", () => {
       updatedAt: Date.now(),
     });
 
-    const { getOrCreateLandingConversation } = await import("../conversations");
+    const { getOrCreateLandingConversation } = await import(
+      "../landingConversation"
+    );
     const id = await getOrCreateLandingConversation(CLERK_ID);
 
     const created = await db.query.conversations.findFirst({
@@ -232,7 +246,9 @@ describe("getOrCreateLandingConversation", () => {
 
   it("falls back to DEFAULT_MODEL_ID when no preference is set", async () => {
     const user = await seedUser();
-    const { getOrCreateLandingConversation } = await import("../conversations");
+    const { getOrCreateLandingConversation } = await import(
+      "../landingConversation"
+    );
     const id = await getOrCreateLandingConversation(CLERK_ID);
 
     const created = await db.query.conversations.findFirst({

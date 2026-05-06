@@ -41,15 +41,24 @@ export interface ReconcileResult {
   errors: number;
 }
 
-function isClerkNotFound(err: unknown): boolean {
-  if (!err || typeof err !== "object") return false;
+function readErrorStatus(err: unknown): number | undefined {
+  if (typeof err !== "object" || err === null) return undefined;
   const status = (err as { status?: unknown }).status;
-  if (status === 404) return true;
+  return typeof status === "number" ? status : undefined;
+}
+
+function readErrorCodes(err: unknown): string[] {
+  if (typeof err !== "object" || err === null) return [];
   const errors = (err as { errors?: Array<{ code?: unknown }> }).errors;
-  return (
-    Array.isArray(errors) &&
-    errors.some((e) => e?.code === "resource_not_found")
-  );
+  if (!Array.isArray(errors)) return [];
+  return errors
+    .map((e) => (typeof e?.code === "string" ? e.code : null))
+    .filter((c): c is string => c !== null);
+}
+
+function isClerkNotFound(err: unknown): boolean {
+  if (readErrorStatus(err) === 404) return true;
+  return readErrorCodes(err).includes("resource_not_found");
 }
 
 function readEmail(user: ClerkUserShape): string {

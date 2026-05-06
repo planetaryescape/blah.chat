@@ -391,7 +391,7 @@
     },
     "packages/auto-router": {
       "name": "@blah-chat/auto-router",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "devDependencies": {
         "tsup": "^8.5.0",
         "typescript": "^5.9.3",
@@ -510,6 +510,7 @@
         "@blah-chat/ai": "workspace:*",
         "@blah-chat/persistence-postgres": "workspace:*",
         "@blah-chat/shared": "workspace:*",
+        "@clerk/backend": "^1.34.0",
         "@trigger.dev/sdk": "^4.4.3",
         "ai": "^6.0.3",
         "drizzle-orm": "^0.44.7",
@@ -629,7 +630,7 @@
     },
     "packages/shared": {
       "name": "@blah-chat/shared",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "dependencies": {
         "date-fns": "^4.1.0",
         "diff": "^8.0.2",

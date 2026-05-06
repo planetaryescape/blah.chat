@@ -1,6 +1,6 @@
 {
-  "id": "e20e57dd-2a21-46ae-aeaa-872d94fdb60d",
-  "prevId": "a6ce56d9-900f-4cd7-8d77-cb0fe0b08fba",
+  "id": "3f2e22ae-bce6-432a-b615-d5733a04f557",
+  "prevId": "e20e57dd-2a21-46ae-aeaa-872d94fdb60d",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -6298,6 +6298,12 @@
         },
         "updated_at": {
           "name": "updated_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "clerk_synced_at": {
+          "name": "clerk_synced_at",
           "type": "bigint",
           "primaryKey": false,
           "notNull": true

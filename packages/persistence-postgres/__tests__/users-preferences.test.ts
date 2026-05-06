@@ -264,6 +264,55 @@ describe("user + preference repositories", () => {
     expect(await usersRepo.findByClerkId("user_duplicate")).toBeUndefined();
   });
 
+  test("upsertFromClerk records clerkSyncedAt on insert", async () => {
+    const db = await createTestPersistenceDb();
+    const usersRepo = createUserRepository(db);
+
+    const before = Date.now();
+    const created = await usersRepo.upsertFromClerk({
+      clerkId: "user_synced_insert",
+      email: "synced-insert@example.com",
+      name: "Synced Insert",
+    });
+    const after = Date.now();
+
+    expect(created.clerkSyncedAt).toBeGreaterThanOrEqual(before);
+    expect(created.clerkSyncedAt).toBeLessThanOrEqual(after);
+  });
+
+  test("upsertFromClerk bumps clerkSyncedAt on subsequent upsert", async () => {
+    const db = await createTestPersistenceDb();
+    const usersRepo = createUserRepository(db);
+
+    const first = await usersRepo.upsertFromClerk({
+      clerkId: "user_synced_bump",
+      email: "synced-bump@example.com",
+      name: "Synced Bump",
+    });
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    const second = await usersRepo.upsertFromClerk({
+      clerkId: "user_synced_bump",
+      email: "synced-bump@example.com",
+      name: "Synced Bump Updated",
+    });
+
+    expect(second.clerkSyncedAt).toBeGreaterThan(first.clerkSyncedAt);
+  });
+
+  test("upsertFromClerk accepts an explicit clerkSyncedAt override", async () => {
+    const db = await createTestPersistenceDb();
+    const usersRepo = createUserRepository(db);
+
+    const created = await usersRepo.upsertFromClerk({
+      clerkId: "user_synced_override",
+      email: "synced-override@example.com",
+      name: "Synced Override",
+      clerkSyncedAt: 12345,
+    });
+
+    expect(created.clerkSyncedAt).toBe(12345);
+  });
+
   test("tolerates concurrent first-login upserts for the same Clerk user", async () => {
     const db = await createTestPersistenceDb();
     const usersRepo = createUserRepository(db);

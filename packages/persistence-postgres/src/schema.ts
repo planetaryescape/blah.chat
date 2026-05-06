@@ -111,6 +111,9 @@ export const users = pgTable("users", {
   imageUrl: text("image_url"),
   createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(now),
   updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(now),
+  clerkSyncedAt: bigint("clerk_synced_at", { mode: "number" })
+    .notNull()
+    .$defaultFn(now),
 });
 
 export const adminUserTierEnum = pgEnum("admin_user_tier", [

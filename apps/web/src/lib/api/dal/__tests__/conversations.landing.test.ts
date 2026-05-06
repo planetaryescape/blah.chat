@@ -14,9 +14,9 @@ import { createTestPersistenceDb } from "../../../../../../../packages/persisten
 
 const currentUserMock = vi.fn();
 const getUserMock = vi.fn();
-const clerkClientMock = vi.fn(async () => ({
-  users: { getUser: getUserMock },
-}));
+const clerkClientMock = vi.fn(() =>
+  Promise.resolve({ users: { getUser: getUserMock } }),
+);
 const afterMock = vi.fn(() => {});
 
 vi.mock("@clerk/nextjs/server", () => ({

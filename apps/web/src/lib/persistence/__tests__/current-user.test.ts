@@ -7,9 +7,9 @@ import { createTestPersistenceDb } from "../../../../../../packages/persistence-
 
 const getUserMock = vi.fn();
 const currentUserMock = vi.fn();
-const clerkClientMock = vi.fn(async () => ({
-  users: { getUser: getUserMock },
-}));
+const clerkClientMock = vi.fn(() =>
+  Promise.resolve({ users: { getUser: getUserMock } }),
+);
 const afterCallbacks: Array<() => Promise<void> | void> = [];
 const afterMock = vi.fn((cb: () => Promise<void> | void) => {
   afterCallbacks.push(cb);

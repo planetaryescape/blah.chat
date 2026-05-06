@@ -155,5 +155,5 @@ export const reconcileClerkUsersTask = schedules.task({
   cron: RECONCILE_CLERK_USERS_CRON,
   maxDuration: 1800,
   retry: { maxAttempts: 2 },
-  run: async () => reconcileClerkUsers(),
+  run: () => reconcileClerkUsers(),
 });

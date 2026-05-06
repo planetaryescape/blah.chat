@@ -7,6 +7,7 @@ export interface ClerkIdentityInput {
   email: string;
   name: string;
   imageUrl?: string;
+  clerkSyncedAt?: number;
 }
 
 type UserRow = typeof users.$inferSelect;
@@ -32,6 +33,7 @@ export function createUserRepository(db: PersistenceDb) {
 
     async upsertFromClerk(input: ClerkIdentityInput) {
       const timestamp = Date.now();
+      const clerkSyncedAt = input.clerkSyncedAt ?? timestamp;
       const normalizedEmail = normalizeEmail(input.email);
 
       return db.transaction(async (tx) => {
@@ -93,6 +95,7 @@ export function createUserRepository(db: PersistenceDb) {
               name: input.name,
               imageUrl: input.imageUrl,
               updatedAt: timestamp,
+              clerkSyncedAt,
             })
             .where(eq(users.id, userId))
             .returning();
@@ -114,6 +117,7 @@ export function createUserRepository(db: PersistenceDb) {
               imageUrl: input.imageUrl,
               createdAt: timestamp,
               updatedAt: timestamp,
+              clerkSyncedAt,
             })
             .onConflictDoUpdate({
               target: users.clerkId,
@@ -122,6 +126,7 @@ export function createUserRepository(db: PersistenceDb) {
                 name: input.name,
                 imageUrl: input.imageUrl,
                 updatedAt: timestamp,
+                clerkSyncedAt,
               },
             })
             .returning();

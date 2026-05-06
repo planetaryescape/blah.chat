@@ -11,7 +11,8 @@ CREATE TABLE users (
   name text NOT NULL,
   image_url text,
   created_at bigint NOT NULL,
-  updated_at bigint NOT NULL
+  updated_at bigint NOT NULL,
+  clerk_synced_at bigint NOT NULL DEFAULT 0
 );
 
 CREATE TYPE admin_user_tier AS ENUM ('free', 'tier1', 'tier2');

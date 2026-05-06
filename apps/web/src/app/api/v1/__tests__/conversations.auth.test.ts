@@ -130,7 +130,7 @@ describe("conversation auth with Clerk + Postgres", () => {
     expect(getTokenMock).not.toHaveBeenCalled();
   });
 
-  it("reconciles a preexisting duplicate user row and preserves conversation history", async () => {
+  it("reconciles a legacy email-only user on first JIT sync and preserves conversation history", async () => {
     const usersRepo = createUserRepository(db);
     const legacyUser = await usersRepo.upsertFromClerk({
       clerkId: "clerk_legacy_phase4",
@@ -146,14 +146,9 @@ describe("conversation auth with Clerk + Postgres", () => {
       updatedAt: Date.now(),
     });
 
-    await db.insert(users).values({
-      clerkId: "clerk_phase4",
-      email: "phase4@example.com",
-      name: "Duplicate Phase Four",
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    });
-
+    // No clerk_phase4 row pre-seeded — first sign-in JIT-fetches via
+    // currentUser/clerkClient and the email-based reconciliation in
+    // upsertFromClerk migrates the legacy row's clerkId.
     const { GET } = await import("../conversations/route");
     const response = await GET(
       createMockRequest("/api/v1/conversations?limit=100"),

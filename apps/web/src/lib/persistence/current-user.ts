@@ -71,21 +71,31 @@ function asString(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
+type ClaimsDrift = Partial<{ email: string; name: string; imageUrl: string }>;
+
+function detectField<K extends keyof ClaimsDrift>(
+  drift: ClaimsDrift,
+  key: K,
+  claimed: string | undefined,
+  current: string | undefined,
+) {
+  if (claimed && claimed !== current) drift[key] = claimed;
+}
+
 function claimsDriftFromRow(
   row: DbUser,
   claims: SessionClaimsLike | null | undefined,
-): Partial<{ email: string; name: string; imageUrl: string }> | null {
+): ClaimsDrift | null {
   if (!claims) return null;
-  const claimEmail = asString(claims.email);
-  const claimName = asString(claims.name);
-  const claimImage = asString(claims.imageUrl) ?? asString(claims.picture);
-
-  const drift: Partial<{ email: string; name: string; imageUrl: string }> = {};
-  if (claimEmail && claimEmail !== row.email) drift.email = claimEmail;
-  if (claimName && claimName !== row.name) drift.name = claimName;
-  if (claimImage && claimImage !== (row.imageUrl ?? undefined))
-    drift.imageUrl = claimImage;
-
+  const drift: ClaimsDrift = {};
+  detectField(drift, "email", asString(claims.email), row.email);
+  detectField(drift, "name", asString(claims.name), row.name);
+  detectField(
+    drift,
+    "imageUrl",
+    asString(claims.imageUrl) ?? asString(claims.picture),
+    row.imageUrl ?? undefined,
+  );
   return Object.keys(drift).length > 0 ? drift : null;
 }
 
@@ -134,8 +144,6 @@ function maybeScheduleTtlRefresh(row: DbUser, repo: UserRepo) {
 async function readClerkUserForId(
   expectedClerkId: string,
 ): Promise<ClerkSdkUser> {
-  // Fast path: currentUser() rides the existing request context (no extra
-  // round-trip when Clerk has hydrated the session).
   try {
     const ctx = (await currentUser()) as ClerkSdkUser | null;
     if (ctx && ctx.id === expectedClerkId) return ctx;
@@ -146,8 +154,6 @@ async function readClerkUserForId(
     );
   }
 
-  // Direct path: clerkClient.users.getUser uses CLERK_SECRET_KEY and is not
-  // sensitive to first-sign-in session-context propagation timing.
   const clerk = await clerkClient();
   return (await clerk.users.getUser(expectedClerkId)) as ClerkSdkUser;
 }

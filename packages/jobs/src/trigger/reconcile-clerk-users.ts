@@ -77,6 +77,62 @@ async function defaultClerkClient(): Promise<ClerkLike> {
   return createClerkClient({ secretKey }) as unknown as ClerkLike;
 }
 
+type UserRow = typeof users.$inferSelect;
+type RowOutcome = "updated" | "synced" | "deleted" | "errored";
+
+function hasClerkDrift(row: UserRow, fresh: ClerkUserShape): boolean {
+  const nextImage = fresh.imageUrl ?? null;
+  return (
+    readEmail(fresh) !== row.email ||
+    readName(fresh) !== row.name ||
+    nextImage !== (row.imageUrl ?? null)
+  );
+}
+
+async function applyClerkDrift(
+  repo: ReturnType<typeof createUserRepository>,
+  row: UserRow,
+  fresh: ClerkUserShape,
+  syncedAt: number,
+) {
+  await repo.upsertFromClerk({
+    clerkId: row.clerkId,
+    email: readEmail(fresh),
+    name: readName(fresh),
+    imageUrl: fresh.imageUrl ?? undefined,
+    clerkSyncedAt: syncedAt,
+  });
+}
+
+async function syncOneRow(
+  ctx: {
+    db: PersistenceDb;
+    clerk: ClerkLike;
+    repo: ReturnType<typeof createUserRepository>;
+    now: () => number;
+  },
+  row: UserRow,
+): Promise<RowOutcome> {
+  try {
+    const fresh = await ctx.clerk.users.getUser(row.clerkId);
+    if (hasClerkDrift(row, fresh)) {
+      await applyClerkDrift(ctx.repo, row, fresh, ctx.now());
+      return "updated";
+    }
+    await ctx.db
+      .update(users)
+      .set({ clerkSyncedAt: ctx.now() })
+      .where(eq(users.id, row.id));
+    return "synced";
+  } catch (err) {
+    if (isClerkNotFound(err)) {
+      await ctx.repo.deleteByClerkId(row.clerkId);
+      return "deleted";
+    }
+    return "errored";
+  }
+}
+
 export async function reconcileClerkUsers(
   deps: {
     db?: PersistenceDb;
@@ -89,12 +145,20 @@ export async function reconcileClerkUsers(
   const clerk = deps.clerk ?? (await defaultClerkClient());
   const now = deps.now ?? Date.now;
   const batchSize = deps.batchSize ?? 100;
-
   const repo = createUserRepository(db);
-  let scanned = 0;
-  let updated = 0;
-  let deleted = 0;
-  let errors = 0;
+
+  const totals: ReconcileResult = {
+    scanned: 0,
+    updated: 0,
+    deleted: 0,
+    errors: 0,
+  };
+  const counters: Record<RowOutcome, keyof ReconcileResult> = {
+    updated: "updated",
+    deleted: "deleted",
+    errored: "errors",
+    synced: "scanned",
+  };
   let cursor = 0;
 
   while (true) {
@@ -107,47 +171,15 @@ export async function reconcileClerkUsers(
     if (batch.length === 0) break;
 
     for (const row of batch) {
-      scanned++;
-      try {
-        const fresh = await clerk.users.getUser(row.clerkId);
-        const nextEmail = readEmail(fresh);
-        const nextName = readName(fresh);
-        const nextImage = fresh.imageUrl ?? undefined;
-
-        const drift =
-          nextEmail !== row.email ||
-          nextName !== row.name ||
-          (nextImage ?? null) !== (row.imageUrl ?? null);
-
-        if (drift) {
-          await repo.upsertFromClerk({
-            clerkId: row.clerkId,
-            email: nextEmail,
-            name: nextName,
-            imageUrl: nextImage,
-            clerkSyncedAt: now(),
-          });
-          updated++;
-        } else {
-          await db
-            .update(users)
-            .set({ clerkSyncedAt: now() })
-            .where(eq(users.id, row.id));
-        }
-      } catch (err) {
-        if (isClerkNotFound(err)) {
-          await repo.deleteByClerkId(row.clerkId);
-          deleted++;
-        } else {
-          errors++;
-        }
-      }
+      totals.scanned++;
+      const outcome = await syncOneRow({ db, clerk, repo, now }, row);
+      if (outcome !== "synced") totals[counters[outcome]]++;
     }
 
     cursor += batch.length;
   }
 
-  return { scanned, updated, deleted, errors };
+  return totals;
 }
 
 export const reconcileClerkUsersTask = schedules.task({

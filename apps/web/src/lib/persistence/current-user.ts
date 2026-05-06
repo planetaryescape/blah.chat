@@ -41,13 +41,17 @@ type ClerkSdkUser = {
 type UserRepo = ReturnType<typeof createUserRepository>;
 type DbUser = NonNullable<Awaited<ReturnType<UserRepo["findByClerkId"]>>>;
 
+function pickPrimaryEmail(user: ClerkSdkUser): string | undefined {
+  const direct = user.primaryEmailAddress?.emailAddress;
+  if (direct) return direct;
+  const list = user.emailAddresses ?? [];
+  if (list.length === 0) return undefined;
+  const matched = list.find((e) => e.id === user.primaryEmailAddressId);
+  return matched?.emailAddress ?? list[0]?.emailAddress;
+}
+
 function readEmail(user: ClerkSdkUser): string {
-  const primary =
-    user.primaryEmailAddress?.emailAddress ??
-    user.emailAddresses?.find((e) => e.id === user.primaryEmailAddressId)
-      ?.emailAddress ??
-    user.emailAddresses?.[0]?.emailAddress;
-  return primary ?? `${user.id}@clerk.local`;
+  return pickPrimaryEmail(user) ?? `${user.id}@clerk.local`;
 }
 
 function readName(user: ClerkSdkUser): string {
@@ -99,6 +103,26 @@ function claimsDriftFromRow(
   return Object.keys(drift).length > 0 ? drift : null;
 }
 
+function buildDriftPayload(row: DbUser, drift: ClaimsDrift) {
+  return {
+    clerkId: row.clerkId,
+    email: drift.email ?? row.email,
+    name: drift.name ?? row.name,
+    imageUrl: drift.imageUrl ?? row.imageUrl ?? undefined,
+  };
+}
+
+async function applyDrift(repo: UserRepo, row: DbUser, drift: ClaimsDrift) {
+  try {
+    await repo.upsertFromClerk(buildDriftPayload(row, drift));
+  } catch (err) {
+    logger.error(
+      { err, clerkId: row.clerkId },
+      "Background JWT-claims sync failed",
+    );
+  }
+}
+
 function maybeScheduleClaimsSync(
   row: DbUser,
   claims: SessionClaimsLike | null | undefined,
@@ -106,39 +130,25 @@ function maybeScheduleClaimsSync(
 ) {
   const drift = claimsDriftFromRow(row, claims);
   if (!drift) return;
+  after(() => applyDrift(repo, row, drift));
+}
 
-  after(async () => {
-    try {
-      await repo.upsertFromClerk({
-        clerkId: row.clerkId,
-        email: drift.email ?? row.email,
-        name: drift.name ?? row.name,
-        imageUrl: drift.imageUrl ?? row.imageUrl ?? undefined,
-      });
-    } catch (err) {
-      logger.error(
-        { err, clerkId: row.clerkId },
-        "Background JWT-claims sync failed",
-      );
-    }
-  });
+async function refreshFromClerkInBackground(repo: UserRepo, row: DbUser) {
+  try {
+    const clerk = await clerkClient();
+    const fresh = (await clerk.users.getUser(row.clerkId)) as ClerkSdkUser;
+    await repo.upsertFromClerk(identityFromClerk(fresh));
+  } catch (err) {
+    logger.error(
+      { err, clerkId: row.clerkId },
+      "Background TTL refresh from Clerk failed",
+    );
+  }
 }
 
 function maybeScheduleTtlRefresh(row: DbUser, repo: UserRepo) {
   if (Date.now() - row.clerkSyncedAt < TTL_MS) return;
-
-  after(async () => {
-    try {
-      const clerk = await clerkClient();
-      const fresh = (await clerk.users.getUser(row.clerkId)) as ClerkSdkUser;
-      await repo.upsertFromClerk(identityFromClerk(fresh));
-    } catch (err) {
-      logger.error(
-        { err, clerkId: row.clerkId },
-        "Background TTL refresh from Clerk failed",
-      );
-    }
-  });
+  after(() => refreshFromClerkInBackground(repo, row));
 }
 
 async function readClerkUserForId(

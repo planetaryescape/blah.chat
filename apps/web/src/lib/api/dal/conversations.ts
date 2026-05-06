@@ -1,12 +1,10 @@
-import { DEFAULT_MODEL_ID } from "@blah-chat/ai/operational-models";
 import {
   conversations,
   createConversationRepository,
   createMessageRepository,
   messages,
-  userPreferences,
 } from "@blah-chat/persistence-postgres";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { compactConversation } from "@/lib/conversations/compaction";
 import { generateConversationTitle } from "@/lib/conversations/titleGeneration";
 import {
@@ -14,10 +12,7 @@ import {
   listConversationIntegrationEvents,
   setConversationSelectedIntegrations,
 } from "@/lib/persistence/conversationIntegrations";
-import {
-  type EnsureCurrentUserOptions,
-  ensureCurrentPersistenceUser,
-} from "@/lib/persistence/current-user";
+import { ensureCurrentPersistenceUser } from "@/lib/persistence/current-user";
 import { toApiConversation } from "@/lib/persistence/mappers";
 import { getPersistenceDb } from "@/lib/persistence/server";
 import { formatEntity } from "@/lib/utils/formatEntity";
@@ -608,67 +603,3 @@ export const conversationsDAL = {
     );
   },
 };
-
-async function resolveDefaultModel(userId: string): Promise<string> {
-  const db = getPersistenceDb();
-  const prefs = await db.query.userPreferences.findMany({
-    where: and(
-      eq(userPreferences.userId, userId),
-      inArray(userPreferences.key, ["defaultModel"]),
-    ),
-  });
-  const found = prefs.find((p) => p.key === "defaultModel");
-  if (typeof found?.value === "string" && found.value.length > 0) {
-    return found.value;
-  }
-  return DEFAULT_MODEL_ID;
-}
-
-export async function getOrCreateLandingConversation(
-  clerkUserId: string,
-  options: EnsureCurrentUserOptions = {},
-): Promise<string> {
-  const db = getPersistenceDb();
-  const user = await ensureCurrentPersistenceUser(clerkUserId, options);
-  const model = await resolveDefaultModel(user.id);
-
-  const candidates = await db
-    .select({ id: conversations.id })
-    .from(conversations)
-    .leftJoin(messages, eq(messages.conversationId, conversations.id))
-    .where(
-      and(
-        eq(conversations.userId, user.id),
-        eq(conversations.archived, false),
-        eq(conversations.isIncognito, false),
-      ),
-    )
-    .groupBy(conversations.id)
-    .having(sql`count(${messages.id}) = 0`)
-    .orderBy(desc(conversations.updatedAt))
-    .limit(1);
-
-  const reuseTarget = candidates[0];
-  if (reuseTarget) {
-    await db
-      .update(conversations)
-      .set({ model, updatedAt: Date.now() })
-      .where(eq(conversations.id, reuseTarget.id));
-    await setConversationSelectedIntegrations({
-      db,
-      conversationId: reuseTarget.id,
-      userId: user.id,
-      selectedIntegrationIds: [],
-      source: "rest_landing_dispatch",
-    });
-    return reuseTarget.id;
-  }
-
-  const repo = createConversationRepository(db);
-  const created = await repo.create({
-    userId: user.id,
-    title: "New Chat",
-    model,
-  });
-  return created.id;
-}

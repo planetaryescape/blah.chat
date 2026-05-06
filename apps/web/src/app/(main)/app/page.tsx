@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getOrCreateLandingConversation } from "@/lib/api/dal/conversations";
+import { getOrCreateLandingConversation } from "@/lib/api/dal/landingConversation";
 import { ensureCurrentPersistenceUser } from "@/lib/persistence/current-user";
 
 export const metadata: Metadata = {

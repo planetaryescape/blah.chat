@@ -9,15 +9,15 @@ import {
 function fakeClerkClient(map: Record<string, unknown>) {
   return {
     users: {
-      getUser: vi.fn(async (id: string) => {
+      getUser: vi.fn((id: string) => {
         const value = map[id];
-        if (value instanceof Error) throw value;
+        if (value instanceof Error) return Promise.reject(value);
         if (value === undefined) {
           const err = new Error("User not found") as Error & { status: number };
           err.status = 404;
-          throw err;
+          return Promise.reject(err);
         }
-        return value;
+        return Promise.resolve(value);
       }),
     },
   };

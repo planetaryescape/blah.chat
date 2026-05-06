@@ -12,9 +12,9 @@ import { createTestPersistenceDb } from "../../../../../../../packages/persisten
 const authMock = vi.fn();
 const currentUserMock = vi.fn();
 const getUserMock = vi.fn();
-const clerkClientMock = vi.fn(async () => ({
-  users: { getUser: getUserMock },
-}));
+const clerkClientMock = vi.fn(() =>
+  Promise.resolve({ users: { getUser: getUserMock } }),
+);
 const redirectMock = vi.fn((url: string) => {
   // mimic Next.js: redirect throws to abort the rest of the render.
   const err = new Error(`NEXT_REDIRECT:${url}`);

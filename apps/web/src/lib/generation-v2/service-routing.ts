@@ -101,16 +101,20 @@ type ClassifiedShape = {
   secondSimilarityScore?: number | null;
 };
 
+function nullable<T>(v: T | undefined | null): T | null {
+  return v ?? null;
+}
+
 function classifiedToResolvedRouteLabel(
-  classified: ClassifiedShape,
+  c: ClassifiedShape,
 ): ResolvedRouteLabel {
   return {
-    routeLabel: classified.routeLabel,
+    routeLabel: c.routeLabel,
     routerMode: "classifier_v1",
-    hardRuleMatched: classified.hardRuleMatched ?? null,
-    topSimilarityScore: classified.topSimilarityScore ?? null,
-    secondRouteLabel: classified.secondRouteLabel ?? null,
-    secondSimilarityScore: classified.secondSimilarityScore ?? null,
+    hardRuleMatched: nullable(c.hardRuleMatched),
+    topSimilarityScore: nullable(c.topSimilarityScore),
+    secondRouteLabel: nullable(c.secondRouteLabel),
+    secondSimilarityScore: nullable(c.secondSimilarityScore),
   };
 }
 

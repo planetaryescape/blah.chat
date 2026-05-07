@@ -1134,6 +1134,28 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         .where(eq(generationRequests.id, requestId));
     },
 
+    async claimRequestForProcessing(requestId: string) {
+      const claimed = await db
+        .update(generationRequests)
+        .set({ status: "running", updatedAt: now() })
+        .where(
+          and(
+            eq(generationRequests.id, requestId),
+            eq(generationRequests.status, "pending"),
+          ),
+        )
+        .returning();
+      return claimed.length > 0;
+    },
+
+    async getRequestStatus(requestId: string): Promise<string | null> {
+      const row = await db.query.generationRequests.findFirst({
+        where: eq(generationRequests.id, requestId),
+        columns: { status: true },
+      });
+      return row?.status ?? null;
+    },
+
     async updateSessionStatus(
       sessionId: string,
       status: string,

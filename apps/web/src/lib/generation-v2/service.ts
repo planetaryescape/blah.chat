@@ -578,7 +578,11 @@ export class GenerationV2Service {
     session: PersistedRequestBundle["sessions"][number];
     promptMessages: GenerationPromptMessage[];
     collector?: MetricsCollector;
-    byokKeys?: { enabled: boolean; gatewayKey?: string };
+    byokKeys?: {
+      enabled: boolean;
+      gatewayKey?: string;
+      openRouterKey?: string;
+    };
   }) {
     const { bundle, session, promptMessages, collector, byokKeys } = input;
     const abortController = new AbortController();
@@ -679,6 +683,10 @@ export class GenerationV2Service {
         byokGatewayKey:
           byokKeys?.enabled && byokKeys.gatewayKey
             ? byokKeys.gatewayKey
+            : undefined,
+        byokOpenRouterKey:
+          byokKeys?.enabled && byokKeys.openRouterKey
+            ? byokKeys.openRouterKey
             : undefined,
       })) {
         accumulated += delta;

@@ -1,4 +1,5 @@
 import { createGateway } from "@ai-sdk/gateway";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import {
   anthropic,
   cerebras,
@@ -73,16 +74,42 @@ export function getModelWithGateway(modelId: string, gateway: GatewayName) {
   return getModel(modelId, gateway);
 }
 
+export interface ByokKeys {
+  /** Vercel AI Gateway key — used for any model that resolves to gateway "vercel". */
+  gatewayKey?: string;
+  /** OpenRouter key — used for any model that resolves to gateway "openrouter". */
+  openRouterKey?: string;
+}
+
 /**
- * Get a Vercel AI Gateway model instance with a per-call apiKey override.
- * Used by BYOK so the user's gateway key is sent for inference.
+ * Get a model instance with per-call apiKey overrides for BYOK. Dispatches
+ * to whichever gateway the model is configured for so BYOK works for
+ * direct-OpenRouter models in addition to Vercel gateway models.
+ *
+ * Falls back to the env-backed module-level client when no matching key
+ * is supplied, matching the default getModel() behaviour.
  */
-export function getModelWithApiKey(modelId: string, apiKey: string) {
+export function getModelWithApiKey(modelId: string, keys: ByokKeys) {
   const [modelProvider, model] = modelId.split(":");
   const config = getModelConfig(modelId);
   const actualModel = config?.actualModelId || model;
-  const gatewayClient = createGateway({ apiKey });
-  return gatewayClient(`${modelProvider}/${actualModel}`);
+  const selectedGateway = config?.gateway || "vercel";
+
+  if (selectedGateway === "vercel" && keys.gatewayKey) {
+    const userGateway = createGateway({ apiKey: keys.gatewayKey });
+    return userGateway(`${modelProvider}/${actualModel}`);
+  }
+
+  if (selectedGateway === "openrouter" && keys.openRouterKey) {
+    const userOpenRouter = createOpenRouter({ apiKey: keys.openRouterKey });
+    return userOpenRouter(actualModel);
+  }
+
+  // No BYOK key matches this gateway — fall back to the default routing
+  // so the request still goes through with server-side keys. The caller
+  // is responsible for refusing the request earlier if it knows BYOK is
+  // required and no relevant key is configured.
+  return getModel(modelId);
 }
 
 export { DEFAULT_MODEL_ID as DEFAULT_MODEL } from "./operational-models";

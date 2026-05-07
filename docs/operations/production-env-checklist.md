@@ -60,6 +60,14 @@ encryption helpers in `apps/web/src/lib/security/byok.ts`.
 - [ ] Uptime monitor pointed at `/api/v1/health`
 - [ ] PostHog API key for analytics
 
+## Feature flags
+
+- [ ] `BYOD_CHAT_ROUTING_ENABLED` — leave **unset** in production until
+      per-user chat-table routing is wired through the generation
+      repository. While unset, `POST /api/v1/byod` returns `503` with a
+      `byod_preview` envelope so users cannot enable BYOD and assume
+      their chat data is landing in their database.
+
 ## Optional
 
 - [ ] `R2_ENDPOINT`, `R2_REGION`, `R2_FORCE_PATH_STYLE`, `R2_PUBLIC_BASE_URL`
@@ -90,9 +98,14 @@ reporting `"ok"`:
 ## BYOD / BYOK lifecycle
 
 - BYOK enable validates the user's gateway key against the upstream API
-  before storing it.
-- BYOD enable validates the user's Neon connection, runs schema migrations
-  against it, and only flips `connectionStatus` to `"connected"` on success.
+  before storing it. Vercel AI Gateway models honour the user's
+  `gatewayKey`; OpenRouter-routed models honour the user's `openRouterKey`.
+- BYOD enable is currently gated behind `BYOD_CHAT_ROUTING_ENABLED`. When
+  the flag is unset, `POST /api/v1/byod` returns `503` because chat-table
+  writes still go to the primary database.
+- Once per-user chat-table routing ships, set the flag to `1` and BYOD
+  enable will validate the connection, run schema migrations against the
+  user's Neon DB, and flip `connectionStatus` to `"connected"` on success.
 - Disabling BYOK clears the gateway key and falls back to
   `AI_GATEWAY_API_KEY`.
 - Disabling BYOD currently keeps the row at the previous status — new chat

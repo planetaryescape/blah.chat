@@ -36,7 +36,11 @@ class CapturingProvider implements GenerationProvider {
   }
 }
 
-async function setup(opts: { byokEnabled: boolean; byokGatewayKey?: string }) {
+async function setup(opts: {
+  byokEnabled: boolean;
+  byokGatewayKey?: string;
+  byokOpenRouterKey?: string;
+}) {
   const db = await createTestPersistenceDb();
   const conversations = createConversationRepository(db);
   const store = new MemoryGenerationEventStore();
@@ -54,6 +58,7 @@ async function setup(opts: { byokEnabled: boolean; byokGatewayKey?: string }) {
   const resolveByokKeys = async (_userId: string) => ({
     enabled: opts.byokEnabled,
     gatewayKey: opts.byokGatewayKey,
+    openRouterKey: opts.byokOpenRouterKey,
   });
 
   const service = new GenerationV2Service(
@@ -129,6 +134,28 @@ describe("GenerationV2Service BYOK wiring", () => {
     });
     expect(records).toHaveLength(1);
     expect(records[0]!.isByok).toBe(true);
+  });
+
+  it("threads the BYOK OpenRouter key into the provider's streamText input for openrouter-routed models", async () => {
+    const { service, conversation, provider } = await setup({
+      byokEnabled: true,
+      byokOpenRouterKey: "sk-or-v1-secret",
+    });
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_byok",
+        email: "byok@test.com",
+        name: "BYOK Tester",
+      },
+      conversationId: conversation.id,
+      content: "Say hi",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    await service.process(started.requestId);
+
+    expect(provider.lastInput?.byokOpenRouterKey).toBe("sk-or-v1-secret");
   });
 
   it("does not pass a BYOK gateway key when the resolver reports disabled", async () => {

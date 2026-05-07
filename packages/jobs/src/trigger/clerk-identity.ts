@@ -1,6 +1,4 @@
-import "server-only";
-
-export type ClerkSdkUser = {
+export interface ClerkUserShape {
   id: string;
   primaryEmailAddress?: { emailAddress?: string | null } | null;
   emailAddresses?: Array<{ id: string; emailAddress: string }>;
@@ -9,7 +7,7 @@ export type ClerkSdkUser = {
   firstName?: string | null;
   lastName?: string | null;
   imageUrl?: string | null;
-};
+}
 
 function findEmailById(
   list: Array<{ id: string; emailAddress: string }>,
@@ -21,15 +19,7 @@ function findEmailById(
   return undefined;
 }
 
-function pickPrimaryEmail(
-  list: Array<{ id: string; emailAddress: string }>,
-  primaryId: string | null | undefined,
-): string | undefined {
-  if (!primaryId) return undefined;
-  return findEmailById(list, primaryId);
-}
-
-function readDirectEmail(user: ClerkSdkUser): string | undefined {
+function readDirectEmail(user: ClerkUserShape): string | undefined {
   const primary = user.primaryEmailAddress;
   if (!primary) return undefined;
   const value = primary.emailAddress;
@@ -37,18 +27,21 @@ function readDirectEmail(user: ClerkSdkUser): string | undefined {
   return value;
 }
 
-function readListEmail(user: ClerkSdkUser): string | undefined {
+function readListEmail(user: ClerkUserShape): string | undefined {
   const list = user.emailAddresses;
   if (!list) return undefined;
   if (list.length === 0) return undefined;
-  const fromPrimary = pickPrimaryEmail(list, user.primaryEmailAddressId);
-  if (fromPrimary) return fromPrimary;
+  const primaryId = user.primaryEmailAddressId;
+  if (primaryId) {
+    const found = findEmailById(list, primaryId);
+    if (found) return found;
+  }
   const first = list[0];
   if (!first) return undefined;
   return first.emailAddress;
 }
 
-export function readClerkEmail(user: ClerkSdkUser): string {
+export function readEmail(user: ClerkUserShape): string {
   const fromDirect = readDirectEmail(user);
   if (fromDirect) return fromDirect;
   const fromList = readListEmail(user);
@@ -65,7 +58,7 @@ function composeFromParts(
   return `${safeFirst} ${safeLast}`.trim();
 }
 
-export function readClerkName(user: ClerkSdkUser): string {
+export function readName(user: ClerkUserShape): string {
   const full = user.fullName;
   if (typeof full === "string") {
     const trimmed = full.trim();
@@ -74,13 +67,4 @@ export function readClerkName(user: ClerkSdkUser): string {
   const composed = composeFromParts(user.firstName, user.lastName);
   if (composed) return composed;
   return "Anonymous";
-}
-
-export function identityFromClerk(user: ClerkSdkUser) {
-  return {
-    clerkId: user.id,
-    email: readClerkEmail(user),
-    name: readClerkName(user),
-    imageUrl: user.imageUrl ?? undefined,
-  };
 }

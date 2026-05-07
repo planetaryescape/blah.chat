@@ -1,10 +1,13 @@
-import { after, type NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { withUserAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { parseBody } from "@/lib/api/utils";
 import { getCurrentClerkUserProfile } from "@/lib/generation-v2/clerk";
-import { getGenerationV2Service } from "@/lib/generation-v2/runtime";
+import {
+  getEnqueueGenerationProcessing,
+  getGenerationV2Service,
+} from "@/lib/generation-v2/runtime";
 import logger from "@/lib/logger";
 import { formatEntity } from "@/lib/utils/formatEntity";
 
@@ -41,16 +44,15 @@ async function postHandler(req: NextRequest, { userId }: { userId: string }) {
     parentMessageId: body.parentMessageId,
   });
 
-  after(async () => {
-    try {
-      await service.process(started.requestId);
-    } catch (error) {
-      logger.error(
-        { error, requestId: started.requestId },
-        "generation-v2 background processing failed",
-      );
-    }
-  });
+  try {
+    await getEnqueueGenerationProcessing()(started.requestId);
+  } catch (error) {
+    logger.error(
+      { error, requestId: started.requestId },
+      "failed to enqueue generation processing",
+    );
+    throw error;
+  }
 
   return NextResponse.json(
     formatEntity(

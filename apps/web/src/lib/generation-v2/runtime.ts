@@ -11,6 +11,23 @@ import { RedisGenerationEventStore } from "./store";
 declare global {
   // eslint-disable-next-line no-var
   var __blahGenerationV2Service: GenerationV2Service | undefined;
+  // eslint-disable-next-line no-var
+  var __blahGenerationV2EnqueueProcess:
+    | ((requestId: string) => Promise<void>)
+    | undefined;
+}
+
+export function getEnqueueGenerationProcessing() {
+  if (globalThis.__blahGenerationV2EnqueueProcess) {
+    return globalThis.__blahGenerationV2EnqueueProcess;
+  }
+  const env = parsePersistenceEnv(process.env);
+  const trigger = createTriggerClient(env);
+  const fn = async (requestId: string) => {
+    await trigger.triggerTask("process-generation", { requestId });
+  };
+  globalThis.__blahGenerationV2EnqueueProcess = fn;
+  return fn;
 }
 
 export function getGenerationV2Service() {

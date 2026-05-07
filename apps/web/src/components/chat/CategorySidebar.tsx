@@ -19,8 +19,15 @@ export function CategorySidebar({
   allModels,
 }: CategorySidebarProps) {
   return (
-    <div className="w-[180px] border-r bg-muted/30 p-2 flex flex-col gap-1 shrink-0 overflow-y-auto">
-      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+    <div
+      className={cn(
+        // Mobile: horizontal scroll bar across the top of the picker
+        "flex md:flex-col gap-1 shrink-0 bg-muted/30 p-2 overflow-x-auto md:overflow-x-visible md:overflow-y-auto",
+        "border-b md:border-b-0 md:border-r",
+        "md:w-[180px]",
+      )}
+    >
+      <div className="hidden md:block px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
         Categories
       </div>
       {MODEL_CATEGORIES.map((cat) => {
@@ -33,7 +40,8 @@ export function CategorySidebar({
             key={cat.id}
             onClick={() => onCategoryChange(cat.id)}
             className={cn(
-              "w-full flex items-center justify-between px-2.5 py-2 rounded-md text-sm transition-colors",
+              "flex items-center gap-2 px-2.5 py-2 rounded-md text-sm transition-colors shrink-0",
+              "md:w-full md:justify-between",
               isActive
                 ? "bg-primary/10 text-primary font-medium"
                 : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",

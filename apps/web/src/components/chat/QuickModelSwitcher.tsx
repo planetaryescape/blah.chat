@@ -305,7 +305,7 @@ export function QuickModelSwitcher({
             return commandScore(extendValue, search);
           },
         }}
-        className="max-w-[95vw] md:max-w-4xl h-[85vh] md:h-[600px] p-0 gap-0 overflow-hidden bg-background/95 backdrop-blur-xl border-border/50 shadow-2xl"
+        className="max-w-[95vw] md:max-w-4xl h-[85vh] md:h-[600px] p-0 gap-0 overflow-hidden bg-background/95 backdrop-blur-xl border-border/50 shadow-2xl flex flex-col"
       >
         <div className="flex items-center px-4 py-3 border-b shrink-0">
           <CommandInput
@@ -316,7 +316,7 @@ export function QuickModelSwitcher({
           />
         </div>
 
-        <div className="flex h-[500px] overflow-hidden">
+        <div className="flex flex-1 min-h-0 flex-col md:flex-row overflow-hidden">
           <CategorySidebar
             activeCategory={activeCategory}
             onCategoryChange={handleCategoryChange}
@@ -334,7 +334,7 @@ export function QuickModelSwitcher({
               />
             )}
 
-            <CommandList className="max-h-[600px] overflow-y-auto p-2">
+            <CommandList className="flex-1 min-h-0 overflow-y-auto p-2">
               <CommandEmpty>No models found.</CommandEmpty>
 
               {/* Auto Router - Smart Model Selection */}

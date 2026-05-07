@@ -6,6 +6,7 @@ import {
 } from "@blah-chat/persistence-postgres";
 import { schedules } from "@trigger.dev/sdk";
 import { asc, eq } from "drizzle-orm";
+import { isClerkNotFound } from "./clerk-error-detect";
 
 function getDatabaseUrl() {
   const url = process.env.DATABASE_URL;
@@ -39,33 +40,6 @@ export interface ReconcileResult {
   updated: number;
   deleted: number;
   errors: number;
-}
-
-type ClerkErrorShape = { status?: unknown; errors?: unknown };
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (value === null) return null;
-  if (typeof value !== "object") return null;
-  return value as Record<string, unknown>;
-}
-
-function hasNotFoundStatus(err: ClerkErrorShape): boolean {
-  return err.status === 404;
-}
-
-function hasNotFoundCode(err: ClerkErrorShape): boolean {
-  if (!Array.isArray(err.errors)) return false;
-  for (const item of err.errors) {
-    const obj = asObject(item);
-    if (obj && obj.code === "resource_not_found") return true;
-  }
-  return false;
-}
-
-function isClerkNotFound(err: unknown): boolean {
-  const obj = asObject(err);
-  if (!obj) return false;
-  return hasNotFoundStatus(obj) || hasNotFoundCode(obj);
 }
 
 function readEmail(user: ClerkUserShape): string {

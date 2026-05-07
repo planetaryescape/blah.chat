@@ -34,7 +34,7 @@ jobs:
           echo "pending_merged_count=$PENDING_MERGED_COUNT" >> "$GITHUB_OUTPUT"
 
       - id: release_please
-        uses: googleapis/release-please-action@v4
+        uses: googleapis/release-please-action@v5
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           config-file: .release-please-config.json

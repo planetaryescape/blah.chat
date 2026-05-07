@@ -2,6 +2,13 @@ import { createUserRepository } from "@blah-chat/persistence-postgres";
 import { clerkClient, currentUser } from "@clerk/nextjs/server";
 import { after } from "next/server";
 import logger from "@/lib/logger";
+import {
+  buildDriftPayload,
+  type ClaimsDrift,
+  claimsDriftFromRow,
+  type SessionClaimsLike,
+} from "./clerkClaimsDrift";
+import { type ClerkSdkUser, identityFromClerk } from "./clerkIdentity";
 import { getPersistenceDb } from "./server";
 
 const TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -15,137 +22,14 @@ export class UserSyncError extends Error {
   }
 }
 
-export interface SessionClaimsLike {
-  email?: unknown;
-  name?: unknown;
-  imageUrl?: unknown;
-  picture?: unknown;
-  [key: string]: unknown;
-}
+export type { SessionClaimsLike };
 
 export interface EnsureCurrentUserOptions {
   sessionClaims?: SessionClaimsLike | null;
 }
 
-type ClerkSdkUser = {
-  id: string;
-  primaryEmailAddress?: { emailAddress?: string | null } | null;
-  emailAddresses?: Array<{ id: string; emailAddress: string }>;
-  primaryEmailAddressId?: string | null;
-  fullName?: string | null;
-  firstName?: string | null;
-  lastName?: string | null;
-  imageUrl?: string | null;
-};
-
 type UserRepo = ReturnType<typeof createUserRepository>;
 type DbUser = NonNullable<Awaited<ReturnType<UserRepo["findByClerkId"]>>>;
-
-function readDirectEmail(user: ClerkSdkUser): string | undefined {
-  const primary = user.primaryEmailAddress;
-  if (!primary) return undefined;
-  return primary.emailAddress ?? undefined;
-}
-
-function readListEmail(user: ClerkSdkUser): string | undefined {
-  const list = user.emailAddresses;
-  if (!list) return undefined;
-  if (list.length === 0) return undefined;
-  const primaryId = user.primaryEmailAddressId;
-  if (primaryId) {
-    const matched = list.find((e) => e.id === primaryId);
-    if (matched) return matched.emailAddress;
-  }
-  return list[0]?.emailAddress;
-}
-
-function readEmail(user: ClerkSdkUser): string {
-  const fromDirect = readDirectEmail(user);
-  if (fromDirect) return fromDirect;
-  const fromList = readListEmail(user);
-  if (fromList) return fromList;
-  return `${user.id}@clerk.local`;
-}
-
-function readName(user: ClerkSdkUser): string {
-  return (
-    user.fullName?.trim() ||
-    `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
-    "Anonymous"
-  );
-}
-
-function identityFromClerk(user: ClerkSdkUser) {
-  return {
-    clerkId: user.id,
-    email: readEmail(user),
-    name: readName(user),
-    imageUrl: user.imageUrl ?? undefined,
-  };
-}
-
-function asString(value: unknown): string | undefined {
-  return typeof value === "string" && value.length > 0 ? value : undefined;
-}
-
-type ClaimsDrift = Partial<{ email: string; name: string; imageUrl: string }>;
-type DriftKey = keyof ClaimsDrift;
-
-interface DriftField {
-  key: DriftKey;
-  claim: string | undefined;
-  current: string | undefined;
-}
-
-function readImageClaim(claims: SessionClaimsLike): string | undefined {
-  const direct = asString(claims.imageUrl);
-  if (direct) return direct;
-  return asString(claims.picture);
-}
-
-function buildDriftFields(
-  row: DbUser,
-  claims: SessionClaimsLike,
-): DriftField[] {
-  return [
-    { key: "email", claim: asString(claims.email), current: row.email },
-    { key: "name", claim: asString(claims.name), current: row.name },
-    {
-      key: "imageUrl",
-      claim: readImageClaim(claims),
-      current: row.imageUrl === null ? undefined : row.imageUrl,
-    },
-  ];
-}
-
-function collectDrift(fields: DriftField[]): ClaimsDrift {
-  const drift: ClaimsDrift = {};
-  for (const f of fields) {
-    if (!f.claim) continue;
-    if (f.claim === f.current) continue;
-    drift[f.key] = f.claim;
-  }
-  return drift;
-}
-
-function claimsDriftFromRow(
-  row: DbUser,
-  claims: SessionClaimsLike | null | undefined,
-): ClaimsDrift | null {
-  if (!claims) return null;
-  const drift = collectDrift(buildDriftFields(row, claims));
-  if (Object.keys(drift).length === 0) return null;
-  return drift;
-}
-
-function buildDriftPayload(row: DbUser, drift: ClaimsDrift) {
-  return {
-    clerkId: row.clerkId,
-    email: drift.email ?? row.email,
-    name: drift.name ?? row.name,
-    imageUrl: drift.imageUrl ?? row.imageUrl ?? undefined,
-  };
-}
 
 async function applyDrift(repo: UserRepo, row: DbUser, drift: ClaimsDrift) {
   try {

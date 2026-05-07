@@ -60,10 +60,7 @@ vi.mock("drizzle-orm", () => ({
   sql: vi.fn((strings: TemplateStringsArray) => strings.join("")),
 }));
 
-import {
-  assertEnvelopeError,
-  assertEnvelopeSuccess,
-} from "@/lib/test/api-helpers";
+import { assertEnvelopeSuccess } from "@/lib/test/api-helpers";
 
 describe("/api/v1/health", () => {
   beforeEach(() => {
@@ -78,7 +75,7 @@ describe("/api/v1/health", () => {
     });
   });
 
-  it("returns health envelope including persistence status", async () => {
+  it("returns 200 with each persistence component reporting status: ok", async () => {
     const { GET } = await import("../health/route");
     const response = await GET();
     const json = await response.json();
@@ -87,14 +84,14 @@ describe("/api/v1/health", () => {
     assertEnvelopeSuccess(json);
     expect(json.data.status).toBe("ok");
     expect(json.data.persistence).toEqual({
-      database: "ok",
-      redis: "ok",
-      r2: "ok",
-      trigger: "ok",
+      database: { status: "ok" },
+      redis: { status: "ok" },
+      r2: { status: "ok" },
+      trigger: { status: "ok" },
     });
   });
 
-  it("returns 503 when persistence health fails", async () => {
+  it("returns 503 with degraded status and reports the failing component's message when one check throws", async () => {
     mockTriggerPing.mockRejectedValue(new Error("trigger down"));
 
     const { GET } = await import("../health/route");
@@ -102,6 +99,17 @@ describe("/api/v1/health", () => {
     const json = await response.json();
 
     expect(response.status).toBe(503);
-    assertEnvelopeError(json);
+    // Still a success envelope — the route succeeded, the data just reports
+    // a degraded state. Per-component detail must reach the client so
+    // observability tools can route alerts.
+    expect(json.status).toBe("success");
+    expect(json.data.status).toBe("degraded");
+    expect(json.data.persistence.database).toEqual({ status: "ok" });
+    expect(json.data.persistence.redis).toEqual({ status: "ok" });
+    expect(json.data.persistence.r2).toEqual({ status: "ok" });
+    expect(json.data.persistence.trigger).toEqual({
+      status: "error",
+      message: "trigger down",
+    });
   });
 });

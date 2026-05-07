@@ -1,3 +1,4 @@
+import { createGateway } from "@ai-sdk/gateway";
 import {
   anthropic,
   cerebras,
@@ -70,6 +71,18 @@ export function getModel(modelId: string, gatewayOverride?: GatewayName) {
  */
 export function getModelWithGateway(modelId: string, gateway: GatewayName) {
   return getModel(modelId, gateway);
+}
+
+/**
+ * Get a Vercel AI Gateway model instance with a per-call apiKey override.
+ * Used by BYOK so the user's gateway key is sent for inference.
+ */
+export function getModelWithApiKey(modelId: string, apiKey: string) {
+  const [modelProvider, model] = modelId.split(":");
+  const config = getModelConfig(modelId);
+  const actualModel = config?.actualModelId || model;
+  const gatewayClient = createGateway({ apiKey });
+  return gatewayClient(`${modelProvider}/${actualModel}`);
 }
 
 export { DEFAULT_MODEL_ID as DEFAULT_MODEL } from "./operational-models";

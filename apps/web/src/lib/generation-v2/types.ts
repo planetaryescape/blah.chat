@@ -40,7 +40,16 @@ export interface GenerationProviderStreamInput {
   integrations?: GenerationRequestIntegrationSnapshot[];
   tools?: Record<string, unknown>;
   signal?: AbortSignal;
+  byokGatewayKey?: string;
 }
+
+export type ResolveByokKeysFn = (userId: string) => Promise<{
+  enabled: boolean;
+  gatewayKey?: string;
+  openRouterKey?: string;
+  groqKey?: string;
+  deepgramKey?: string;
+}>;
 
 export interface GenerationUsage {
   inputTokens: number;

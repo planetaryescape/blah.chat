@@ -5,6 +5,7 @@ import { messagesDAL } from "@/lib/api/dal/messages";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { trackAPIPerformance } from "@/lib/api/monitoring";
+import { applyRateLimit, getLimiter } from "@/lib/api/rate-limit";
 import { parseBody } from "@/lib/api/utils";
 import { getEnqueueGenerationProcessing } from "@/lib/generation-v2/runtime";
 import logger from "@/lib/logger";
@@ -72,6 +73,16 @@ async function postHandler(
     userId: string;
   },
 ) {
+  const limiter = getLimiter({
+    prefix: "messages",
+    limit: 60,
+    window: "1 h",
+  });
+  if (limiter) {
+    const limited = await applyRateLimit(limiter, userId);
+    if (limited) return limited;
+  }
+
   const { id: conversationId } = (await params) as { id: string };
   const startTime = Date.now();
   logger.info(

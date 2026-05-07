@@ -93,35 +93,55 @@ function fallbackRouteLabel(): ResolvedRouteLabel {
   };
 }
 
+type ClassifiedShape = {
+  routeLabel: RouteLabel;
+  hardRuleMatched?: string | null;
+  topSimilarityScore?: number | null;
+  secondRouteLabel?: string | null;
+  secondSimilarityScore?: number | null;
+};
+
+function classifiedToResolvedRouteLabel(
+  classified: ClassifiedShape,
+): ResolvedRouteLabel {
+  return {
+    routeLabel: classified.routeLabel,
+    routerMode: "classifier_v1",
+    hardRuleMatched: classified.hardRuleMatched ?? null,
+    topSimilarityScore: classified.topSimilarityScore ?? null,
+    secondRouteLabel: classified.secondRouteLabel ?? null,
+    secondSimilarityScore: classified.secondSimilarityScore ?? null,
+  };
+}
+
+async function runClassifier(input: {
+  message: string;
+  hasAttachments: boolean;
+  attachmentTypes: string[];
+}): Promise<ClassifiedShape> {
+  const { getAutoRouterConfig } = await import("@/lib/persistence/autoRouter");
+  const adminCfg = await getAutoRouterConfig();
+  return classifierRouter.classify({
+    message: input.message,
+    hasAttachments: input.hasAttachments,
+    attachmentTypes: input.attachmentTypes,
+    currentContextTokens: undefined,
+    classifierConfig: {
+      confidenceThreshold: adminCfg.classifierConfidenceThreshold,
+      topK: adminCfg.classifierTopK,
+      fallbackEnabled: adminCfg.classifierFallbackEnabled,
+    },
+  });
+}
+
 async function classifyRouteLabel(input: {
   message: string;
   hasAttachments: boolean;
   attachmentTypes: string[];
 }): Promise<ResolvedRouteLabel | null> {
   try {
-    const { getAutoRouterConfig } = await import(
-      "@/lib/persistence/autoRouter"
-    );
-    const adminCfg = await getAutoRouterConfig();
-    const classified = await classifierRouter.classify({
-      message: input.message,
-      hasAttachments: input.hasAttachments,
-      attachmentTypes: input.attachmentTypes,
-      currentContextTokens: undefined,
-      classifierConfig: {
-        confidenceThreshold: adminCfg.classifierConfidenceThreshold,
-        topK: adminCfg.classifierTopK,
-        fallbackEnabled: adminCfg.classifierFallbackEnabled,
-      },
-    });
-    return {
-      routeLabel: classified.routeLabel,
-      routerMode: "classifier_v1",
-      hardRuleMatched: classified.hardRuleMatched ?? null,
-      topSimilarityScore: classified.topSimilarityScore ?? null,
-      secondRouteLabel: classified.secondRouteLabel ?? null,
-      secondSimilarityScore: classified.secondSimilarityScore ?? null,
-    };
+    const classified = await runClassifier(input);
+    return classifiedToResolvedRouteLabel(classified);
   } catch {
     return null;
   }

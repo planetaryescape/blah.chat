@@ -220,4 +220,4 @@ jobs:
         working-directory: apps/web
         env:
           SMOKE_BASE_URL: ${{ secrets.SMOKE_BASE_URL }}
-        run: bunx playwright test smoke-staging.spec.ts --reporter=line
+        run: bunx playwright test --config=playwright.smoke.config.ts

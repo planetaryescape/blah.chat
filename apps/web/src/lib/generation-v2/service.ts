@@ -35,6 +35,7 @@ import type {
   GenerationPromptMessage,
   GenerationProvider,
   PersistedRequestBundle,
+  ResolveByokKeysFn,
   StartedGeneration,
   StartGenerationInput,
 } from "./types";
@@ -146,6 +147,7 @@ export class GenerationV2Service {
     private readonly now: () => number = () => Date.now(),
     private readonly backgroundTasks: GenerationV2BackgroundTasks = {},
     readonly _createMetricsCollector?: () => MetricsCollector,
+    readonly _resolveByokKeysFn?: ResolveByokKeysFn,
   ) {
     this.repository = createGenerationV2Repository(db);
   }
@@ -211,6 +213,11 @@ export class GenerationV2Service {
     }
 
     const collector = this._createMetricsCollector?.();
+    const byokKeys = this._resolveByokKeysFn
+      ? await this._resolveByokKeysFn(bundle.userId).catch(() => ({
+          enabled: false as const,
+        }))
+      : { enabled: false as const };
 
     await this.store.setRequestStatus(
       requestId,
@@ -224,6 +231,7 @@ export class GenerationV2Service {
           session,
           promptMessages: mapPromptMessages(bundle.promptMessages),
           collector,
+          byokKeys,
         }),
       ),
     );
@@ -570,8 +578,9 @@ export class GenerationV2Service {
     session: PersistedRequestBundle["sessions"][number];
     promptMessages: GenerationPromptMessage[];
     collector?: MetricsCollector;
+    byokKeys?: { enabled: boolean; gatewayKey?: string };
   }) {
-    const { bundle, session, promptMessages, collector } = input;
+    const { bundle, session, promptMessages, collector, byokKeys } = input;
     const abortController = new AbortController();
     const sessionStartedAt = this.now();
     const routerStartedAt = this.now();
@@ -667,6 +676,10 @@ export class GenerationV2Service {
         tools:
           Object.keys(composioTools).length > 0 ? composioTools : undefined,
         signal: abortController.signal,
+        byokGatewayKey:
+          byokKeys?.enabled && byokKeys.gatewayKey
+            ? byokKeys.gatewayKey
+            : undefined,
       })) {
         accumulated += delta;
         if (firstTokenAt === null) {
@@ -774,7 +787,7 @@ export class GenerationV2Service {
           outputTokens: usage.outputTokens ?? 0,
           reasoningTokens: usage.reasoningTokens,
           cost: computedCostUsd ?? 0,
-          isByok: false,
+          isByok: byokKeys?.enabled === true && Boolean(byokKeys.gatewayKey),
         });
       }
       await this.persistToolCallsIfPresent({

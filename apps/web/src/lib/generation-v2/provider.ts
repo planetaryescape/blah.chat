@@ -1,7 +1,7 @@
 import { normalizeUsageTokens } from "@blah-chat/ai";
 import { streamText } from "ai";
 import { getGatewayOptions } from "@/lib/ai/gateway";
-import { getModel } from "@/lib/ai/registry";
+import { getModel, getModelWithApiKey } from "@/lib/ai/registry";
 import type {
   GenerationPromptMessage,
   GenerationProvider,
@@ -174,9 +174,13 @@ export class AiSdkGenerationProvider implements GenerationProvider {
     messages: GenerationPromptMessage[];
     tools?: Record<string, unknown>;
     signal?: AbortSignal;
+    byokGatewayKey?: string;
   }) {
+    const model = input.byokGatewayKey
+      ? getModelWithApiKey(input.modelId, input.byokGatewayKey)
+      : getModel(input.modelId);
     const result = streamText({
-      model: getModel(input.modelId),
+      model,
       messages: toModelMessages(input.messages),
       ...(input.tools ? { tools: input.tools as any } : {}),
       providerOptions: getGatewayOptions(input.modelId, input.userId, [

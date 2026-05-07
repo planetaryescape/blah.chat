@@ -3,6 +3,7 @@ import {
   createTriggerClient,
   parsePersistenceEnv,
 } from "@blah-chat/persistence-postgres";
+import { resolveByokKeys } from "@/lib/persistence/byok-resolver";
 import { getPersistenceDb } from "@/lib/persistence/server";
 import { AiSdkGenerationProvider } from "./provider";
 import { GenerationV2Service } from "./service";
@@ -62,6 +63,8 @@ export function getGenerationV2Service() {
         await trigger.triggerTask("enrich-source-metadata", input);
       },
     },
+    undefined,
+    (userId: string) => resolveByokKeys(db, userId),
   );
   globalThis.__blahGenerationV2Service = service;
   return service;

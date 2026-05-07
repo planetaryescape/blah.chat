@@ -313,8 +313,7 @@ export const ChatInput = memo(function ChatInput({
   // iOS keyboard handling - scrolls input into view when virtual keyboard appears
   useIOSKeyboard({ inputRef: textareaRef });
 
-  const { mutate: sendMessage, mutateAsync: sendMessageAsync } =
-    useSendMessage(onOptimisticUpdate);
+  const { mutateAsync: sendMessageAsync } = useSendMessage(onOptimisticUpdate);
   const lastAssistantMessage = useLiveQuery(
     async () => {
       const messages = await cache.messages
@@ -535,8 +534,14 @@ export const ChatInput = memo(function ChatInput({
       .toString(36)
       .slice(2, 10)}`;
 
-    sendMessage(
-      {
+    setInput("");
+    setQuote(null);
+    onAttachmentsChange([]);
+    setCursorPosition(0);
+    haptic("MEDIUM");
+
+    try {
+      await sendMessageAsync({
         conversationId,
         parentMessageId,
         content: messageContent,
@@ -546,38 +551,27 @@ export const ChatInput = memo(function ChatInput({
           : { modelId: selectedModel }),
         thinkingEffort,
         attachments: attachments.length > 0 ? attachments : undefined,
-      },
-      {
-        onError: (error) => {
-          const currentInput = textareaRef.current?.value?.trim() || "";
-          if (!currentInput) {
-            setInput(originalInput);
-            setQuote(originalQuote);
-            onAttachmentsChange(originalAttachments);
-          }
+      });
+      clearPersistedDraft();
+    } catch (error) {
+      const currentInput = textareaRef.current?.value?.trim() || "";
+      if (!currentInput) {
+        setInput(originalInput);
+        setQuote(originalQuote);
+        onAttachmentsChange(originalAttachments);
+      }
 
-          if (
-            error instanceof Error &&
-            error.message.includes("Daily message limit")
-          ) {
-            setShowRateLimitDialog(true);
-          }
-        },
-        onSuccess: () => {
-          clearPersistedDraft();
-        },
-      },
-    );
-
-    setInput("");
-    setQuote(null);
-    onAttachmentsChange([]);
-    setCursorPosition(0);
-    setIsSending(false);
-    haptic("MEDIUM");
-
-    if (!isMobile) {
-      setTimeout(() => textareaRef.current?.focus(), 0);
+      if (
+        error instanceof Error &&
+        error.message.includes("Daily message limit")
+      ) {
+        setShowRateLimitDialog(true);
+      }
+    } finally {
+      setIsSending(false);
+      if (!isMobile) {
+        setTimeout(() => textareaRef.current?.focus(), 0);
+      }
     }
   };
 

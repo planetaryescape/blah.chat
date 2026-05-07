@@ -26,6 +26,24 @@ async function getHandler(_req: NextRequest, { userId }: { userId: string }) {
 }
 
 async function postHandler(req: NextRequest, { userId }: { userId: string }) {
+  // Per-user chat-table routing isn't wired through the generation
+  // repository yet — until BYOD_CHAT_ROUTING_ENABLED=1 ships in tandem
+  // with that wiring, refuse to enable so users don't think their data is
+  // landing in their database when it's still hitting the primary.
+  if (process.env.BYOD_CHAT_ROUTING_ENABLED !== "1") {
+    logger.info({ userId }, "POST /api/v1/byod refused — preview mode");
+    return NextResponse.json(
+      formatErrorEntity({
+        message:
+          "BYOD is in preview — connection capture works but chat data still " +
+          "writes to the primary database. Enable BYOD_CHAT_ROUTING_ENABLED " +
+          "once per-user chat-table routing ships.",
+        code: "byod_preview",
+      }),
+      { status: 503 },
+    );
+  }
+
   logger.info({ userId }, "POST /api/v1/byod");
   const body = setupSchema.parse(await req.json());
   const result = await byodDAL.setup(userId, body.connectionString);

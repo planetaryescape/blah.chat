@@ -175,9 +175,14 @@ export class AiSdkGenerationProvider implements GenerationProvider {
     tools?: Record<string, unknown>;
     signal?: AbortSignal;
     byokGatewayKey?: string;
+    byokOpenRouterKey?: string;
   }) {
-    const model = input.byokGatewayKey
-      ? getModelWithApiKey(input.modelId, input.byokGatewayKey)
+    const hasByokKey = Boolean(input.byokGatewayKey || input.byokOpenRouterKey);
+    const model = hasByokKey
+      ? getModelWithApiKey(input.modelId, {
+          gatewayKey: input.byokGatewayKey,
+          openRouterKey: input.byokOpenRouterKey,
+        })
       : getModel(input.modelId);
     const result = streamText({
       model,

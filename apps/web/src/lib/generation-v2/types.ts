@@ -41,6 +41,7 @@ export interface GenerationProviderStreamInput {
   tools?: Record<string, unknown>;
   signal?: AbortSignal;
   byokGatewayKey?: string;
+  byokOpenRouterKey?: string;
 }
 
 export type ResolveByokKeysFn = (userId: string) => Promise<{

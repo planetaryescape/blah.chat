@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.0](https://github.com/planetaryescape/blah.chat/compare/ai-v0.3.0...ai-v0.4.0) (2026-05-07)
+
+
+### Features
+
+* **byok:** wire user gateway key into generation and stamp usage ([4f60632](https://github.com/planetaryescape/blah.chat/commit/4f60632c0cf0f1fc775e21ecee60aa8fd472cd73))
+* close Phase 4 BYOD gap and extend BYOK to OpenRouter ([ed6d5a3](https://github.com/planetaryescape/blah.chat/commit/ed6d5a38390c9fb9b71083ef6a3df744b6853fe8))
+* **generation:** write usage_records with calculated cost on completion ([8969982](https://github.com/planetaryescape/blah.chat/commit/8969982472582521fc32db0b19971502032e71f1))
+
 ## [0.3.0](https://github.com/planetaryescape/blah.chat/compare/ai-v0.2.0...ai-v0.3.0) (2026-03-29)
 
 

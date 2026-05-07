@@ -20,58 +20,6 @@ jobs:
     if: github.event.pull_request.user.login == 'dependabot[bot]'
 
     steps:
-      - name: Wait for checks to appear
-        run: |
-          attempts=0
-
-          while [ "$attempts" -lt 30 ]; do
-            CHECK_COUNT=$(gh pr checks "$PR_NUMBER" --repo "$REPO" --json name,workflow --jq '[.[] | select((.workflow // .name) != "Dependabot Auto-Merge")] | length')
-
-            if [ "$CHECK_COUNT" -gt 0 ]; then
-              exit 0
-            fi
-
-            attempts=$((attempts + 1))
-            sleep 10
-          done
-
-          echo "::error::No checks found for PR #$PR_NUMBER after waiting."
-          exit 1
-        env:
-          GH_TOKEN: ${{ secrets.MERGE_BOT_TOKEN || secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-
-      - name: Wait for checks to pass
-        run: |
-          attempts=0
-
-          while [ "$attempts" -lt 90 ]; do
-            CHECKS_JSON=$(gh pr checks "$PR_NUMBER" --repo "$REPO" --json bucket,name,workflow)
-
-            FAIL_COUNT=$(printf '%s' "$CHECKS_JSON" | jq '[.[] | select((.workflow // .name) != "Dependabot Auto-Merge" and .bucket == "fail")] | length')
-            if [ "$FAIL_COUNT" -gt 0 ]; then
-              echo "::error::One or more checks failed for PR #$PR_NUMBER."
-              printf '%s' "$CHECKS_JSON" | jq '[.[] | select((.workflow // .name) != "Dependabot Auto-Merge")]'
-              exit 1
-            fi
-
-            PENDING_COUNT=$(printf '%s' "$CHECKS_JSON" | jq '[.[] | select((.workflow // .name) != "Dependabot Auto-Merge" and .bucket == "pending")] | length')
-            if [ "$PENDING_COUNT" -eq 0 ]; then
-              exit 0
-            fi
-
-            attempts=$((attempts + 1))
-            sleep 10
-          done
-
-          echo "::error::Checks for PR #$PR_NUMBER did not finish in time."
-          exit 1
-        env:
-          GH_TOKEN: ${{ secrets.MERGE_BOT_TOKEN || secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-
       - name: Approve Dependabot PR
         run: |
           if gh pr review --approve "$PR_NUMBER" --repo "$REPO"; then

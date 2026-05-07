@@ -192,10 +192,29 @@ export class GenerationV2Service {
       return bundle.requestStatus;
     }
 
+    let effectiveStatus = bundle.requestStatus;
+    if (effectiveStatus === "pending") {
+      const claimed =
+        await this.repository.claimRequestForProcessing(requestId);
+      if (!claimed) {
+        effectiveStatus =
+          (await this.repository.getRequestStatus(requestId)) ??
+          effectiveStatus;
+        if (effectiveStatus !== "cancelling") {
+          await this.store.setRequestStatus(requestId, effectiveStatus);
+          return effectiveStatus;
+        }
+      } else {
+        effectiveStatus = "running";
+      }
+    }
+
     const collector = this._createMetricsCollector?.();
 
-    await this.store.setRequestStatus(requestId, "running");
-    await this.repository.updateRequestStatus(requestId, "running");
+    await this.store.setRequestStatus(
+      requestId,
+      effectiveStatus === "cancelling" ? "cancelling" : "running",
+    );
 
     await Promise.all(
       bundle.sessions.map((session) =>

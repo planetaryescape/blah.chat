@@ -80,4 +80,30 @@ describe("GenerationV2Service.process idempotency", () => {
     expect(secondStatus).toBe("complete");
     expect(provider.callCount).toBe(1);
   });
+
+  it("concurrent process calls invoke the provider only once (atomic claim)", async () => {
+    const provider = new CountingProvider({
+      "openai:gpt-5-mini": ["Hello", " world"],
+    });
+    const { service, conversation } = await setupService(provider);
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_idempotency",
+        email: "idempotency@test.com",
+        name: "Idempotency Tester",
+      },
+      conversationId: conversation.id,
+      content: "Say hi",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    const [resultA, resultB] = await Promise.all([
+      service.process(started.requestId),
+      service.process(started.requestId),
+    ]);
+
+    expect(provider.callCount).toBe(1);
+    expect([resultA, resultB]).toContain("complete");
+  });
 });

@@ -214,6 +214,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Install Playwright browsers (chromium only)
+        working-directory: apps/web
         run: bunx playwright install --with-deps chromium
 
       - name: Run smoke spec

@@ -1,5 +1,3 @@
-import "server-only";
-
 export type ClerkSdkUser = {
   id: string;
   primaryEmailAddress?: { emailAddress?: string | null } | null;
@@ -11,67 +9,29 @@ export type ClerkSdkUser = {
   imageUrl?: string | null;
 };
 
-function findEmailById(
-  list: Array<{ id: string; emailAddress: string }>,
-  id: string,
-): string | undefined {
-  for (const e of list) {
-    if (e.id === id) return e.emailAddress;
-  }
-  return undefined;
-}
-
-function pickPrimaryEmail(
-  list: Array<{ id: string; emailAddress: string }>,
-  primaryId: string | null | undefined,
-): string | undefined {
-  if (!primaryId) return undefined;
-  return findEmailById(list, primaryId);
-}
-
-function readDirectEmail(user: ClerkSdkUser): string | undefined {
-  const primary = user.primaryEmailAddress;
-  if (!primary) return undefined;
-  const value = primary.emailAddress;
-  if (typeof value !== "string") return undefined;
-  return value;
-}
-
-function readListEmail(user: ClerkSdkUser): string | undefined {
-  const list = user.emailAddresses;
-  if (!list) return undefined;
-  if (list.length === 0) return undefined;
-  const fromPrimary = pickPrimaryEmail(list, user.primaryEmailAddressId);
-  if (fromPrimary) return fromPrimary;
-  const first = list[0];
-  if (!first) return undefined;
-  return first.emailAddress;
-}
-
 export function readClerkEmail(user: ClerkSdkUser): string {
-  const fromDirect = readDirectEmail(user);
-  if (fromDirect) return fromDirect;
-  const fromList = readListEmail(user);
-  if (fromList) return fromList;
-  return `${user.id}@clerk.local`;
-}
-
-function composeFromParts(
-  first: string | null | undefined,
-  last: string | null | undefined,
-): string {
-  const safeFirst = typeof first === "string" ? first : "";
-  const safeLast = typeof last === "string" ? last : "";
-  return `${safeFirst} ${safeLast}`.trim();
+  const direct = user.primaryEmailAddress?.emailAddress;
+  if (typeof direct === "string" && direct.length > 0) return direct;
+  const list = user.emailAddresses;
+  if (!Array.isArray(list) || list.length === 0) {
+    return `${user.id}@clerk.local`;
+  }
+  const primaryId = user.primaryEmailAddressId;
+  if (primaryId) {
+    for (const entry of list) {
+      if (entry.id === primaryId) return entry.emailAddress;
+    }
+  }
+  return list[0].emailAddress;
 }
 
 export function readClerkName(user: ClerkSdkUser): string {
-  const full = user.fullName;
-  if (typeof full === "string") {
-    const trimmed = full.trim();
-    if (trimmed) return trimmed;
-  }
-  const composed = composeFromParts(user.firstName, user.lastName);
+  const fullTrim =
+    typeof user.fullName === "string" ? user.fullName.trim() : "";
+  if (fullTrim) return fullTrim;
+  const first = typeof user.firstName === "string" ? user.firstName : "";
+  const last = typeof user.lastName === "string" ? user.lastName : "";
+  const composed = `${first} ${last}`.trim();
   if (composed) return composed;
   return "Anonymous";
 }

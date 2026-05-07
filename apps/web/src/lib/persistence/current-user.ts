@@ -41,17 +41,30 @@ type ClerkSdkUser = {
 type UserRepo = ReturnType<typeof createUserRepository>;
 type DbUser = NonNullable<Awaited<ReturnType<UserRepo["findByClerkId"]>>>;
 
-function pickPrimaryEmail(user: ClerkSdkUser): string | undefined {
-  const direct = user.primaryEmailAddress?.emailAddress;
-  if (direct) return direct;
-  const list = user.emailAddresses ?? [];
+function readDirectEmail(user: ClerkSdkUser): string | undefined {
+  const primary = user.primaryEmailAddress;
+  if (!primary) return undefined;
+  return primary.emailAddress ?? undefined;
+}
+
+function readListEmail(user: ClerkSdkUser): string | undefined {
+  const list = user.emailAddresses;
+  if (!list) return undefined;
   if (list.length === 0) return undefined;
-  const matched = list.find((e) => e.id === user.primaryEmailAddressId);
-  return matched?.emailAddress ?? list[0]?.emailAddress;
+  const primaryId = user.primaryEmailAddressId;
+  if (primaryId) {
+    const matched = list.find((e) => e.id === primaryId);
+    if (matched) return matched.emailAddress;
+  }
+  return list[0]?.emailAddress;
 }
 
 function readEmail(user: ClerkSdkUser): string {
-  return pickPrimaryEmail(user) ?? `${user.id}@clerk.local`;
+  const fromDirect = readDirectEmail(user);
+  if (fromDirect) return fromDirect;
+  const fromList = readListEmail(user);
+  if (fromList) return fromList;
+  return `${user.id}@clerk.local`;
 }
 
 function readName(user: ClerkSdkUser): string {
@@ -76,14 +89,43 @@ function asString(value: unknown): string | undefined {
 }
 
 type ClaimsDrift = Partial<{ email: string; name: string; imageUrl: string }>;
+type DriftKey = keyof ClaimsDrift;
 
-function detectField<K extends keyof ClaimsDrift>(
-  drift: ClaimsDrift,
-  key: K,
-  claimed: string | undefined,
-  current: string | undefined,
-) {
-  if (claimed && claimed !== current) drift[key] = claimed;
+interface DriftField {
+  key: DriftKey;
+  claim: string | undefined;
+  current: string | undefined;
+}
+
+function readImageClaim(claims: SessionClaimsLike): string | undefined {
+  const direct = asString(claims.imageUrl);
+  if (direct) return direct;
+  return asString(claims.picture);
+}
+
+function buildDriftFields(
+  row: DbUser,
+  claims: SessionClaimsLike,
+): DriftField[] {
+  return [
+    { key: "email", claim: asString(claims.email), current: row.email },
+    { key: "name", claim: asString(claims.name), current: row.name },
+    {
+      key: "imageUrl",
+      claim: readImageClaim(claims),
+      current: row.imageUrl === null ? undefined : row.imageUrl,
+    },
+  ];
+}
+
+function collectDrift(fields: DriftField[]): ClaimsDrift {
+  const drift: ClaimsDrift = {};
+  for (const f of fields) {
+    if (!f.claim) continue;
+    if (f.claim === f.current) continue;
+    drift[f.key] = f.claim;
+  }
+  return drift;
 }
 
 function claimsDriftFromRow(
@@ -91,16 +133,9 @@ function claimsDriftFromRow(
   claims: SessionClaimsLike | null | undefined,
 ): ClaimsDrift | null {
   if (!claims) return null;
-  const drift: ClaimsDrift = {};
-  detectField(drift, "email", asString(claims.email), row.email);
-  detectField(drift, "name", asString(claims.name), row.name);
-  detectField(
-    drift,
-    "imageUrl",
-    asString(claims.imageUrl) ?? asString(claims.picture),
-    row.imageUrl ?? undefined,
-  );
-  return Object.keys(drift).length > 0 ? drift : null;
+  const drift = collectDrift(buildDriftFields(row, claims));
+  if (Object.keys(drift).length === 0) return null;
+  return drift;
 }
 
 function buildDriftPayload(row: DbUser, drift: ClaimsDrift) {

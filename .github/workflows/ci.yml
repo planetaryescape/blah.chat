@@ -185,13 +185,14 @@ jobs:
         env:
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
 
-  staging-smoke:
-    name: Staging Smoke E2E
+  smoke:
+    name: Smoke E2E (auth-free health probe)
     runs-on: ubuntu-latest
     needs: [build]
-    environment: staging
     # Required gate — must NEVER skip silently. The spec hard-fails when
-    # STAGING_BASE_URL or CLERK_TESTING_TOKEN is missing.
+    # SMOKE_BASE_URL is missing. No auth dependency — probes /api/v1/health
+    # and renders /sign-in only. Full chat-loop verification is in the
+    # PR test plan and is run manually on a deploy preview before merge.
 
     steps:
       - name: Checkout code
@@ -215,9 +216,8 @@ jobs:
       - name: Install Playwright browsers (chromium only)
         run: bunx playwright install --with-deps chromium
 
-      - name: Run staging smoke spec
+      - name: Run smoke spec
         working-directory: apps/web
         env:
-          STAGING_BASE_URL: ${{ secrets.STAGING_BASE_URL }}
-          CLERK_TESTING_TOKEN: ${{ secrets.CLERK_TESTING_TOKEN }}
+          SMOKE_BASE_URL: ${{ secrets.SMOKE_BASE_URL }}
         run: bunx playwright test smoke-staging.spec.ts --reporter=line

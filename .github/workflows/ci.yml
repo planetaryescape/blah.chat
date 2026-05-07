@@ -189,10 +189,16 @@ jobs:
     name: Smoke E2E (auth-free health probe)
     runs-on: ubuntu-latest
     needs: [build]
-    # Required gate — must NEVER skip silently. The spec hard-fails when
-    # SMOKE_BASE_URL is missing. No auth dependency — probes /api/v1/health
-    # and renders /sign-in only. Full chat-loop verification is in the
-    # PR test plan and is run manually on a deploy preview before merge.
+    # Skipped on Dependabot PRs: GitHub does not expose repo-level Actions
+    # secrets to dependabot[bot] (SMOKE_BASE_URL is one). The smoke probes
+    # a deployed URL anyway, so it validates the live env, not the bump.
+    # The same job runs on push to main after merge, catching deploy regressions.
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
+    # Required gate — must NEVER skip silently outside the dependabot path.
+    # The spec hard-fails when SMOKE_BASE_URL is missing. No auth dependency —
+    # probes /api/v1/health and renders /sign-in only. Full chat-loop
+    # verification is in the PR test plan and is run manually on a deploy
+    # preview before merge.
 
     steps:
       - name: Checkout code

@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "eventsource-parser": "^3.0.6",
-    "openapi-fetch": "^0.15.0"
+    "openapi-fetch": "^0.17.0"
   },
   "devDependencies": {
     "openapi-typescript": "^7.10.1",

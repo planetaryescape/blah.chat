@@ -1,4 +1,9 @@
-import { createCipheriv, createHash, randomBytes } from "node:crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+} from "node:crypto";
 
 export type KeyType = "vercelGateway" | "openRouter" | "groq" | "deepgram";
 
@@ -61,4 +66,19 @@ export async function encryptCredential(plaintext: string) {
     iv: iv.toString("hex"),
     authTag: authTag.toString("hex"),
   };
+}
+
+export async function decryptCredential(
+  encryptedHex: string,
+  ivHex: string,
+  authTagHex: string,
+) {
+  const key = getEncryptionKey();
+  const iv = Buffer.from(ivHex, "hex");
+  const authTag = Buffer.from(authTagHex, "hex");
+  const decipher = createDecipheriv("aes-256-gcm", key, iv);
+  decipher.setAuthTag(authTag);
+  let decrypted = decipher.update(encryptedHex, "hex", "utf8");
+  decrypted += decipher.final("utf8");
+  return decrypted;
 }

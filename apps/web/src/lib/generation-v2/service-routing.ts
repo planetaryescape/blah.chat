@@ -73,29 +73,31 @@ function getCandidateModelIds(input: {
   return candidates.length > 0 ? candidates : [DEFAULT_FALLBACK_MODEL_ID];
 }
 
-export async function resolveRouteLabel(input: {
+type ResolvedRouteLabel = {
+  routeLabel: RouteLabel;
+  routerMode: "hard_rules" | "classifier_v1" | "fallback_default";
+  hardRuleMatched: string | null;
+  topSimilarityScore: number | null;
+  secondRouteLabel: string | null;
+  secondSimilarityScore: number | null;
+};
+
+function fallbackRouteLabel(): ResolvedRouteLabel {
+  return {
+    routeLabel: "fallback_default" as RouteLabel,
+    routerMode: "fallback_default",
+    hardRuleMatched: null,
+    topSimilarityScore: null,
+    secondRouteLabel: null,
+    secondSimilarityScore: null,
+  };
+}
+
+async function classifyRouteLabel(input: {
   message: string;
   hasAttachments: boolean;
   attachmentTypes: string[];
-}) {
-  const hardRule = runHardRules({
-    message: input.message,
-    hasAttachments: input.hasAttachments,
-    attachmentTypes: input.attachmentTypes,
-    currentContextTokens: undefined,
-  });
-
-  if (hardRule) {
-    return {
-      routeLabel: hardRule.routeLabel,
-      routerMode: "hard_rules",
-      hardRuleMatched: hardRule.hardRuleMatched ?? null,
-      topSimilarityScore: null,
-      secondRouteLabel: null,
-      secondSimilarityScore: null,
-    };
-  }
-
+}): Promise<ResolvedRouteLabel | null> {
   try {
     const { getAutoRouterConfig } = await import(
       "@/lib/persistence/autoRouter"
@@ -112,7 +114,6 @@ export async function resolveRouteLabel(input: {
         fallbackEnabled: adminCfg.classifierFallbackEnabled,
       },
     });
-
     return {
       routeLabel: classified.routeLabel,
       routerMode: "classifier_v1",
@@ -122,15 +123,34 @@ export async function resolveRouteLabel(input: {
       secondSimilarityScore: classified.secondSimilarityScore ?? null,
     };
   } catch {
+    return null;
+  }
+}
+
+export async function resolveRouteLabel(input: {
+  message: string;
+  hasAttachments: boolean;
+  attachmentTypes: string[];
+}): Promise<ResolvedRouteLabel> {
+  const hardRule = runHardRules({
+    message: input.message,
+    hasAttachments: input.hasAttachments,
+    attachmentTypes: input.attachmentTypes,
+    currentContextTokens: undefined,
+  });
+  if (hardRule) {
     return {
-      routeLabel: "fallback_default" as RouteLabel,
-      routerMode: "fallback_default",
-      hardRuleMatched: null,
+      routeLabel: hardRule.routeLabel,
+      routerMode: "hard_rules",
+      hardRuleMatched: hardRule.hardRuleMatched ?? null,
       topSimilarityScore: null,
       secondRouteLabel: null,
       secondSimilarityScore: null,
     };
   }
+
+  const classified = await classifyRouteLabel(input);
+  return classified ?? fallbackRouteLabel();
 }
 
 type Repository = ReturnType<typeof createGenerationV2Repository>;

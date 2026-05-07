@@ -174,7 +174,7 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.0",
+    "@biomejs/biome": "2.4.14",
     "@edge-runtime/vm": "^5.0.0",
     "@next/bundle-analyzer": "^16.1.0",
     "@playwright/test": "^1.57.0",

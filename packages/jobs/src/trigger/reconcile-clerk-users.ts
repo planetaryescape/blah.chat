@@ -7,6 +7,7 @@ import {
 import { schedules } from "@trigger.dev/sdk";
 import { asc, eq } from "drizzle-orm";
 import { isClerkNotFound } from "./clerk-error-detect";
+import { type ClerkUserShape, readEmail, readName } from "./clerk-identity";
 
 function getDatabaseUrl() {
   const url = process.env.DATABASE_URL;
@@ -20,17 +21,6 @@ export const RECONCILE_CLERK_USERS_CRON = {
   environments: ["PRODUCTION"] as Array<"PRODUCTION">,
 };
 
-interface ClerkUserShape {
-  id: string;
-  primaryEmailAddress?: { emailAddress?: string | null } | null;
-  emailAddresses?: Array<{ id: string; emailAddress: string }>;
-  primaryEmailAddressId?: string | null;
-  fullName?: string | null;
-  firstName?: string | null;
-  lastName?: string | null;
-  imageUrl?: string | null;
-}
-
 export interface ClerkLike {
   users: { getUser: (id: string) => Promise<ClerkUserShape> };
 }
@@ -40,24 +30,6 @@ export interface ReconcileResult {
   updated: number;
   deleted: number;
   errors: number;
-}
-
-function readEmail(user: ClerkUserShape): string {
-  return (
-    user.primaryEmailAddress?.emailAddress ??
-    user.emailAddresses?.find((e) => e.id === user.primaryEmailAddressId)
-      ?.emailAddress ??
-    user.emailAddresses?.[0]?.emailAddress ??
-    `${user.id}@clerk.local`
-  );
-}
-
-function readName(user: ClerkUserShape): string {
-  return (
-    user.fullName?.trim() ||
-    `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
-    "Anonymous"
-  );
 }
 
 async function defaultClerkClient(): Promise<ClerkLike> {

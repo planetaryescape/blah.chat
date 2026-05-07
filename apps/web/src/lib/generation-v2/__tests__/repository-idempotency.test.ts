@@ -9,6 +9,7 @@ import {
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createTestPersistenceDb } from "../../../../../../packages/persistence-postgres/src/testing/pglite";
+import { createGenerationV2Repository } from "../repository";
 
 async function seedConversation(
   db: Awaited<ReturnType<typeof createTestPersistenceDb>>,
@@ -115,5 +116,44 @@ describe("messages partial unique index on (conversation_id, client_message_id)"
       where: eq(messages.conversationId, conversation.id),
     });
     expect(rows).toHaveLength(2);
+  });
+});
+
+describe("createRequest idempotency on clientMessageId", () => {
+  it("returns the existing bundle without creating duplicates when called twice with the same (conversation, clientMessageId)", async () => {
+    const db = await createTestPersistenceDb();
+    const { conversation } = await seedConversation(db, "idem");
+    const repo = createGenerationV2Repository(db);
+
+    const clerkUser = {
+      clerkId: "clerk_idem",
+      email: "idem@test.com",
+      name: "idem",
+    };
+
+    const first = await repo.createRequest({
+      clerkUser,
+      conversationId: conversation.id,
+      content: "Say hi",
+      clientMessageId: "client-idem-1",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    const second = await repo.createRequest({
+      clerkUser,
+      conversationId: conversation.id,
+      content: "Say hi",
+      clientMessageId: "client-idem-1",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    expect(second.requestId).toBe(first.requestId);
+    expect(second.userMessageId).toBe(first.userMessageId);
+    expect(second.assistantMessageIds).toEqual(first.assistantMessageIds);
+
+    const userMessages = await db.query.messages.findMany({
+      where: eq(messages.clientMessageId, "client-idem-1"),
+    });
+    expect(userMessages).toHaveLength(1);
   });
 });

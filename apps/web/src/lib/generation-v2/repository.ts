@@ -314,6 +314,39 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         throw new Error("Conversation not found");
       }
 
+      // Idempotent retry path — if the client has already sent this
+      // clientMessageId for this conversation, return the existing bundle.
+      if (input.clientMessageId) {
+        const existing = await db.query.messages.findFirst({
+          where: and(
+            eq(messages.conversationId, conversation.id),
+            eq(messages.clientMessageId, input.clientMessageId),
+          ),
+        });
+        if (existing) {
+          const existingRequest = await db.query.generationRequests.findFirst({
+            where: eq(generationRequests.userMessageId, existing.id),
+          });
+          if (existingRequest) {
+            const sessions = await db.query.generationSessions.findMany({
+              where: eq(generationSessions.requestId, existingRequest.id),
+              orderBy: (table, { asc: orderAsc }) => [
+                orderAsc(table.createdAt),
+              ],
+            });
+            return {
+              requestId: existingRequest.id,
+              conversationId: conversation.id,
+              userMessageId: existing.id,
+              assistantMessageIds: sessions.map(
+                (session) => session.assistantMessageId,
+              ),
+              modelIds: existingRequest.requestedModels,
+            };
+          }
+        }
+      }
+
       const requestedParentMessageId =
         input.parentMessageId ?? conversation.activeLeafMessageId ?? null;
       const parentIds = requestedParentMessageId

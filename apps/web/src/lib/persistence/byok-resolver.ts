@@ -38,7 +38,7 @@ export async function resolveByokKeys(
     where: eq(userApiKeys.userId, userId),
   });
 
-  if (!config || !config.byokEnabled) {
+  if (!config?.byokEnabled) {
     return DISABLED;
   }
 

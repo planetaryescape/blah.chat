@@ -306,28 +306,42 @@ export const userPreferences = pgTable(
   }),
 );
 
-export const messages = pgTable("messages", {
-  id: text("id").primaryKey().$defaultFn(id),
-  conversationId: text("conversation_id")
-    .notNull()
-    .references(() => conversations.id, { onDelete: "cascade" }),
-  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
-  role: text("role").notNull(),
-  content: text("content").notNull(),
-  clientMessageId: text("client_message_id"),
-  status: text("status").notNull().default("complete"),
-  model: text("model"),
-  comparisonGroupId: text("comparison_group_id"),
-  consolidatedMessageId: text("consolidated_message_id"),
-  isConsolidation: boolean("is_consolidation").notNull().default(false),
-  rootMessageId: text("root_message_id"),
-  siblingIndex: bigint("sibling_index", { mode: "number" })
-    .notNull()
-    .default(0),
-  forkReason: text("fork_reason"),
-  createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(now),
-  updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(now),
-});
+export const messages = pgTable(
+  "messages",
+  {
+    id: text("id").primaryKey().$defaultFn(id),
+    conversationId: text("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    role: text("role").notNull(),
+    content: text("content").notNull(),
+    clientMessageId: text("client_message_id"),
+    status: text("status").notNull().default("complete"),
+    model: text("model"),
+    comparisonGroupId: text("comparison_group_id"),
+    consolidatedMessageId: text("consolidated_message_id"),
+    isConsolidation: boolean("is_consolidation").notNull().default(false),
+    rootMessageId: text("root_message_id"),
+    siblingIndex: bigint("sibling_index", { mode: "number" })
+      .notNull()
+      .default(0),
+    forkReason: text("fork_reason"),
+    createdAt: bigint("created_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+    updatedAt: bigint("updated_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+  },
+  (table) => ({
+    clientIdUnique: uniqueIndex("messages_conversation_client_message_unique")
+      .on(table.conversationId, table.clientMessageId)
+      .where(sql`${table.clientMessageId} IS NOT NULL`),
+  }),
+);
 
 export const attachments = pgTable("attachments", {
   id: text("id").primaryKey().$defaultFn(id),

@@ -71,6 +71,9 @@ CREATE TABLE messages (
   created_at bigint NOT NULL,
   updated_at bigint NOT NULL
 );
+CREATE UNIQUE INDEX messages_conversation_client_message_unique
+  ON messages (conversation_id, client_message_id)
+  WHERE client_message_id IS NOT NULL;
 
 CREATE TABLE attachments (
   id text PRIMARY KEY,

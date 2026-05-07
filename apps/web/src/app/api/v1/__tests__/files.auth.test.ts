@@ -61,6 +61,9 @@ vi.mock("@/lib/generation-v2/runtime", () => ({
     start: startMock,
     process: processMock,
   }),
+  getEnqueueGenerationProcessing: () => async (requestId: string) => {
+    await processMock(requestId);
+  },
 }));
 
 vi.mock("next/server", async () => {

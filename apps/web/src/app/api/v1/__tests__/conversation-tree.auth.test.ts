@@ -35,6 +35,9 @@ vi.mock("@/lib/generation-v2/runtime", () => ({
     ) => createGenerationV2Repository(db).createRequest(input),
     process: processMock,
   }),
+  getEnqueueGenerationProcessing: () => async (requestId: string) => {
+    await processMock(requestId);
+  },
 }));
 
 vi.mock("next/server", async () => {

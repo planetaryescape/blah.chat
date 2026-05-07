@@ -39,9 +39,17 @@ encryption helpers in `apps/web/src/lib/security/byok.ts`.
 
 - [ ] `INTERNAL_TASK_SECRET` — shared bearer token Trigger uses to call
       `/api/internal/generations/[id]/process`. Must match the secret the
-      web app expects.
+      web app expects. Set on **both** Vercel runtime and Trigger worker
+      env to the same value.
 - [ ] `INTERNAL_TASK_BASE_URL` — base URL the Trigger worker uses when
-      calling the web app back (e.g., `https://your-app.vercel.app`).
+      calling the web app back (e.g., `https://www.blah.chat`). Set on
+      both Vercel runtime and Trigger worker env.
+
+### CI smoke gate
+
+- [ ] `SMOKE_BASE_URL` (GitHub Actions secret) — base URL the
+      `smoke` job probes for `/api/v1/health` ok. Typically the
+      production URL since there is no separate staging environment.
 
 ### AI Gateway
 

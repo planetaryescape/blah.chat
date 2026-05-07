@@ -187,6 +187,11 @@ export class GenerationV2Service {
       throw new Error("Generation request not found");
     }
 
+    if (terminalStatuses.has(bundle.requestStatus)) {
+      await this.store.setRequestStatus(requestId, bundle.requestStatus);
+      return bundle.requestStatus;
+    }
+
     const collector = this._createMetricsCollector?.();
 
     await this.store.setRequestStatus(requestId, "running");

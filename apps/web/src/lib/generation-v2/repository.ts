@@ -1066,6 +1066,7 @@ export function createGenerationV2Repository(db: PersistenceDb) {
 
       return {
         requestId: request.id,
+        requestStatus: request.status,
         conversationId: conversation.id,
         userId: user.id,
         userMessageId: request.userMessageId,

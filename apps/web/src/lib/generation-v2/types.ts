@@ -116,6 +116,7 @@ export interface PersistedSessionBundle {
 
 export interface PersistedRequestBundle {
   requestId: string;
+  requestStatus: string;
   conversationId: string;
   userId: string;
   userMessageId: string;

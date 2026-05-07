@@ -115,7 +115,6 @@ describe("ChatInput", () => {
         parentMessageId: "msg-parent-1",
         modelId: "openai:gpt-4o",
       }),
-      expect.any(Object),
     );
   });
 

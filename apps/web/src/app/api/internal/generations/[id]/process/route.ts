@@ -12,12 +12,25 @@ function timingSafeEqual(a: string, b: string): boolean {
   return mismatch === 0;
 }
 
-export async function POST(
+type AuthFailure = { kind: "missing_secret" } | { kind: "unauthorized" };
+
+function authenticateInternalRequest(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+): { ok: true } | { ok: false; failure: AuthFailure } {
   const expected = process.env.INTERNAL_TASK_SECRET;
   if (!expected) {
+    return { ok: false, failure: { kind: "missing_secret" } };
+  }
+  const header = req.headers.get("authorization") ?? "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+  if (!token || !timingSafeEqual(token, expected)) {
+    return { ok: false, failure: { kind: "unauthorized" } };
+  }
+  return { ok: true };
+}
+
+function authFailureResponse(failure: AuthFailure): NextResponse {
+  if (failure.kind === "missing_secret") {
     logger.error(
       "INTERNAL_TASK_SECRET is not configured; refusing internal task call",
     );
@@ -29,18 +42,18 @@ export async function POST(
       { status: 503 },
     );
   }
+  return NextResponse.json(
+    formatErrorEntity({ message: "Unauthorized", code: "unauthorized" }),
+    { status: 401 },
+  );
+}
 
-  const header = req.headers.get("authorization") ?? "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
-  if (!token || !timingSafeEqual(token, expected)) {
-    return NextResponse.json(
-      formatErrorEntity({
-        message: "Unauthorized",
-        code: "unauthorized",
-      }),
-      { status: 401 },
-    );
-  }
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = authenticateInternalRequest(req);
+  if (!auth.ok) return authFailureResponse(auth.failure);
 
   const { id: requestId } = await params;
 

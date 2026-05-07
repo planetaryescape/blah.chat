@@ -1,3 +1,4 @@
+import { normalizeUsageTokens } from "@blah-chat/ai";
 import { streamText } from "ai";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import { getModel } from "@/lib/ai/registry";
@@ -192,12 +193,13 @@ export class AiSdkGenerationProvider implements GenerationProvider {
         try {
           const usage = await result.usage;
           if (!usage) return null;
-          const inputTokens = usage.inputTokens ?? 0;
-          const outputTokens = usage.outputTokens ?? 0;
+          const normalized = normalizeUsageTokens(usage);
           return {
-            inputTokens,
-            outputTokens,
-            totalTokens: inputTokens + outputTokens,
+            inputTokens: normalized.inputTokens,
+            outputTokens: normalized.outputTokens,
+            totalTokens: normalized.inputTokens + normalized.outputTokens,
+            cachedInputTokens: normalized.cachedInputTokens,
+            reasoningTokens: normalized.reasoningTokens,
           };
         } catch {
           return null;

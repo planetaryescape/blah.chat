@@ -16,6 +16,7 @@ import {
   routingFeedback,
   routingOutcomes,
   routingPolicies,
+  usageRecords,
   userPreferences,
   users,
 } from "@blah-chat/persistence-postgres";
@@ -1154,6 +1155,36 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         columns: { status: true },
       });
       return row?.status ?? null;
+    },
+
+    async recordUsage(input: {
+      userId: string;
+      conversationId: string;
+      model: string;
+      inputTokens: number;
+      outputTokens: number;
+      reasoningTokens?: number;
+      cost: number;
+      isByok?: boolean;
+      feature?: string;
+      operationType?: string;
+    }) {
+      const date = new Date(now()).toISOString().slice(0, 10);
+      await db.insert(usageRecords).values({
+        userId: input.userId,
+        date,
+        model: input.model,
+        conversationId: input.conversationId,
+        feature: (input.feature ?? "chat") as never,
+        operationType: (input.operationType ?? "completion") as never,
+        inputTokens: input.inputTokens,
+        outputTokens: input.outputTokens,
+        reasoningTokens: input.reasoningTokens ?? null,
+        cost: input.cost,
+        messageCount: 1,
+        isByok: input.isByok ?? false,
+        createdAt: now(),
+      });
     },
 
     async updateSessionStatus(

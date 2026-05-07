@@ -46,6 +46,8 @@ export interface GenerationUsage {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
+  cachedInputTokens?: number;
+  reasoningTokens?: number;
   costUsd?: number;
 }
 

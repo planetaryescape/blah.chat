@@ -1,3 +1,4 @@
+import { calculateCost } from "@blah-chat/ai";
 import { EMBEDDING_MODEL } from "@blah-chat/ai/operational-models";
 import {
   createRouter,
@@ -741,6 +742,14 @@ export class GenerationV2Service {
           Math.max(1, completedAt - sessionStartedAt),
         );
       }
+      const computedCostUsd = usage
+        ? calculateCost(resolvedModelId, {
+            inputTokens: usage.inputTokens ?? 0,
+            outputTokens: usage.outputTokens ?? 0,
+            cachedInputTokens: usage.cachedInputTokens,
+            reasoningTokens: usage.reasoningTokens,
+          })
+        : null;
       await this.repository.upsertRoutingOutcome({
         decisionId: routingDecision.id,
         requestId: bundle.requestId,
@@ -754,8 +763,20 @@ export class GenerationV2Service {
         totalTokens: usage?.totalTokens ?? null,
         inputTokens: usage?.inputTokens ?? null,
         outputTokens: usage?.outputTokens ?? null,
-        costUsd: usage?.costUsd ?? null,
+        costUsd: computedCostUsd,
       });
+      if (usage) {
+        await this.repository.recordUsage({
+          userId: bundle.userId,
+          conversationId: bundle.conversationId,
+          model: resolvedModelId,
+          inputTokens: usage.inputTokens ?? 0,
+          outputTokens: usage.outputTokens ?? 0,
+          reasoningTokens: usage.reasoningTokens,
+          cost: computedCostUsd ?? 0,
+          isByok: false,
+        });
+      }
       await this.persistToolCallsIfPresent({
         requestId: bundle.requestId,
         sessionId: session.sessionId,

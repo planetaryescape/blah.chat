@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.5.0...jobs-v0.6.0) (2026-05-07)
+
+
+### Features
+
+* **jobs:** daily reconcile-clerk-users cron ([16f9717](https://github.com/planetaryescape/blah.chat/commit/16f971756959b6d3fbe10484ab9db3fc97a478b5))
+
+
+### Bug Fixes
+
+* drop server-only from clerk identity helpers + collapse readers ([96930f2](https://github.com/planetaryescape/blah.chat/commit/96930f2cd6b39efbc6128caee1843205ddefa964))
+
 ## [0.5.0](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.4.1...jobs-v0.5.0) (2026-05-04)
 
 

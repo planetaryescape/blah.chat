@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.39.0](https://github.com/planetaryescape/blah.chat/compare/v1.38.0...v1.39.0) (2026-05-07)
+
+
+### Features
+
+* **api:** server-side getOrCreateLandingConversation ([3656414](https://github.com/planetaryescape/blah.chat/commit/3656414f22167317193a075735f327cb86c4bae7))
+* **jobs:** daily reconcile-clerk-users cron ([16f9717](https://github.com/planetaryescape/blah.chat/commit/16f971756959b6d3fbe10484ab9db3fc97a478b5))
+* **persistence:** add clerkSyncedAt to users ([cb12d1f](https://github.com/planetaryescape/blah.chat/commit/cb12d1f35306a0ad9348ec39120b224d95497658))
+
+
+### Bug Fixes
+
+* **app:** replace /app client page with server component dispatcher ([dca7b67](https://github.com/planetaryescape/blah.chat/commit/dca7b670b578a3f1c0dec9e80d74ce72028ec451))
+* drop server-only from clerk identity helpers + collapse readers ([96930f2](https://github.com/planetaryescape/blah.chat/commit/96930f2cd6b39efbc6128caee1843205ddefa964))
+* **migration:** add clerk_synced_at to PGlite users bootstrap ([1a129e0](https://github.com/planetaryescape/blah.chat/commit/1a129e0923d82385e81b4d1854ee1964c91e25c6))
+
 ## [1.38.0](https://github.com/planetaryescape/blah.chat/compare/v1.37.2...v1.38.0) (2026-05-05)
 
 

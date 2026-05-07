@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.6.0...jobs-v0.7.0) (2026-05-07)
+
+
+### Features
+
+* **jobs:** processGenerationTask drives generation via internal endpoint ([7f7bc55](https://github.com/planetaryescape/blah.chat/commit/7f7bc55afac9bf8393e4b9d769fa455e13e9058e))
+* **jobs:** recoverStuckGenerationsTask cron re-enqueues stale requests ([8c1e554](https://github.com/planetaryescape/blah.chat/commit/8c1e5547e08aa91f19febf0c2b4852dfa8c1d876))
+
 ## [0.6.0](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.5.0...jobs-v0.6.0) (2026-05-07)
 
 

@@ -1,5 +1,34 @@
 # Changelog
 
+## [1.40.0](https://github.com/planetaryescape/blah.chat/compare/v1.39.0...v1.40.0) (2026-05-07)
+
+
+### Features
+
+* **api:** rate-limit POST /generations and POST /messages per user ([091af8b](https://github.com/planetaryescape/blah.chat/commit/091af8bff17126c4f3b916cca620f00d13b0e869))
+* **byod:** add getChatDbForUser resolver fronted by primary fallback ([b8f3a73](https://github.com/planetaryescape/blah.chat/commit/b8f3a735ad1a4f60352939196cc88df45c74a318))
+* **byok:** add decryptCredential and per-user key resolver ([70f2e19](https://github.com/planetaryescape/blah.chat/commit/70f2e19ba6be4adabcaadb1de310caf36759011d))
+* **byok:** wire user gateway key into generation and stamp usage ([4f60632](https://github.com/planetaryescape/blah.chat/commit/4f60632c0cf0f1fc775e21ecee60aa8fd472cd73))
+* close Phase 4 BYOD gap and extend BYOK to OpenRouter ([ed6d5a3](https://github.com/planetaryescape/blah.chat/commit/ed6d5a38390c9fb9b71083ef6a3df744b6853fe8))
+* **error-boundary:** add root and (auth) error.tsx ([0596e32](https://github.com/planetaryescape/blah.chat/commit/0596e32a8cafe1547053148d340a7e5cecacda29))
+* **generation:** add internal endpoint for durable processing ([f633eeb](https://github.com/planetaryescape/blah.chat/commit/f633eeb24492cc033aef394e63967ac9d9215122))
+* **generation:** createRequest returns existing bundle for duplicate clientMessageId ([df95a47](https://github.com/planetaryescape/blah.chat/commit/df95a4753ef39d31525de1f5eba158cce1d82e12))
+* **generation:** write usage_records with calculated cost on completion ([8969982](https://github.com/planetaryescape/blah.chat/commit/8969982472582521fc32db0b19971502032e71f1))
+* **health:** per-component status + smoke tolerates the rollover ([fa81adb](https://github.com/planetaryescape/blah.chat/commit/fa81adb86e211eedb3143865c43d542089fad7d1))
+* **jobs:** processGenerationTask drives generation via internal endpoint ([7f7bc55](https://github.com/planetaryescape/blah.chat/commit/7f7bc55afac9bf8393e4b9d769fa455e13e9058e))
+* **jobs:** recoverStuckGenerationsTask cron re-enqueues stale requests ([8c1e554](https://github.com/planetaryescape/blah.chat/commit/8c1e5547e08aa91f19febf0c2b4852dfa8c1d876))
+* **messages:** partial unique index on (conversation_id, client_message_id) ([861c7dc](https://github.com/planetaryescape/blah.chat/commit/861c7dce4d4f89de8a93f6abec82f02d348cb75f))
+
+
+### Bug Fixes
+
+* **chat-input:** keep send button disabled until the mutation resolves ([ef041b4](https://github.com/planetaryescape/blah.chat/commit/ef041b4dd957ea2b350082dd4ff92bffdb16de83))
+* **db:** regenerate 0018 migration via drizzle-kit so journal stays in sync ([26236a9](https://github.com/planetaryescape/blah.chat/commit/26236a919a0b6015dd934243ec94e92f6d8def3f))
+* **generation:** atomic claim prevents duplicate processing on race ([6ec6596](https://github.com/planetaryescape/blah.chat/commit/6ec6596c5b282f6528e7878232b8ce493cb3d05e))
+* **generation:** make service.process idempotent for terminal status ([7091188](https://github.com/planetaryescape/blah.chat/commit/709118859df11c846f01960d86c0efd525d8d10b))
+* **model-picker:** responsive layout fits mobile viewports ([81fa066](https://github.com/planetaryescape/blah.chat/commit/81fa066a1038673954dc9b2ed8fc4007b67bbdf4))
+* **onboarding:** hard-fail save errors and surface them inline with retry ([24d85ea](https://github.com/planetaryescape/blah.chat/commit/24d85ea93969a8729d134f1d856026aa176250db))
+
 ## [1.39.0](https://github.com/planetaryescape/blah.chat/compare/v1.38.0...v1.39.0) (2026-05-07)
 
 

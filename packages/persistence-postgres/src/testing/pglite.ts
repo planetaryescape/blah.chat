@@ -664,6 +664,26 @@ CREATE TABLE notifications (
 );
 CREATE INDEX notifications_by_user_created ON notifications (user_id, created_at);
 CREATE INDEX notifications_by_dedup ON notifications (user_id, type, dedup_key) WHERE dedup_key IS NOT NULL;
+
+CREATE TABLE byod_neon_configs (
+  id text PRIMARY KEY,
+  user_id text NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  encrypted_connection_string text NOT NULL,
+  encryption_iv text NOT NULL,
+  auth_tag text NOT NULL,
+  neon_project_id text,
+  connection_status text NOT NULL DEFAULT 'pending',
+  connection_error text,
+  last_health_check bigint,
+  health_latency_ms bigint,
+  consecutive_failures bigint NOT NULL DEFAULT 0,
+  schema_version bigint NOT NULL DEFAULT 0,
+  migration_status text NOT NULL DEFAULT 'pending',
+  migration_error text,
+  last_migration_at bigint,
+  created_at bigint NOT NULL,
+  updated_at bigint NOT NULL
+);
 `;
 
 export async function createTestPersistenceDb() {

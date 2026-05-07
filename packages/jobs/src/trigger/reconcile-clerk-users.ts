@@ -41,24 +41,31 @@ export interface ReconcileResult {
   errors: number;
 }
 
-function readErrorStatus(err: unknown): number | undefined {
-  if (typeof err !== "object" || err === null) return undefined;
-  const status = (err as { status?: unknown }).status;
-  return typeof status === "number" ? status : undefined;
+type ClerkErrorShape = { status?: unknown; errors?: unknown };
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (value === null) return null;
+  if (typeof value !== "object") return null;
+  return value as Record<string, unknown>;
 }
 
-function readErrorCodes(err: unknown): string[] {
-  if (typeof err !== "object" || err === null) return [];
-  const errors = (err as { errors?: Array<{ code?: unknown }> }).errors;
-  if (!Array.isArray(errors)) return [];
-  return errors
-    .map((e) => (typeof e?.code === "string" ? e.code : null))
-    .filter((c): c is string => c !== null);
+function hasNotFoundStatus(err: ClerkErrorShape): boolean {
+  return err.status === 404;
+}
+
+function hasNotFoundCode(err: ClerkErrorShape): boolean {
+  if (!Array.isArray(err.errors)) return false;
+  for (const item of err.errors) {
+    const obj = asObject(item);
+    if (obj && obj.code === "resource_not_found") return true;
+  }
+  return false;
 }
 
 function isClerkNotFound(err: unknown): boolean {
-  if (readErrorStatus(err) === 404) return true;
-  return readErrorCodes(err).includes("resource_not_found");
+  const obj = asObject(err);
+  if (!obj) return false;
+  return hasNotFoundStatus(obj) || hasNotFoundCode(obj);
 }
 
 function readEmail(user: ClerkUserShape): string {

@@ -4,6 +4,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const process = vi.fn();
+const { enqueueProcessing } = vi.hoisted(() => ({
+  enqueueProcessing: vi.fn().mockResolvedValue(undefined),
+}));
 
 // 1. Mocks MUST be defined before imports
 vi.mock("@/lib/api/dal/messages", () => ({
@@ -50,6 +53,7 @@ vi.mock("@/lib/generation-v2/runtime", () => ({
   getGenerationV2Service: () => ({
     process,
   }),
+  getEnqueueGenerationProcessing: () => enqueueProcessing,
 }));
 
 vi.mock("next/server", async () => {

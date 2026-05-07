@@ -50,6 +50,9 @@ vi.mock("@/lib/generation-v2/runtime", () => ({
     streamToSse: streamToSseMock,
     repository: createGenerationV2Repository(db),
   }),
+  getEnqueueGenerationProcessing: () => async (requestId: string) => {
+    await processMock(requestId);
+  },
 }));
 
 vi.mock("@/lib/logger", () => ({

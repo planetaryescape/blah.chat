@@ -27,8 +27,11 @@ vi.mock("next/server", async () => {
   };
 });
 
+const enqueueProcessing = vi.fn();
+
 vi.mock("@/lib/generation-v2/runtime", () => ({
   getGenerationV2Service: vi.fn(() => service),
+  getEnqueueGenerationProcessing: vi.fn(() => enqueueProcessing),
 }));
 
 vi.mock("@/lib/generation-v2/clerk", () => ({
@@ -60,7 +63,7 @@ describe("/api/v1/generations", () => {
     vi.clearAllMocks();
   });
 
-  it("creates a generation request and schedules processing", async () => {
+  it("creates a generation request and enqueues durable processing", async () => {
     service.start.mockResolvedValueOnce({
       requestId: "req_1",
       conversationId: "conv_1",
@@ -68,7 +71,7 @@ describe("/api/v1/generations", () => {
       assistantMessageIds: ["msg_assistant"],
       modelIds: ["openai:gpt-5-mini"],
     });
-    service.process.mockResolvedValueOnce("complete");
+    enqueueProcessing.mockResolvedValueOnce(undefined);
 
     const { POST } = await import("../generations/route");
     const response = await POST(
@@ -92,7 +95,8 @@ describe("/api/v1/generations", () => {
     }>(json);
     expect(data.requestId).toBe("req_1");
     expect(data.streamUrl).toBe("/api/v1/generations/req_1/stream");
-    expect(service.process).toHaveBeenCalledWith("req_1");
+    expect(enqueueProcessing).toHaveBeenCalledWith("req_1");
+    expect(service.process).not.toHaveBeenCalled();
   });
 
   it("streams generation events over SSE", async () => {

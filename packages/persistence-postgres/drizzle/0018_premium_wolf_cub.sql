@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "messages_conversation_client_message_unique" ON "messages" USING btree ("conversation_id","client_message_id") WHERE "messages"."client_message_id" IS NOT NULL;

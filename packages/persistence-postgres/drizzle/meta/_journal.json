@@ -127,6 +127,13 @@
       "when": 1778105232313,
       "tag": "0017_add_clerk_synced_at",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1778156030607,
+      "tag": "0018_premium_wolf_cub",
+      "breakpoints": true
     }
   ]
 }

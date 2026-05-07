@@ -116,4 +116,73 @@ describe("GenerationV2Service usage_records writes", () => {
     expect(record.cost).toBeCloseTo(expectedCost, 8);
     expect(record.isByok).toBe(false);
   });
+
+  it("does NOT write a usage_records row when the provider throws mid-stream", async () => {
+    const failingProvider: GenerationProvider = {
+      async *streamText() {
+        yield "Hi";
+        throw new Error("provider blew up");
+      },
+    };
+    const { service, db, conversation } = await setupService(failingProvider);
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_cost",
+        email: "cost@test.com",
+        name: "Cost Tester",
+      },
+      conversationId: conversation.id,
+      content: "Say hi",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    await service.process(started.requestId);
+
+    const records = await db.query.usageRecords.findMany({
+      where: eq(usageRecords.conversationId, conversation.id),
+    });
+    expect(records).toHaveLength(0);
+  });
+
+  it("includes cached and reasoning tokens in cost when provider reports them", async () => {
+    // openai:gpt-5-mini pricing: input $0.25, output $2.0, cached $0.025 per 1M tokens.
+    // Reasoning rate is unset for this model, so reasoning contribution is 0.
+    // 1000 input + 500 output + 200 cached = 0.00025 + 0.001 + 0.000005 = 0.001255 USD.
+    const expectedCost = 0.001255;
+
+    const provider = new UsageAwareProvider(
+      { "openai:gpt-5-mini": ["Hello", " world"] },
+      {
+        "openai:gpt-5-mini": {
+          inputTokens: 1000,
+          outputTokens: 500,
+          totalTokens: 1500,
+          cachedInputTokens: 200,
+          reasoningTokens: 100,
+        },
+      },
+    );
+    const { service, db, conversation } = await setupService(provider);
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_cost",
+        email: "cost@test.com",
+        name: "Cost Tester",
+      },
+      conversationId: conversation.id,
+      content: "Say hi",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    await service.process(started.requestId);
+
+    const records = await db.query.usageRecords.findMany({
+      where: eq(usageRecords.conversationId, conversation.id),
+    });
+    expect(records).toHaveLength(1);
+    expect(records[0]!.cost).toBeCloseTo(expectedCost, 8);
+    expect(records[0]!.reasoningTokens).toBe(100);
+  });
 });

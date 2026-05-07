@@ -38,6 +38,8 @@ export function clearByodCache() {
 
 export interface ByodResolverDeps {
   decrypt: (encrypted: string, iv: string, authTag: string) => Promise<string>;
+  /** Override the underlying db factory — primarily for tests. */
+  createUserDb?: (connectionString: string) => PersistenceDb;
 }
 
 /**
@@ -71,7 +73,8 @@ export async function resolveUserDatabase(
     config.authTag,
   );
 
-  const userDb = createNeonDatabase(connectionString);
+  const factory = deps.createUserDb ?? createNeonDatabase;
+  const userDb = factory(connectionString);
 
   // Cache with eviction
   evictExpired();

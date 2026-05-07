@@ -146,9 +146,13 @@ You will need to configure the following API keys in `.env.local`:
 
 **Core Services**
 
-- **Vercel AI Gateway** (`AI_GATEWAY_API_KEY`): Required for all AI model inference.
-- **Clerk** (`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `CLERK_ISSUER_DOMAIN`): For user authentication and Convex integration.
-- **Convex** (`NEXT_PUBLIC_CONVEX_URL`, `CONVEX_DEPLOYMENT`): Backend database and functions (configured automatically via `bunx convex dev`).
+- **Vercel AI Gateway** (`AI_GATEWAY_API_KEY`): Required for all AI model inference (or every user must enable BYOK).
+- **Clerk** (`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `CLERK_ISSUER_DOMAIN`, `CLERK_WEBHOOK_SECRET`): User authentication and webhook user-sync.
+- **Postgres** (`DATABASE_URL`): Primary database — Neon recommended in production.
+- **Upstash Redis** (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`): Live generation event log and cache.
+- **Cloudflare R2** (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`): Attachment + transcription storage.
+- **Trigger.dev** (`TRIGGER_SECRET_KEY`, `TRIGGER_API_URL`, `INTERNAL_TASK_SECRET`, `INTERNAL_TASK_BASE_URL`): Durable generation workers and recovery cron.
+- **Encryption** (`BYOD_ENCRYPTION_KEY`): Encrypts user BYOK provider keys and BYOD connection strings — long-lived, do not rotate without re-encrypting stored credentials.
 
 **AI Tools & Integrations**
 
@@ -158,15 +162,12 @@ You will need to configure the following API keys in `.env.local`:
 - **Firecrawl** (`FIRECRAWL_API_KEY`): Optional alternative for advanced web scraping/crawling.
 - **OpenAI** (`OPENAI_API_KEY`): Needed for audio transcription (Whisper) if not using Groq.
 
-### 2. Convex Environment Variables
+### 2. Production environment checklist
 
-The backup backend (Convex) requires these variables to be configured in the [Convex Dashboard](https://dashboard.convex.dev):
-
-- **`AI_GATEWAY_API_KEY`**: Vercel AI Gateway key for model access within Convex actions.
-- **`CLERK_ISSUER_DOMAIN`**: Your Clerk Frontend API URL (e.g., `your-app.clerk.accounts.dev`).
-- **`POSTHOG_API_KEY`**: API key for server-side analytics tracking.
-
-> **Tip**: You can also set these via the CLI: `bunx convex env set AI_GATEWAY_API_KEY your_key_here`
+See [`docs/operations/production-env-checklist.md`](./docs/operations/production-env-checklist.md)
+for the canonical list derived from `parsePersistenceEnv`. Before promoting
+to production, every "Required" entry must be set and `/api/v1/health` must
+return `200` with `database`, `redis`, `r2`, and `trigger` all `"ok"`.
 
 ### 3. Clerk Webhook Setup
 

@@ -1,23 +1,38 @@
 # Self-Hosting Guide
 
-blah.chat can be self-hosted with your own Convex and Clerk accounts. This gives you full control over your data while maintaining the resilient, real-time architecture.
+blah.chat can be self-hosted with your own infrastructure accounts. This
+gives you full control over your data while keeping the resilient
+generation architecture intact.
 
 ## Why Self-Host?
 
-- **Data ownership**: Your conversations, preferences, and usage data stay in your accounts
+- **Data ownership**: Your conversations, preferences, and usage data stay
+  in your accounts
 - **Cost control**: Pay only for infrastructure (no per-user subscription)
 - **Customization**: Modify features, add models, adjust limits
 - **Privacy**: No data shared with blah.chat cloud service
 
 ## Architecture Overview
 
-blah.chat uses a "batteries-included" architecture:
-- **Frontend**: Next.js 15 (deploy anywhere)
-- **Backend**: Convex (managed real-time database + serverless functions)
-- **Auth**: Clerk (managed authentication)
-- **AI**: Vercel AI Gateway (single key for 10+ providers)
+The current production stack:
 
-**Why external services?** Running PostgreSQL + Redis + Auth server + AI provider management is complex. Convex and Clerk offer generous free tiers and handle the hard parts (real-time sync, auth flows, scaling).
+- **Frontend**: Next.js 15 (Vercel-hosted or self-deploy)
+- **Database**: Postgres via Neon (`DATABASE_URL`) — Drizzle for migrations
+- **Cache + live event log**: Upstash Redis (`UPSTASH_REDIS_*`)
+- **Object storage**: Cloudflare R2 (`R2_*`) for attachments and transcripts
+- **Background jobs**: Trigger.dev (`TRIGGER_*`) for durable generation,
+  embeddings, and recovery crons
+- **Auth**: Clerk (`CLERK_*`)
+- **AI**: Vercel AI Gateway by default (`AI_GATEWAY_API_KEY`); per-user BYOK
+  is supported and bypasses the server gateway key when active
+- **Encryption**: `BYOD_ENCRYPTION_KEY` encrypts BYOK provider keys and
+  BYOD Neon connection strings at rest
+
+> The `packages/backend/convex` directory is legacy and no longer the
+> primary backend. New deployments do not need a Convex project.
+
+The full required-env list lives at
+[`docs/operations/production-env-checklist.md`](./docs/operations/production-env-checklist.md).
 
 ## Quick Deploy (10 minutes)
 

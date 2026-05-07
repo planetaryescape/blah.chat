@@ -8,6 +8,7 @@ Core system design patterns and architectural decisions.
 - [Resilient Generation](./resilient-generation.md) - Server-side streaming that survives page refresh
 - [Schema Normalization](./schema-normalization.md) - Database design patterns and migration guide
 - [TypeScript Workarounds](./typescript-workarounds.md) - Solutions for Convex type depth issues
+- [v1 Launch Readiness Assessment](./v1-launch-readiness-assessment.md) - Current blockers and launch gate for v1
 
 ## Key Principles
 

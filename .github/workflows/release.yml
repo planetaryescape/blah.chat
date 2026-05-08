@@ -41,6 +41,7 @@ jobs:
         with:
           name: vercel-output
           path: .vercel/output
+          include-hidden-files: true
           retention-days: 7
 
   migrate-database:

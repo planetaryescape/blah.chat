@@ -7,10 +7,9 @@
  * regressions on every PR without needing a test user or burning LLM
  * dollars.
  *
- * The richer component-level health-endpoint assertions live in the
- * deeper-probe test below. They run after this PR's new health endpoint
- * (per-component status with `{ status, message }` shape) is live in
- * prod — until then they tolerate the legacy fail-fast endpoint.
+ * Component-level dependency readiness is reported as diagnostic output
+ * only. This required PR gate stays liveness-only so unrelated Redis/R2
+ * incidents do not block code review.
  *
  * Hard-fails when SMOKE_BASE_URL is missing so the gate cannot silently
  * skip in CI. Full chat-loop verification (send → refresh → persistence)
@@ -57,27 +56,20 @@ test("smoke: /api/v1/health route is reachable", async ({ request }) => {
     error?: unknown;
   };
 
-  // New endpoint shape: data.persistence.<component>.status === "ok"
+  // New endpoint shape: data.persistence.<component>.status.
   // Old endpoint shape: error string, no persistence detail.
-  // We assert per-component only when the new shape is present.
+  // Keep this gate liveness-only; dependency readiness belongs in alerting.
   const persistence = body.data?.persistence;
   if (persistence?.database && typeof persistence.database === "object") {
-    expect(
-      persistence.database.status,
-      `database: ${persistence.database.message ?? "no message"}`,
-    ).toBe("ok");
-    expect(
-      persistence.redis?.status,
-      `redis: ${persistence.redis?.message ?? "no message"}`,
-    ).toBe("ok");
-    expect(
-      persistence.r2?.status,
-      `r2: ${persistence.r2?.message ?? "no message"}`,
-    ).toBe("ok");
-    expect(
-      persistence.trigger?.status,
-      `trigger: ${persistence.trigger?.message ?? "no message"}`,
-    ).toBe("ok");
+    const degraded = Object.entries(persistence)
+      .filter(([, component]) => component?.status !== "ok")
+      .map(
+        ([name, component]) => `${name}: ${component?.message ?? "no message"}`,
+      );
+
+    if (degraded.length > 0) {
+      console.warn(`health endpoint degraded: ${degraded.join("; ")}`);
+    }
   }
 });
 

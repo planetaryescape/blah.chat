@@ -40,7 +40,7 @@ Fixes #(issue number)
 
 <!-- Check all that apply -->
 - [ ] Code follows project style (ran `bun run lint` and `bun run format`)
-- [ ] TypeScript compiles (`bunx convex dev --once --typecheck=enable`)
+- [ ] TypeScript compiles (`bun run typecheck`)
 - [ ] Tested locally and works as expected
 - [ ] Updated relevant documentation (README, SELF_HOSTING, etc.)
 - [ ] Added/updated tests (if applicable)

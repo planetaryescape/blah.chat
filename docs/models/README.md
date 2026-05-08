@@ -1,13 +1,13 @@
 # Database-Backed Model & Auto-Router Management
 
-**Status**: Implementation Guide
+**Status**: Historical implementation guide
 **Last Updated**: 2026-01-26
 **Complexity**: High (production migration)
 **Estimated Time**: ~4 weeks
 
 ## Overview
 
-Self-contained implementation guides for migrating from hardcoded model config and auto-router parameters to database-backed dynamic management.
+Self-contained implementation guides for the earlier Convex-backed model-management plan. The current runtime uses static model definitions from `packages/ai/src/models.ts`; treat these phase docs as historical unless you are intentionally reviving database-backed model management.
 
 ### Current Problems
 

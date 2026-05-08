@@ -1,7 +1,9 @@
 # Bring Your Own Database (BYOD)
 
-**Status**: Production
+**Status**: Legacy Convex design; current BYOD is gated
 **Last Updated**: December 2025
+
+> Current runtime note: blah.chat now runs on Postgres, Redis, R2-compatible storage, Clerk, and Trigger.dev. The Convex BYOD design below is historical. Current BYOD enablement is gated behind `BYOD_CHAT_ROUTING_ENABLED` until per-user Postgres chat routing is complete; see [`docs/operations/production-env-checklist.md`](../operations/production-env-checklist.md).
 
 ---
 

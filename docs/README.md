@@ -1,7 +1,7 @@
 # blah.chat Documentation
 
 ## Quick Links
-- [spec.md](./spec.md) - Master specification (schema, features, requirements)
+- [spec.md](./spec.md) - Historical product spec; verify current architecture against code and self-hosting docs
 - [CLAUDE.md](../CLAUDE.md) - AI assistant instructions
 
 ---
@@ -9,10 +9,10 @@
 ## Architecture
 Core system design and patterns.
 
-- [API Hybrid Architecture](./architecture/api-hybrid.md) - REST + Convex dual transport
+- [API Hybrid Architecture](./architecture/api-hybrid.md) - Historical transport notes from the Convex-to-REST migration
 - [Resilient Generation](./architecture/resilient-generation.md) - Server-side streaming that survives refresh
 - [Schema Normalization](./architecture/schema-normalization.md) - Database design patterns
-- [TypeScript Workarounds](./architecture/typescript-workarounds.md) - Convex type depth solutions
+- [Postgres Rewrite](./architecture/postgres-rewrite/README.md) - Current Postgres/R2/Trigger architecture notes
 
 ---
 
@@ -24,7 +24,7 @@ Feature-specific documentation.
 - [Notes](./features/notes.md) - Markdown note-taking system
 - [Shared Conversations](./features/shared-conversations.md) - Collaboration feature
 - [Smart Manager](./features/smart-manager.md) - Task extraction from transcripts
-- [BYOD](./features/byod.md) - Bring Your Own Database
+- [BYOD](./features/byod.md) - Bring Your Own Database status and legacy design notes
 - [Tiers](./features/tiers.md) - User tier and pro model access
 - [Tool Calling](./features/tool-calling.md) - LLM tool execution
 - [Memory System](./features/memory-system.md) - RAG memory
@@ -56,7 +56,7 @@ React Native app implementation.
 ## Models
 Database-backed model management.
 
-- [Overview](./models/README.md) - Migration from hardcoded to DB
+- [Overview](./models/README.md) - Historical model-management migration plan
 - [Phase 1-6](./models/) - Implementation guides
 
 ---

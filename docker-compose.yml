@@ -1,0 +1,153 @@
+name: blah-chat
+
+services:
+  web:
+    image: oven/bun:1.3.5-alpine
+    init: true
+    working_dir: /workspace
+    command: sh docker/web-entrypoint.sh
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    env_file:
+      - ${BLAH_CHAT_ENV_FILE:-./docker/env.example}
+    environment:
+      BLAH_CHAT_MODE: ${BLAH_CHAT_MODE:-dev}
+      DATABASE_URL: postgres://blah:blah@postgres:5432/blah_chat
+      INTERNAL_TASK_BASE_URL: http://web:3000
+      R2_ACCESS_KEY_ID: minioadmin
+      R2_ACCOUNT_ID: local
+      R2_BUCKET: blah-chat-dev
+      R2_ENDPOINT: http://minio.localhost:59000
+      R2_FORCE_PATH_STYLE: "true"
+      R2_PUBLIC_BASE_URL: http://minio.localhost:59000
+      R2_REGION: us-east-1
+      R2_SECRET_ACCESS_KEY: minioadmin
+      UPSTASH_REDIS_REST_TOKEN: dev-token
+      UPSTASH_REDIS_REST_URL: http://redis-http:80
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - .:/workspace
+      - bun_cache:/root/.bun/install/cache
+      - node_modules:/workspace/node_modules
+      - web_next:/workspace/apps/web/.next
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis-http:
+        condition: service_started
+      minio-create-bucket:
+        condition: service_completed_successfully
+
+  jobs:
+    image: oven/bun:1.3.5-alpine
+    profiles: ["jobs"]
+    init: true
+    working_dir: /workspace
+    command: sh -c "bun install --frozen-lockfile && bun --filter=@blah-chat/jobs run dev"
+    env_file:
+      - ${BLAH_CHAT_ENV_FILE:-./docker/env.example}
+    environment:
+      DATABASE_URL: postgres://blah:blah@postgres:5432/blah_chat
+      INTERNAL_TASK_BASE_URL: http://web:3000
+      R2_ACCESS_KEY_ID: minioadmin
+      R2_ACCOUNT_ID: local
+      R2_BUCKET: blah-chat-dev
+      R2_ENDPOINT: http://minio.localhost:59000
+      R2_FORCE_PATH_STYLE: "true"
+      R2_REGION: us-east-1
+      R2_SECRET_ACCESS_KEY: minioadmin
+      UPSTASH_REDIS_REST_TOKEN: dev-token
+      UPSTASH_REDIS_REST_URL: http://redis-http:80
+    volumes:
+      - .:/workspace
+      - bun_cache:/root/.bun/install/cache
+      - jobs_node_modules:/workspace/node_modules
+    depends_on:
+      web:
+        condition: service_started
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-55432}:5432"
+    environment:
+      POSTGRES_USER: blah
+      POSTGRES_PASSWORD: blah
+      POSTGRES_DB: blah_chat
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blah -d blah_chat"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-56379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis-http:
+    image: hiett/serverless-redis-http:latest
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "${REDIS_HTTP_PORT:-58079}:80"
+    environment:
+      SRH_MODE: env
+      SRH_TOKEN: dev-token
+      SRH_CONNECTION_STRING: redis://redis:6379
+
+  minio:
+    image: minio/minio:RELEASE.2025-02-28T09-55-16Z
+    restart: unless-stopped
+    ports:
+      - "${MINIO_PORT:-59000}:59000"
+      - "${MINIO_CONSOLE_PORT:-59001}:59001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server --address ":59000" /data --console-address ":59001"
+    volumes:
+      - minio_data:/data
+    networks:
+      default:
+        aliases:
+          - minio.localhost
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:59000/minio/health/live >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio-create-bucket:
+    image: minio/mc:RELEASE.2025-02-21T16-00-46Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      until /usr/bin/mc alias set local http://minio:59000 minioadmin minioadmin; do sleep 1; done &&
+      /usr/bin/mc mb --ignore-existing local/blah-chat-dev
+      "
+    restart: "no"
+
+volumes:
+  bun_cache:
+  jobs_node_modules:
+  minio_data:
+  node_modules:
+  postgres_data:
+  redis_data:
+  web_next:

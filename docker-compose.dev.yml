@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: blah-chat-postgres
     restart: unless-stopped
     ports:
@@ -50,16 +50,16 @@ services:
     container_name: blah-chat-minio
     restart: unless-stopped
     ports:
-      - "59000:9000"
-      - "59001:9001"
+      - "59000:59000"
+      - "59001:59001"
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
-    command: server /data --console-address ":9001"
+    command: server --address ":59000" /data --console-address ":59001"
     volumes:
       - minio_data:/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/minio/health/live >/dev/null"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:59000/minio/health/live >/dev/null"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -72,7 +72,7 @@ services:
         condition: service_healthy
     entrypoint: >
       /bin/sh -c "
-      until /usr/bin/mc alias set local http://minio:9000 minioadmin minioadmin; do sleep 1; done &&
+      until /usr/bin/mc alias set local http://minio:59000 minioadmin minioadmin; do sleep 1; done &&
       /usr/bin/mc mb --ignore-existing local/blah-chat-dev
       "
     restart: "no"

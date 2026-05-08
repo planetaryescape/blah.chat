@@ -3,7 +3,7 @@
 Personal AI chat assistant with access to all models (OpenAI, Gemini, Claude, xAI, Perplexity, and more), mid-chat model switching, conversation branching, and transparent cost tracking.
 
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL%203.0-blue.svg)](./LICENSE)
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/bhekanik/blah.chat&integration-ids=oac_VqOgBHqhEoFTPzGZ8ZzE1Qsa,oac_7yeSwUoVR5no3SlA9WM6oZ7l)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/bhekanik/blah.chat)
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/blah-chat)
 
 ## ✨ Features
@@ -16,7 +16,7 @@ Personal AI chat assistant with access to all models (OpenAI, Gemini, Claude, xA
 - **Voice Input**: Audio transcription with Whisper (OpenAI/Groq)
 - **AI Tools**: Web search (Tavily), code execution (E2B), URL parsing (Jina)
 - **Cost Tracking**: Per-message token usage and cost breakdown
-- **Real-Time Collaboration**: Multi-user projects with live sync (via Convex)
+- **Shared Workspaces**: Multi-user projects, shared conversations, and project notes
 
 ## 💻 CLI
 
@@ -94,21 +94,33 @@ See the [Self-Hosting Guide](SELF_HOSTING.md) for full environment variable setu
 
 ## 🚀 Quick Deploy
 
-### Vercel (Recommended - 10 minutes)
+### Docker Compose
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/bhekanik/blah.chat&integration-ids=oac_VqOgBHqhEoFTPzGZ8ZzE1Qsa,oac_7yeSwUoVR5no3SlA9WM6oZ7l)
+Run the web app plus Postgres, Redis, Redis HTTP, and MinIO locally:
 
-Auto-configures Convex and Clerk integrations. Just add your `AI_GATEWAY_API_KEY`.
+```bash
+cp docker/env.example .env.docker
+# Edit .env.docker with real Clerk, AI Gateway, and Trigger.dev values.
+BLAH_CHAT_ENV_FILE=.env.docker docker compose up
+```
 
-### Railway (10 minutes)
+See [`docker/README.md`](./docker/README.md) and [`SELF_HOSTING.md`](./SELF_HOSTING.md).
+
+### Vercel
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/bhekanik/blah.chat)
+
+Provision Postgres, Redis, R2-compatible storage, Clerk, and Trigger.dev first, then set the production environment variables from [`docs/operations/production-env-checklist.md`](./docs/operations/production-env-checklist.md).
+
+### Railway
 
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/blah-chat)
 
-Railway auto-detects environment variables and guides you through setup.
+Railway can host the web app, but you still need to provide the same Postgres, Redis, R2-compatible storage, Clerk, and Trigger.dev environment variables.
 
 ### Self-Hosting
 
-For full instructions on self-hosting (including Fly.io, custom VPS, Docker), see [SELF_HOSTING.md](./SELF_HOSTING.md).
+For Docker Compose self-hosting/local dev, see [`docker/README.md`](./docker/README.md). For full instructions on self-hosting, see [SELF_HOSTING.md](./SELF_HOSTING.md).
 
 ## 📄 License
 
@@ -134,15 +146,45 @@ If you modify blah.chat and run it as a network service, AGPL Section 13 require
 
 ## Development Setup
 
-### 1. Environment Variables
+### Option A: Docker Compose
 
-Copy the example environment file:
+This is the cleanest local setup because it runs the app and infrastructure in one compose project:
 
 ```bash
-cp .env.local.example .env.local
+cp docker/env.example .env.docker
+# Edit .env.docker with real external service keys.
+BLAH_CHAT_ENV_FILE=.env.docker docker compose up
 ```
 
-You will need to configure the following API keys in `.env.local`:
+Open [http://localhost:3000](http://localhost:3000).
+
+Run the Trigger.dev worker container when you have Trigger auth configured:
+
+```bash
+BLAH_CHAT_ENV_FILE=.env.docker docker compose --profile jobs up
+```
+
+### Option B: Bun on Host, Infra in Docker
+
+Start dependencies only:
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
+
+Create host env and run the app:
+
+```bash
+cp docker/env.example .env.local
+# Edit .env.local with real external service keys.
+bun install
+bun run db:migrate
+bun dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+### Required Services
 
 **Core Services**
 
@@ -162,16 +204,16 @@ You will need to configure the following API keys in `.env.local`:
 - **Firecrawl** (`FIRECRAWL_API_KEY`): Optional alternative for advanced web scraping/crawling.
 - **OpenAI** (`OPENAI_API_KEY`): Needed for audio transcription (Whisper) if not using Groq.
 
-### 2. Production environment checklist
+### Production Environment Checklist
 
 See [`docs/operations/production-env-checklist.md`](./docs/operations/production-env-checklist.md)
 for the canonical list derived from `parsePersistenceEnv`. Before promoting
 to production, every "Required" entry must be set and `/api/v1/health` must
 return `200` with `database`, `redis`, `r2`, and `trigger` all `"ok"`.
 
-### 3. Clerk Webhook Setup
+### Clerk Webhook Setup
 
-Clerk webhooks sync user data to Convex. **Without this, users will hit an infinite redirect loop on their first sign-in.**
+Clerk webhooks sync user data into Postgres. Without this, first sign-in may fail until the app can fetch and create the user from Clerk.
 
 #### Local Development (Tunnel Required)
 
@@ -193,7 +235,7 @@ Since Clerk needs to reach your local server, set up a tunnel:
    - Subscribe to events: `user.created`, `user.updated`, `user.deleted`
    - Copy the **Signing Secret**
 
-3. **Add to `.env.local`**:
+3. **Add to your env file (`.env.docker` or `.env.local`)**:
 
    ```bash
    CLERK_WEBHOOK_SECRET=whsec_your_signing_secret_here
@@ -210,93 +252,21 @@ Since Clerk needs to reach your local server, set up a tunnel:
 >
 > Set this up once in the Clerk dashboard and you're done.
 
-### 4. Clerk JWT Template Setup
-
-**Required for Convex integration**: Configure Clerk to generate JWTs for Convex.
-
-1. **Create JWT Template**:
-   - Go to [Clerk Dashboard](https://dashboard.clerk.com) → **JWT templates**
-   - Click **New template** → Select **Convex**
-   - Copy the **Issuer** URL (this matches your `CLERK_FRONTEND_API_URL`)
-
-2. **Verify Claims** (pre-configured for Convex):
-   - `aud`: Convex audience (auto-set)
-   - `name`: User's full name from `user.full_name`
-   - Add any additional claims as needed using [shortcodes](https://clerk.com/docs/guides/sessions/jwt-templates#shortcodes)
-
-3. **Configure Convex Auth**:
-   Your `convex/auth.config.ts` should reference the environment variable:
-   ```ts
-   export default {
-     providers: [
-       {
-         domain: process.env.CLERK_ISSUER_DOMAIN,
-         applicationID: "convex",
-       },
-     ],
-   };
-   ```
-
-**Note**: `CLERK_ISSUER_DOMAIN` should be set without protocol (e.g., `your-app-name.clerk.accounts.dev`, not `https://your-app-name.clerk.accounts.dev`).
-
-**Reference**: For complete Convex + Clerk integration guide, see [Clerk Documentation](https://clerk.com/docs/guides/development/integrations/databases/convex).
-
-**Note**: The `applicationID: 'convex'` is correct - it's a constant identifier, not your deployment name.
-
-### 5. Admin Access Setup (Optional)
+### Admin Access Setup (Optional)
 
 To access the admin dashboard (`/admin`):
 
-1. **Set yourself as admin** in Convex Dashboard → Data → `users` table → set `isAdmin: true`
-2. **Sync to Clerk**:
-   ```bash
-   bun run scripts/sync-admin-to-clerk.ts
-   ```
-3. **Sign out and back in** to refresh your session token.
+1. In Clerk Dashboard, set your user's `publicMetadata.isAdmin` to `true`.
+2. Sign out and back in to refresh your session token.
 
 Future admin changes via `/admin/users` auto-sync to Clerk.
 
-### 6. Seed the Database with Models
+### Health Check
 
-**Required for new deployments**: The models table must be seeded before the app can function.
-
-Run the seed command via Convex dashboard or CLI:
+After startup, check:
 
 ```bash
-# Via Convex CLI (recommended)
-bunx convex run models/seed:seedModels
-
-# Or with clear existing (resets all model data)
-bunx convex run models/seed:seedModels '{"clearExisting": true}'
+curl http://localhost:3000/api/v1/health
 ```
 
-This inserts:
-- 40+ AI models (GPT-5, Claude, Gemini, etc.)
-- Model profiles for auto-router scoring
-- Default auto-router configuration
-
-**When to seed:**
-- Initial deployment (required)
-- After `bunx convex deploy --reset`
-- When new models are added to `packages/backend/convex/models/seed.ts`
-
-### 7. Run Locally
-
-1. Install dependencies:
-
-   ```bash
-   bun install
-   ```
-
-2. Start the Convex backend (in a separate terminal):
-
-   ```bash
-   bunx convex dev
-   ```
-
-3. Start the Next.js development server:
-   ```bash
-   bun dev
-   ```
-
-Open [http://localhost:3000](http://localhost:3000) to see the app.
+For full functionality, `database`, `redis`, `r2`, and `trigger` should all report `ok`.

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.40.2](https://github.com/planetaryescape/blah.chat/compare/v1.40.1...v1.40.2) (2026-05-08)
+
+
+### Bug Fixes
+
+* trace pg runtime dependency ([b36dcb9](https://github.com/planetaryescape/blah.chat/commit/b36dcb9ede834caa605d2a4a41118e96bcca5633))
+
 ## [1.40.1](https://github.com/planetaryescape/blah.chat/compare/v1.40.0...v1.40.1) (2026-05-08)
 
 

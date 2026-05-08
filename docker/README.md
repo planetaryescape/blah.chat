@@ -8,7 +8,7 @@ cp docker/env.example .env.docker
 BLAH_CHAT_ENV_FILE=.env.docker docker compose up
 ```
 
-Open http://localhost:3000.
+Open <http://localhost:3000>.
 
 The default mode runs `next dev` inside Docker. For a production-like local run:
 

@@ -45,7 +45,7 @@ Run the full local stack:
 BLAH_CHAT_ENV_FILE=.env.docker docker compose up
 ```
 
-Open http://localhost:3000.
+Open <http://localhost:3000>.
 
 For a production-like run from the same checkout:
 
@@ -58,12 +58,12 @@ migrations, then starts Next.js.
 
 ## Included Services
 
-- Web app: http://localhost:3000
+- Web app: <http://localhost:3000>
 - Postgres: `localhost:55432`
 - Redis: `localhost:56379`
 - Upstash-compatible Redis HTTP: `localhost:58079`
 - MinIO S3 API: `localhost:59000`
-- MinIO console: http://localhost:59001
+- MinIO console: <http://localhost:59001>
 
 Compose overrides the infrastructure URLs inside the web container. The values
 in `docker/env.example` use host URLs so the same file can also seed a host-run

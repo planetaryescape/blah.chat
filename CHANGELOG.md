@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.40.1](https://github.com/planetaryescape/blah.chat/compare/v1.40.0...v1.40.1) (2026-05-08)
+
+
+### Bug Fixes
+
+* handle first sign-in account sync fallback ([d8d5ed8](https://github.com/planetaryescape/blah.chat/commit/d8d5ed83a453e929a1feb3b879e294353d0b682d))
+
 ## [1.40.0](https://github.com/planetaryescape/blah.chat/compare/v1.39.0...v1.40.0) (2026-05-07)
 
 

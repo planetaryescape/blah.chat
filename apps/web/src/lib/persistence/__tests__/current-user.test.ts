@@ -121,6 +121,30 @@ describe("ensureCurrentPersistenceUser", () => {
     ).rejects.toBeInstanceOf(UserSyncError);
   });
 
+  it("creates from session claims when Clerk lookup fails on first sync", async () => {
+    getUserMock.mockRejectedValue(
+      new Error("Clerk API temporarily unavailable"),
+    );
+
+    const { ensureCurrentPersistenceUser } = await import("../current-user");
+    const result = await ensureCurrentPersistenceUser("user_claims", {
+      sessionClaims: {
+        email: "Claims@Example.com",
+        name: "Claims User",
+        picture: "https://example.com/claims.png",
+      },
+    });
+
+    expect(result.email).toBe("claims@example.com");
+    expect(result.name).toBe("Claims User");
+    expect(result.imageUrl).toBe("https://example.com/claims.png");
+    expect(result.clerkSyncedAt).toBe(0);
+
+    const persisted =
+      await createUserRepository(testDb).findByClerkId("user_claims");
+    expect(persisted?.email).toBe("claims@example.com");
+  });
+
   it("populates email/name/imageUrl from Clerk on first sync", async () => {
     getUserMock.mockResolvedValue({
       ...baseClerkUser,

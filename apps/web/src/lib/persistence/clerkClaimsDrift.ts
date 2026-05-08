@@ -27,7 +27,39 @@ function asNonEmptyString(value: unknown): string | undefined {
 function pickImageClaim(claims: SessionClaimsLike): string | undefined {
   const direct = asNonEmptyString(claims.imageUrl);
   if (direct) return direct;
-  return asNonEmptyString(claims.picture);
+  return (
+    asNonEmptyString(claims.picture) ??
+    asNonEmptyString(claims.image_url) ??
+    asNonEmptyString(claims.avatar_url)
+  );
+}
+
+function pickEmailClaim(claims: SessionClaimsLike): string | undefined {
+  return (
+    asNonEmptyString(claims.email) ??
+    asNonEmptyString(claims.email_address) ??
+    asNonEmptyString(claims.primary_email_address) ??
+    asNonEmptyString(claims.primaryEmailAddress)
+  );
+}
+
+function pickNameClaim(claims: SessionClaimsLike): string | undefined {
+  const direct =
+    asNonEmptyString(claims.name) ??
+    asNonEmptyString(claims.full_name) ??
+    asNonEmptyString(claims.fullName);
+  if (direct) return direct;
+
+  const first =
+    asNonEmptyString(claims.first_name) ??
+    asNonEmptyString(claims.firstName) ??
+    asNonEmptyString(claims.given_name);
+  const last =
+    asNonEmptyString(claims.last_name) ??
+    asNonEmptyString(claims.lastName) ??
+    asNonEmptyString(claims.family_name);
+  const composed = `${first ?? ""} ${last ?? ""}`.trim();
+  return composed.length > 0 ? composed : undefined;
 }
 
 function compareField(
@@ -70,5 +102,18 @@ export function buildDriftPayload(
     email: drift.email ?? row.email,
     name: drift.name ?? row.name,
     imageUrl: drift.imageUrl ?? fallbackImage,
+  };
+}
+
+export function buildClaimsIdentityPayload(
+  clerkId: string,
+  claims: SessionClaimsLike,
+) {
+  return {
+    clerkId,
+    email: pickEmailClaim(claims) ?? `${clerkId}@clerk.local`,
+    name: pickNameClaim(claims) ?? "Anonymous",
+    imageUrl: pickImageClaim(claims),
+    clerkSyncedAt: 0,
   };
 }

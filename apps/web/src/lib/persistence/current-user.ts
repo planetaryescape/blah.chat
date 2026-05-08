@@ -3,6 +3,7 @@ import { clerkClient, currentUser } from "@clerk/nextjs/server";
 import { after } from "next/server";
 import logger from "@/lib/logger";
 import {
+  buildClaimsIdentityPayload,
   buildDriftPayload,
   type ClaimsDrift,
   claimsDriftFromRow,
@@ -87,11 +88,27 @@ async function readClerkUserForId(
   return (await clerk.users.getUser(expectedClerkId)) as ClerkSdkUser;
 }
 
-async function fetchFromClerkAndUpsert(clerkId: string, repo: UserRepo) {
+async function fetchFromClerkAndUpsert(
+  clerkId: string,
+  repo: UserRepo,
+  claims: SessionClaimsLike | null | undefined,
+) {
   let clerkUser: ClerkSdkUser;
   try {
     clerkUser = await readClerkUserForId(clerkId);
   } catch (err) {
+    if (claims) {
+      logger.warn(
+        { err, clerkId },
+        "Falling back to session claims for initial user sync",
+      );
+      const row = await repo.upsertFromClerk(
+        buildClaimsIdentityPayload(clerkId, claims),
+      );
+      after(() => refreshFromClerkInBackground(repo, row));
+      return row;
+    }
+
     throw new UserSyncError(
       `Could not load Clerk user for clerkId=${clerkId}`,
       err,
@@ -114,7 +131,7 @@ export async function ensureCurrentPersistenceUser(
     return existing;
   }
 
-  return fetchFromClerkAndUpsert(expectedClerkId, repo);
+  return fetchFromClerkAndUpsert(expectedClerkId, repo, options.sessionClaims);
 }
 
 export async function ensurePersistenceUserFromIdentity(input: {

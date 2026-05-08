@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.41.0](https://github.com/planetaryescape/blah.chat/compare/v1.40.3...v1.41.0) (2026-05-08)
+
+
+### Features
+
+* add Docker Compose self-hosting setup ([a7aff42](https://github.com/planetaryescape/blah.chat/commit/a7aff42290e47ecc066af0b8505bca93f8ec37d9))
+
 ## [1.40.3](https://github.com/planetaryescape/blah.chat/compare/v1.40.2...v1.40.3) (2026-05-08)
 
 

@@ -12,8 +12,6 @@ import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import { KeyboardShortcutsManager } from "@/components/KeyboardShortcutsManager";
 import { OfflineQueueIndicator } from "@/components/layout/OfflineQueueIndicator";
 import { NotificationBell } from "@/components/notifications";
-import { AutoRouterPreferenceModal } from "@/components/onboarding/AutoRouterPreferenceModal";
-import { OnboardingWrapper } from "@/components/onboarding/OnboardingTour";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { Button } from "@/components/ui/button";
 import {
@@ -160,7 +158,7 @@ export default function MainLayout({
           children
         ) : (
           <SidebarProvider>
-            <OnboardingWrapper>
+            <>
               {isAdminRoute ? (
                 // Admin routes: let admin layout control structure
                 <div className="flex w-full h-[100dvh] overflow-hidden">
@@ -186,8 +184,7 @@ export default function MainLayout({
               <KeyboardHelpManager />
               <SelectionContextMenu />
               <OfflineQueueIndicator />
-              {!isAdminRoute && <AutoRouterPreferenceModal />}
-            </OnboardingWrapper>
+            </>
           </SidebarProvider>
         )}
       </CanvasProvider>

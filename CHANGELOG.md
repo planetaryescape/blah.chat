@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.40.3](https://github.com/planetaryescape/blah.chat/compare/v1.40.2...v1.40.3) (2026-05-08)
+
+
+### Bug Fixes
+
+* disable onboarding blockers ([4a36bca](https://github.com/planetaryescape/blah.chat/commit/4a36bca15b2e3f9f8fd47d5853d9293825241c7a))
+* preserve vercel function configs ([186e8e8](https://github.com/planetaryescape/blah.chat/commit/186e8e8e6ec7e2724e7bb3e564cf72e1e3d0983a))
+
 ## [1.40.2](https://github.com/planetaryescape/blah.chat/compare/v1.40.1...v1.40.2) (2026-05-08)
 
 

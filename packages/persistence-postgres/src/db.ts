@@ -1,3 +1,4 @@
+import { createRequire } from "node:module";
 import type { PGlite } from "@electric-sql/pglite";
 import { neon } from "@neondatabase/serverless";
 import {
@@ -10,6 +11,8 @@ import {
   type PgliteDatabase,
 } from "drizzle-orm/pglite";
 import * as schema from "./schema";
+
+const requireFromDbModule = createRequire(import.meta.url);
 
 export type PersistenceDb =
   | NeonHttpDatabase<typeof schema>
@@ -41,11 +44,10 @@ export function createPostgresDatabase(
     );
   }
 
-  const module = process.getBuiltinModule("module");
-  const require = module.createRequire(import.meta.url);
-  const { Pool } = require("pg") as typeof import("pg");
-  const { drizzle } =
-    require("drizzle-orm/node-postgres") as typeof import("drizzle-orm/node-postgres");
+  const { Pool } = requireFromDbModule("pg") as typeof import("pg");
+  const { drizzle } = requireFromDbModule(
+    "drizzle-orm/node-postgres",
+  ) as typeof import("drizzle-orm/node-postgres");
 
   const pool = new Pool({
     connectionString: databaseUrl,

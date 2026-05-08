@@ -116,6 +116,28 @@ describe("AppPage server component dispatcher", () => {
     expect(rows[0]?.id).toBe(newId);
   });
 
+  it("redirects when a fresh user's Clerk lookup fails but session claims exist", async () => {
+    getUserMock.mockRejectedValue(
+      new Error("Clerk API temporarily unavailable"),
+    );
+    authMock.mockResolvedValue({
+      userId: "clerk_app_page",
+      sessionClaims: {
+        email: "page@example.com",
+        name: "Page User",
+        picture: "https://example.com/page.png",
+      },
+    });
+
+    await callPage();
+
+    const target = redirectMock.mock.calls.at(-1)?.[0] as string;
+    expect(target).toMatch(/^\/chat\//);
+
+    const rows = await db.select({ id: conversations.id }).from(conversations);
+    expect(rows).toHaveLength(1);
+  });
+
   it("succeeds when Clerk currentUser would have returned null", async () => {
     // Pre-seed user (simulates webhook fired). currentUserMock keeps returning
     // null per beforeEach — this is the regression scenario.

@@ -72,7 +72,7 @@
     "@ai-sdk/openai": "^3.0.1",
     "@openrouter/ai-sdk-provider": "^2.1.1",
     "ai": "^6.0.3",
-    "lucide-react": "^0.563.0"
+    "lucide-react": "^1.14.0"
   },
   "devDependencies": {
     "@blah-chat/config": "workspace:*",

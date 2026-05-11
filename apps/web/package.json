@@ -116,7 +116,7 @@
     "html2canvas": "^1.4.1",
     "jszip": "^3.10.1",
     "katex": "^0.16.27",
-    "lucide-react": "^0.577.0",
+    "lucide-react": "^1.14.0",
     "mammoth": "^1.11.0",
     "marked": "^17.0.1",
     "match-sorter": "^8.2.0",

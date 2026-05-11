@@ -251,7 +251,7 @@
         "html2canvas": "^1.4.1",
         "jszip": "^3.10.1",
         "katex": "^0.16.27",
-        "lucide-react": "^0.577.0",
+        "lucide-react": "^1.14.0",
         "mammoth": "^1.11.0",
         "marked": "^17.0.1",
         "match-sorter": "^8.2.0",
@@ -349,7 +349,7 @@
         "@ai-sdk/openai": "^3.0.1",
         "@openrouter/ai-sdk-provider": "^2.1.1",
         "ai": "^6.0.3",
-        "lucide-react": "^0.563.0",
+        "lucide-react": "^1.14.0",
       },
       "devDependencies": {
         "@blah-chat/config": "workspace:*",
@@ -360,7 +360,7 @@
     },
     "packages/api-client": {
       "name": "@blah-chat/api-client",
-      "version": "0.7.1",
+      "version": "0.7.2",
       "dependencies": {
         "eventsource-parser": "^3.0.6",
         "openapi-fetch": "^0.17.0",
@@ -3839,7 +3839,7 @@
 
     "lru-cache": ["lru-cache@11.3.6", "", {}, "sha512-Gf/KoL3C/MlI7Bt0PGI9I+TeTC/I6r/csU58N4BSNc4lppLBeKsOdFYkK+dX0ABDUMJNfCHTyPpzwwO21Awd3A=="],
 
-    "lucide-react": ["lucide-react@0.563.0", "", { "peerDependencies": { "react": "^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-8dXPB2GI4dI8jV4MgUDGBeLdGk8ekfqVZ0BdLcrRzocGgG75ltNEmWS+gE7uokKF/0oSUuczNDT+g9hFJ23FkA=="],
+    "lucide-react": ["lucide-react@1.14.0", "", { "peerDependencies": { "react": "^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-+1mdWcfSJVUsaTIjN9zoezmUhfXo5l0vP7ekBMPo3jcS/aIkxHnXqAPsByszMZx/Y8oQBRJxJx5xg+RH3urzxA=="],
 
     "lucide-react-native": ["lucide-react-native@0.577.0", "", { "peerDependencies": { "react": "^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react-native": "*", "react-native-svg": "^12.0.0 || ^13.0.0 || ^14.0.0 || ^15.0.0" } }, "sha512-blWv/YqBMrgkYGAgm2wgWiGP1+1GNBf4f/sUlpyfEL8mxvSzhr7H/0MTS1xQgtd1B6gPC/JIPgP3kcdFjnh8zg=="],
 
@@ -5194,8 +5194,6 @@
     "@blah-chat/mobile/@blah-chat/shared": ["@blah-chat/shared@0.2.0", "", { "dependencies": { "date-fns": "^4.1.0", "diff": "^8.0.2" } }, "sha512-Xd0IlgbZKJ3/+5nuBIGPGuH8P/fSacXI5zPYHlxCw3fyYeqMlqobfHNcTcEgexoDcXAQ2OQGtVSWJGjTwiviPw=="],
 
     "@blah-chat/web/@biomejs/biome": ["@biomejs/biome@2.4.14", "", { "optionalDependencies": { "@biomejs/cli-darwin-arm64": "2.4.14", "@biomejs/cli-darwin-x64": "2.4.14", "@biomejs/cli-linux-arm64": "2.4.14", "@biomejs/cli-linux-arm64-musl": "2.4.14", "@biomejs/cli-linux-x64": "2.4.14", "@biomejs/cli-linux-x64-musl": "2.4.14", "@biomejs/cli-win32-arm64": "2.4.14", "@biomejs/cli-win32-x64": "2.4.14" }, "bin": { "biome": "bin/biome" } }, "sha512-TmAvxOEgrpLypzVGJ8FulIZnlyA9TxrO1hyqYrCz9r+bwma9xXxuLA5IuYnj55XQneFx460KjRbx6SWGLkg3bQ=="],
-
-    "@blah-chat/web/lucide-react": ["lucide-react@0.577.0", "", { "peerDependencies": { "react": "^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-4LjoFv2eEPwYDPg/CUdBJQSDfPyzXCRrVW1X7jrx/trgxnxkHFjnVZINbzvzxjN70dxychOfg+FTYwBiS3pQ5A=="],
 
     "@blah-chat/web/marked": ["marked@17.0.3", "", { "bin": { "marked": "bin/marked.js" } }, "sha512-jt1v2ObpyOKR8p4XaUJVk3YWRJ5n+i4+rjQopxvV32rSndTJXvIzuUdWWIy/1pFQMkQmvTXawzDNqOH/CUmx6A=="],
 

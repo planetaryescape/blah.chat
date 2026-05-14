@@ -54,6 +54,20 @@ function isConfigurationZodError(error: { issues: ZodLikeIssue[] }): boolean {
   );
 }
 
+function isDependencyFetchError(error: Error): boolean {
+  const message = error.message.toLowerCase();
+  const causeMessage =
+    error.cause instanceof Error
+      ? error.cause.message.toLowerCase()
+      : typeof error.cause === "string"
+        ? error.cause.toLowerCase()
+        : "";
+
+  return (
+    message.includes("fetch failed") || causeMessage.includes("fetch failed")
+  );
+}
+
 export function withErrorHandling(
   handler: (req: NextRequest, context: any) => Promise<Response>,
 ) {
@@ -103,6 +117,29 @@ export function withErrorHandling(
       // Handle API errors
       if (error instanceof Error) {
         const message = error.message;
+
+        if (isDependencyFetchError(error)) {
+          logger.error(
+            {
+              error: message,
+              cause:
+                error.cause instanceof Error
+                  ? error.cause.message
+                  : error.cause,
+              stack: error.stack,
+              url: req.url,
+            },
+            "Dependency fetch failed",
+          );
+          return NextResponse.json(
+            formatErrorEntity({
+              message:
+                "A backend service is temporarily unavailable. Please try again shortly.",
+              code: "DEPENDENCY_UNAVAILABLE",
+            }),
+            { status: 503 },
+          );
+        }
 
         // Parse common API error patterns
         if (message.includes("not found")) {

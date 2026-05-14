@@ -1,6 +1,7 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { NextResponse } from "next/server";
+import logger from "@/lib/logger";
 import { formatErrorEntity } from "@/lib/utils/formatEntity";
 
 let cachedRedis: Redis | undefined;
@@ -56,7 +57,27 @@ export async function applyRateLimit(
   limiter: Ratelimit,
   identifier: string,
 ): Promise<NextResponse | null> {
-  const result = await limiter.limit(identifier);
+  let result: Awaited<ReturnType<Ratelimit["limit"]>>;
+  try {
+    result = await limiter.limit(identifier);
+  } catch (error) {
+    logger.error(
+      {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        identifier,
+      },
+      "Rate limit check failed",
+    );
+    return NextResponse.json(
+      formatErrorEntity({
+        message:
+          "Message sending is temporarily unavailable. Please try again in a minute.",
+        code: "RATE_LIMIT_SERVICE_UNAVAILABLE",
+      }),
+      { status: 503 },
+    );
+  }
   if (result.success) {
     return null;
   }

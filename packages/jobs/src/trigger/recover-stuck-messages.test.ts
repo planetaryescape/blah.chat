@@ -9,10 +9,7 @@ import {
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createTestPersistenceDb } from "../../../persistence-postgres/src/testing/pglite";
-import {
-  RECOVER_STUCK_MESSAGES_CRON,
-  recoverStuckMessages,
-} from "./recover-stuck-messages";
+import { recoverStuckMessages } from "./recover-stuck-messages";
 
 const TEN_MINUTES = 10 * 60 * 1000;
 
@@ -57,14 +54,6 @@ async function seedStuckMessage(
 }
 
 describe("recoverStuckMessages", () => {
-  it("runs on the two-minute production cron", () => {
-    expect(RECOVER_STUCK_MESSAGES_CRON).toEqual({
-      pattern: "*/2 * * * *",
-      timezone: "UTC",
-      environments: ["PRODUCTION"],
-    });
-  });
-
   it("recovers messages stuck in generating state for >10min", async () => {
     const db = await createTestPersistenceDb();
     const now = Date.now();

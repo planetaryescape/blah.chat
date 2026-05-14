@@ -8,10 +8,7 @@ import {
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createTestPersistenceDb } from "../../../persistence-postgres/src/testing/pglite";
-import {
-  EXTRACT_INACTIVE_CONVERSATIONS_CRON,
-  extractInactiveConversations,
-} from "./extract-inactive-conversations";
+import { extractInactiveConversations } from "./extract-inactive-conversations";
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -62,14 +59,6 @@ async function seedConversationWithMessages(
 }
 
 describe("extractInactiveConversations", () => {
-  it("runs on the fifteen-minute production cron", () => {
-    expect(EXTRACT_INACTIVE_CONVERSATIONS_CRON).toEqual({
-      pattern: "*/15 * * * *",
-      timezone: "UTC",
-      environments: ["PRODUCTION"],
-    });
-  });
-
   it("enqueues extraction for inactive conversations with enough messages", async () => {
     const db = await createTestPersistenceDb();
     const now = Date.now();

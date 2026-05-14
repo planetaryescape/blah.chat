@@ -20,7 +20,7 @@ function getEncryptionKey() {
 }
 
 export const BYOD_HEALTH_CHECK_CRON = {
-  pattern: "*/30 * * * *",
+  pattern: "0 */6 * * *",
   timezone: "UTC",
   environments: ["PRODUCTION"] as Array<"PRODUCTION">,
 };

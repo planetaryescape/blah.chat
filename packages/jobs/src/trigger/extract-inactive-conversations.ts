@@ -5,7 +5,6 @@ import {
   messages,
   type PersistenceDb,
 } from "@blah-chat/persistence-postgres";
-import { schedules } from "@trigger.dev/sdk";
 import { and, count, eq, gt, lt, notExists, sql } from "drizzle-orm";
 
 function getDatabaseUrl() {
@@ -17,12 +16,6 @@ function getDatabaseUrl() {
 const INACTIVITY_THRESHOLD_MS = 15 * 60 * 1000;
 const STALE_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000;
 const BATCH_SIZE = 50;
-
-export const EXTRACT_INACTIVE_CONVERSATIONS_CRON = {
-  pattern: "*/15 * * * *",
-  timezone: "UTC",
-  environments: ["PRODUCTION"] as Array<"PRODUCTION">,
-};
 
 async function defaultEnqueueExtraction(conversationId: string) {
   const secretKey = process.env.TRIGGER_SECRET_KEY;
@@ -96,11 +89,3 @@ export async function extractInactiveConversations(
 
   return { scheduled: qualified.length };
 }
-
-export const extractInactiveConversationsTask = schedules.task({
-  id: "extract-inactive-conversations",
-  cron: EXTRACT_INACTIVE_CONVERSATIONS_CRON,
-  maxDuration: 120,
-  retry: { maxAttempts: 1 },
-  run: async () => extractInactiveConversations(),
-});

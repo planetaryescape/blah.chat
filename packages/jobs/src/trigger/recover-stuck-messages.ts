@@ -4,7 +4,6 @@ import {
   messages,
   type PersistenceDb,
 } from "@blah-chat/persistence-postgres";
-import { schedules } from "@trigger.dev/sdk";
 import { and, eq, inArray, lt, or, sql } from "drizzle-orm";
 
 function getDatabaseUrl() {
@@ -14,12 +13,6 @@ function getDatabaseUrl() {
 }
 
 const STUCK_THRESHOLD_MS = 10 * 60 * 1000;
-
-export const RECOVER_STUCK_MESSAGES_CRON = {
-  pattern: "*/2 * * * *",
-  timezone: "UTC",
-  environments: ["PRODUCTION"] as Array<"PRODUCTION">,
-};
 
 export async function recoverStuckMessages(
   deps: { db?: PersistenceDb; now?: number } = {},
@@ -84,11 +77,3 @@ export async function recoverStuckMessages(
 
   return { recovered: stuckMessages.length };
 }
-
-export const recoverStuckMessagesTask = schedules.task({
-  id: "recover-stuck-messages",
-  cron: RECOVER_STUCK_MESSAGES_CRON,
-  maxDuration: 60,
-  retry: { maxAttempts: 1 },
-  run: async () => recoverStuckMessages(),
-});

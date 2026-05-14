@@ -3,7 +3,6 @@ import {
   generationSessions,
   type PersistenceDb,
 } from "@blah-chat/persistence-postgres";
-import { schedules } from "@trigger.dev/sdk";
 import { and, eq, lt } from "drizzle-orm";
 
 function getDatabaseUrl() {
@@ -13,12 +12,6 @@ function getDatabaseUrl() {
 }
 
 const STALE_LOCK_TIMEOUT_MS = 60_000;
-
-export const CLEANUP_STALE_GENERATION_SESSIONS_CRON = {
-  pattern: "*/5 * * * *",
-  timezone: "UTC",
-  environments: ["PRODUCTION"] as Array<"PRODUCTION">,
-};
 
 export async function cleanupStaleGenerationSessions(
   deps: { db?: PersistenceDb; now?: number } = {},
@@ -40,11 +33,3 @@ export async function cleanupStaleGenerationSessions(
 
   return { cleaned: result.length };
 }
-
-export const cleanupStaleGenerationSessionsTask = schedules.task({
-  id: "cleanup-stale-generation-sessions",
-  cron: CLEANUP_STALE_GENERATION_SESSIONS_CRON,
-  maxDuration: 60,
-  retry: { maxAttempts: 1 },
-  run: async () => cleanupStaleGenerationSessions(),
-});

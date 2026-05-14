@@ -19,8 +19,8 @@ import {
   Search,
   StickyNote,
   Trash2,
-  Youtube,
 } from "lucide-react";
+import { Youtube } from "@/components/ui/svgs/youtube";
 
 /**
  * Get the icon for a tool by name.

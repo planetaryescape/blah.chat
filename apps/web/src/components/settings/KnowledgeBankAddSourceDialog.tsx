@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Globe, Loader2, Plus, Upload, Youtube } from "lucide-react";
+import { BookOpen, Globe, Loader2, Plus, Upload } from "lucide-react";
 import { useCallback, useReducer } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Youtube } from "@/components/ui/svgs/youtube";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 

@@ -17,7 +17,6 @@ import {
   RefreshCw,
   Trash2,
   Upload,
-  Youtube,
 } from "lucide-react";
 import Link from "next/link";
 import { use, useCallback, useState } from "react";
@@ -58,6 +57,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Youtube } from "@/components/ui/svgs/youtube";
 import {
   Table,
   TableBody,

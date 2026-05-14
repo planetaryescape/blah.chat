@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.41.2](https://github.com/planetaryescape/blah.chat/compare/v1.41.1...v1.41.2) (2026-05-14)
+
+
+### Bug Fixes
+
+* support TypeScript 6 web build ([8911430](https://github.com/planetaryescape/blah.chat/commit/8911430f304d8adc62f23589ed3c168aa5c997c8))
+* update Clerk auth redirects ([b078b06](https://github.com/planetaryescape/blah.chat/commit/b078b06cb98f1fa7f1dae949a69813c6106619a1))
+
 ## [1.41.1](https://github.com/planetaryescape/blah.chat/compare/v1.41.0...v1.41.1) (2026-05-14)
 
 

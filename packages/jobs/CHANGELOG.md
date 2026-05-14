@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.7.0...jobs-v0.7.1) (2026-05-14)
+
+
+### Bug Fixes
+
+* reduce trigger schedule usage ([4b9b1d1](https://github.com/planetaryescape/blah.chat/commit/4b9b1d1b17f9676d059ddeaf1eb8be8e93d06da5))
+
 ## [0.7.0](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.6.0...jobs-v0.7.0) (2026-05-07)
 
 

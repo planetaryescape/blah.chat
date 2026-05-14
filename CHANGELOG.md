@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.41.1](https://github.com/planetaryescape/blah.chat/compare/v1.41.0...v1.41.1) (2026-05-14)
+
+
+### Bug Fixes
+
+* improve dependency outage errors ([3b935b3](https://github.com/planetaryescape/blah.chat/commit/3b935b3f716bdad5868c015740a2456775740998))
+
 ## [1.41.0](https://github.com/planetaryescape/blah.chat/compare/v1.40.3...v1.41.0) (2026-05-08)
 
 

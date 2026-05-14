@@ -9,6 +9,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!}
+      afterSignOutUrl="/sign-in"
       appearance={{
         baseTheme: dark,
         variables: {

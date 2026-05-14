@@ -115,12 +115,12 @@ export function AdminSidebar() {
         </SidebarMenu>
         <div className="px-2 pt-2 group-data-[collapsible=icon]:hidden">
           <div className="flex items-center justify-between">
-            <UserButton afterSignOutUrl="/sign-in" />
+            <UserButton />
             <ThemeSwitcher />
           </div>
         </div>
         <div className="hidden group-data-[collapsible=icon]:flex justify-center pt-2">
-          <UserButton afterSignOutUrl="/sign-in" />
+          <UserButton />
         </div>
       </SidebarFooter>
     </Sidebar>

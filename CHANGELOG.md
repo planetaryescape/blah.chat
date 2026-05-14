@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.41.3](https://github.com/planetaryescape/blah.chat/compare/v1.41.2...v1.41.3) (2026-05-14)
+
+
+### Bug Fixes
+
+* reduce trigger schedule usage ([4b9b1d1](https://github.com/planetaryescape/blah.chat/commit/4b9b1d1b17f9676d059ddeaf1eb8be8e93d06da5))
+
 ## [1.41.2](https://github.com/planetaryescape/blah.chat/compare/v1.41.1...v1.41.2) (2026-05-14)
 
 

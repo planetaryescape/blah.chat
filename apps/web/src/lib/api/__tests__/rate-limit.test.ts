@@ -5,6 +5,12 @@ import type { Ratelimit } from "@upstash/ratelimit";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyRateLimit } from "../rate-limit";
 
+vi.mock("@/lib/logger", () => ({
+  default: {
+    error: vi.fn(),
+  },
+}));
+
 class FakeRatelimit {
   public calls: string[] = [];
   constructor(
@@ -23,6 +29,12 @@ class FakeRatelimit {
       throw new Error("FakeRatelimit: ran out of canned results");
     }
     return next;
+  }
+}
+
+class ThrowingRatelimit {
+  async limit() {
+    throw new TypeError("fetch failed");
   }
 }
 
@@ -82,5 +94,23 @@ describe("applyRateLimit", () => {
     const response = await applyRateLimit(limiter, "user_c");
 
     expect(response?.headers.get("Retry-After")).toBe("1");
+  });
+
+  it("returns a helpful 503 when the limiter backend is unavailable", async () => {
+    const response = await applyRateLimit(
+      new ThrowingRatelimit() as unknown as Ratelimit,
+      "user_d",
+    );
+
+    expect(response?.status).toBe(503);
+    const body = await response?.json();
+    expect(body).toMatchObject({
+      status: "error",
+      error: {
+        code: "RATE_LIMIT_SERVICE_UNAVAILABLE",
+        message:
+          "Message sending is temporarily unavailable. Please try again in a minute.",
+      },
+    });
   });
 });

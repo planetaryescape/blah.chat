@@ -4,7 +4,6 @@ import {
   type PersistenceDb,
   users,
 } from "@blah-chat/persistence-postgres";
-import { schedules } from "@trigger.dev/sdk";
 import { count, countDistinct, gt } from "drizzle-orm";
 
 function getDatabaseUrl() {
@@ -14,12 +13,6 @@ function getDatabaseUrl() {
 }
 
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
-
-export const TELEMETRY_HEARTBEAT_CRON = {
-  pattern: "0 2 * * *",
-  timezone: "UTC",
-  environments: ["PRODUCTION"] as Array<"PRODUCTION">,
-};
 
 export async function gatherStats(
   deps: { db?: PersistenceDb; now?: number } = {},
@@ -79,11 +72,3 @@ export async function telemetryHeartbeat(
 
   return { sent: true, stats };
 }
-
-export const telemetryHeartbeatTask = schedules.task({
-  id: "telemetry-heartbeat",
-  cron: TELEMETRY_HEARTBEAT_CRON,
-  maxDuration: 60,
-  retry: { maxAttempts: 1 },
-  run: async () => telemetryHeartbeat(),
-});

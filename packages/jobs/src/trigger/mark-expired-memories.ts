@@ -3,7 +3,6 @@ import {
   memoryEmbeddings,
   type PersistenceDb,
 } from "@blah-chat/persistence-postgres";
-import { schedules } from "@trigger.dev/sdk";
 import { and, isNotNull, sql } from "drizzle-orm";
 
 function getDatabaseUrl() {
@@ -13,12 +12,6 @@ function getDatabaseUrl() {
 }
 
 const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
-
-export const MARK_EXPIRED_MEMORIES_CRON = {
-  pattern: "0 3 * * *",
-  timezone: "UTC",
-  environments: ["PRODUCTION"] as Array<"PRODUCTION">,
-};
 
 export async function markExpiredMemories(
   deps: { db?: PersistenceDb; now?: number } = {},
@@ -39,11 +32,3 @@ export async function markExpiredMemories(
 
   return { deleted: deleted.length };
 }
-
-export const markExpiredMemoriesTask = schedules.task({
-  id: "mark-expired-memories",
-  cron: MARK_EXPIRED_MEMORIES_CRON,
-  maxDuration: 120,
-  retry: { maxAttempts: 1 },
-  run: async () => markExpiredMemories(),
-});

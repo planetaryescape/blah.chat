@@ -7,10 +7,7 @@ import {
 import { eq } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
 import { createTestPersistenceDb } from "../../../persistence-postgres/src/testing/pglite";
-import {
-  RECOVER_STUCK_GENERATIONS_CRON,
-  recoverStuckGenerations,
-} from "./recover-stuck-generations";
+import { recoverStuckGenerations } from "./recover-stuck-generations";
 
 const NINETY_SECONDS = 90 * 1000;
 
@@ -58,14 +55,6 @@ async function seedRequest(
 }
 
 describe("recoverStuckGenerations", () => {
-  it("runs on the two-minute production cron", () => {
-    expect(RECOVER_STUCK_GENERATIONS_CRON).toEqual({
-      pattern: "*/2 * * * *",
-      timezone: "UTC",
-      environments: ["PRODUCTION"],
-    });
-  });
-
   it("re-enqueues a running request whose updatedAt is older than the freshness threshold", async () => {
     const db = await createTestPersistenceDb();
     const enqueue = vi.fn().mockResolvedValue(undefined);

@@ -3,7 +3,6 @@ import {
   generationRequests,
   type PersistenceDb,
 } from "@blah-chat/persistence-postgres";
-import { schedules } from "@trigger.dev/sdk";
 import { and, inArray, lt } from "drizzle-orm";
 import { processGeneration } from "./process-generation";
 
@@ -14,12 +13,6 @@ function getDatabaseUrl() {
 }
 
 const STUCK_THRESHOLD_MS = 90 * 1000;
-
-export const RECOVER_STUCK_GENERATIONS_CRON = {
-  pattern: "*/2 * * * *",
-  timezone: "UTC",
-  environments: ["PRODUCTION"] as Array<"PRODUCTION">,
-};
 
 export interface RecoverStuckGenerationsDeps {
   db?: PersistenceDb;
@@ -58,11 +51,3 @@ export async function recoverStuckGenerations(
 
   return { recovered: recovered.length };
 }
-
-export const recoverStuckGenerationsTask = schedules.task({
-  id: "recover-stuck-generations",
-  cron: RECOVER_STUCK_GENERATIONS_CRON,
-  maxDuration: 60,
-  retry: { maxAttempts: 1 },
-  run: async () => recoverStuckGenerations(),
-});

@@ -6,10 +6,7 @@ import {
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createTestPersistenceDb } from "../../../persistence-postgres/src/testing/pglite";
-import {
-  CLEANUP_STALE_INCOGNITO_CRON,
-  cleanupStaleIncognito,
-} from "./cleanup-stale-incognito";
+import { cleanupStaleIncognito } from "./cleanup-stale-incognito";
 
 const HOUR = 60 * 60 * 1000;
 
@@ -49,14 +46,6 @@ async function seedIncognitoConversation(
 }
 
 describe("cleanupStaleIncognito", () => {
-  it("runs on the hourly :30 production cron", () => {
-    expect(CLEANUP_STALE_INCOGNITO_CRON).toEqual({
-      pattern: "30 * * * *",
-      timezone: "UTC",
-      environments: ["PRODUCTION"],
-    });
-  });
-
   it("deletes incognito conversations inactive for >24h", async () => {
     const db = await createTestPersistenceDb();
     const now = Date.now();

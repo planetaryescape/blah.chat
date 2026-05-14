@@ -4,10 +4,7 @@ import {
 } from "@blah-chat/persistence-postgres";
 import { describe, expect, it } from "vitest";
 import { createTestPersistenceDb } from "../../../persistence-postgres/src/testing/pglite";
-import {
-  MARK_EXPIRED_MEMORIES_CRON,
-  markExpiredMemories,
-} from "./mark-expired-memories";
+import { markExpiredMemories } from "./mark-expired-memories";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -42,14 +39,6 @@ async function seedMemory(
 }
 
 describe("markExpiredMemories", () => {
-  it("runs on the daily 3 AM UTC production cron", () => {
-    expect(MARK_EXPIRED_MEMORIES_CRON).toEqual({
-      pattern: "0 3 * * *",
-      timezone: "UTC",
-      environments: ["PRODUCTION"],
-    });
-  });
-
   it("deletes memories with expiresAt older than 90 days", async () => {
     const db = await createTestPersistenceDb();
     const now = Date.now();

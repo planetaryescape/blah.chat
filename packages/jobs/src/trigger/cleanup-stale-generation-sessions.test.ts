@@ -7,10 +7,7 @@ import {
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createTestPersistenceDb } from "../../../persistence-postgres/src/testing/pglite";
-import {
-  CLEANUP_STALE_GENERATION_SESSIONS_CRON,
-  cleanupStaleGenerationSessions,
-} from "./cleanup-stale-generation-sessions";
+import { cleanupStaleGenerationSessions } from "./cleanup-stale-generation-sessions";
 
 async function seedPendingSession(
   db: Awaited<ReturnType<typeof createTestPersistenceDb>>,
@@ -50,14 +47,6 @@ async function seedPendingSession(
 }
 
 describe("cleanupStaleGenerationSessions", () => {
-  it("runs on the five-minute production cron", () => {
-    expect(CLEANUP_STALE_GENERATION_SESSIONS_CRON).toEqual({
-      pattern: "*/5 * * * *",
-      timezone: "UTC",
-      environments: ["PRODUCTION"],
-    });
-  });
-
   it("fails pending sessions older than 60s", async () => {
     const db = await createTestPersistenceDb();
     const now = Date.now();

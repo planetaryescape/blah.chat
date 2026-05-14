@@ -2,7 +2,6 @@ import {
   createNeonDatabase,
   type PersistenceDb,
 } from "@blah-chat/persistence-postgres";
-import { schedules } from "@trigger.dev/sdk";
 import { sql } from "drizzle-orm";
 
 function getDatabaseUrl() {
@@ -10,12 +9,6 @@ function getDatabaseUrl() {
   if (!url) throw new Error("DATABASE_URL is not set");
   return url;
 }
-
-export const CHECK_HEALTH_CRON = {
-  pattern: "0 */6 * * *",
-  timezone: "UTC",
-  environments: ["PRODUCTION"] as Array<"PRODUCTION">,
-};
 
 interface HealthCheckResult {
   postgres: { healthy: boolean; latencyMs: number };
@@ -92,16 +85,3 @@ export async function checkHealth(
     overall: allDown ? "down" : allHealthy ? "healthy" : "degraded",
   };
 }
-
-export const checkHealthTask = schedules.task({
-  id: "check-health",
-  cron: CHECK_HEALTH_CRON,
-  maxDuration: 120,
-  retry: {
-    maxAttempts: 2,
-    minTimeoutInMs: 5000,
-    maxTimeoutInMs: 30000,
-    factor: 2,
-  },
-  run: async () => checkHealth(),
-});

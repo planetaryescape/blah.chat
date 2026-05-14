@@ -5,17 +5,9 @@ import {
 } from "@blah-chat/persistence-postgres";
 import { describe, expect, it } from "vitest";
 import { createTestPersistenceDb } from "../../../persistence-postgres/src/testing/pglite";
-import { gatherStats, TELEMETRY_HEARTBEAT_CRON } from "./telemetry-heartbeat";
+import { gatherStats } from "./telemetry-heartbeat";
 
 describe("telemetryHeartbeat", () => {
-  it("runs on the daily 2 AM UTC production cron", () => {
-    expect(TELEMETRY_HEARTBEAT_CRON).toEqual({
-      pattern: "0 2 * * *",
-      timezone: "UTC",
-      environments: ["PRODUCTION"],
-    });
-  });
-
   it("gathers correct stats from postgres", async () => {
     const db = await createTestPersistenceDb();
     const now = Date.now();

@@ -4,7 +4,6 @@ import {
   type PersistenceDb,
   routingOutcomes,
 } from "@blah-chat/persistence-postgres";
-import { schedules } from "@trigger.dev/sdk";
 import { and, count, eq, gte, lt, or } from "drizzle-orm";
 
 function getDatabaseUrl() {
@@ -163,30 +162,3 @@ export async function checkMetricsThresholds(
 
   return { breaches, alertsFired };
 }
-
-export const CHECK_METRICS_THRESHOLDS_CRON = {
-  pattern: "*/5 * * * *",
-  timezone: "UTC",
-  environments: ["PRODUCTION"] as Array<"PRODUCTION">,
-};
-
-export const checkMetricsThresholdsTask = schedules.task({
-  id: "check-metrics-thresholds",
-  cron: CHECK_METRICS_THRESHOLDS_CRON,
-  maxDuration: 60,
-  retry: { maxAttempts: 1 },
-  run: async () => {
-    const slackWebhookUrl = process.env.SLACK_ALERTS_WEBHOOK_URL;
-    return checkMetricsThresholds({
-      sendSlackAlert: slackWebhookUrl
-        ? async (payload) => {
-            await fetch(slackWebhookUrl, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload),
-            });
-          }
-        : undefined,
-    });
-  },
-});

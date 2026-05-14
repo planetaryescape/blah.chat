@@ -1,4 +1,6 @@
-import type { LucideIcon } from "lucide-react";
+import type { ComponentType, SVGProps } from "react";
+
+type ToolIconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
 export interface ToolCall {
   id: string;
@@ -15,7 +17,7 @@ export interface ToolRendererProps {
   parsedArgs: any;
   parsedResult: any;
   state: ToolCallState;
-  ToolIcon: LucideIcon;
+  ToolIcon: ToolIconComponent;
 }
 
 /**

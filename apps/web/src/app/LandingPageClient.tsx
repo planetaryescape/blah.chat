@@ -11,7 +11,6 @@ import {
   ExternalLink,
   FileText,
   FolderKanban,
-  Github,
   Key,
   ListTodo,
   Mic,
@@ -31,6 +30,7 @@ import { FeaturePill } from "@/components/landing/FeaturePill";
 import { SubscriptionItem } from "@/components/landing/SubscriptionItem";
 import { TrustBlock } from "@/components/landing/TrustBlock";
 import { Button } from "@/components/ui/button";
+import { Github } from "@/components/ui/svgs/github";
 import { useTypewriter } from "@/hooks/useTypewriter";
 
 export default function LandingPageClient() {

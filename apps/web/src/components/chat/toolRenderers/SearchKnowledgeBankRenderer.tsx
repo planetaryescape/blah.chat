@@ -1,4 +1,5 @@
-import { FileText, Globe, StickyNote, Youtube } from "lucide-react";
+import { FileText, Globe, StickyNote } from "lucide-react";
+import { Youtube } from "@/components/ui/svgs/youtube";
 import type { ToolRendererProps } from "./types";
 
 /**

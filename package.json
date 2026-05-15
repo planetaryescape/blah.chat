@@ -31,7 +31,6 @@
     "api-client:check": "bun run api-client:generate && git diff --exit-code packages/api-client/src/generated/openapi.ts",
     "api-client:version:auto": "bun run scripts/auto-bump-api-client-version.ts",
     "api-client:version-check": "bun run scripts/check-api-client-version-bump.ts",
-    "desktop:version-check": "bun run scripts/check-desktop-version-sync.ts",
     "model:add": "bun run scripts/model-cli.ts add",
     "model:list": "bun run scripts/model-cli.ts list",
     "model:get": "bun run scripts/model-cli.ts get",

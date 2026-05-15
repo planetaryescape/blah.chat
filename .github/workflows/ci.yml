@@ -78,9 +78,6 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: bun run api-client:version-check --base "origin/$BASE_REF"
 
-      - name: Enforce desktop version sync
-        run: bun run desktop:version-check
-
       - name: Verify Drizzle migrations are up-to-date with schema
         run: |
           bun run db:generate

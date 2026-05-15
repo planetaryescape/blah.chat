@@ -146,7 +146,7 @@ export async function reconcileClerkUsers(
 
 export const reconcileClerkUsersTask = schedules.task({
   id: "reconcile-clerk-users",
-  cron: RECONCILE_CLERK_USERS_CRON,
+  // Temporarily unscheduled so the next deploy can prune stale Trigger schedules first.
   maxDuration: 1800,
   retry: { maxAttempts: 2 },
   run: () => reconcileClerkUsers(),

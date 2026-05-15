@@ -20,11 +20,6 @@ export const cleanupStaleGenerationSessionsLegacyScheduleTask = schedules.task({
   run: legacyScheduleTombstone,
 });
 
-export const extractInactiveConversationsLegacyScheduleTask = schedules.task({
-  id: "extract-inactive-conversations",
-  run: legacyScheduleTombstone,
-});
-
 export const generationMaintenanceLegacyScheduleTask = schedules.task({
   id: "generation-maintenance",
   run: legacyScheduleTombstone,
@@ -37,11 +32,6 @@ export const markExpiredMemoriesLegacyScheduleTask = schedules.task({
 
 export const memoryMaintenanceLegacyScheduleTask = schedules.task({
   id: "memory-maintenance",
-  run: legacyScheduleTombstone,
-});
-
-export const recoverStuckMessagesLegacyScheduleTask = schedules.task({
-  id: "recover-stuck-messages",
   run: legacyScheduleTombstone,
 });
 

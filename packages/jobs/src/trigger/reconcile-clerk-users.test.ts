@@ -34,7 +34,7 @@ const baseClerkUser = (overrides: Record<string, unknown>) => ({
 });
 
 describe("reconcileClerkUsers", () => {
-  it("runs at 04:00 UTC daily in production only", () => {
+  it("keeps the intended production schedule definition", () => {
     expect(RECONCILE_CLERK_USERS_CRON).toEqual({
       pattern: "0 4 * * *",
       timezone: "UTC",

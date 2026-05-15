@@ -27,5 +27,5 @@
   "packages/cognitive-memory": "0.2.0",
   "packages/integrations-composio": "0.1.0",
   "apps/cli": "0.6.0",
-  "apps/desktop": "0.62.0"
+  "apps/desktop": "0.63.0"
 }

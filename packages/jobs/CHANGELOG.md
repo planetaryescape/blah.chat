@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.2](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.7.1...jobs-v0.7.2) (2026-05-15)
+
+
+### Bug Fixes
+
+* stabilize trigger deployments ([a1a1aef](https://github.com/planetaryescape/blah.chat/commit/a1a1aef945615533e59ddade4a8240e0629225cd))
+
 ## [0.7.1](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.7.0...jobs-v0.7.1) (2026-05-14)
 
 

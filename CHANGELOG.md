@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.41.4](https://github.com/planetaryescape/blah.chat/compare/v1.41.3...v1.41.4) (2026-05-15)
+
+
+### Bug Fixes
+
+* stabilize trigger deployments ([a1a1aef](https://github.com/planetaryescape/blah.chat/commit/a1a1aef945615533e59ddade4a8240e0629225cd))
+
 ## [1.41.3](https://github.com/planetaryescape/blah.chat/compare/v1.41.2...v1.41.3) (2026-05-14)
 
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.41.6](https://github.com/planetaryescape/blah.chat/compare/v1.41.5...v1.41.6) (2026-05-15)
+
+
+### Bug Fixes
+
+* remove stale desktop release note ([0fd3ab0](https://github.com/planetaryescape/blah.chat/commit/0fd3ab0c834a7a90c13f6695e7864e6abab13096))
+* unblock Trigger schedule pruning ([3ff4507](https://github.com/planetaryescape/blah.chat/commit/3ff450767c3b5668a22bc5c6c4c8b3dd29e28e3b))
+
 ## [1.41.5](https://github.com/planetaryescape/blah.chat/compare/v1.41.4...v1.41.5) (2026-05-15)
 
 

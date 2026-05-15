@@ -47,8 +47,8 @@ export async function runMemoryMaintenance(
 }
 
 export const memoryMaintenanceTask = schedules.task({
-  // Reuse an existing declarative schedule ID so deploy can get under Trigger's schedule quota.
-  id: "cleanup-stale-incognito",
+  // Reuse an existing declarative schedule until Trigger prunes stale schedules.
+  id: "extract-inactive-conversations",
   cron: MEMORY_MAINTENANCE_CRON,
   maxDuration: 300,
   retry: { maxAttempts: 1 },

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.3](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.7.2...jobs-v0.7.3) (2026-05-15)
+
+
+### Bug Fixes
+
+* sync deleted trigger schedules ([bf70f3f](https://github.com/planetaryescape/blah.chat/commit/bf70f3faec617f2c51d482209f4dff8f49c61f74))
+
 ## [0.7.2](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.7.1...jobs-v0.7.2) (2026-05-15)
 
 

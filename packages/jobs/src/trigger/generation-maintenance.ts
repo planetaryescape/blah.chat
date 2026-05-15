@@ -42,7 +42,8 @@ export async function runGenerationMaintenance(
 }
 
 export const generationMaintenanceTask = schedules.task({
-  id: "generation-maintenance",
+  // Reuse an existing declarative schedule ID so deploy can get under Trigger's schedule quota.
+  id: "recover-stuck-generations",
   cron: GENERATION_MAINTENANCE_CRON,
   maxDuration: 300,
   retry: { maxAttempts: 1 },

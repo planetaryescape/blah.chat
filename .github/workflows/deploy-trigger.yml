@@ -10,11 +10,6 @@ on:
       - "packages/shared/**"
   push:
     branches: [main]
-    paths:
-      - "packages/jobs/**"
-      - "packages/ai/**"
-      - "packages/persistence-postgres/**"
-      - "packages/shared/**"
   workflow_dispatch:
 
 jobs:

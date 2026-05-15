@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/planetaryescape/blah.chat/compare/ai-v0.4.0...ai-v0.4.1) (2026-05-15)
+
+
+### Bug Fixes
+
+* restore brand icons after lucide update ([9e9bd36](https://github.com/planetaryescape/blah.chat/commit/9e9bd36a115caf6ec4ace70677909ac17c384476))
+
 ## [0.4.0](https://github.com/planetaryescape/blah.chat/compare/ai-v0.3.0...ai-v0.4.0) (2026-05-07)
 
 

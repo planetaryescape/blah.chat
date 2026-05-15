@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.41.5](https://github.com/planetaryescape/blah.chat/compare/v1.41.4...v1.41.5) (2026-05-15)
+
+
+### Bug Fixes
+
+* sync deleted trigger schedules ([bf70f3f](https://github.com/planetaryescape/blah.chat/commit/bf70f3faec617f2c51d482209f4dff8f49c61f74))
+
 ## [1.41.4](https://github.com/planetaryescape/blah.chat/compare/v1.41.3...v1.41.4) (2026-05-15)
 
 

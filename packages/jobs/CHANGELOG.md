@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.4](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.7.3...jobs-v0.7.4) (2026-05-15)
+
+
+### Bug Fixes
+
+* unblock Trigger schedule pruning ([3ff4507](https://github.com/planetaryescape/blah.chat/commit/3ff450767c3b5668a22bc5c6c4c8b3dd29e28e3b))
+
 ## [0.7.3](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.7.2...jobs-v0.7.3) (2026-05-15)
 
 

@@ -84,6 +84,21 @@ describe("processGeneration", () => {
     ).rejects.toThrowError(/HTTP 500.*server is unhappy/s);
   });
 
+  it("throws a useful error when the endpoint returns HTML with a 2xx status", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("<!DOCTYPE html><html><body>Sign in</body></html>", {
+        status: 200,
+        headers: { "content-type": "text/html; charset=utf-8" },
+      }),
+    );
+
+    await expect(
+      processGeneration({ requestId: "req-html" }, { fetch: fetchMock }),
+    ).rejects.toThrowError(
+      /expected JSON.*text\/html.*<!DOCTYPE html><html><body>Sign in/s,
+    );
+  });
+
   it("throws when INTERNAL_TASK_BASE_URL is not configured", async () => {
     delete process.env.INTERNAL_TASK_BASE_URL;
     const fetchMock = vi.fn();

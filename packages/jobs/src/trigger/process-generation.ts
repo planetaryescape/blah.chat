@@ -13,6 +13,10 @@ export interface ProcessGenerationResult {
   error?: unknown;
 }
 
+function formatUnexpectedBody(body: string) {
+  return body.trim().replace(/\s+/g, " ").slice(0, 200);
+}
+
 function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
@@ -41,7 +45,15 @@ export async function processGeneration(
   if (!response.ok) {
     const body = await response.text().catch(() => "");
     throw new Error(
-      `process-generation HTTP ${response.status}${body ? `: ${body}` : ""}`,
+      `process-generation HTTP ${response.status}${body ? `: ${formatUnexpectedBody(body)}` : ""}`,
+    );
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().includes("application/json")) {
+    const body = await response.text().catch(() => "");
+    throw new Error(
+      `process-generation expected JSON from ${url} but received ${contentType || "unknown content-type"}${body ? `: ${formatUnexpectedBody(body)}` : ""}`,
     );
   }
 

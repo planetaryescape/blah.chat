@@ -9,7 +9,7 @@
 
 import type { EmbeddingModel } from "ai";
 import { AUTO_MODEL, MODEL_CONFIG, type ModelConfig } from "./models";
-import { vercel } from "./providers/gateway";
+import { openrouter } from "./providers/openrouter";
 
 // ============================================================================
 // DEFAULT MODEL (used for new conversations when no model is specified)
@@ -28,77 +28,77 @@ export const DEFAULT_MODEL =
  * Fast, cost-effective model for generating short titles.
  */
 export const TITLE_GENERATION_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
+  MODEL_CONFIG["openrouter:gemini-2.0-flash-exp"];
 
 /**
  * Memory extraction from conversations.
  * Needs good reasoning to identify important facts, preferences, etc.
  */
 export const MEMORY_EXTRACTION_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
+  MODEL_CONFIG["openrouter:gemini-2.0-flash-exp"];
 
 /**
  * Memory rephrasing and consolidation.
  * Used when combining or cleaning up memories.
  */
 export const MEMORY_PROCESSING_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
+  MODEL_CONFIG["openrouter:gemini-2.0-flash-exp"];
 
 /**
  * Tag extraction from notes.
  * Identifies relevant tags from content.
  */
 export const TAG_EXTRACTION_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
+  MODEL_CONFIG["openrouter:gemini-2.0-flash-exp"];
 
 /**
  * Text summarization (selection summary feature).
  * Needs good comprehension for high-quality summaries.
  */
 export const SUMMARIZATION_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
+  MODEL_CONFIG["openrouter:gemini-2.0-flash-exp"];
 
 /**
  * Message embedding summarization (for vector search).
  * Creates concise summaries of messages for embedding.
  */
 export const EMBEDDING_SUMMARIZATION_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
+  MODEL_CONFIG["openrouter:gemini-2.0-flash-exp"];
 
 /**
  * Memory reranking for search results.
  * Reorders memory candidates by relevance to query.
  */
 export const MEMORY_RERANK_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
+  MODEL_CONFIG["openrouter:gemini-2.0-flash-exp"];
 
 /**
  * Feedback triage and categorization.
  * Analyzes user feedback for priority, sentiment, and actionability.
  */
 export const FEEDBACK_TRIAGE_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
+  MODEL_CONFIG["openrouter:gemini-2.0-flash-exp"];
 
 /**
  * Task extraction from transcripts.
  * Extracts actionable tasks with deadlines from meeting transcripts.
  */
 export const TASK_EXTRACTION_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
+  MODEL_CONFIG["openrouter:gemini-2.0-flash-exp"];
 
 /**
  * Deadline parsing from natural language.
  * Converts deadline expressions like "next Friday" to timestamps.
  */
 export const DEADLINE_PARSING_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
+  MODEL_CONFIG["openrouter:gemini-2.0-flash-exp"];
 
 /**
  * Meeting extraction (combined tasks + notes).
  * Extracts both actionable tasks and meeting notes from transcripts.
  */
 export const MEETING_EXTRACTION_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
+  MODEL_CONFIG["openrouter:gemini-2.0-flash-exp"];
 
 /**
  * Document extraction (OCR/text extraction from files).
@@ -106,7 +106,7 @@ export const MEETING_EXTRACTION_MODEL: ModelConfig =
  * Extracts text from PDFs, images, DOCX, etc. page-by-page.
  */
 export const DOCUMENT_EXTRACTION_MODEL: ModelConfig =
-  MODEL_CONFIG["google:gemini-2.0-flash"];
+  MODEL_CONFIG["openrouter:gemini-2.0-flash-exp"];
 
 /**
  * Design system generation for presentations.
@@ -114,7 +114,7 @@ export const DOCUMENT_EXTRACTION_MODEL: ModelConfig =
  * Higher temperature (0.9) for creative output.
  */
 export const DESIGN_SYSTEM_GENERATION_MODEL: ModelConfig =
-  MODEL_CONFIG["zai:glm-4.6"];
+  MODEL_CONFIG["openrouter:glm-5"];
 
 /**
  * Template analysis for brand extraction.
@@ -122,7 +122,7 @@ export const DESIGN_SYSTEM_GENERATION_MODEL: ModelConfig =
  * Extracts colors, fonts, layout patterns from organization templates.
  */
 export const TEMPLATE_ANALYSIS_MODEL: ModelConfig =
-  MODEL_CONFIG["google:gemini-3-flash"];
+  MODEL_CONFIG["openrouter:gemini-2.0-flash-exp"];
 
 // ============================================================================
 // EMBEDDING MODEL
@@ -131,15 +131,16 @@ export const TEMPLATE_ANALYSIS_MODEL: ModelConfig =
 /**
  * Embedding model for vector search (memories, messages, conversations).
  * Used to generate embeddings for semantic search across the application.
+ * Routed via OpenRouter so prod only needs OPENROUTER_API_KEY.
  */
-export const EMBEDDING_MODEL: EmbeddingModel = vercel.embeddingModel(
+export const EMBEDDING_MODEL: EmbeddingModel = openrouter.textEmbeddingModel(
   "openai/text-embedding-3-small",
 ) as unknown as EmbeddingModel;
 
 /**
  * Embedding model pricing (per 1M tokens).
  * text-embedding-3-small: $0.02/1M tokens
- * Source: https://vercel.com/ai-gateway/models/text-embedding-3-small
+ * Source: https://openrouter.ai/openai/text-embedding-3-small
  */
 export const EMBEDDING_PRICING = {
   model: "openai/text-embedding-3-small",

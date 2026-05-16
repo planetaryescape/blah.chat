@@ -1,5 +1,5 @@
 {
-  ".": "1.41.6",
+  ".": "1.41.7",
   "packages/api-client": "0.7.0",
   "packages/ai": "0.5.0",
   "packages/shared": "0.5.0",
@@ -14,7 +14,7 @@
   "packages/rag-core": "0.1.0",
   "packages/speech": "0.1.0",
   "packages/storage": "0.1.0",
-  "packages/jobs": "0.7.4",
+  "packages/jobs": "0.7.5",
   "packages/bible-core": "0.1.0",
   "packages/bible-service": "0.1.0",
   "packages/diagrams-mermaid": "0.1.0",

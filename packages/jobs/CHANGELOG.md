@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.5](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.7.4...jobs-v0.7.5) (2026-05-16)
+
+
+### Bug Fixes
+
+* allow Trigger internal process callbacks ([7322723](https://github.com/planetaryescape/blah.chat/commit/73227237470441058ccf03717dd98dd51f6c7a24))
+
 ## [0.7.4](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.7.3...jobs-v0.7.4) (2026-05-15)
 
 

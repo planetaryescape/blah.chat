@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.41.7](https://github.com/planetaryescape/blah.chat/compare/v1.41.6...v1.41.7) (2026-05-16)
+
+
+### Bug Fixes
+
+* allow Trigger internal process callbacks ([7322723](https://github.com/planetaryescape/blah.chat/commit/73227237470441058ccf03717dd98dd51f6c7a24))
+
 ## [1.41.6](https://github.com/planetaryescape/blah.chat/compare/v1.41.5...v1.41.6) (2026-05-15)
 
 

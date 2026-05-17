@@ -53,6 +53,7 @@ export function getProviderIcon(provider: string): LucideIcon {
     mistral: Wind, // Mistral (wind brand)
     alibaba: Bot, // Generic AI
     zhipu: Bot, // Generic AI
+    nvidia: Cpu, // Hardware
   };
 
   return icons[provider] || Sparkles; // Default fallback

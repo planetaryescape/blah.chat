@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/planetaryescape/blah.chat/compare/ai-v0.5.0...ai-v0.5.1) (2026-05-17)
+
+
+### Bug Fixes
+
+* **ai:** route all operational models via OpenRouter ([5834e9b](https://github.com/planetaryescape/blah.chat/commit/5834e9b78d6b931f0e905c8666e4206085730878))
+
 ## [0.5.0](https://github.com/planetaryescape/blah.chat/compare/ai-v0.4.1...ai-v0.5.0) (2026-05-15)
 
 

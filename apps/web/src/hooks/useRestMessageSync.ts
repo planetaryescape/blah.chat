@@ -15,6 +15,8 @@ type ApiMessage = {
   content: string;
   clientMessageId?: string;
   partialContent?: string;
+  /** Transient ack text from a small fast model; cleared once real content streams in. Not persisted. */
+  ackText?: string;
   status?: string;
   model?: string;
   comparisonGroupId?: string;
@@ -140,7 +142,7 @@ export function applyGenerationEventToMessages(
     (message) => message._id === event.assistantMessageId,
   );
   const shouldIgnoreUnknownNonTerminalEvent =
-    index === -1 && event.type === "start";
+    index === -1 && (event.type === "start" || event.type === "ack");
 
   if (shouldIgnoreUnknownNonTerminalEvent) {
     return sortMessages(messages);
@@ -167,6 +169,13 @@ export function applyGenerationEventToMessages(
   };
 
   switch (event.type) {
+    case "ack":
+      // Late ack arrival when real content already streamed — drop it.
+      if ((base.partialContent ?? base.content ?? "").length > 0) {
+        return sortMessages(messages);
+      }
+      nextMessage = { ...nextMessage, ackText: event.text };
+      break;
     case "start":
       nextMessage = {
         ...nextMessage,
@@ -181,6 +190,7 @@ export function applyGenerationEventToMessages(
         content: nextContent,
         partialContent: nextContent,
         status: "generating",
+        ackText: undefined,
       };
       break;
     }
@@ -190,6 +200,7 @@ export function applyGenerationEventToMessages(
         content: event.content,
         partialContent: event.content,
         status: "generating",
+        ackText: undefined,
       };
       break;
     case "complete":
@@ -198,6 +209,7 @@ export function applyGenerationEventToMessages(
         content: event.content,
         partialContent: undefined,
         status: "complete",
+        ackText: undefined,
       };
       break;
     case "cancelled":
@@ -205,6 +217,7 @@ export function applyGenerationEventToMessages(
         ...nextMessage,
         status: "stopped",
         partialContent: undefined,
+        ackText: undefined,
       };
       break;
     case "error":
@@ -212,6 +225,7 @@ export function applyGenerationEventToMessages(
         ...nextMessage,
         status: "error",
         partialContent: undefined,
+        ackText: undefined,
       };
       break;
   }

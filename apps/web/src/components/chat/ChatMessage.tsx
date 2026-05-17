@@ -502,6 +502,12 @@ export const ChatMessage = memo(
                         }
                         isDecidingModel={_isDecidingModel}
                         modelName={modelName}
+                        ackText={
+                          "ackText" in message &&
+                          typeof message.ackText === "string"
+                            ? message.ackText
+                            : undefined
+                        }
                       />
                     ) : null}
                   </>

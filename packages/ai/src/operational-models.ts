@@ -31,6 +31,14 @@ export const TITLE_GENERATION_MODEL: ModelConfig =
   MODEL_CONFIG["openrouter:gemini-2.0-flash-exp"];
 
 /**
+ * Fast acknowledgement model — produces a one-line "I hear you" before the
+ * heavy generation begins. Must be cheap and very fast. Output is transient
+ * UI signal only; not persisted, not part of heavy-model context.
+ */
+export const ACK_GENERATION_MODEL: ModelConfig =
+  MODEL_CONFIG["openrouter:gpt-5.4-nano"];
+
+/**
  * Memory extraction from conversations.
  * Needs good reasoning to identify important facts, preferences, etc.
  */

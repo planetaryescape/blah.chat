@@ -4,13 +4,36 @@ import { withUserAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { applyRateLimit, getLimiter } from "@/lib/api/rate-limit";
 import { parseBody } from "@/lib/api/utils";
+import { generateConversationAck } from "@/lib/conversations/ackGeneration";
 import { getCurrentClerkUserProfile } from "@/lib/generation-v2/clerk";
 import {
   getEnqueueGenerationProcessing,
   getGenerationV2Service,
 } from "@/lib/generation-v2/runtime";
+import type { GenerationV2Service } from "@/lib/generation-v2/service";
 import logger from "@/lib/logger";
 import { formatEntity } from "@/lib/utils/formatEntity";
+
+function fireAndForgetAck(
+  service: GenerationV2Service,
+  userMessage: string,
+  requestId: string,
+  assistantMessageId: string,
+) {
+  void generateConversationAck(userMessage)
+    .then((ack) => {
+      if (!ack) return;
+      return service.dispatchAck({
+        requestId,
+        assistantMessageId,
+        modelId: ack.modelId,
+        text: ack.text,
+      });
+    })
+    .catch((error) => {
+      logger.warn({ error, requestId }, "ack generation failed");
+    });
+}
 
 const createGenerationSchema = z.object({
   conversationId: z.string().min(1),
@@ -54,6 +77,16 @@ async function postHandler(req: NextRequest, { userId }: { userId: string }) {
     models: body.models,
     parentMessageId: body.parentMessageId,
   });
+
+  const primaryAssistantMessageId = started.assistantMessageIds[0];
+  if (primaryAssistantMessageId) {
+    fireAndForgetAck(
+      service,
+      body.content,
+      started.requestId,
+      primaryAssistantMessageId,
+    );
+  }
 
   try {
     await getEnqueueGenerationProcessing()(started.requestId);

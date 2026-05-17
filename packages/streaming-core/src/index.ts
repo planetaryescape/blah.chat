@@ -39,6 +39,16 @@ const generationCancelledEventSchema = generationEventBaseSchema.extend({
   reason: z.string().optional(),
 });
 
+/**
+ * Fast acknowledgement emitted by a small/cheap model before the main
+ * generation begins. Transient — not persisted, not part of the
+ * heavy-model context, just a UI signal that the system heard the user.
+ */
+const generationAckEventSchema = generationEventBaseSchema.extend({
+  type: z.literal("ack"),
+  text: z.string().min(1),
+});
+
 export const generationEventSchema = z.discriminatedUnion("type", [
   generationStartEventSchema,
   generationDeltaEventSchema,
@@ -46,6 +56,7 @@ export const generationEventSchema = z.discriminatedUnion("type", [
   generationCompleteEventSchema,
   generationErrorEventSchema,
   generationCancelledEventSchema,
+  generationAckEventSchema,
 ]);
 
 export type GenerationEvent = z.infer<typeof generationEventSchema>;

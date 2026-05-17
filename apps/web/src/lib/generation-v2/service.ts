@@ -186,6 +186,32 @@ export class GenerationV2Service {
     await this.store.setRequestStatus(requestId, "cancelling");
   }
 
+  /**
+   * Emit a single transient ack event for the given request. The ack is a
+   * fast "I hear you" signal produced by a small model so the UI feels
+   * responsive while the heavy generation is still spinning up. Not
+   * persisted; not part of the heavy-model context.
+   */
+  async dispatchAck(input: {
+    requestId: string;
+    assistantMessageId: string;
+    modelId: string;
+    text: string;
+  }) {
+    const trimmed = input.text.trim();
+    if (!trimmed) return;
+    await this.emit(input.requestId, {
+      requestId: input.requestId,
+      sessionId: `${input.requestId}:ack`,
+      assistantMessageId: input.assistantMessageId,
+      modelId: input.modelId,
+      seq: 0,
+      ts: this.now(),
+      type: "ack",
+      text: trimmed,
+    });
+  }
+
   async stopSession(requestId: string, sessionId: string) {
     await this.repository.markRequestCancelling(requestId);
     await this.repository.markSessionCancelling(sessionId);

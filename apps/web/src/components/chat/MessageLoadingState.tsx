@@ -7,6 +7,8 @@ interface MessageLoadingStateProps {
   isAutoRetrying?: boolean;
   isDecidingModel?: boolean;
   modelName?: string;
+  /** Optional transient "I hear you" line from the small ack model. */
+  ackText?: string;
 }
 
 /**
@@ -20,7 +22,40 @@ export function MessageLoadingState({
   isAutoRetrying,
   isDecidingModel,
   modelName,
+  ackText,
 }: MessageLoadingStateProps) {
+  if (ackText) {
+    return (
+      <div className="flex flex-col gap-1.5">
+        <span className="text-sm italic text-muted-foreground/90">
+          {ackText}
+        </span>
+        <div className="typing-indicator flex gap-1 items-center">
+          <span
+            className="w-1.5 h-1.5 bg-muted-foreground/60 rounded-full"
+            style={{
+              animation: "typing-pulse 0.8s ease-in-out infinite",
+              animationDelay: "0ms",
+            }}
+          />
+          <span
+            className="w-1.5 h-1.5 bg-muted-foreground/60 rounded-full"
+            style={{
+              animation: "typing-pulse 0.8s ease-in-out infinite",
+              animationDelay: "200ms",
+            }}
+          />
+          <span
+            className="w-1.5 h-1.5 bg-muted-foreground/60 rounded-full"
+            style={{
+              animation: "typing-pulse 0.8s ease-in-out infinite",
+              animationDelay: "400ms",
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
   if (isDecidingModel) {
     return (
       <div className="flex items-center gap-2 h-6 text-xs font-medium text-muted-foreground">

@@ -43,7 +43,8 @@ export interface ModelConfig {
     | "meta"
     | "mistral"
     | "alibaba"
-    | "zhipu";
+    | "zhipu"
+    | "nvidia";
   name: string;
   description?: string;
   contextWindow: number;
@@ -1079,6 +1080,372 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       "Experimental Gemini with massive 1M context window and fast time-to-first-token.",
     bestFor: "Long documents, multimodal tasks, fast responses",
   },
+
+  // ===== 2026 model refresh via OpenRouter =====
+
+  // Anthropic
+  "openrouter:claude-opus-4.7": {
+    id: "openrouter:claude-opus-4.7",
+    provider: "anthropic",
+    name: "Claude Opus 4.7",
+    description:
+      "Anthropic's next-gen Opus for long-running asynchronous agents and frontier coding.",
+    contextWindow: 1000000,
+    pricing: { input: 5.0, output: 25.0, cached: 0.5 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "anthropic/claude-opus-4.7",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "Anthropic's flagship reasoning model with 1M context. Built for long agents and the hardest coding work.",
+    bestFor:
+      "Long-horizon agents, complex coding, expert analysis, deep multimodal reasoning",
+  },
+  "openrouter:claude-sonnet-4.6": {
+    id: "openrouter:claude-sonnet-4.6",
+    provider: "anthropic",
+    name: "Claude Sonnet 4.6",
+    description:
+      "Anthropic's most capable Sonnet-class model with frontier coding and agentic performance.",
+    contextWindow: 1000000,
+    pricing: { input: 3.0, output: 15.0, cached: 0.3 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "anthropic/claude-sonnet-4.6",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "Workhorse Sonnet with 1M context. Strong reasoning at a third of Opus pricing.",
+    bestFor:
+      "Production agents, code review, professional writing, multimodal tasks",
+  },
+  "openrouter:claude-haiku-4.5": {
+    id: "openrouter:claude-haiku-4.5",
+    provider: "anthropic",
+    name: "Claude Haiku 4.5",
+    description:
+      "Anthropic's fastest, cheapest tier with near-frontier intelligence.",
+    contextWindow: 200000,
+    pricing: { input: 1.0, output: 5.0, cached: 0.1 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "anthropic/claude-haiku-4.5",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "Anthropic's speed tier. Reasoning + vision + tools at low cost and low latency.",
+    bestFor: "High-volume chat, classification, latency-sensitive tool use",
+  },
+
+  // OpenAI
+  "openrouter:gpt-5.5": {
+    id: "openrouter:gpt-5.5",
+    provider: "openai",
+    name: "GPT-5.5",
+    description:
+      "OpenAI's frontier model with stronger reasoning, reliability, and 1M context.",
+    contextWindow: 1050000,
+    pricing: { input: 5.0, output: 30.0, cached: 0.5 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "openai/gpt-5.5",
+    gateway: "openrouter",
+    knowledgeCutoff: "December 2025",
+    userFriendlyDescription:
+      "OpenAI flagship via OpenRouter. Top-tier reasoning across very long contexts.",
+    bestFor: "Complex professional workloads, deep reasoning, agentic systems",
+  },
+  "openrouter:gpt-5.4-mini": {
+    id: "openrouter:gpt-5.4-mini",
+    provider: "openai",
+    name: "GPT-5.4 Mini",
+    description:
+      "Efficient GPT-5.4 variant tuned for high-throughput reasoning workloads.",
+    contextWindow: 400000,
+    pricing: { input: 0.75, output: 4.5, cached: 0.075 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "openai/gpt-5.4-mini",
+    gateway: "openrouter",
+    knowledgeCutoff: "August 2025",
+    userFriendlyDescription:
+      "Mid-tier GPT-5.4 for everyday reasoning and tool use at a fraction of flagship cost.",
+    bestFor: "General assistant work, structured extraction, balanced cost",
+  },
+  "openrouter:gpt-5.4-nano": {
+    id: "openrouter:gpt-5.4-nano",
+    provider: "openai",
+    name: "GPT-5.4 Nano",
+    description:
+      "Lightweight, low-latency GPT-5.4 for speed-critical, high-volume tasks.",
+    contextWindow: 400000,
+    pricing: { input: 0.2, output: 1.25, cached: 0.02 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "openai/gpt-5.4-nano",
+    gateway: "openrouter",
+    knowledgeCutoff: "August 2025",
+    userFriendlyDescription:
+      "Smallest GPT-5.4. Cheap, fast, still multimodal and reasoning-capable.",
+    bestFor: "Routing, classification, summaries, ultra-cheap structured calls",
+  },
+
+  // Google
+  "openrouter:gemini-3.1-flash-lite": {
+    id: "openrouter:gemini-3.1-flash-lite",
+    provider: "google",
+    name: "Gemini 3.1 Flash Lite",
+    description:
+      "Google's GA high-efficiency multimodal model. Text, image, audio, video, and file.",
+    contextWindow: 1048576,
+    pricing: { input: 0.25, output: 1.5, cached: 0.025 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "google/gemini-3.1-flash-lite",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "Cheap, fast Gemini 3.1 with full multimodal input and 1M context.",
+    bestFor:
+      "Multimodal extraction, voice/video pipelines, high-volume reasoning",
+  },
+
+  // xAI
+  "openrouter:grok-4.20": {
+    id: "openrouter:grok-4.20",
+    provider: "xai",
+    name: "Grok 4.20",
+    description:
+      "xAI reasoning model with industry-leading speed, low hallucinations, and 2M context.",
+    contextWindow: 2000000,
+    pricing: { input: 1.25, output: 2.5, cached: 0.2 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "x-ai/grok-4.20",
+    gateway: "openrouter",
+    knowledgeCutoff: "September 2025",
+    userFriendlyDescription:
+      "Grok with 2M context. Fast reasoning, agentic tool calls, low hallucination rate.",
+    bestFor:
+      "Massive-context agents, fact-grounded reasoning, real-time tool use",
+  },
+
+  // DeepSeek
+  "openrouter:deepseek-v4-pro": {
+    id: "openrouter:deepseek-v4-pro",
+    provider: "deepseek",
+    name: "DeepSeek V4 Pro",
+    description:
+      "1.6T-param MoE with 49B active, 1M context, strong reasoning and tools.",
+    contextWindow: 1048576,
+    pricing: { input: 0.435, output: 0.87, cached: 0.004 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "deepseek/deepseek-v4-pro",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "DeepSeek's flagship. Frontier reasoning at a fraction of US-lab pricing.",
+    bestFor: "Research-grade reasoning, long-context analysis, agentic coding",
+  },
+  "openrouter:deepseek-v4-flash": {
+    id: "openrouter:deepseek-v4-flash",
+    provider: "deepseek",
+    name: "DeepSeek V4 Flash",
+    description:
+      "Efficiency-tier V4 MoE (284B/13B active) with 1M context, reasoning, and tools.",
+    contextWindow: 1048576,
+    pricing: { input: 0.112, output: 0.224, cached: 0.022 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "deepseek/deepseek-v4-flash",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "DeepSeek's cheap, fast reasoning model. 1M context for under $0.25/M output.",
+    bestFor:
+      "High-volume reasoning, batch analysis, cost-sensitive agentic workflows",
+  },
+  "openrouter:deepseek-v4-flash-free": {
+    id: "openrouter:deepseek-v4-flash-free",
+    provider: "deepseek",
+    name: "DeepSeek V4 Flash (Free)",
+    description: "Zero-cost route for DeepSeek V4 Flash on OpenRouter.",
+    contextWindow: 1048576,
+    pricing: { input: 0, output: 0 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "deepseek/deepseek-v4-flash:free",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "Free DeepSeek V4 Flash. Subject to OpenRouter rate limits.",
+    bestFor: "Experimentation, prototyping, cost-zero reasoning",
+  },
+
+  // Alibaba (Qwen)
+  "openrouter:qwen3.6-flash": {
+    id: "openrouter:qwen3.6-flash",
+    provider: "alibaba",
+    name: "Qwen 3.6 Flash",
+    description:
+      "Fast Qwen 3.6 with 1M context, image and video input, reasoning, and tools.",
+    contextWindow: 1000000,
+    pricing: { input: 0.188, output: 1.125 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "qwen/qwen3.6-flash",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "Qwen 3.6 speed tier. Multimodal with 1M context at very low cost.",
+    bestFor:
+      "Long multimodal extraction, video understanding, cheap reasoning at scale",
+  },
+  "openrouter:qwen3.6-max-preview": {
+    id: "openrouter:qwen3.6-max-preview",
+    provider: "alibaba",
+    name: "Qwen 3.6 Max (Preview)",
+    description:
+      "Alibaba's frontier Qwen MoE for the hardest reasoning and coding tasks.",
+    contextWindow: 262144,
+    pricing: { input: 1.04, output: 6.24 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "qwen/qwen3.6-max-preview",
+    gateway: "openrouter",
+    isExperimental: true,
+    userFriendlyDescription:
+      "Qwen flagship preview. Top reasoning for complex coding and analysis.",
+    bestFor: "Hardest reasoning, complex coding, expert technical work",
+  },
+
+  // Moonshot (Kimi)
+  "openrouter:kimi-k2.6": {
+    id: "openrouter:kimi-k2.6",
+    provider: "kimi",
+    name: "Kimi K2.6",
+    description:
+      "Moonshot's next-gen multimodal Kimi for long-horizon coding and UI generation.",
+    contextWindow: 262144,
+    pricing: { input: 0.73, output: 3.49, cached: 0.25 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "moonshotai/kimi-k2.6",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "Latest Kimi. Strong visual coding, multi-agent flows, long-horizon planning.",
+    bestFor: "Visual coding, agent swarms, UI/UX generation",
+  },
+  "openrouter:kimi-k2-thinking": {
+    id: "openrouter:kimi-k2-thinking",
+    provider: "kimi",
+    name: "Kimi K2 Thinking",
+    description:
+      "Open reasoning variant of K2 tuned for agentic long-horizon planning.",
+    contextWindow: 262144,
+    pricing: { input: 0.6, output: 2.5 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "moonshotai/kimi-k2-thinking",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "Reasoning-tuned Kimi K2. Visible chain-of-thought for complex problem solving.",
+    bestFor: "Step-by-step reasoning, planning, agentic decomposition",
+  },
+
+  // Meta (Llama 4)
+  "openrouter:llama-4-maverick": {
+    id: "openrouter:llama-4-maverick",
+    provider: "meta",
+    name: "Llama 4 Maverick",
+    description:
+      "Meta's 17B-active MoE (128 experts), multimodal with 1M context.",
+    contextWindow: 1048576,
+    pricing: { input: 0.15, output: 0.6 },
+    capabilities: ["vision"],
+    actualModelId: "meta-llama/llama-4-maverick",
+    gateway: "openrouter",
+    knowledgeCutoff: "August 2024",
+    userFriendlyDescription:
+      "Meta's flagship Llama 4 with vision and 1M context at strong cost-per-quality.",
+    bestFor: "Multimodal chat, open-weight production deployments",
+  },
+  "openrouter:llama-4-scout": {
+    id: "openrouter:llama-4-scout",
+    provider: "meta",
+    name: "Llama 4 Scout",
+    description:
+      "Meta's 17B-active MoE (16 experts) with an extreme 10M-token context window.",
+    contextWindow: 10000000,
+    pricing: { input: 0.08, output: 0.3 },
+    capabilities: ["vision", "function-calling"],
+    actualModelId: "meta-llama/llama-4-scout",
+    gateway: "openrouter",
+    knowledgeCutoff: "August 2024",
+    userFriendlyDescription:
+      "Long-context champion: 10M tokens for whole-codebase or huge-document tasks.",
+    bestFor:
+      "Massive document analysis, full repository reasoning, archive search",
+  },
+
+  // Mistral
+  "openrouter:mistral-large-2512": {
+    id: "openrouter:mistral-large-2512",
+    provider: "mistral",
+    name: "Mistral Large 3 (2512)",
+    description:
+      "Mistral's most capable model with sparse MoE, vision, and tool use.",
+    contextWindow: 262144,
+    pricing: { input: 0.5, output: 1.5, cached: 0.05 },
+    capabilities: ["vision", "function-calling"],
+    actualModelId: "mistralai/mistral-large-2512",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "Mistral flagship. Multimodal, tool-using, and very competitively priced.",
+    bestFor: "General assistant work, code, structured extraction with tools",
+  },
+  "openrouter:ministral-8b": {
+    id: "openrouter:ministral-8b",
+    provider: "mistral",
+    name: "Ministral 3 8B",
+    description: "Tiny, efficient Mistral with vision and tools.",
+    contextWindow: 262144,
+    pricing: { input: 0.15, output: 0.15, cached: 0.015 },
+    capabilities: ["vision", "function-calling"],
+    actualModelId: "mistralai/ministral-8b-2512",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "Cheap, fast Mistral with vision. Flat $0.15/M for input and output.",
+    bestFor: "High-throughput classification, lightweight agents, edge use",
+  },
+
+  // Z.ai (GLM)
+  "openrouter:glm-5.1": {
+    id: "openrouter:glm-5.1",
+    provider: "zai",
+    name: "GLM 5.1",
+    description:
+      "Z.ai flagship update with major coding and long-horizon task gains.",
+    contextWindow: 202752,
+    pricing: { input: 0.98, output: 3.08, cached: 0.182 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "z-ai/glm-5.1",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "Latest GLM. Notable jump in long-horizon coding and agentic execution.",
+    bestFor: "Complex coding, autonomous workflows, long-horizon agents",
+  },
+  "openrouter:glm-4.7-flash": {
+    id: "openrouter:glm-4.7-flash",
+    provider: "zai",
+    name: "GLM 4.7 Flash",
+    description:
+      "30B-class SOTA model optimized for agentic coding at very low cost.",
+    contextWindow: 202752,
+    pricing: { input: 0.06, output: 0.4, cached: 0.01 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "z-ai/glm-4.7-flash",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "Bargain agentic GLM. Strong coding and tool use at $0.06/$0.4 per M.",
+    bestFor: "Cheap agentic coding, high-volume tool calls, batch reasoning",
+  },
+
+  // NVIDIA Nemotron
+  "openrouter:nemotron-3-super-120b": {
+    id: "openrouter:nemotron-3-super-120b",
+    provider: "nvidia",
+    name: "Nemotron 3 Super 120B",
+    description:
+      "NVIDIA's 120B hybrid MoE (12B active) with reasoning, tools, and 1M context.",
+    contextWindow: 1000000,
+    pricing: { input: 0.1, output: 0.5 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "nvidia/nemotron-3-super-120b-a12b",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "NVIDIA's open reasoning flagship. Cheap, capable, with 1M context.",
+    bestFor: "Open-weight reasoning, agentic tool use, long-context analysis",
+  },
 };
 
 /**
@@ -1132,6 +1499,7 @@ export function getProviderDisplayName(provider: Provider): string {
     mistral: "Mistral",
     alibaba: "Alibaba",
     zhipu: "Zhipu",
+    nvidia: "NVIDIA",
   };
 
   return displayNames[provider] ?? provider;

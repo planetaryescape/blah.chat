@@ -1,7 +1,7 @@
 version: 2
 updates:
   # Root workspace (turbo, shared devDeps)
-  - package-ecosystem: "npm"
+  - package-ecosystem: "bun"
     directory: "/"
     schedule:
       interval: "weekly"
@@ -38,7 +38,7 @@ updates:
           - "patch"
 
   # Web app (Next.js, UI deps)
-  - package-ecosystem: "npm"
+  - package-ecosystem: "bun"
     directory: "/apps/web"
     schedule:
       interval: "weekly"
@@ -60,7 +60,7 @@ updates:
           - "patch"
 
   # Backend (Convex, AI SDK)
-  - package-ecosystem: "npm"
+  - package-ecosystem: "bun"
     directory: "/packages/backend"
     schedule:
       interval: "weekly"

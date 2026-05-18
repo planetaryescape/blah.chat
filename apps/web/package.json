@@ -110,7 +110,7 @@
     "dexie-react-hooks": "^4.2.0",
     "diff": "^8.0.2",
     "dompurify": "^3.3.1",
-    "drizzle-orm": "^0.44.7",
+    "drizzle-orm": "^0.45.2",
     "framer-motion": "^12.23.26",
     "html-to-image": "^1.11.13",
     "html2canvas": "^1.4.1",

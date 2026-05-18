@@ -27,7 +27,7 @@
     "@blah-chat/api-client": "workspace:*",
     "@blah-chat/chat-ui-core": "workspace:*",
     "@blah-chat/shared": "workspace:*",
-    "@opentui/core": "^0.1.74",
+    "@opentui/core": "^0.2.14",
     "@opentui/solid": "^0.2.6",
     "solid-js": "^1.9.0",
     "clipboardy": "^5.0.2",

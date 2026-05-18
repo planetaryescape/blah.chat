@@ -1,7 +1,7 @@
 {
-  ".": "1.41.8",
+  ".": "1.42.0",
   "packages/api-client": "0.7.0",
-  "packages/ai": "0.5.1",
+  "packages/ai": "0.6.0",
   "packages/shared": "0.5.0",
   "packages/config": "0.1.0",
   "packages/auto-router": "0.5.0",
@@ -20,7 +20,7 @@
   "packages/diagrams-mermaid": "0.1.0",
   "packages/markdown-web": "0.1.0",
   "packages/api-envelope": "0.1.0",
-  "packages/streaming-core": "0.3.0",
+  "packages/streaming-core": "0.4.0",
   "packages/crypto-core": "0.1.0",
   "packages/assistant-tools-core": "0.1.0",
   "packages/code-execution-core": "0.1.0",

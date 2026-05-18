@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.0](https://github.com/planetaryescape/blah.chat/compare/ai-v0.5.1...ai-v0.6.0) (2026-05-18)
+
+
+### Features
+
+* **ai:** add 2026 model refresh via OpenRouter ([f796563](https://github.com/planetaryescape/blah.chat/commit/f7965630df5f9c1bd10a4db40614b9756fe37297))
+* fast ack pre-response while heavy model spins up ([90afb04](https://github.com/planetaryescape/blah.chat/commit/90afb04ccc6601123b15b32026b775761dc3703c))
+
 ## [0.5.1](https://github.com/planetaryescape/blah.chat/compare/ai-v0.5.0...ai-v0.5.1) (2026-05-17)
 
 

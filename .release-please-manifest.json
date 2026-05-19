@@ -1,5 +1,5 @@
 {
-  ".": "1.42.0",
+  ".": "1.42.1",
   "packages/api-client": "0.7.0",
   "packages/ai": "0.6.0",
   "packages/shared": "0.5.0",

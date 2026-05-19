@@ -672,6 +672,7 @@ export const ChatMessage = memo(
       prev.message.createdAt === next.message.createdAt &&
       prev.message.content === next.message.content &&
       prev.message.partialContent === next.message.partialContent &&
+      prev.message.ackText === next.message.ackText &&
       prev.message.status === next.message.status &&
       prev.message.error === next.message.error &&
       prev.message.reasoning === next.message.reasoning &&

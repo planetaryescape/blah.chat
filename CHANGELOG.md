@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.42.1](https://github.com/planetaryescape/blah.chat/compare/v1.42.0...v1.42.1) (2026-05-19)
+
+
+### Bug Fixes
+
+* **ui:** include ackText in ChatMessage memo comparator ([cc76d06](https://github.com/planetaryescape/blah.chat/commit/cc76d06b8a2e48cc672836a9fe65791c783b0eb9))
+
 ## [1.42.0](https://github.com/planetaryescape/blah.chat/compare/v1.41.8...v1.42.0) (2026-05-18)
 
 

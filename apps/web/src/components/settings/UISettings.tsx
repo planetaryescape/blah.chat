@@ -20,6 +20,7 @@ import {
   ComparisonSettingsSection,
   DisplayLayoutSection,
   MessageBehaviorSection,
+  NotificationChimesSection,
   ReasoningDisplaySection,
   SidebarFeaturesSection,
   StatisticsSection,
@@ -45,6 +46,8 @@ const SETTING_TO_SECTION: Record<string, string> = {
   alwaysShowMessageActions: "messages",
   autoCompressContext: "messages",
   hapticFeedbackEnabled: "messages",
+  notificationChimesEnabled: "audio-feedback",
+  notificationChimeSounds: "audio-feedback",
   // Reasoning
   showByDefault: "reasoning",
   autoExpand: "reasoning",
@@ -68,6 +71,7 @@ const DEFAULT_EXPANDED = [
   "display",
   "stats",
   "messages",
+  "audio-feedback",
   "reasoning",
   "comparison",
   "sidebar-features",
@@ -162,6 +166,13 @@ export function UISettings({ focusSettingKey }: UISettingsProps) {
               handlers.handleAutoCompressContextChange
             }
             onHapticFeedbackChange={handlers.handleHapticFeedbackChange}
+          />
+
+          <NotificationChimesSection
+            enabled={state.notificationChimesEnabled}
+            sounds={state.notificationChimeSounds}
+            onEnabledChange={handlers.handleNotificationChimesEnabledChange}
+            onSoundChange={handlers.handleNotificationChimeSoundChange}
           />
 
           <ReasoningDisplaySection

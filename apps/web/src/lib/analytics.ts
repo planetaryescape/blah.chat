@@ -554,6 +554,10 @@ interface AnalyticsEvent {
     value: boolean;
     source?: "settings_page" | "header_menu";
   };
+  notification_chime_changed: {
+    event: string;
+    sound: string;
+  };
   reasoning_display_changed: {
     setting: string;
     value: boolean;

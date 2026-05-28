@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { useNotificationChimes } from "@/hooks/useNotificationChimes";
 import { analytics } from "@/lib/analytics";
 import { useApiClient } from "@/lib/api/client";
 import { messageQueue } from "@/lib/offline/messageQueue";
@@ -62,6 +63,7 @@ export function useSendMessage(
 ) {
   const apiClient = useApiClient();
   const queryClient = useQueryClient();
+  const { play: playNotificationChime } = useNotificationChimes();
 
   // Auto-process offline queue when connection restored
   useEffect(() => {
@@ -154,6 +156,7 @@ export function useSendMessage(
         variables.conversationId,
         data as GenerationRequestResponse | undefined,
       );
+      playNotificationChime("messageSent");
 
       // Track analytics
       analytics.track("message_sent", {

@@ -1,5 +1,10 @@
 "use client";
 
+import type {
+  NotificationChimeEvent,
+  NotificationChimeId,
+  NotificationChimeSounds,
+} from "@blah-chat/shared/preferences";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useUserPreference } from "@/hooks/useUserPreference";
@@ -20,6 +25,8 @@ export interface UISettingsState {
   alwaysShowMessageActions: boolean;
   autoCompressContext: boolean;
   hapticFeedbackEnabled: boolean;
+  notificationChimesEnabled: boolean;
+  notificationChimeSounds: NotificationChimeSounds;
   showModelNamesDuringComparison: boolean;
   showMessageStats: boolean;
   showComparisonStats: boolean;
@@ -51,6 +58,11 @@ export interface UISettingsHandlers {
   handleAlwaysShowActionsChange: (checked: boolean) => Promise<void>;
   handleAutoCompressContextChange: (checked: boolean) => Promise<void>;
   handleHapticFeedbackChange: (checked: boolean) => Promise<void>;
+  handleNotificationChimesEnabledChange: (checked: boolean) => Promise<void>;
+  handleNotificationChimeSoundChange: (
+    event: NotificationChimeEvent,
+    sound: NotificationChimeId,
+  ) => Promise<void>;
   handleShowModelNamesChange: (checked: boolean) => Promise<void>;
   handleMessageStatsChange: (checked: boolean) => Promise<void>;
   handleComparisonStatsChange: (checked: boolean) => Promise<void>;
@@ -92,6 +104,12 @@ export function useUISettingsState() {
   const prefAlwaysShowActions = useUserPreference("alwaysShowMessageActions");
   const prefAutoCompressContext = useUserPreference("autoCompressContext");
   const _prefHapticFeedbackEnabled = useUserPreference("hapticFeedbackEnabled");
+  const prefNotificationChimesEnabled = useUserPreference(
+    "notificationChimesEnabled",
+  );
+  const prefNotificationChimeSounds = useUserPreference(
+    "notificationChimeSounds",
+  );
   const prefShowModelNames = useUserPreference(
     "showModelNamesDuringComparison",
   );
@@ -126,6 +144,10 @@ export function useUISettingsState() {
   const [_hapticFeedbackEnabled, _setHapticFeedbackEnabled] = useState<boolean>(
     _prefHapticFeedbackEnabled,
   );
+  const [notificationChimesEnabled, setNotificationChimesEnabled] =
+    useState<boolean>(prefNotificationChimesEnabled);
+  const [notificationChimeSounds, setNotificationChimeSounds] =
+    useState<NotificationChimeSounds>(prefNotificationChimeSounds);
   const [showModelNamesDuringComparison, setShowModelNamesDuringComparison] =
     useState<boolean>(prefShowModelNames);
   const [showMessageStats, setShowMessageStats] =
@@ -192,6 +214,14 @@ export function useUISettingsState() {
   useEffect(
     () => _setHapticFeedbackEnabled(_prefHapticFeedbackEnabled),
     [_prefHapticFeedbackEnabled],
+  );
+  useEffect(
+    () => setNotificationChimesEnabled(prefNotificationChimesEnabled),
+    [prefNotificationChimesEnabled],
+  );
+  useEffect(
+    () => setNotificationChimeSounds(prefNotificationChimeSounds),
+    [prefNotificationChimeSounds],
   );
   useEffect(
     () => setShowModelNamesDuringComparison(prefShowModelNames),
@@ -440,6 +470,26 @@ export function useUISettingsState() {
     }
   };
 
+  const handleNotificationChimeSoundChange = async (
+    event: NotificationChimeEvent,
+    sound: NotificationChimeId,
+  ) => {
+    const previous = notificationChimeSounds;
+    const next = { ...notificationChimeSounds, [event]: sound };
+    setNotificationChimeSounds(next);
+    try {
+      await updatePreference("notificationChimeSounds", next);
+      toast.success("Chime updated!");
+      analytics.track("notification_chime_changed", {
+        event,
+        sound,
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save");
+      setNotificationChimeSounds(previous);
+    }
+  };
+
   const handlers: UISettingsHandlers = {
     handleAlwaysShowActionsChange: createBooleanHandler(
       "alwaysShowMessageActions",
@@ -459,6 +509,13 @@ export function useUISettingsState() {
       "haptic_feedback_enabled",
       "Haptic feedback setting saved!",
     ),
+    handleNotificationChimesEnabledChange: createBooleanHandler(
+      "notificationChimesEnabled",
+      setNotificationChimesEnabled,
+      "notification_chimes_enabled",
+      "Notification chimes setting saved!",
+    ),
+    handleNotificationChimeSoundChange,
     handleShowModelNamesChange: createBooleanHandler(
       "showModelNamesDuringComparison",
       setShowModelNamesDuringComparison,
@@ -537,6 +594,8 @@ export function useUISettingsState() {
     alwaysShowMessageActions,
     autoCompressContext,
     hapticFeedbackEnabled: _hapticFeedbackEnabled,
+    notificationChimesEnabled,
+    notificationChimeSounds,
     showModelNamesDuringComparison,
     showMessageStats,
     showComparisonStats,

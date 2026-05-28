@@ -11,7 +11,10 @@ import { SelectionContextMenu } from "@/components/chat/SelectionContextMenu";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import { KeyboardShortcutsManager } from "@/components/KeyboardShortcutsManager";
 import { OfflineQueueIndicator } from "@/components/layout/OfflineQueueIndicator";
-import { NotificationBell } from "@/components/notifications";
+import {
+  NotificationAudioBridge,
+  NotificationBell,
+} from "@/components/notifications";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { Button } from "@/components/ui/button";
 import {
@@ -144,6 +147,7 @@ export default function MainLayout({
     <SelectionProvider>
       <CanvasProvider>
         <KeyboardShortcutsManager />
+        <NotificationAudioBridge />
 
         {/* Skip to main content - WCAG 2.1 */}
         <a

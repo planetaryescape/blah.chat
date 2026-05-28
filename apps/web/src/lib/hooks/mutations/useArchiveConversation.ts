@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useNotificationChimes } from "@/hooks/useNotificationChimes";
 import { useApiClient } from "@/lib/api/client";
 import { queryKeys } from "@/lib/query/keys";
 
@@ -10,6 +11,7 @@ interface ArchiveConversationArgs {
 export function useArchiveConversation() {
   const api = useApiClient();
   const queryClient = useQueryClient();
+  const { play: playNotificationChime } = useNotificationChimes();
 
   return useMutation({
     mutationFn: async ({ conversationId }: ArchiveConversationArgs) => {
@@ -23,6 +25,7 @@ export function useArchiveConversation() {
       });
 
       toast.success("Conversation archived");
+      playNotificationChime("conversationArchived");
     },
 
     onError: (error) => {

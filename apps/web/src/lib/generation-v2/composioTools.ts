@@ -5,6 +5,8 @@ import {
 import { Composio } from "@composio/core";
 import { VercelProvider } from "@composio/vercel";
 import { eq } from "drizzle-orm";
+import logger from "@/lib/logger";
+import { createNotification } from "@/lib/persistence/notifications";
 import type { GenerationRequestIntegrationSnapshot } from "./types";
 
 function getComposioClient() {
@@ -17,6 +19,37 @@ function getComposioClient() {
     apiKey,
     provider: new VercelProvider(),
   });
+}
+
+export function getComposioEmailNotification(toolName: string) {
+  const normalizedName = toolName.toUpperCase();
+  if (!normalizedName.startsWith("GMAIL_")) {
+    return null;
+  }
+
+  if (normalizedName.includes("ARCHIVE")) {
+    return {
+      type: "email_archived" as const,
+      title: "Email archived",
+      message: "Gmail archive action completed",
+      data: { chimeEvent: "emailArchived" as const },
+    };
+  }
+
+  if (
+    normalizedName.includes("SEND") ||
+    normalizedName.includes("REPLY") ||
+    normalizedName.includes("DRAFT_SEND")
+  ) {
+    return {
+      type: "email_sent" as const,
+      title: "Email sent",
+      message: "Gmail send action completed",
+      data: { chimeEvent: "emailSent" as const },
+    };
+  }
+
+  return null;
 }
 
 export async function createComposioTools(input: {
@@ -82,6 +115,23 @@ export async function createComposioTools(input: {
                   snapshot.composioConnectionId,
                 ),
               );
+          }
+
+          const notification = getComposioEmailNotification(name);
+          if (notification) {
+            await createNotification({
+              userId: input.userId,
+              ...notification,
+            }).catch((notificationError) => {
+              logger.warn(
+                {
+                  err: notificationError,
+                  toolName: name,
+                  userId: input.userId,
+                },
+                "Failed to create Composio email notification",
+              );
+            });
           }
 
           return result;

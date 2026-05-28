@@ -243,6 +243,9 @@ export const userOnboarding = pgTable("user_onboarding", {
 });
 
 export type NotificationType =
+  | "email_received"
+  | "email_sent"
+  | "email_archived"
   | "share_viewed"
   | "comparison_complete"
   | "generation_failed"

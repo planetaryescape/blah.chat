@@ -37,6 +37,14 @@ export default defineConfig({
         __dirname,
         "../../packages/chat-ui-core/src/index.ts",
       ),
+      "@blah-chat/shared/preferences": path.resolve(
+        __dirname,
+        "../../packages/shared/src/preferences.ts",
+      ),
+      "@blah-chat/shared": path.resolve(
+        __dirname,
+        "../../packages/shared/src/index.ts",
+      ),
       "@": path.resolve(__dirname, "./src"),
     },
   },

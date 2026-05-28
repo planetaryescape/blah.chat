@@ -3,6 +3,7 @@ export { AutoRouterSection } from "./AutoRouterSection";
 export { ComparisonSettingsSection } from "./ComparisonSettingsSection";
 export { DisplayLayoutSection } from "./DisplayLayoutSection";
 export { MessageBehaviorSection } from "./MessageBehaviorSection";
+export { NotificationChimesSection } from "./NotificationChimesSection";
 export { ReasoningDisplaySection } from "./ReasoningDisplaySection";
 export { SidebarFeaturesSection } from "./SidebarFeaturesSection";
 export { StatisticsSection } from "./StatisticsSection";

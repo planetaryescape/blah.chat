@@ -4,6 +4,35 @@
  * Centralized defaults and category mappings for the flattened user preferences system.
  */
 
+export type NotificationChimeEvent =
+  | "emailReceived"
+  | "emailSent"
+  | "emailArchived"
+  | "messageSent"
+  | "conversationArchived"
+  | "notification";
+
+export type NotificationChimeId =
+  | "none"
+  | "arrival"
+  | "sent"
+  | "archive"
+  | "notify";
+
+export type NotificationChimeSounds = Record<
+  NotificationChimeEvent,
+  NotificationChimeId
+>;
+
+export const DEFAULT_NOTIFICATION_CHIME_SOUNDS = {
+  emailReceived: "arrival",
+  emailSent: "sent",
+  emailArchived: "archive",
+  messageSent: "sent",
+  conversationArchived: "archive",
+  notification: "notify",
+} as const satisfies NotificationChimeSounds;
+
 export const PREFERENCE_DEFAULTS = {
   // Appearance
   theme: "dark" as const,
@@ -43,6 +72,8 @@ export const PREFERENCE_DEFAULTS = {
   ttsVoice: "aura-asteria-en",
   ttsSpeed: 1.0,
   ttsAutoRead: false,
+  notificationChimesEnabled: false,
+  notificationChimeSounds: DEFAULT_NOTIFICATION_CHIME_SOUNDS,
 
   // Advanced
   showNotes: true,
@@ -128,6 +159,8 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   ttsVoice: "audio",
   ttsSpeed: "audio",
   ttsAutoRead: "audio",
+  notificationChimesEnabled: "audio",
+  notificationChimeSounds: "audio",
 
   // Advanced
   showNotes: "advanced",

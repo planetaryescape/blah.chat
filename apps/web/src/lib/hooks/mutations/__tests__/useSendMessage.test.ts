@@ -12,6 +12,7 @@ let mutationConfig: null | {
 // Store mock functions for assertions
 let mockPost: ReturnType<typeof vi.fn>;
 let mockInvalidateQueries: ReturnType<typeof vi.fn>;
+const mockPlayNotificationChime = vi.hoisted(() => vi.fn());
 
 // Create mocks inline in vi.mock factories - no external variable references
 vi.mock("@tanstack/react-query", () => {
@@ -70,6 +71,10 @@ vi.mock("@/lib/query/keys", () => ({
       list: (id: string) => ["messages", id],
     },
   },
+}));
+
+vi.mock("@/hooks/useNotificationChimes", () => ({
+  useNotificationChimes: () => ({ play: mockPlayNotificationChime }),
 }));
 
 // Import AFTER mocks
@@ -205,6 +210,17 @@ describe("useSendMessage", () => {
       assistantModelId: "openai:gpt-5.2-chat",
       modelIds: ["openai:gpt-5.2-chat"],
     });
+  });
+
+  it("plays the sent chime when the server confirms a message", () => {
+    renderHook(() => useSendMessage());
+
+    mutationConfig?.onSuccess?.(
+      { status: "success" },
+      { conversationId, content: "Test" },
+    );
+
+    expect(mockPlayNotificationChime).toHaveBeenCalledWith("messageSent");
   });
 
   it("shows error toast when online and fails", () => {

@@ -15,7 +15,7 @@ on:
 jobs:
   dry-run:
     name: Trigger.dev Dry Run
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
 
     steps:

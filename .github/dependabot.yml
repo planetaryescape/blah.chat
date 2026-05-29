@@ -1,6 +1,7 @@
 version: 2
 updates:
-  # Root workspace (turbo, shared devDeps)
+  # Bun workspace. Keep this at the repo root so Dependabot updates the
+  # workspace-level bun.lock together with package manifests.
   - package-ecosystem: "bun"
     directory: "/"
     schedule:
@@ -15,65 +16,33 @@ updates:
       prefix: "chore"
       include: "scope"
     # Expo / React Native packages must be bumped as a set via `expo install`
-    # or `npx expo upgrade` to keep SDK versions aligned. Block individual
-    # major bumps so we don't get apps/mobile PRs that desync the SDK.
+    # or an Expo SDK upgrade to keep native peer versions aligned. Allow patch
+    # bumps, but block individual minor/major bumps that can desync the SDK.
     ignore:
       - dependency-name: "expo"
-        update-types: ["version-update:semver-major"]
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
       - dependency-name: "expo-*"
-        update-types: ["version-update:semver-major"]
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
       - dependency-name: "@expo/*"
-        update-types: ["version-update:semver-major"]
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
       - dependency-name: "react-native"
-        update-types: ["version-update:semver-major"]
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
       - dependency-name: "react-native-*"
-        update-types: ["version-update:semver-major"]
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
       - dependency-name: "@react-native-*/*"
-        update-types: ["version-update:semver-major"]
-    groups:
-      patch-updates:
-        patterns:
-          - "*"
         update-types:
-          - "patch"
-
-  # Web app (Next.js, UI deps)
-  - package-ecosystem: "bun"
-    directory: "/apps/web"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 5
-    reviewers:
-      - "bhekanik"
-    labels:
-      - "dependencies"
-      - "web"
-    commit-message:
-      prefix: "chore(web)"
-      include: "scope"
-    groups:
-      patch-updates:
-        patterns:
-          - "*"
-        update-types:
-          - "patch"
-
-  # Backend (Convex, AI SDK)
-  - package-ecosystem: "bun"
-    directory: "/packages/backend"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 5
-    reviewers:
-      - "bhekanik"
-    labels:
-      - "dependencies"
-      - "backend"
-    commit-message:
-      prefix: "chore(backend)"
-      include: "scope"
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
     groups:
       patch-updates:
         patterns:

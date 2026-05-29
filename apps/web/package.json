@@ -163,7 +163,7 @@
     "shiki": "^4.0.2",
     "sonner": "^2.0.7",
     "streamdown": "^2.1.0",
-    "svix": "^1.82.0",
+    "svix": "^1.93.0",
     "tailwind-merge": "^3.4.0",
     "tiktoken": "^1.0.22",
     "unpdf": "^1.4.0",

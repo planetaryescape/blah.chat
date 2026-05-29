@@ -125,5 +125,9 @@ export function playNotificationChime(chime: NotificationChimeId) {
     gain.connect(destination);
     oscillator.start(startsAt);
     oscillator.stop(endsAt + 0.02);
+    oscillator.onended = () => {
+      oscillator.disconnect();
+      gain.disconnect();
+    };
   }
 }

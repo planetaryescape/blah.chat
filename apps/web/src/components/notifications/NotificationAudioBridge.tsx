@@ -15,6 +15,10 @@ interface NotificationDTO {
   createdAt: number;
 }
 
+interface RefValue<T> {
+  current: T;
+}
+
 async function fetchLatestUnreadNotification(): Promise<NotificationDTO | null> {
   const res = await fetch("/api/v1/notifications?limit=1&unreadOnly=true");
   if (!res.ok) {
@@ -50,6 +54,42 @@ export function notificationToChimeEvent(
   }
 }
 
+function logPollingErrorOnce(
+  error: unknown,
+  lastLoggedError: RefValue<unknown>,
+) {
+  if (error === lastLoggedError.current) {
+    return;
+  }
+
+  console.warn("Failed to poll latest unread notification", { error });
+  lastLoggedError.current = error;
+}
+
+function handleLatestUnreadNotification(
+  notification: NotificationDTO | null | undefined,
+  baselineCaptured: RefValue<boolean>,
+  lastNotificationId: RefValue<string | null>,
+  play: (event: NotificationChimeEvent) => void,
+) {
+  if (!notification) {
+    return;
+  }
+
+  if (!baselineCaptured.current) {
+    baselineCaptured.current = true;
+    lastNotificationId.current = notification.id;
+    return;
+  }
+
+  if (notification.id === lastNotificationId.current) {
+    return;
+  }
+
+  lastNotificationId.current = notification.id;
+  play(notificationToChimeEvent(notification));
+}
+
 export function NotificationAudioBridge() {
   const { play } = useNotificationChimes();
   const latestQuery = useQuery({
@@ -66,12 +106,7 @@ export function NotificationAudioBridge() {
 
   useEffect(() => {
     if (latestQuery.isError) {
-      if (latestQuery.error !== lastLoggedError.current) {
-        console.warn("Failed to poll latest unread notification", {
-          error: latestQuery.error,
-        });
-        lastLoggedError.current = latestQuery.error;
-      }
+      logPollingErrorOnce(latestQuery.error, lastLoggedError);
       return;
     }
 
@@ -79,23 +114,12 @@ export function NotificationAudioBridge() {
       return;
     }
 
-    const notification = latestQuery.data ?? null;
-    if (!notification) {
-      return;
-    }
-
-    if (!baselineCaptured.current) {
-      baselineCaptured.current = true;
-      lastNotificationId.current = notification.id;
-      return;
-    }
-
-    if (notification.id === lastNotificationId.current) {
-      return;
-    }
-
-    lastNotificationId.current = notification.id;
-    play(notificationToChimeEvent(notification));
+    handleLatestUnreadNotification(
+      latestQuery.data,
+      baselineCaptured,
+      lastNotificationId,
+      play,
+    );
   }, [
     latestQuery.data,
     latestQuery.error,

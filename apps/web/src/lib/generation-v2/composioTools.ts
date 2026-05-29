@@ -27,29 +27,42 @@ export function getComposioEmailNotification(toolName: string) {
     return null;
   }
 
-  if (normalizedName.includes("ARCHIVE")) {
+  const gmailAction = normalizedName.replace(/^GMAIL_/, "");
+
+  if (gmailAction === "ARCHIVE_EMAILS") {
     return {
       type: "email_archived" as const,
-      title: "Email archived",
-      message: "Gmail archive action completed",
+      title: "Emails archived",
+      message: "Gmail archive emails action completed",
       data: { chimeEvent: "emailArchived" as const },
     };
   }
 
-  if (
-    normalizedName.includes("SEND") ||
-    normalizedName.includes("REPLY") ||
-    normalizedName.includes("DRAFT_SEND")
-  ) {
-    return {
-      type: "email_sent" as const,
-      title: "Email sent",
-      message: "Gmail send action completed",
-      data: { chimeEvent: "emailSent" as const },
-    };
+  switch (gmailAction) {
+    case "SEND_EMAIL":
+      return {
+        type: "email_sent" as const,
+        title: "Email sent",
+        message: "Gmail send email action completed",
+        data: { chimeEvent: "emailSent" as const },
+      };
+    case "REPLY_TO_THREAD":
+      return {
+        type: "email_sent" as const,
+        title: "Email reply sent",
+        message: "Gmail reply to thread action completed",
+        data: { chimeEvent: "emailSent" as const },
+      };
+    case "SEND_DRAFT":
+      return {
+        type: "email_sent" as const,
+        title: "Email draft sent",
+        message: "Gmail send draft action completed",
+        data: { chimeEvent: "emailSent" as const },
+      };
+    default:
+      return null;
   }
-
-  return null;
 }
 
 export async function createComposioTools(input: {

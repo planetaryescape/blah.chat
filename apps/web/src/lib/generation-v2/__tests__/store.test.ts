@@ -26,10 +26,14 @@ function createRedisMock(): MockRedis {
     ping: vi.fn<RedisClient["ping"]>(),
     rpush: vi.fn<RedisClient["rpush"]>(),
     expire: vi.fn<RedisClient["expire"]>(),
-    lrange: vi.fn<RedisClient["lrange"]>(),
+    lrange: vi.fn<RedisClient["lrange"]>() as unknown as MockedFunction<
+      RedisClient["lrange"]
+    >,
     setex: vi.fn<RedisClient["setex"]>(),
     del: vi.fn<RedisClient["del"]>(),
-    get: vi.fn<RedisClient["get"]>(),
+    get: vi.fn<RedisClient["get"]>() as unknown as MockedFunction<
+      RedisClient["get"]
+    >,
   };
 }
 

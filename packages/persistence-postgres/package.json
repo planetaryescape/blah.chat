@@ -35,7 +35,7 @@
     "@aws-sdk/s3-request-presigner": "^3.918.0",
     "@neondatabase/serverless": "^1.0.2",
     "@upstash/redis": "^1.35.6",
-    "drizzle-orm": "^0.44.5",
+    "drizzle-orm": "^0.45.2",
     "nanoid": "^5.1.6",
     "pg": "^8.20.0",
     "zod": "^4.2.1"

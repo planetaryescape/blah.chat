@@ -9,7 +9,7 @@ import { formatEntity } from "@/lib/utils/formatEntity";
 async function getHandler() {
   const db = getPersistenceDb();
   const [row] = await db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({ count: sql<number>`count(*)::int`.as("count") })
     .from(users);
 
   return NextResponse.json(

@@ -27,25 +27,37 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: {
+    alias: [
       // Order matters: more specific aliases first
-      "@blah-chat/persistence-postgres": path.resolve(
-        __dirname,
-        "../../packages/persistence-postgres/src/index.ts",
-      ),
-      "@blah-chat/chat-ui-core": path.resolve(
-        __dirname,
-        "../../packages/chat-ui-core/src/index.ts",
-      ),
-      "@blah-chat/shared/preferences": path.resolve(
-        __dirname,
-        "../../packages/shared/src/preferences.ts",
-      ),
-      "@blah-chat/shared": path.resolve(
-        __dirname,
-        "../../packages/shared/src/index.ts",
-      ),
-      "@": path.resolve(__dirname, "./src"),
-    },
+      {
+        find: "@blah-chat/persistence-postgres",
+        replacement: path.resolve(
+          __dirname,
+          "../../packages/persistence-postgres/src/index.ts",
+        ),
+      },
+      {
+        find: "@blah-chat/chat-ui-core",
+        replacement: path.resolve(
+          __dirname,
+          "../../packages/chat-ui-core/src/index.ts",
+        ),
+      },
+      {
+        find: /^@blah-chat\/shared$/,
+        replacement: path.resolve(
+          __dirname,
+          "../../packages/shared/src/index.ts",
+        ),
+      },
+      {
+        find: /^@blah-chat\/shared\/(.+)$/,
+        replacement: `${path.resolve(__dirname, "../../packages/shared/src")}/$1`,
+      },
+      {
+        find: "@",
+        replacement: path.resolve(__dirname, "./src"),
+      },
+    ],
   },
 });

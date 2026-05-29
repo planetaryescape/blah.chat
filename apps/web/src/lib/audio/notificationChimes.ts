@@ -105,7 +105,7 @@ export function playNotificationChime(chime: NotificationChimeId) {
     return;
   }
 
-  void context.resume?.();
+  await context.resume?.();
   const destination = context.destination;
   const startTime = context.currentTime;
 

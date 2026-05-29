@@ -142,12 +142,13 @@ export default function MainLayout({
   const isLoading = !isLoaded;
   const pathname = usePathname();
   const isAdminRoute = pathname.startsWith("/admin");
+  const shouldMountNotificationAudio = !isLoading && isAuthenticated;
 
   return (
     <SelectionProvider>
       <CanvasProvider>
         <KeyboardShortcutsManager />
-        <NotificationAudioBridge />
+        {shouldMountNotificationAudio ? <NotificationAudioBridge /> : null}
 
         {/* Skip to main content - WCAG 2.1 */}
         <a

@@ -18,7 +18,12 @@ interface NotificationDTO {
 async function fetchLatestUnreadNotification(): Promise<NotificationDTO | null> {
   const res = await fetch("/api/v1/notifications?limit=1&unreadOnly=true");
   if (!res.ok) {
-    return null;
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Failed to fetch latest unread notification (${res.status} ${res.statusText})${
+        body ? `: ${body}` : ""
+      }`,
+    );
   }
 
   const json = await res.json();
@@ -57,26 +62,47 @@ export function NotificationAudioBridge() {
   });
   const baselineCaptured = useRef(false);
   const lastNotificationId = useRef<string | null>(null);
+  const lastLoggedError = useRef<unknown>(null);
 
   useEffect(() => {
-    if (!latestQuery.isFetched && latestQuery.status !== "success") {
+    if (latestQuery.isError) {
+      if (latestQuery.error !== lastLoggedError.current) {
+        console.warn("Failed to poll latest unread notification", {
+          error: latestQuery.error,
+        });
+        lastLoggedError.current = latestQuery.error;
+      }
+      return;
+    }
+
+    if (latestQuery.status !== "success") {
       return;
     }
 
     const notification = latestQuery.data ?? null;
-    if (!baselineCaptured.current) {
-      baselineCaptured.current = true;
-      lastNotificationId.current = notification?.id ?? null;
+    if (!notification) {
       return;
     }
 
-    if (!notification || notification.id === lastNotificationId.current) {
+    if (!baselineCaptured.current) {
+      baselineCaptured.current = true;
+      lastNotificationId.current = notification.id;
+      return;
+    }
+
+    if (notification.id === lastNotificationId.current) {
       return;
     }
 
     lastNotificationId.current = notification.id;
     play(notificationToChimeEvent(notification));
-  }, [latestQuery, play]);
+  }, [
+    latestQuery.data,
+    latestQuery.error,
+    latestQuery.isError,
+    latestQuery.status,
+    play,
+  ]);
 
   return null;
 }

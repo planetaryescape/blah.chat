@@ -1,9 +1,10 @@
 "use client";
 
-import type {
-  NotificationChimeEvent,
-  NotificationChimeId,
-  NotificationChimeSounds,
+import {
+  DEFAULT_NOTIFICATION_CHIME_SOUNDS,
+  type NotificationChimeEvent,
+  type NotificationChimeId,
+  type NotificationChimeSounds,
 } from "@blah-chat/shared/preferences";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -92,6 +93,15 @@ export interface UISettingsHandlers {
   handleTextScaleChange: (scale: TextScale) => Promise<void>;
 }
 
+function mergeNotificationChimeSounds(
+  sounds: Partial<NotificationChimeSounds> | null | undefined,
+): NotificationChimeSounds {
+  return {
+    ...DEFAULT_NOTIFICATION_CHIME_SOUNDS,
+    ...(sounds ?? {}),
+  };
+}
+
 /**
  * Hook for managing UI Settings state and handlers.
  * Centralizes all preference management for the UISettings component.
@@ -147,7 +157,9 @@ export function useUISettingsState() {
   const [notificationChimesEnabled, setNotificationChimesEnabled] =
     useState<boolean>(prefNotificationChimesEnabled);
   const [notificationChimeSounds, setNotificationChimeSounds] =
-    useState<NotificationChimeSounds>(prefNotificationChimeSounds);
+    useState<NotificationChimeSounds>(() =>
+      mergeNotificationChimeSounds(prefNotificationChimeSounds),
+    );
   const [showModelNamesDuringComparison, setShowModelNamesDuringComparison] =
     useState<boolean>(prefShowModelNames);
   const [showMessageStats, setShowMessageStats] =
@@ -220,7 +232,10 @@ export function useUISettingsState() {
     [prefNotificationChimesEnabled],
   );
   useEffect(
-    () => setNotificationChimeSounds(prefNotificationChimeSounds),
+    () =>
+      setNotificationChimeSounds(
+        mergeNotificationChimeSounds(prefNotificationChimeSounds),
+      ),
     [prefNotificationChimeSounds],
   );
   useEffect(
@@ -475,7 +490,10 @@ export function useUISettingsState() {
     sound: NotificationChimeId,
   ) => {
     const previous = notificationChimeSounds;
-    const next = { ...notificationChimeSounds, [event]: sound };
+    const next = mergeNotificationChimeSounds({
+      ...notificationChimeSounds,
+      [event]: sound,
+    });
     setNotificationChimeSounds(next);
     try {
       await updatePreference("notificationChimeSounds", next);

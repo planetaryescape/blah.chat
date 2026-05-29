@@ -95,7 +95,7 @@ export function resolveNotificationChime(
   return sound === "none" ? null : sound;
 }
 
-export function playNotificationChime(chime: NotificationChimeId) {
+export async function playNotificationChime(chime: NotificationChimeId) {
   if (chime === "none") {
     return;
   }
@@ -105,7 +105,11 @@ export function playNotificationChime(chime: NotificationChimeId) {
     return;
   }
 
-  await context.resume?.();
+  try {
+    await context.resume?.();
+  } catch {
+    return;
+  }
   const destination = context.destination;
   const startTime = context.currentTime;
 

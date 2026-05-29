@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.6](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.7.5...jobs-v0.7.6) (2026-05-29)
+
+
+### Bug Fixes
+
+* align drizzle workspace versions ([d73459c](https://github.com/planetaryescape/blah.chat/commit/d73459c61bc83c40656e3bbe37281ca2646334e2))
+
 ## [0.7.5](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.7.4...jobs-v0.7.5) (2026-05-16)
 
 

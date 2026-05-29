@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/planetaryescape/blah.chat/compare/shared-v0.5.0...shared-v0.6.0) (2026-05-29)
+
+
+### Features
+
+* add notification chimes ([9b4adcf](https://github.com/planetaryescape/blah.chat/commit/9b4adcf64b6484cecebdd08d8991875d5c5bb4c5))
+
+
+### Bug Fixes
+
+* reduce notification bridge complexity ([29b2f21](https://github.com/planetaryescape/blah.chat/commit/29b2f21d195284674848166b56e9dfe6ca8f7007))
+
 ## [0.5.0](https://github.com/planetaryescape/blah.chat/compare/shared-v0.4.0...shared-v0.5.0) (2026-05-05)
 
 

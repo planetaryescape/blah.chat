@@ -4,20 +4,23 @@ on:
   pull_request_target:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
   pull-requests: write
 
 concurrency:
-  group: dependabot-auto-merge-${{ github.event.pull_request.number }}
+  group: dependabot-auto-merge-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 jobs:
   auto-merge:
     name: Auto-merge Dependabot PRs
     runs-on: ubuntu-latest
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    if: github.event_name == 'pull_request_target' && github.event.pull_request.user.login == 'dependabot[bot]'
 
     steps:
       - name: Approve Dependabot PR
@@ -50,3 +53,27 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+
+  refresh-open-dependabot:
+    name: Refresh open Dependabot PRs
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Rebase open Dependabot PRs and enable auto-merge
+        run: |
+          gh pr list --repo "$REPO" --base main --state open --author app/dependabot --json number --jq '.[].number' |
+            while read -r pr_number; do
+              if [ -z "$pr_number" ]; then
+                continue
+              fi
+
+              gh pr update-branch "$pr_number" --repo "$REPO" --rebase || true
+              gh pr review --approve "$pr_number" --repo "$REPO" || true
+
+              head_sha="$(gh pr view "$pr_number" --repo "$REPO" --json headRefOid --jq .headRefOid)"
+              gh pr merge --rebase --auto "$pr_number" --repo "$REPO" --match-head-commit "$head_sha" || true
+            done
+        env:
+          GH_TOKEN: ${{ secrets.MERGE_BOT_TOKEN || secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}

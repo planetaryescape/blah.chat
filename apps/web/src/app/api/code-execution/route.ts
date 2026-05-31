@@ -1,9 +1,15 @@
+import { timingSafeEqual } from "node:crypto";
 import {
   buildCodeExecutionObjectKey,
+  conversations,
   uploadObject,
 } from "@blah-chat/persistence-postgres";
 import { auth } from "@clerk/nextjs/server";
+import { and, eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
+import { applyRateLimit, getLimiter } from "@/lib/api/rate-limit";
+import { ensureCurrentPersistenceUser } from "@/lib/persistence/current-user";
+import { getPersistenceDb } from "@/lib/persistence/server";
 import {
   getPersistenceEnv,
   getPersistenceR2Client,
@@ -53,22 +59,58 @@ function getImagePayload(result: E2BResult) {
   return null;
 }
 
+function getBearerToken(request: NextRequest) {
+  const authorization = request.headers.get("Authorization");
+  if (!authorization?.startsWith("Bearer ")) {
+    return null;
+  }
+  return authorization.slice("Bearer ".length).trim();
+}
+
+function secretsMatch(candidate: string, expected: string) {
+  const candidateBuffer = Buffer.from(candidate);
+  const expectedBuffer = Buffer.from(expected);
+  return (
+    candidateBuffer.length === expectedBuffer.length &&
+    timingSafeEqual(candidateBuffer, expectedBuffer)
+  );
+}
+
+function isAuthorizedInternalCall(request: NextRequest) {
+  const token = getBearerToken(request);
+  if (!token) {
+    return false;
+  }
+
+  const expected = process.env.INTERNAL_TASK_SECRET;
+  return Boolean(expected && secretsMatch(token, expected));
+}
+
 /**
  * API Route for code execution using E2B
  * Standalone route to avoid ESM/CommonJS bundling conflicts
  */
 export async function POST(request: NextRequest) {
-  // Check for internal call header or verify user authentication
-  const isInternalCall = request.headers.get("X-Internal-Call") === "true";
+  const isInternalCall = isAuthorizedInternalCall(request);
   let authenticatedUserId: string | null = null;
 
   if (!isInternalCall) {
-    const { userId } = await auth();
+    const { userId } = (await auth()) ?? {};
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     authenticatedUserId = userId;
+
+    const limiter = getLimiter({
+      prefix: "code-execution",
+      limit: 20,
+      window: "1 h",
+    });
+    if (limiter) {
+      const limited = await applyRateLimit(limiter, authenticatedUserId);
+      if (limited) return limited;
+    }
   }
 
   try {
@@ -95,9 +137,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const effectiveUserId = isInternalCall
-      ? requestUserId
-      : authenticatedUserId;
+    let effectiveUserId =
+      isInternalCall && typeof requestUserId === "string"
+        ? requestUserId
+        : null;
+
+    if (!isInternalCall && authenticatedUserId && conversationId) {
+      const user = await ensureCurrentPersistenceUser(authenticatedUserId);
+      effectiveUserId = user.id;
+    }
+
+    if (conversationId) {
+      if (!effectiveUserId) {
+        return NextResponse.json(
+          { error: "Missing userId for conversation-scoped execution" },
+          { status: 400 },
+        );
+      }
+
+      const conversation =
+        await getPersistenceDb().query.conversations.findFirst({
+          where: and(
+            eq(conversations.id, conversationId),
+            eq(conversations.userId, effectiveUserId),
+          ),
+        });
+
+      if (!conversation) {
+        return NextResponse.json(
+          { error: "Conversation not found" },
+          { status: 403 },
+        );
+      }
+    }
+
     const persistenceEnv = getPersistenceEnv();
     const r2 = getPersistenceR2Client();
 

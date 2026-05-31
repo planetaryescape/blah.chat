@@ -7,7 +7,7 @@ import {
   messages,
 } from "@blah-chat/persistence-postgres";
 import { eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createTestPersistenceDb } from "../../../../../../packages/persistence-postgres/src/testing/pglite";
 import { createGenerationV2Repository } from "../repository";
 
@@ -155,5 +155,33 @@ describe("createRequest idempotency on clientMessageId", () => {
       where: eq(messages.clientMessageId, "client-idem-1"),
     });
     expect(userMessages).toHaveLength(1);
+  });
+
+  it("creates the request/message/session graph inside one database transaction", async () => {
+    const db = await createTestPersistenceDb();
+    const { conversation } = await seedConversation(db, "tx");
+    const transaction = vi.fn(db.transaction.bind(db));
+    const txDb = new Proxy(db, {
+      get(target, prop, receiver) {
+        if (prop === "transaction") {
+          return transaction;
+        }
+        return Reflect.get(target, prop, receiver);
+      },
+    }) as typeof db;
+    const repo = createGenerationV2Repository(txDb);
+
+    await repo.createRequest({
+      clerkUser: {
+        clerkId: "clerk_tx",
+        email: "tx@test.com",
+        name: "tx",
+      },
+      conversationId: conversation.id,
+      content: "Run transactionally",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    expect(transaction).toHaveBeenCalledTimes(1);
   });
 });

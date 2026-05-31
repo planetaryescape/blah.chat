@@ -40,6 +40,7 @@ async function setup(opts: {
   byokEnabled: boolean;
   byokGatewayKey?: string;
   byokOpenRouterKey?: string;
+  resolveError?: Error;
 }) {
   const db = await createTestPersistenceDb();
   const conversations = createConversationRepository(db);
@@ -55,11 +56,16 @@ async function setup(opts: {
     return time;
   };
 
-  const resolveByokKeys = async (_userId: string) => ({
-    enabled: opts.byokEnabled,
-    gatewayKey: opts.byokGatewayKey,
-    openRouterKey: opts.byokOpenRouterKey,
-  });
+  const resolveByokKeys = async (_userId: string) => {
+    if (opts.resolveError) {
+      throw opts.resolveError;
+    }
+    return {
+      enabled: opts.byokEnabled,
+      gatewayKey: opts.byokGatewayKey,
+      openRouterKey: opts.byokOpenRouterKey,
+    };
+  };
 
   const service = new GenerationV2Service(
     db,
@@ -200,5 +206,44 @@ describe("GenerationV2Service BYOK wiring", () => {
     });
     expect(records).toHaveLength(1);
     expect(records[0]!.isByok).toBe(false);
+  });
+
+  it("fails generation instead of falling back to the server key when BYOK resolution fails", async () => {
+    const { service, db, store, conversation, provider } = await setup({
+      byokEnabled: true,
+      resolveError: new Error("BYOK key is unavailable"),
+    });
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_byok",
+        email: "byok@test.com",
+        name: "BYOK Tester",
+      },
+      conversationId: conversation.id,
+      content: "Say hi",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    const status = await service.process(started.requestId);
+
+    expect(status).toBe("error");
+    expect(provider.lastInput).toBeUndefined();
+    const records = await db.query.usageRecords.findMany({
+      where: eq(usageRecords.conversationId, conversation.id),
+    });
+    expect(records).toHaveLength(0);
+    const events = await store.read(started.requestId);
+    expect(events.events).toContainEqual(
+      expect.objectContaining({
+        type: "error",
+        error: "Failed to resolve BYOK credentials",
+      }),
+    );
+    expect(events.events).not.toContainEqual(
+      expect.objectContaining({
+        error: "BYOK key is unavailable",
+      }),
+    );
   });
 });

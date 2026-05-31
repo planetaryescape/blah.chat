@@ -117,13 +117,18 @@ function resolveProvider(input: {
 }
 
 export async function transcribeAudioFromStorage(input: {
+  userId?: string;
   storageId: string;
   mimeType?: string;
   model?: TranscriptionModel;
 }) {
+  const ownerId = getStorageOwnerId(input.storageId);
+  if (ownerId && ownerId !== input.userId) {
+    throw new Error("File not found");
+  }
+
   const env = parsePersistenceEnv(process.env);
   const db = createNeonDatabase(env.databaseUrl);
-  const ownerId = getStorageOwnerId(input.storageId);
 
   let preferredProvider: undefined | unknown;
   if (ownerId) {
@@ -210,11 +215,13 @@ export const transcribeTask = task({
     factor: 2,
   },
   run: async (payload: {
+    userId?: string;
     storageId: string;
     mimeType?: string;
     model?: TranscriptionModel;
   }) => {
     return transcribeAudioFromStorage({
+      userId: payload.userId,
       storageId: payload.storageId,
       mimeType: payload.mimeType ?? "audio/webm",
       model: payload.model,

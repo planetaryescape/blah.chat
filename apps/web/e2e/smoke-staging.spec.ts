@@ -1,22 +1,21 @@
 /**
  * Required smoke gate.
  *
- * Auth-free probe against the deployed environment named by
- * SMOKE_BASE_URL. Verifies the app is reachable and the sign-in page
- * renders without a 5xx — catches the catastrophic-outage class of
- * regressions on every PR without needing a test user or burning LLM
- * dollars.
+ * Probe against the deployed environment named by SMOKE_BASE_URL.
+ * The liveness checks verify health + sign-in. The authenticated check uses
+ * a low-privilege smoke user storage state and exercises conversation
+ * create/read/delete without burning LLM dollars.
  *
  * Component-level dependency readiness is reported as diagnostic output
  * only. This required PR gate stays liveness-only so unrelated Redis/R2
  * incidents do not block code review.
  *
- * Hard-fails when SMOKE_BASE_URL is missing so the gate cannot silently
- * skip in CI. Full chat-loop verification (send → refresh → persistence)
- * lives in the manual section of the PR test plan and is run once on a
- * deploy preview before merge.
+ * Hard-fails when SMOKE_BASE_URL is missing. Authenticated checks are skipped
+ * when SMOKE_AUTH_STORAGE_STATE_PATH is absent so PR CI can still run the
+ * liveness probes when environment secrets are unavailable.
  */
 import { expect, test } from "@playwright/test";
+import { DEFAULT_MODEL_ID } from "../../../packages/ai/src/operational-models";
 
 function requireSmokeBaseUrl(): string {
   const baseUrl = process.env.SMOKE_BASE_URL;
@@ -85,5 +84,59 @@ test("smoke: sign-in page renders without server error", async ({ page }) => {
   // or the body containing typical sign-in copy.
   await expect(page.locator("body")).toContainText(/sign in|log in/i, {
     timeout: 15_000,
+  });
+});
+
+test.describe("authenticated smoke", () => {
+  const smokeAuthStorageStatePath = process.env.SMOKE_AUTH_STORAGE_STATE_PATH;
+
+  test.skip(
+    !smokeAuthStorageStatePath,
+    "authenticated smoke requires SMOKE_AUTH_STORAGE_STATE_PATH",
+  );
+
+  if (smokeAuthStorageStatePath) {
+    test.use({ storageState: smokeAuthStorageStatePath });
+  }
+
+  test("smoke: authenticated user can create, fetch, and delete a conversation", async ({
+    page,
+  }) => {
+    const baseUrl = requireSmokeBaseUrl();
+    const api = page.context().request;
+    const title = `smoke-${Date.now()}`;
+    let conversationId: string | undefined;
+
+    try {
+      const createResponse = await api.post(`${baseUrl}/api/v1/conversations`, {
+        data: {
+          title,
+          model: DEFAULT_MODEL_ID,
+        },
+      });
+      expect(createResponse.status()).toBe(201);
+      const created = (await createResponse.json()) as {
+        data?: { _id?: string; id?: string; title?: string };
+      };
+      conversationId = created.data?._id ?? created.data?.id;
+      expect(conversationId).toBeTruthy();
+
+      const fetchResponse = await api.get(
+        `${baseUrl}/api/v1/conversations/${conversationId}`,
+      );
+      expect(fetchResponse.status()).toBe(200);
+      const fetched = (await fetchResponse.json()) as {
+        data?: { _id?: string; id?: string; title?: string };
+      };
+      expect(fetched.data?._id ?? fetched.data?.id).toBe(conversationId);
+      expect(fetched.data?.title).toBe(title);
+    } finally {
+      if (conversationId) {
+        const deleteResponse = await api.delete(
+          `${baseUrl}/api/v1/conversations/${conversationId}`,
+        );
+        expect([200, 404]).toContain(deleteResponse.status());
+      }
+    }
   });
 });

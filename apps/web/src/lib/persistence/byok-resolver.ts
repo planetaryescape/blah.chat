@@ -30,6 +30,22 @@ async function tryDecrypt(
   }
 }
 
+async function decryptRequiredGatewayKey(
+  encrypted: string | null | undefined,
+  iv: string | undefined,
+  tag: string | undefined,
+): Promise<string> {
+  if (!encrypted || encrypted === "" || !iv || !tag) {
+    throw new Error("BYOK gateway key is unavailable");
+  }
+
+  try {
+    return await decryptCredential(encrypted, iv, tag);
+  } catch {
+    throw new Error("BYOK gateway key is unavailable");
+  }
+}
+
 export async function resolveByokKeys(
   db: PersistenceDb,
   userId: string,
@@ -45,18 +61,11 @@ export async function resolveByokKeys(
   const ivParts = parseParts(config.encryptionIVs);
   const tagParts = parseParts(config.authTags);
 
-  const gatewayKey = await tryDecrypt(
+  const gatewayKey = await decryptRequiredGatewayKey(
     config.encryptedVercelGatewayKey,
     ivParts[KEY_INDEX.vercelGateway],
     tagParts[KEY_INDEX.vercelGateway],
   );
-
-  // Gateway key is the only required key when BYOK is enabled — if it's
-  // missing or fails to decrypt, treat the whole config as disabled so
-  // generation never silently falls back to the server's gateway key.
-  if (!gatewayKey) {
-    return DISABLED;
-  }
 
   const [openRouterKey, groqKey, deepgramKey] = await Promise.all([
     tryDecrypt(

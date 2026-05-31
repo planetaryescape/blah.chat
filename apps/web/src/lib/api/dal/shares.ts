@@ -32,7 +32,7 @@ async function getConversationShareMetadata(
 ): Promise<ShareMetadata | null> {
   try {
     const share = await getConversationShareByShareId(shareId);
-    if (!share || !share.isActive) return null;
+    if (!share?.isActive) return null;
     if (share.expiresAt && share.expiresAt < Date.now()) return null;
 
     const conversation = await getSharedConv(shareId);

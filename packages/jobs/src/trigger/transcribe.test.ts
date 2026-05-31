@@ -92,6 +92,7 @@ describe("transcribeAudioFromStorage", () => {
       );
 
     const result = await transcribeAudioFromStorage({
+      userId: "user_123",
       storageId: "users/user_123/drafts/audio.webm",
       mimeType: "audio/webm",
       model: "whisper-1",
@@ -121,5 +122,30 @@ describe("transcribeAudioFromStorage", () => {
     const providerCall = fetchMock.mock.calls[1]?.[1];
     expect(providerCall?.body).toBeInstanceOf(FormData);
     expect((providerCall?.body as FormData).get("model")).toBe("whisper-1");
+  });
+
+  it("rejects storage keys that do not belong to the requested user", async () => {
+    await expect(
+      transcribeAudioFromStorage({
+        userId: "user_123",
+        storageId: "users/other_user/drafts/audio.webm",
+        mimeType: "audio/webm",
+      }),
+    ).rejects.toThrow("File not found");
+
+    expect(createSignedReadUrlMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects user-scoped storage keys when the requested user is missing", async () => {
+    await expect(
+      transcribeAudioFromStorage({
+        storageId: "users/user_123/drafts/audio.webm",
+        mimeType: "audio/webm",
+      }),
+    ).rejects.toThrow("File not found");
+
+    expect(createSignedReadUrlMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

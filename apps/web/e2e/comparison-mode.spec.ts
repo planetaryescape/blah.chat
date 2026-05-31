@@ -3,7 +3,7 @@
  *
  * Tests comparing responses from multiple AI models
  */
-import { createClerkClient } from "@clerk/clerk-sdk-node";
+import { createClerkClient } from "@clerk/backend";
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 

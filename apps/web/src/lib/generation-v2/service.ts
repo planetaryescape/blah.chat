@@ -26,6 +26,8 @@ const STOP_CHECK_INTERVAL_MS = 250;
 
 const terminalStatuses = new Set(["complete", "cancelled", "error"]);
 
+type ByokKeys = Awaited<ReturnType<ResolveByokKeysFn>>;
+
 interface GenerationV2BackgroundTasks {
   embedMessage?: (messageId: string) => Promise<void>;
   autoTitleConversation?: (conversationId: string) => Promise<void>;
@@ -143,11 +145,14 @@ export class GenerationV2Service {
     }
 
     const collector = this._createMetricsCollector?.();
-    const byokKeys = this._resolveByokKeysFn
-      ? await this._resolveByokKeysFn(bundle.userId).catch(() => ({
-          enabled: false as const,
-        }))
-      : { enabled: false as const };
+    let byokKeys: ByokKeys = { enabled: false };
+    if (this._resolveByokKeysFn) {
+      try {
+        byokKeys = await this._resolveByokKeysFn(bundle.userId);
+      } catch (error) {
+        return this.failBeforeProviderCall(bundle, error);
+      }
+    }
 
     await this.store.setRequestStatus(
       requestId,
@@ -273,16 +278,44 @@ export class GenerationV2Service {
     }
   }
 
+  private async failBeforeProviderCall(
+    bundle: PersistedRequestBundle,
+    _error: unknown,
+  ) {
+    const clientMessage = "Failed to resolve BYOK credentials";
+
+    await Promise.all(
+      bundle.sessions.map(async (session) => {
+        await this.repository.updateSessionStatus(session.sessionId, "error");
+        await this.repository.updateAssistantMessage({
+          assistantMessageId: session.assistantMessageId,
+          content: "",
+          status: "error",
+        });
+        await this.emit(bundle.requestId, {
+          requestId: bundle.requestId,
+          sessionId: session.sessionId,
+          assistantMessageId: session.assistantMessageId,
+          modelId: session.modelId,
+          seq: 0,
+          ts: this.now(),
+          type: "error",
+          error: clientMessage,
+        });
+      }),
+    );
+
+    const status = await this.repository.refreshRequestStatus(bundle.requestId);
+    await this.store.setRequestStatus(bundle.requestId, status);
+    return status;
+  }
+
   private async processSession(input: {
     bundle: PersistedRequestBundle;
     session: PersistedRequestBundle["sessions"][number];
     promptMessages: GenerationPromptMessage[];
     collector?: MetricsCollector;
-    byokKeys?: {
-      enabled: boolean;
-      gatewayKey?: string;
-      openRouterKey?: string;
-    };
+    byokKeys?: ByokKeys;
   }) {
     const { bundle, session, promptMessages, collector, byokKeys } = input;
     const abortController = new AbortController();

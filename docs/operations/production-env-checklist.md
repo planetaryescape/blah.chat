@@ -17,6 +17,13 @@ encryption helpers in `apps/web/src/lib/security/byok.ts`.
 ### Database (Neon Postgres)
 
 - [ ] `DATABASE_URL` — Postgres connection string, must include `sslmode=require` for Neon
+- [ ] Neon backup/PITR policy enabled for the production database
+- [ ] Production restore drill completed in the last 30 days
+- [ ] `BACKUP_RESTORE_DRILL_AT` (GitHub production environment variable)
+      — ISO timestamp for the last successful restore drill. The production
+      release workflow fails when this is missing or older than 30 days.
+- [ ] `BACKUP_RESTORE_DRILL_URL` (GitHub production environment variable)
+      — link to the restore drill evidence/runbook entry.
 
 ### Redis (Upstash)
 
@@ -50,6 +57,9 @@ encryption helpers in `apps/web/src/lib/security/byok.ts`.
 - [ ] `SMOKE_BASE_URL` (GitHub Actions secret) — base URL the
       `smoke` job probes for `/api/v1/health` ok. Typically the
       production URL since there is no separate staging environment.
+- [ ] `SMOKE_AUTH_STORAGE_STATE_B64` (GitHub Actions secret) — base64
+      Playwright storage-state JSON for a low-privilege production smoke
+      test user. Required for the authenticated chat persistence smoke.
 
 ### AI Gateway
 
@@ -62,11 +72,16 @@ encryption helpers in `apps/web/src/lib/security/byok.ts`.
       the raw value is used. Treat as a long-lived secret — rotating it
       breaks every stored credential.
 
-## Recommended
+### Observability
 
-- [ ] Sentry DSN (`SENTRY_DSN`) for error reporting
+- [ ] `SENTRY_DSN` — server/edge error reporting
+- [ ] `NEXT_PUBLIC_SENTRY_DSN` — browser error reporting
 - [ ] Uptime monitor pointed at `/api/v1/health`
 - [ ] PostHog API key for analytics
+
+## Recommended
+
+- [ ] PostHog alerts configured for `alert_threshold_breached` events
 
 ## Feature flags
 

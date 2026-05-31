@@ -391,6 +391,7 @@ export async function scanRecentConversationsForMemories(clerkUserId: string) {
 
     await trigger.triggerTask("extract-memories", {
       conversationId: conversation.id,
+      userId: user.id,
     });
     triggered += 1;
   }

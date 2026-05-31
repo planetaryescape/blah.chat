@@ -34,7 +34,7 @@ jobs:
         run: bunx turbo run build --filter=@blah-chat/ai --filter=@blah-chat/persistence-postgres --filter=@blah-chat/shared
 
       - name: Trigger.dev dry run
-        run: bunx trigger.dev@4.4.3 deploy --dry-run
+        run: bunx trigger.dev@4.4.6 deploy --dry-run
         working-directory: packages/jobs
         env:
           TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}
@@ -60,7 +60,7 @@ jobs:
         run: bunx turbo run build --filter=@blah-chat/ai --filter=@blah-chat/persistence-postgres --filter=@blah-chat/shared
 
       - name: Deploy Trigger.dev tasks
-        run: bunx trigger.dev@4.4.3 deploy
+        run: bunx trigger.dev@4.4.6 deploy
         working-directory: packages/jobs
         env:
           TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}

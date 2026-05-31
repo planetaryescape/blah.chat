@@ -333,7 +333,7 @@ export default function LandingPageClient() {
             <DeploymentCard
               icon={Database}
               title="BYOD"
-              description="Your Postgres database. Your data stays yours."
+              description="Connect your own Postgres when BYOD exits preview."
               badge="Coming Soon"
               badgeColor="bg-zinc-700 text-zinc-300"
               index={2}
@@ -525,7 +525,7 @@ export default function LandingPageClient() {
               <div className="space-y-2 mb-4">
                 <div className="flex items-center gap-2 text-xs">
                   <span className="w-2 h-2 rounded-full bg-[var(--terminal-green)]" />
-                  <span>BYOD: Your database</span>
+                  <span>BYOD preview: coming soon</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
                   <span className="w-2 h-2 rounded-full bg-[var(--terminal-green)]" />

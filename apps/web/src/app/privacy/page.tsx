@@ -40,12 +40,12 @@ export default function PrivacyPage() {
                 can export or delete anytime.
               </li>
               <li>
-                <strong>BYOK</strong>: Your API keys go directly to providers.
-                We never store them.
+                <strong>BYOK</strong>: BYOK keys are encrypted at rest and used
+                only to call providers on your behalf.
               </li>
               <li>
-                <strong>BYOD</strong>: Your data stays in your own Postgres
-                database. We only store operational data.
+                <strong>BYOD preview</strong>: Own-database storage is not
+                generally available yet; cloud accounts use managed storage.
               </li>
               <li>
                 <strong>Self-hosted</strong>: You control everything. Nothing
@@ -69,13 +69,13 @@ export default function PrivacyPage() {
             <li>Notes, tasks, and projects you create</li>
             <li>Memory extractions (facts from conversations)</li>
             <li>Token usage and costs (for billing and transparency)</li>
+            <li>Encrypted BYOK API keys if you enable BYOK</li>
           </ul>
 
           <h3>What We Don't Collect</h3>
           <ul>
-            <li>Your API keys (BYOK mode - sent directly to providers)</li>
             <li>Browsing history or tracking cookies</li>
-            <li>Data from your personal Postgres database (BYOD mode)</li>
+            <li>BYOD database contents while BYOD remains in preview</li>
           </ul>
 
           <h2>How We Use Your Data</h2>

@@ -3,7 +3,7 @@ import {
   generationRequestMetaKey,
   generationSessionStateKey,
 } from "@blah-chat/streaming-core";
-import { describe, expect, it, type MockedFunction, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { RedisGenerationEventStore } from "../store";
 
 const event = {
@@ -18,7 +18,7 @@ const event = {
 
 type RedisClient = ConstructorParameters<typeof RedisGenerationEventStore>[0];
 type MockRedis = {
-  [K in keyof RedisClient]: MockedFunction<RedisClient[K]>;
+  [K in keyof RedisClient]: ReturnType<typeof vi.fn<RedisClient[K]>>;
 };
 
 function createRedisMock(): MockRedis {
@@ -26,14 +26,10 @@ function createRedisMock(): MockRedis {
     ping: vi.fn<RedisClient["ping"]>(),
     rpush: vi.fn<RedisClient["rpush"]>(),
     expire: vi.fn<RedisClient["expire"]>(),
-    lrange: vi.fn<RedisClient["lrange"]>() as unknown as MockedFunction<
-      RedisClient["lrange"]
-    >,
+    lrange: vi.fn<RedisClient["lrange"]>(),
     setex: vi.fn<RedisClient["setex"]>(),
     del: vi.fn<RedisClient["del"]>(),
-    get: vi.fn<RedisClient["get"]>() as unknown as MockedFunction<
-      RedisClient["get"]
-    >,
+    get: vi.fn<RedisClient["get"]>(),
   };
 }
 

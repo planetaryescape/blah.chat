@@ -17,10 +17,7 @@ async function postHandler(
   };
   const service = getGenerationV2Service();
   const bundle = await service.repository.getRequestBundle(requestId, userId);
-  if (
-    !bundle ||
-    !bundle.sessions.some((session) => session.sessionId === sessionId)
-  ) {
+  if (!bundle?.sessions.some((session) => session.sessionId === sessionId)) {
     return new Response("Not found", { status: 404 });
   }
 

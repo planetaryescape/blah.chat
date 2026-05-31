@@ -10,6 +10,7 @@ import {
 } from "@blah-chat/persistence-postgres";
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { signActionJobId } from "@/lib/api/action-jobs";
 import { createMockRequest, unwrapData } from "@/lib/test/api-helpers";
 import { createTestPersistenceDb } from "../../../../../../../packages/persistence-postgres/src/testing/pglite";
 
@@ -18,6 +19,8 @@ const currentUserMock = vi.fn();
 const embedMock = vi.fn();
 const triggerTaskMock = vi.fn();
 const retrieveRunMock = vi.fn();
+const getLimiterMock = vi.fn();
+const applyRateLimitMock = vi.fn();
 let db: Awaited<ReturnType<typeof createTestPersistenceDb>>;
 
 vi.mock("@clerk/nextjs/server", () => ({
@@ -68,6 +71,11 @@ vi.mock("@/lib/persistence/server", () => ({
   getPersistenceDb: () => db,
 }));
 
+vi.mock("@/lib/api/rate-limit", () => ({
+  getLimiter: getLimiterMock,
+  applyRateLimit: applyRateLimitMock,
+}));
+
 vi.mock("@/lib/logger", () => ({
   default: {
     info: vi.fn(),
@@ -89,6 +97,8 @@ describe("memories auth with Clerk + Postgres", () => {
     triggerTaskMock.mockResolvedValue({
       id: "run_123",
     });
+    getLimiterMock.mockReturnValue(undefined);
+    applyRateLimitMock.mockResolvedValue(null);
     retrieveRunMock.mockResolvedValue({
       id: "run_123",
       status: "QUEUED",
@@ -114,6 +124,7 @@ describe("memories auth with Clerk + Postgres", () => {
       lastName: "User",
       imageUrl: "https://example.com/memories.png",
     });
+    process.env.INTERNAL_TASK_SECRET = "test-action-job-secret";
   });
 
   it("lists Postgres-backed memories with category and hybrid search filters", async () => {
@@ -430,6 +441,7 @@ describe("memories auth with Clerk + Postgres", () => {
     expect(triggerTaskMock).toHaveBeenCalledTimes(1);
     expect(triggerTaskMock).toHaveBeenCalledWith("extract-memories", {
       conversationId: eligibleConversation.id,
+      userId: user.id,
     });
   });
 
@@ -507,45 +519,112 @@ describe("memories auth with Clerk + Postgres", () => {
     expect(triggerTaskMock).toHaveBeenCalledTimes(5);
     expect(triggerTaskMock).not.toHaveBeenCalledWith("extract-memories", {
       conversationId: createdConversations[0]?.id,
+      userId: user.id,
     });
   });
 
   it("starts manual extraction through Trigger without creating a Convex job", async () => {
+    const users = createUserRepository(db);
+    const conversationsRepo = createConversationRepository(db);
+    const user = await users.upsertFromClerk({
+      clerkId: "clerk_memories",
+      email: "memories@example.com",
+      name: "Memory User",
+      imageUrl: "https://example.com/memories.png",
+    });
+    const conversation = await conversationsRepo.create({
+      userId: user.id,
+      title: "Manual extraction",
+      model: "openai:gpt-5",
+    });
+
     const { POST } = await import("../memories/extract/route");
     const response = await POST(
       createMockRequest("/api/v1/memories/extract", {
         method: "POST",
         body: {
-          conversationId: "conv_manual_123",
+          conversationId: conversation.id,
         },
       }),
       { params: Promise.resolve({}) },
     );
 
     expect(response.status).toBe(202);
-    expect(
-      unwrapData<{
-        jobId: string;
+    const data = unwrapData<{
+      jobId: string;
+      status: string;
+      pollUrl: string;
+    }>(
+      (await response.json()) as {
         status: string;
-        pollUrl: string;
-      }>(
-        (await response.json()) as {
+        data?: {
+          jobId: string;
           status: string;
-          data?: {
-            jobId: string;
-            status: string;
-            pollUrl: string;
-          };
-        },
-      ),
-    ).toMatchObject({
-      jobId: "run_123",
+          pollUrl: string;
+        };
+      },
+    );
+    expect(data).toMatchObject({
       status: "pending",
-      pollUrl: "/api/v1/actions/jobs/run_123",
     });
+    expect(data.jobId).toMatch(/^run_123\.[A-Za-z0-9_-]+$/);
+    expect(data.pollUrl).toBe(`/api/v1/actions/jobs/${data.jobId}`);
     expect(triggerTaskMock).toHaveBeenCalledWith("extract-memories", {
-      conversationId: "conv_manual_123",
+      conversationId: conversation.id,
+      userId: user.id,
     });
+  });
+
+  it("rejects manual extraction for conversations the user does not own", async () => {
+    const { POST } = await import("../memories/extract/route");
+    const response = await POST(
+      createMockRequest("/api/v1/memories/extract", {
+        method: "POST",
+        body: {
+          conversationId: "conv_other",
+        },
+      }),
+      { params: Promise.resolve({}) },
+    );
+
+    expect(response.status).toBe(404);
+    expect(triggerTaskMock).not.toHaveBeenCalled();
+  });
+
+  it("rate-limits manual memory extraction before creating a Trigger job", async () => {
+    const users = createUserRepository(db);
+    const conversationsRepo = createConversationRepository(db);
+    const user = await users.upsertFromClerk({
+      clerkId: "clerk_memories",
+      email: "memories@example.com",
+      name: "Memory User",
+      imageUrl: "https://example.com/memories.png",
+    });
+    const conversation = await conversationsRepo.create({
+      userId: user.id,
+      title: "Rate limited extraction",
+      model: "openai:gpt-5",
+    });
+    const limiter = { limit: vi.fn() };
+    getLimiterMock.mockReturnValue(limiter);
+    applyRateLimitMock.mockResolvedValue(
+      new Response(JSON.stringify({ status: "error" }), { status: 429 }),
+    );
+
+    const { POST } = await import("../memories/extract/route");
+    const response = await POST(
+      createMockRequest("/api/v1/memories/extract", {
+        method: "POST",
+        body: {
+          conversationId: conversation.id,
+        },
+      }),
+      { params: Promise.resolve({}) },
+    );
+
+    expect(response.status).toBe(429);
+    expect(applyRateLimitMock).toHaveBeenCalledWith(limiter, "clerk_memories");
+    expect(triggerTaskMock).not.toHaveBeenCalled();
   });
 
   it("maps Trigger run ids through the jobs status route", async () => {
@@ -564,11 +643,12 @@ describe("memories auth with Clerk + Postgres", () => {
       },
     });
 
+    const signedJobId = signActionJobId("run_123", "clerk_memories");
     const { GET } = await import("../actions/jobs/[id]/route");
     const response = await GET(
-      createMockRequest("/api/v1/actions/jobs/run_123"),
+      createMockRequest(`/api/v1/actions/jobs/${signedJobId}`),
       {
-        params: Promise.resolve({ id: "run_123" }),
+        params: Promise.resolve({ id: signedJobId }),
       },
     );
 
@@ -596,5 +676,18 @@ describe("memories auth with Clerk + Postgres", () => {
         extracted: 2,
       },
     });
+  });
+
+  it("rejects unsigned Trigger run ids on the jobs status route", async () => {
+    const { GET } = await import("../actions/jobs/[id]/route");
+    const response = await GET(
+      createMockRequest("/api/v1/actions/jobs/run_123"),
+      {
+        params: Promise.resolve({ id: "run_123" }),
+      },
+    );
+
+    expect(response.status).toBe(404);
+    expect(retrieveRunMock).not.toHaveBeenCalled();
   });
 });

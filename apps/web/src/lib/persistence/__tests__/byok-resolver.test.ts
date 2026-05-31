@@ -86,11 +86,10 @@ describe("resolveByokKeys", () => {
     expect(result.gatewayKey).toBe("sk-gateway-real-secret");
   });
 
-  it("returns disabled defensively when byokEnabled is true but the gateway key field is empty", async () => {
+  it("throws when byokEnabled is true but the gateway key field is empty", async () => {
     const db = await createTestPersistenceDb();
     const user = await seedUser(db);
     const now = Date.now();
-    // Insert a row with byokEnabled=true but no key material
     await db.insert(userApiKeys).values({
       userId: user.id,
       byokEnabled: true,
@@ -100,9 +99,24 @@ describe("resolveByokKeys", () => {
       updatedAt: now,
     });
 
-    const result = await resolveByokKeys(db, user.id);
+    await expect(resolveByokKeys(db, user.id)).rejects.toThrow(
+      "BYOK gateway key is unavailable",
+    );
+  });
 
-    expect(result).toEqual({ enabled: false });
+  it("throws when byokEnabled is true but the gateway key cannot be decrypted", async () => {
+    const db = await createTestPersistenceDb();
+    const user = await seedUser(db);
+    await setVercelGatewayKey(db, user.id, "sk-gateway-real-secret", true);
+
+    await db
+      .update(userApiKeys)
+      .set({ encryptedVercelGatewayKey: "00" })
+      .where(eq(userApiKeys.userId, user.id));
+
+    await expect(resolveByokKeys(db, user.id)).rejects.toThrow(
+      "BYOK gateway key is unavailable",
+    );
   });
 
   it("does not surface the row at all if there is no userApiKeys record", async () => {

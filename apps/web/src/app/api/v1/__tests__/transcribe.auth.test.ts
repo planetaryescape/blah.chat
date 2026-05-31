@@ -6,9 +6,21 @@ import { createMockRequest, unwrapData } from "@/lib/test/api-helpers";
 
 const authMock = vi.fn();
 const triggerTaskMock = vi.fn();
+const ensureCurrentPersistenceUserMock = vi.fn();
+const getLimiterMock = vi.fn();
+const applyRateLimitMock = vi.fn();
 
 vi.mock("@clerk/nextjs/server", () => ({
   auth: authMock,
+}));
+
+vi.mock("@/lib/persistence/current-user", () => ({
+  ensureCurrentPersistenceUser: ensureCurrentPersistenceUserMock,
+}));
+
+vi.mock("@/lib/api/rate-limit", () => ({
+  getLimiter: getLimiterMock,
+  applyRateLimit: applyRateLimitMock,
 }));
 
 vi.mock("@blah-chat/persistence-postgres", async () => {
@@ -60,10 +72,16 @@ describe("transcribe auth with Clerk + Trigger", () => {
     triggerTaskMock.mockResolvedValue({
       id: "run_transcribe_123",
     });
+    getLimiterMock.mockReturnValue(undefined);
+    applyRateLimitMock.mockResolvedValue(null);
 
     authMock.mockResolvedValue({
       userId: "clerk_transcribe",
       getToken: vi.fn(async () => null),
+    });
+    process.env.INTERNAL_TASK_SECRET = "test-action-job-secret";
+    ensureCurrentPersistenceUserMock.mockResolvedValue({
+      id: "user_transcribe",
     });
   });
 
@@ -73,7 +91,7 @@ describe("transcribe auth with Clerk + Trigger", () => {
       createMockRequest("/api/v1/actions/transcribe", {
         method: "POST",
         body: {
-          storageId: "storage_123",
+          storageId: "users/user_transcribe/drafts/audio.webm",
           model: "whisper-1",
         },
       }),
@@ -81,29 +99,29 @@ describe("transcribe auth with Clerk + Trigger", () => {
     );
 
     expect(response.status).toBe(202);
-    expect(
-      unwrapData<{
-        jobId: string;
+    const data = unwrapData<{
+      jobId: string;
+      status: string;
+      pollUrl: string;
+    }>(
+      (await response.json()) as {
         status: string;
-        pollUrl: string;
-      }>(
-        (await response.json()) as {
+        data?: {
+          jobId: string;
           status: string;
-          data?: {
-            jobId: string;
-            status: string;
-            pollUrl: string;
-          };
-        },
-      ),
-    ).toMatchObject({
-      jobId: "run_transcribe_123",
+          pollUrl: string;
+        };
+      },
+    );
+    expect(data).toMatchObject({
       status: "pending",
-      pollUrl: "/api/v1/actions/jobs/run_transcribe_123",
     });
+    expect(data.jobId).toMatch(/^run_transcribe_123\.[A-Za-z0-9_-]+$/);
+    expect(data.pollUrl).toBe(`/api/v1/actions/jobs/${data.jobId}`);
 
     expect(triggerTaskMock).toHaveBeenCalledWith("transcribe", {
-      storageId: "storage_123",
+      userId: "user_transcribe",
+      storageId: "users/user_transcribe/drafts/audio.webm",
       model: "whisper-1",
     });
   });
@@ -114,7 +132,7 @@ describe("transcribe auth with Clerk + Trigger", () => {
       createMockRequest("/api/v1/actions/transcribe", {
         method: "POST",
         body: {
-          storageId: "storage_456",
+          storageId: "users/user_transcribe/drafts/audio-2.webm",
           mimeType: "audio/webm",
         },
       }),
@@ -123,8 +141,53 @@ describe("transcribe auth with Clerk + Trigger", () => {
 
     expect(response.status).toBe(202);
     expect(triggerTaskMock).toHaveBeenCalledWith("transcribe", {
-      storageId: "storage_456",
+      userId: "user_transcribe",
+      storageId: "users/user_transcribe/drafts/audio-2.webm",
       mimeType: "audio/webm",
     });
+  });
+
+  it("rejects transcription for storage outside the user's namespace", async () => {
+    const { POST } = await import("../actions/transcribe/route");
+    const response = await POST(
+      createMockRequest("/api/v1/actions/transcribe", {
+        method: "POST",
+        body: {
+          storageId: "users/other_user/drafts/audio.webm",
+          mimeType: "audio/webm",
+        },
+      }),
+      { params: Promise.resolve({}) },
+    );
+
+    expect(response.status).toBe(404);
+    expect(triggerTaskMock).not.toHaveBeenCalled();
+  });
+
+  it("rate-limits transcription before creating a Trigger job", async () => {
+    const limiter = { limit: vi.fn() };
+    getLimiterMock.mockReturnValue(limiter);
+    applyRateLimitMock.mockResolvedValue(
+      new Response(JSON.stringify({ status: "error" }), { status: 429 }),
+    );
+
+    const { POST } = await import("../actions/transcribe/route");
+    const response = await POST(
+      createMockRequest("/api/v1/actions/transcribe", {
+        method: "POST",
+        body: {
+          storageId: "users/user_transcribe/drafts/audio.webm",
+          mimeType: "audio/webm",
+        },
+      }),
+      { params: Promise.resolve({}) },
+    );
+
+    expect(response.status).toBe(429);
+    expect(applyRateLimitMock).toHaveBeenCalledWith(
+      limiter,
+      "clerk_transcribe",
+    );
+    expect(triggerTaskMock).not.toHaveBeenCalled();
   });
 });

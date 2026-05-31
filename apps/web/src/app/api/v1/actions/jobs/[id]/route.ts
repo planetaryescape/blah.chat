@@ -5,6 +5,7 @@ import {
 } from "@blah-chat/persistence-postgres";
 
 import type { NextRequest } from "next/server";
+import { resolveSignedActionJobId } from "@/lib/api/action-jobs";
 import { getJobById } from "@/lib/api/dal/jobs";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
@@ -85,11 +86,20 @@ async function handler(
 
   logger.info({ userId, jobId: id }, "GET /api/v1/actions/jobs/:id");
 
-  if (isTriggerRunId(id)) {
+  const triggerRunId = resolveSignedActionJobId(id, userId);
+  if (!triggerRunId) {
+    logger.warn({ userId, jobId: id }, "Job not found");
+    return new Response(JSON.stringify(formatErrorEntity("Job not found")), {
+      status: 404,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  if (isTriggerRunId(triggerRunId)) {
     try {
       const env = parsePersistenceEnv(process.env);
       const trigger = createTriggerClient(env);
-      const run = await trigger.retrieveRun(id);
+      const run = await trigger.retrieveRun(triggerRunId);
       const job = mapTriggerRunToJob(id, run);
 
       return new Response(JSON.stringify(formatEntity(job, "job")), {
@@ -113,7 +123,7 @@ async function handler(
     }
   }
 
-  const job = await getJobById(id);
+  const job = await getJobById(triggerRunId);
 
   if (!job) {
     logger.warn({ userId, jobId: id }, "Job not found");

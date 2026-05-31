@@ -258,6 +258,7 @@ async function recordUsage(input: {
 
 export async function generateImageForMessage(
   payload: {
+    userId?: string;
     conversationId: string;
     messageId: string;
     prompt: string;
@@ -292,6 +293,10 @@ export async function generateImageForMessage(
     return { success: true, skipped: "conversation_not_found" as const };
   }
 
+  if (payload.userId && conversation.userId !== payload.userId) {
+    return { success: true, skipped: "unauthorized" as const };
+  }
+
   const assistantMessage = await db.query.messages.findFirst({
     where: and(
       eq(messages.id, payload.messageId),
@@ -305,6 +310,14 @@ export async function generateImageForMessage(
 
   let referenceImageBase64: string | undefined;
   if (payload.referenceImageStorageId) {
+    if (
+      !payload.referenceImageStorageId.startsWith(
+        `users/${conversation.userId}/`,
+      )
+    ) {
+      return { success: true, skipped: "reference_image_not_found" as const };
+    }
+
     referenceImageBase64 = await loadReferenceImage({
       storageId: payload.referenceImageStorageId,
     });
@@ -389,6 +402,7 @@ export const generateImageTask = task({
     factor: 2,
   },
   run: async (payload: {
+    userId?: string;
     conversationId: string;
     messageId: string;
     prompt: string;

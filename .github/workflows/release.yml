@@ -24,6 +24,13 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Validate backup restore drill evidence
+        run: bun run production:backup-drill:check
+        env:
+          BACKUP_RESTORE_DRILL_AT: ${{ vars.BACKUP_RESTORE_DRILL_AT }}
+          BACKUP_RESTORE_DRILL_URL: ${{ vars.BACKUP_RESTORE_DRILL_URL }}
+          BACKUP_RESTORE_DRILL_MAX_AGE_DAYS: ${{ vars.BACKUP_RESTORE_DRILL_MAX_AGE_DAYS }}
+
       - name: Install Vercel CLI
         run: bun add --global vercel@54.1.0
 
@@ -54,3 +61,25 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Install Playwright browsers (chromium only)
+        working-directory: apps/web
+        run: bunx playwright install --with-deps chromium
+
+      - name: Write authenticated smoke storage state
+        working-directory: apps/web
+        env:
+          SMOKE_AUTH_STORAGE_STATE_B64: ${{ secrets.SMOKE_AUTH_STORAGE_STATE_B64 }}
+        run: |
+          if [ -z "$SMOKE_AUTH_STORAGE_STATE_B64" ]; then
+            echo "::error::Missing production secret SMOKE_AUTH_STORAGE_STATE_B64"
+            exit 1
+          fi
+          printf '%s' "$SMOKE_AUTH_STORAGE_STATE_B64" | base64 -d > .smoke-storage-state.json
+
+      - name: Run production smoke spec
+        working-directory: apps/web
+        env:
+          SMOKE_BASE_URL: ${{ secrets.SMOKE_BASE_URL }}
+          SMOKE_AUTH_STORAGE_STATE_PATH: .smoke-storage-state.json
+        run: bunx playwright test --config=playwright.smoke.config.ts

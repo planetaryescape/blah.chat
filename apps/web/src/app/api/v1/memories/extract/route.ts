@@ -1,13 +1,19 @@
 import {
+  conversations,
   createTriggerClient,
   parsePersistenceEnv,
 } from "@blah-chat/persistence-postgres";
+import { and, eq } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
+import { signActionJobId } from "@/lib/api/action-jobs";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
+import { applyRateLimit, getLimiter } from "@/lib/api/rate-limit";
 import logger from "@/lib/logger";
-import { formatEntity } from "@/lib/utils/formatEntity";
+import { ensureCurrentPersistenceUser } from "@/lib/persistence/current-user";
+import { getPersistenceDb } from "@/lib/persistence/server";
+import { formatEntity, formatErrorEntity } from "@/lib/utils/formatEntity";
 import {
   createHeartbeat,
   createSSEResponse,
@@ -38,16 +44,46 @@ async function handler(
     "POST /api/v1/memories/extract",
   );
 
+  const limiter = getLimiter({
+    prefix: "memories:extract",
+    limit: 20,
+    window: "1 h",
+  });
+  if (limiter) {
+    const limited = await applyRateLimit(limiter, userId);
+    if (limited) return limited;
+  }
+
+  const user = await ensureCurrentPersistenceUser(userId);
+  const conversation = await getPersistenceDb().query.conversations.findFirst({
+    where: and(
+      eq(conversations.id, validated.conversationId),
+      eq(conversations.userId, user.id),
+    ),
+  });
+
+  if (!conversation) {
+    return new Response(
+      JSON.stringify(formatErrorEntity("Conversation not found")),
+      {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }
+
   const env = parsePersistenceEnv(process.env);
   const trigger = createTriggerClient(env);
   const run = await trigger.triggerTask("extract-memories", {
     conversationId: validated.conversationId,
+    userId: user.id,
   });
   const runId = run.id;
 
   if (!runId) {
     throw new Error("Trigger run did not return an id");
   }
+  const signedRunId = signActionJobId(runId, userId);
 
   const acceptsSse = req.headers.get("accept")?.includes("text/event-stream");
   if (!acceptsSse) {
@@ -55,9 +91,9 @@ async function handler(
       JSON.stringify(
         formatEntity(
           {
-            jobId: runId,
+            jobId: signedRunId,
             status: "pending",
-            pollUrl: `/api/v1/actions/jobs/${runId}`,
+            pollUrl: `/api/v1/actions/jobs/${signedRunId}`,
           },
           "job",
         ),
@@ -66,7 +102,7 @@ async function handler(
         status: 202,
         headers: {
           "Content-Type": "application/json",
-          Location: `/api/v1/actions/jobs/${runId}`,
+          Location: `/api/v1/actions/jobs/${signedRunId}`,
         },
       },
     );
@@ -79,7 +115,7 @@ async function handler(
 
       try {
         // Send initial progress
-        stream.sendProgress(runId, {
+        stream.sendProgress(signedRunId, {
           current: 0,
           message: "Queued memory extraction...",
         });
@@ -98,7 +134,7 @@ async function handler(
 
           // Fetch job status
           const jobResponse = await fetch(
-            `${req.nextUrl.origin}/api/v1/actions/jobs/${runId}`,
+            `${req.nextUrl.origin}/api/v1/actions/jobs/${signedRunId}`,
             {
               headers: {
                 Authorization: req.headers.get("Authorization") || "",
@@ -125,7 +161,7 @@ async function handler(
 
           // Handle completion
           if (job.status === "completed") {
-            stream.sendComplete(runId, job.result);
+            stream.sendComplete(signedRunId, job.result);
             logger.info(
               {
                 userId,
@@ -143,7 +179,7 @@ async function handler(
           if (job.status === "failed") {
             const errorMessage =
               job.error?.message || "Memory extraction failed";
-            stream.sendError(runId, errorMessage);
+            stream.sendError(signedRunId, errorMessage);
             logger.error(
               { userId, jobId: runId, error: job.error },
               "Memory extraction failed",
@@ -162,7 +198,7 @@ async function handler(
         }
 
         // Timeout after max attempts
-        stream.sendError(runId, {
+        stream.sendError(signedRunId, {
           message: "Memory extraction timeout",
           code: "TIMEOUT",
         });

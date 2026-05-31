@@ -24,7 +24,6 @@ import { ensureCurrentPersistenceUser } from "./current-user";
 import { getPersistenceDb } from "./server";
 
 type ProjectNoteRecord = typeof notes.$inferSelect;
-type NoteOwnerRecord = typeof users.$inferSelect;
 
 const noteTagSchema = z.object({
   tags: z.array(z.string().min(2).max(30)).min(1).max(3),
@@ -565,7 +564,7 @@ export async function getNoteShareMetadata(
   viewerClerkUserId?: string,
 ): Promise<PublicNoteShareMetadata | null> {
   const note = await getNoteByShareId(shareId);
-  if (!note || !note.isPublic || isShareExpired(note)) {
+  if (!note?.isPublic || isShareExpired(note)) {
     return null;
   }
 
@@ -586,7 +585,7 @@ export async function verifyNoteShare(
   } = {},
 ): Promise<PublicNoteShare> {
   const note = await getNoteByShareId(shareId);
-  if (!note || !note.isPublic || isShareExpired(note)) {
+  if (!note?.isPublic || isShareExpired(note)) {
     throw new NotFoundError("Note share", shareId);
   }
 

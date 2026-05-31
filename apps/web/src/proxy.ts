@@ -10,7 +10,7 @@ const isPublicRoute = createRouteMatcher([
   "/privacy",
   "/terms",
   "/api/webhooks/clerk", // Clerk webhooks
-  "/api/code-execution", // Allow internal calls
+  "/api/code-execution", // Route enforces Clerk auth or internal bearer auth
   "/api/internal(.*)", // Bearer-authenticated Trigger.dev callbacks
   "/api/desktop-updater/latest", // Public updater manifest endpoint
   "/api/v1/health",

@@ -365,98 +365,103 @@ export function createGenerationV2Repository(db: PersistenceDb) {
       }
       const comparisonGroupId = modelIds.length > 1 ? nanoid() : null;
 
-      const userMessageId = nanoid();
-      const [userMessage] = await db
-        .insert(messages)
-        .values({
-          id: userMessageId,
+      return await db.transaction(async (tx) => {
+        const txDb = tx as PersistenceDb;
+        const userMessageId = nanoid();
+        const [userMessage] = await tx
+          .insert(messages)
+          .values({
+            id: userMessageId,
+            conversationId: conversation.id,
+            userId: user.id,
+            role: "user",
+            content: input.content,
+            clientMessageId: input.clientMessageId ?? null,
+            status: "complete",
+            comparisonGroupId,
+            rootMessageId:
+              parentMessage?.rootMessageId ??
+              parentMessage?.id ??
+              userMessageId,
+            siblingIndex: 0,
+            createdAt: now(),
+            updatedAt: now(),
+          })
+          .returning();
+
+        if (!userMessage) {
+          throw new Error("Failed to create user message");
+        }
+
+        if (parentIds.length > 0) {
+          await tx.insert(messageEdges).values(
+            parentIds.map((parentMessageId, index) => ({
+              parentMessageId,
+              childMessageId: userMessage.id,
+              position: index,
+              edgeType: "reply",
+              createdAt: now(),
+            })),
+          );
+        }
+
+        const [request] = await tx
+          .insert(generationRequests)
+          .values({
+            conversationId: conversation.id,
+            userMessageId: userMessage.id,
+            requestedModels: modelIds,
+            promptOverride: null,
+            status: "pending",
+            createdAt: now(),
+            updatedAt: now(),
+          })
+          .returning();
+
+        if (!request) {
+          throw new Error("Failed to create generation request");
+        }
+
+        await snapshotConversationIntegrationsForRequest({
+          db: txDb,
+          requestId: request.id,
           conversationId: conversation.id,
           userId: user.id,
-          role: "user",
-          content: input.content,
-          clientMessageId: input.clientMessageId ?? null,
-          status: "complete",
-          comparisonGroupId,
-          rootMessageId:
-            parentMessage?.rootMessageId ?? parentMessage?.id ?? userMessageId,
-          siblingIndex: 0,
-          createdAt: now(),
-          updatedAt: now(),
-        })
-        .returning();
+        });
 
-      if (!userMessage) {
-        throw new Error("Failed to create user message");
-      }
-
-      if (parentIds.length > 0) {
-        await db.insert(messageEdges).values(
-          parentIds.map((parentMessageId, index) => ({
-            parentMessageId,
-            childMessageId: userMessage.id,
-            position: index,
-            edgeType: "reply",
-            createdAt: now(),
-          })),
+        const assistantRows = await Promise.all(
+          modelIds.map((modelId, index) =>
+            createAssistantSession({
+              db: txDb,
+              requestId: request.id,
+              conversationId: conversation.id,
+              parentMessageId: userMessage.id,
+              modelId,
+              comparisonGroupId,
+              rootMessageId: userMessage.rootMessageId ?? userMessage.id,
+              siblingIndex: index,
+            }),
+          ),
         );
-      }
 
-      const [request] = await db
-        .insert(generationRequests)
-        .values({
+        await tx
+          .update(conversations)
+          .set({
+            activeLeafMessageId: assistantRows[0]?.assistantMessage.id ?? null,
+            updatedAt: now(),
+          })
+          .where(eq(conversations.id, conversation.id));
+
+        return {
+          requestId: request.id,
           conversationId: conversation.id,
           userMessageId: userMessage.id,
-          requestedModels: modelIds,
-          promptOverride: null,
-          status: "pending",
-          createdAt: now(),
-          updatedAt: now(),
-        })
-        .returning();
-
-      if (!request) {
-        throw new Error("Failed to create generation request");
-      }
-
-      await snapshotConversationIntegrationsForRequest({
-        db,
-        requestId: request.id,
-        conversationId: conversation.id,
-        userId: user.id,
+          assistantMessageIds: assistantRows.map(
+            (row) => row.assistantMessage.id,
+          ),
+          modelIds,
+        };
       });
-
-      const assistantRows = await Promise.all(
-        modelIds.map((modelId, index) =>
-          createAssistantSession({
-            db,
-            requestId: request.id,
-            conversationId: conversation.id,
-            parentMessageId: userMessage.id,
-            modelId,
-            comparisonGroupId,
-            rootMessageId: userMessage.rootMessageId ?? userMessage.id,
-            siblingIndex: index,
-          }),
-        ),
-      );
-
-      await db
-        .update(conversations)
-        .set({
-          activeLeafMessageId: assistantRows[0]?.assistantMessage.id ?? null,
-          updatedAt: now(),
-        })
-        .where(eq(conversations.id, conversation.id));
-
-      return {
-        requestId: request.id,
-        conversationId: conversation.id,
-        userMessageId: userMessage.id,
-        assistantMessageIds: assistantRows.map(
-          (row) => row.assistantMessage.id,
-        ),
-        modelIds,
-      };
     },
 
     async createRegenerationRequest(input: {

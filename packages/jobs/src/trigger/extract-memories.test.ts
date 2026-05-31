@@ -168,4 +168,47 @@ describe("extractMemoriesForConversation", () => {
       }),
     ).toMatchObject(storedAfterFirstRun[0] ?? {});
   });
+
+  it("does not extract memories for a conversation owned by another user", async () => {
+    const db = await createTestPersistenceDb();
+    const users = createUserRepository(db);
+    const conversations = createConversationRepository(db);
+
+    const owner = await users.upsertFromClerk({
+      clerkId: "clerk_memory_owner",
+      email: "memory-owner@example.com",
+      name: "Memory Owner",
+    });
+    const other = await users.upsertFromClerk({
+      clerkId: "clerk_memory_other",
+      email: "memory-other@example.com",
+      name: "Memory Other",
+    });
+
+    const conversation = await conversations.create({
+      userId: owner.id,
+      title: "Private memory extraction",
+      model: "openai:gpt-5",
+    });
+
+    const generateStructuredMemories = vi.fn();
+    const embedBatch = vi.fn();
+
+    await expect(
+      extractMemoriesForConversation(
+        {
+          conversationId: conversation.id,
+          userId: other.id,
+        },
+        {
+          db,
+          generateStructuredMemories,
+          embedBatch,
+        },
+      ),
+    ).rejects.toThrow("Conversation not found");
+
+    expect(generateStructuredMemories).not.toHaveBeenCalled();
+    expect(embedBatch).not.toHaveBeenCalled();
+  });
 });

@@ -3,10 +3,9 @@ import { defineConfig, devices } from "@playwright/test";
 /**
  * Playwright config for the deployed-URL smoke gate.
  *
- * Unlike the full e2e config, this one does NOT start a local dev server —
- * the tests target whatever lives at SMOKE_BASE_URL (production by default).
- * The fixture in e2e/smoke-staging.spec.ts hard-fails when that env is
- * missing so the gate cannot silently skip.
+ * Unlike the full e2e config, this one does NOT start a local dev server.
+ * The tests target SMOKE_BASE_URL and require a low-privilege authenticated
+ * storage state for the conversation create/read/delete smoke.
  */
 export default defineConfig({
   testDir: "./e2e",

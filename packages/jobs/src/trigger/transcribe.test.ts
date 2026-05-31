@@ -122,4 +122,17 @@ describe("transcribeAudioFromStorage", () => {
     expect(providerCall?.body).toBeInstanceOf(FormData);
     expect((providerCall?.body as FormData).get("model")).toBe("whisper-1");
   });
+
+  it("rejects storage keys that do not belong to the requested user", async () => {
+    await expect(
+      transcribeAudioFromStorage({
+        userId: "user_123",
+        storageId: "users/other_user/drafts/audio.webm",
+        mimeType: "audio/webm",
+      }),
+    ).rejects.toThrow("File not found");
+
+    expect(createSignedReadUrlMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });

@@ -128,7 +128,7 @@ export async function incrementShareViewCount(shareId: string): Promise<void> {
 export async function getSharedConversation(shareId: string) {
   const db = getPersistenceDb();
   const share = await getConversationShareByShareId(shareId);
-  if (!share || !share.isActive) return null;
+  if (!share?.isActive) return null;
 
   if (share.expiresAt && share.expiresAt < Date.now()) return null;
 
@@ -144,7 +144,7 @@ export async function getSharedConversation(shareId: string) {
 export async function getSharedMessages(shareId: string) {
   const db = getPersistenceDb();
   const share = await getConversationShareByShareId(shareId);
-  if (!share || !share.isActive) return [];
+  if (!share?.isActive) return [];
 
   if (share.expiresAt && share.expiresAt < Date.now()) return [];
 

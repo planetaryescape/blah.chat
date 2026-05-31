@@ -10,7 +10,9 @@
  * only. This required PR gate stays liveness-only so unrelated Redis/R2
  * incidents do not block code review.
  *
- * Hard-fails when required env is missing so the gate cannot silently skip.
+ * Hard-fails when SMOKE_BASE_URL is missing. Authenticated checks are skipped
+ * when SMOKE_AUTH_STORAGE_STATE_PATH is absent so PR CI can still run the
+ * liveness probes when environment secrets are unavailable.
  */
 import { expect, test } from "@playwright/test";
 
@@ -23,18 +25,6 @@ function requireSmokeBaseUrl(): string {
     );
   }
   return baseUrl;
-}
-
-function requireSmokeAuthStorageStatePath(): string {
-  const storageState = process.env.SMOKE_AUTH_STORAGE_STATE_PATH;
-  if (!storageState) {
-    throw new Error(
-      "authenticated smoke gate is missing required env: " +
-        "SMOKE_AUTH_STORAGE_STATE_PATH. Decode SMOKE_AUTH_STORAGE_STATE_B64 " +
-        "to a file before running this spec.",
-    );
-  }
-  return storageState;
 }
 
 test("smoke: /api/v1/health route is reachable", async ({ request }) => {
@@ -97,7 +87,16 @@ test("smoke: sign-in page renders without server error", async ({ page }) => {
 });
 
 test.describe("authenticated smoke", () => {
-  test.use({ storageState: requireSmokeAuthStorageStatePath() });
+  const smokeAuthStorageStatePath = process.env.SMOKE_AUTH_STORAGE_STATE_PATH;
+
+  test.skip(
+    !smokeAuthStorageStatePath,
+    "authenticated smoke requires SMOKE_AUTH_STORAGE_STATE_PATH",
+  );
+
+  if (smokeAuthStorageStatePath) {
+    test.use({ storageState: smokeAuthStorageStatePath });
+  }
 
   test("smoke: authenticated user can create, fetch, and delete a conversation", async ({
     page,

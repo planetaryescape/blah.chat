@@ -1,11 +1,13 @@
 # Changelog
 
-## [0.7.6](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.7.5...jobs-v0.7.6) (2026-05-29)
+## [0.7.6](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.7.5...jobs-v0.7.6) (2026-05-31)
 
 
 ### Bug Fixes
 
 * align drizzle workspace versions ([d73459c](https://github.com/planetaryescape/blah.chat/commit/d73459c61bc83c40656e3bbe37281ca2646334e2))
+* harden ga production blockers ([caeab3d](https://github.com/planetaryescape/blah.chat/commit/caeab3d59ff029bab160eb07ae75e6c30dc05ef5))
+* resolve production hardening review comments ([d403804](https://github.com/planetaryescape/blah.chat/commit/d40380444ec5e670dd013d90259281bd50646464))
 
 ## [0.7.5](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.7.4...jobs-v0.7.5) (2026-05-16)
 

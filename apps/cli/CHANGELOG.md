@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/planetaryescape/blah.chat/compare/cli-v0.6.0...cli-v0.6.1) (2026-05-31)
+
+
+### Bug Fixes
+
+* harden ga production blockers ([caeab3d](https://github.com/planetaryescape/blah.chat/commit/caeab3d59ff029bab160eb07ae75e6c30dc05ef5))
+
 ## [0.6.0](https://github.com/planetaryescape/blah.chat/compare/cli-v0.5.0...cli-v0.6.0) (2026-03-29)
 
 

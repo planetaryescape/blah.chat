@@ -1,17 +1,21 @@
 import * as Sentry from "@sentry/nextjs";
 
-export async function register() {
-  try {
-    if (process.env.NEXT_RUNTIME === "nodejs") {
-      await import("./sentry.server.config");
-    }
+function captureRegisterError(error: unknown): never {
+  Sentry.captureException(error);
+  throw error;
+}
 
-    if (process.env.NEXT_RUNTIME === "edge") {
-      await import("./sentry.edge.config");
-    }
-  } catch (error) {
-    Sentry.captureException(error);
-    throw error;
+export function register() {
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    return import("./sentry.server.config")
+      .then(() => undefined)
+      .catch(captureRegisterError);
+  }
+
+  if (process.env.NEXT_RUNTIME === "edge") {
+    return import("./sentry.edge.config")
+      .then(() => undefined)
+      .catch(captureRegisterError);
   }
 }
 

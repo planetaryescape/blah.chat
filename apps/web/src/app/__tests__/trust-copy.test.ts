@@ -1,13 +1,13 @@
 /**
  * @vitest-environment node
  */
-import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+import landing from "../LandingPageClient.tsx?raw";
+import privacy from "../privacy/page.tsx?raw";
+import terms from "../terms/page.tsx?raw";
 
 describe("public trust copy", () => {
-  it("does not claim BYOK keys are never stored", async () => {
-    const privacy = await readFile("src/app/privacy/page.tsx", "utf8");
-
+  it("does not claim BYOK keys are never stored", () => {
     expect(privacy).not.toContain("We never store them");
     expect(privacy).not.toContain(
       "Your API keys (BYOK mode - sent directly to providers)",
@@ -15,13 +15,7 @@ describe("public trust copy", () => {
     expect(privacy).toContain("BYOK keys are encrypted at rest");
   });
 
-  it("labels BYOD as preview or coming soon instead of GA-ready storage", async () => {
-    const [privacy, terms, landing] = await Promise.all([
-      readFile("src/app/privacy/page.tsx", "utf8"),
-      readFile("src/app/terms/page.tsx", "utf8"),
-      readFile("src/app/LandingPageClient.tsx", "utf8"),
-    ]);
-
+  it("labels BYOD as preview or coming soon instead of GA-ready storage", () => {
     expect(privacy).not.toContain(
       "Data from your personal Postgres database (BYOD mode)",
     );

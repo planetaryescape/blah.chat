@@ -10,9 +10,17 @@ function getActionJobSecret() {
   return secret;
 }
 
+export function requireActionJobSecret() {
+  getActionJobSecret();
+}
+
+function signaturePayload(runId: string, userId: string) {
+  return JSON.stringify([userId, runId]);
+}
+
 function signatureFor(runId: string, userId: string) {
   return createHmac("sha256", getActionJobSecret())
-    .update(`${userId}:${runId}`)
+    .update(signaturePayload(runId, userId))
     .digest("base64url");
 }
 

@@ -14,6 +14,7 @@
  * when SMOKE_AUTH_STORAGE_STATE_PATH is absent so PR CI can still run the
  * liveness probes when environment secrets are unavailable.
  */
+import { DEFAULT_MODEL_ID } from "@blah-chat/ai/operational-models";
 import { expect, test } from "@playwright/test";
 
 function requireSmokeBaseUrl(): string {
@@ -110,7 +111,7 @@ test.describe("authenticated smoke", () => {
       const createResponse = await api.post(`${baseUrl}/api/v1/conversations`, {
         data: {
           title,
-          model: "openai:gpt-5-mini",
+          model: DEFAULT_MODEL_ID,
         },
       });
       expect(createResponse.status()).toBe(201);

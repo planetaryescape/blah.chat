@@ -258,7 +258,7 @@ async function recordUsage(input: {
 
 export async function generateImageForMessage(
   payload: {
-    userId?: string;
+    userId: string;
     conversationId: string;
     messageId: string;
     prompt: string;
@@ -293,7 +293,7 @@ export async function generateImageForMessage(
     return { success: true, skipped: "conversation_not_found" as const };
   }
 
-  if (payload.userId && conversation.userId !== payload.userId) {
+  if (conversation.userId !== payload.userId) {
     return { success: true, skipped: "unauthorized" as const };
   }
 
@@ -402,7 +402,7 @@ export const generateImageTask = task({
     factor: 2,
   },
   run: async (payload: {
-    userId?: string;
+    userId: string;
     conversationId: string;
     messageId: string;
     prompt: string;

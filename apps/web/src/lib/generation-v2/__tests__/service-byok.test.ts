@@ -209,7 +209,7 @@ describe("GenerationV2Service BYOK wiring", () => {
   });
 
   it("fails generation instead of falling back to the server key when BYOK resolution fails", async () => {
-    const { service, db, conversation, provider } = await setup({
+    const { service, db, store, conversation, provider } = await setup({
       byokEnabled: true,
       resolveError: new Error("BYOK key is unavailable"),
     });
@@ -233,5 +233,17 @@ describe("GenerationV2Service BYOK wiring", () => {
       where: eq(usageRecords.conversationId, conversation.id),
     });
     expect(records).toHaveLength(0);
+    const events = await store.read(started.requestId);
+    expect(events.events).toContainEqual(
+      expect.objectContaining({
+        type: "error",
+        error: "Failed to resolve BYOK credentials",
+      }),
+    );
+    expect(events.events).not.toContainEqual(
+      expect.objectContaining({
+        error: "BYOK key is unavailable",
+      }),
+    );
   });
 });

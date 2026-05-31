@@ -13,7 +13,6 @@ export function register() {
     }
   } catch (error) {
     Sentry.captureException(error);
-    throw error;
   }
 }
 

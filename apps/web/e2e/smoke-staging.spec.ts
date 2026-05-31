@@ -14,8 +14,8 @@
  * when SMOKE_AUTH_STORAGE_STATE_PATH is absent so PR CI can still run the
  * liveness probes when environment secrets are unavailable.
  */
-import { DEFAULT_MODEL_ID } from "@blah-chat/ai/operational-models";
 import { expect, test } from "@playwright/test";
+import { DEFAULT_MODEL_ID } from "../../../packages/ai/src/operational-models";
 
 function requireSmokeBaseUrl(): string {
   const baseUrl = process.env.SMOKE_BASE_URL;

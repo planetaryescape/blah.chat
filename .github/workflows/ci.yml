@@ -189,8 +189,9 @@ jobs:
     name: Smoke E2E (health + authenticated API)
     runs-on: ubuntu-latest
     needs: [build]
-    # Skipped on Dependabot PRs: GitHub does not expose repo-level Actions
-    # secrets to dependabot[bot] (SMOKE_BASE_URL is one). The smoke probes
+    environment: staging
+    # Skipped on Dependabot PRs: GitHub does not expose environment secrets
+    # to dependabot[bot] (SMOKE_BASE_URL is one). The smoke probes
     # a deployed URL anyway, so it validates the live env, not the bump.
     # The same job runs on push to main after merge, catching deploy regressions.
     if: github.event.pull_request.user.login != 'dependabot[bot]'

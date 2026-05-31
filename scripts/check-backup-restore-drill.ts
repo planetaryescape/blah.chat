@@ -2,19 +2,19 @@ const DEFAULT_MAX_AGE_DAYS = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const FUTURE_TOLERANCE_MS = 5 * 60 * 1000;
 
-type DrillCheckInput = {
+interface DrillCheckInput {
   drillAt?: string;
   evidenceUrl?: string;
   maxAgeDays?: number;
   now?: Date;
-};
+}
 
-type DrillCheckResult = {
+interface DrillCheckResult {
   ageDays: number;
   drillAt: Date;
   evidenceUrl: string;
   maxAgeDays: number;
-};
+}
 
 export function checkBackupRestoreDrill({
   drillAt,

@@ -5,7 +5,7 @@ import {
   createUserRepository,
 } from "@blah-chat/persistence-postgres";
 import { eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createTestPersistenceDb } from "../../../persistence-postgres/src/testing/pglite";
 import { generateImageForMessage } from "./generate-image";
 
@@ -216,6 +216,40 @@ describe("generateImageForMessage", () => {
         messageId: assistantMessage.id,
         prompt: "A private image",
       },
+      {
+        db,
+        bucket: "blah-chat-test",
+        createImage,
+        uploadImage,
+      },
+    );
+
+    expect(result).toEqual({ success: true, skipped: "unauthorized" });
+    expect(createImage).not.toHaveBeenCalled();
+    expect(uploadImage).not.toHaveBeenCalled();
+  });
+
+  it("does not generate or upload images when the job payload omits the user id", async () => {
+    const { assistantMessage, conversation, db } =
+      await createImageConversationFixture({
+        clerkId: "clerk_image_missing_user",
+        email: "image-missing-user@example.com",
+        name: "Image Missing User",
+        title: "Missing user image generation",
+      });
+
+    const createImage = vi.fn(async () => ({
+      bytes: new Uint8Array([1, 2, 3, 4]),
+      mimeType: "image/png",
+    }));
+    const uploadImage = vi.fn();
+
+    const result = await generateImageForMessage(
+      {
+        conversationId: conversation.id,
+        messageId: assistantMessage.id,
+        prompt: "A private image",
+      } as Parameters<typeof generateImageForMessage>[0],
       {
         db,
         bucket: "blah-chat-test",

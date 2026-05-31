@@ -111,6 +111,7 @@ describe("extractMemoriesForConversation", () => {
     const firstResult = await extractMemoriesForConversation(
       {
         conversationId: conversation.id,
+        userId: user.id,
       },
       {
         db,
@@ -145,6 +146,7 @@ describe("extractMemoriesForConversation", () => {
     const secondResult = await extractMemoriesForConversation(
       {
         conversationId: conversation.id,
+        userId: user.id,
       },
       {
         db,
@@ -200,6 +202,43 @@ describe("extractMemoriesForConversation", () => {
           conversationId: conversation.id,
           userId: other.id,
         },
+        {
+          db,
+          generateStructuredMemories,
+          embedBatch,
+        },
+      ),
+    ).rejects.toThrow("Conversation not found");
+
+    expect(generateStructuredMemories).not.toHaveBeenCalled();
+    expect(embedBatch).not.toHaveBeenCalled();
+  });
+
+  it("does not extract memories when the job payload omits the user id", async () => {
+    const db = await createTestPersistenceDb();
+    const users = createUserRepository(db);
+    const conversations = createConversationRepository(db);
+
+    const owner = await users.upsertFromClerk({
+      clerkId: "clerk_memory_missing_user",
+      email: "memory-missing-user@example.com",
+      name: "Memory Missing User",
+    });
+
+    const conversation = await conversations.create({
+      userId: owner.id,
+      title: "Private memory extraction",
+      model: "openai:gpt-5",
+    });
+
+    const generateStructuredMemories = vi.fn();
+    const embedBatch = vi.fn();
+
+    await expect(
+      extractMemoriesForConversation(
+        {
+          conversationId: conversation.id,
+        } as Parameters<typeof extractMemoriesForConversation>[0],
         {
           db,
           generateStructuredMemories,

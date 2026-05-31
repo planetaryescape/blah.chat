@@ -280,9 +280,9 @@ export class GenerationV2Service {
 
   private async failBeforeProviderCall(
     bundle: PersistedRequestBundle,
-    error: unknown,
+    _error: unknown,
   ) {
-    const message = error instanceof Error ? error.message : String(error);
+    const clientMessage = "Failed to resolve BYOK credentials";
 
     await Promise.all(
       bundle.sessions.map(async (session) => {
@@ -300,7 +300,7 @@ export class GenerationV2Service {
           seq: 0,
           ts: this.now(),
           type: "error",
-          error: message,
+          error: clientMessage,
         });
       }),
     );

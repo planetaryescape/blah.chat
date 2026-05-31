@@ -191,6 +191,30 @@ describe("/api/code-execution", () => {
     expect(sandboxKillMock).toHaveBeenCalledTimes(1);
   });
 
+  it("rejects conversation-scoped internal execution without a user id", async () => {
+    const { POST } = await import("../code-execution/route");
+    const response = await POST(
+      createMockRequest("/api/code-execution", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${INTERNAL_TASK_TOKEN}`,
+        },
+        body: {
+          code: "print('plot')",
+          language: "python",
+          conversationId: "conv_exec",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "Missing userId for conversation-scoped execution",
+    });
+    expect(sandboxCreateMock).not.toHaveBeenCalled();
+    expect(uploadObjectMock).not.toHaveBeenCalled();
+  });
+
   it("rejects authenticated image storage for conversations the user does not own", async () => {
     authMock.mockResolvedValue({ userId: "clerk_exec" });
     findConversationMock.mockResolvedValue(null);
@@ -210,6 +234,30 @@ describe("/api/code-execution", () => {
 
     expect(response.status).toBe(403);
     expect(sandboxCreateMock).not.toHaveBeenCalled();
+    expect(uploadObjectMock).not.toHaveBeenCalled();
+  });
+
+  it("does not resolve persistence users for authenticated execution without a conversation", async () => {
+    authMock.mockResolvedValue({ userId: "clerk_exec" });
+
+    const { POST } = await import("../code-execution/route");
+    const response = await POST(
+      createMockRequest("/api/code-execution", {
+        method: "POST",
+        body: {
+          code: "print('plot')",
+          language: "python",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      success: true,
+      images: [],
+    });
+    expect(ensureCurrentPersistenceUserMock).not.toHaveBeenCalled();
+    expect(findConversationMock).not.toHaveBeenCalled();
     expect(uploadObjectMock).not.toHaveBeenCalled();
   });
 

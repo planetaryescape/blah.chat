@@ -214,7 +214,7 @@ function logEmbeddingUsage(input: {
 }
 
 export async function extractMemoriesForConversation(
-  payload: { conversationId: string; userId?: string },
+  payload: { conversationId: string; userId: string },
   dependencies: ExtractMemoriesDependencies = {},
 ) {
   const db = dependencies.db ?? createNeonDatabase(getDatabaseUrl());
@@ -232,7 +232,7 @@ export async function extractMemoriesForConversation(
     throw new Error("Conversation not found");
   }
 
-  if (payload.userId && conversation.userId !== payload.userId) {
+  if (conversation.userId !== payload.userId) {
     throw new Error("Conversation not found");
   }
 
@@ -403,7 +403,7 @@ export const extractMemoriesTask = task({
     maxTimeoutInMs: 30000,
     factor: 2,
   },
-  run: async (payload: { conversationId: string; userId?: string }) => {
+  run: async (payload: { conversationId: string; userId: string }) => {
     return extractMemoriesForConversation(payload);
   },
 });

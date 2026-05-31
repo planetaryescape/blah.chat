@@ -123,7 +123,7 @@ export async function transcribeAudioFromStorage(input: {
   model?: TranscriptionModel;
 }) {
   const ownerId = getStorageOwnerId(input.storageId);
-  if (input.userId && ownerId !== input.userId) {
+  if (ownerId && ownerId !== input.userId) {
     throw new Error("File not found");
   }
 

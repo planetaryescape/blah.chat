@@ -52,24 +52,26 @@ export async function createSearchJob(
 }
 
 export async function createExtractMemoriesJob(
-  _userId: string,
+  userId: string,
   input: z.infer<typeof extractMemoriesInputSchema>,
 ) {
   const validated = extractMemoriesInputSchema.parse(input);
   const trigger = getTrigger();
   const run = await trigger.triggerTask("extract-memories", {
     conversationId: validated.conversationId,
+    userId,
   });
   return run.id ?? "unknown";
 }
 
 export async function createTranscribeJob(
-  _userId: string,
+  userId: string,
   input: z.infer<typeof transcribeInputSchema>,
 ) {
   const validated = transcribeInputSchema.parse(input);
   const trigger = getTrigger();
   const run = await trigger.triggerTask("transcribe", {
+    userId,
     storageId: validated.storageId,
     model: validated.model,
     mimeType: validated.mimeType,

@@ -7,7 +7,7 @@ import {
 import { and, eq } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
-import { signActionJobId } from "@/lib/api/action-jobs";
+import { requireActionJobSecret, signActionJobId } from "@/lib/api/action-jobs";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { applyRateLimit, getLimiter } from "@/lib/api/rate-limit";
@@ -92,6 +92,7 @@ async function handler(req: NextRequest, { userId }: { userId: string }) {
   const env = parsePersistenceEnv(process.env);
   const trigger = createTriggerClient(env);
 
+  requireActionJobSecret();
   const run = await trigger.triggerTask("generate-image", {
     ...validated,
     userId: user.id,

@@ -142,12 +142,19 @@ export async function POST(request: NextRequest) {
         ? requestUserId
         : null;
 
-    if (!isInternalCall && authenticatedUserId) {
+    if (!isInternalCall && authenticatedUserId && conversationId) {
       const user = await ensureCurrentPersistenceUser(authenticatedUserId);
       effectiveUserId = user.id;
     }
 
-    if (conversationId && effectiveUserId) {
+    if (conversationId) {
+      if (!effectiveUserId) {
+        return NextResponse.json(
+          { error: "Missing userId for conversation-scoped execution" },
+          { status: 400 },
+        );
+      }
+
       const conversation =
         await getPersistenceDb().query.conversations.findFirst({
           where: and(

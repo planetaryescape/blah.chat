@@ -6,7 +6,11 @@ const tracesSampleRate = Number(
     (process.env.NODE_ENV === "production" ? 0.05 : 1),
 );
 
-if (dsn) {
+export function initServerSentry() {
+  if (!dsn) {
+    return;
+  }
+
   Sentry.init({
     dsn,
     environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV,

@@ -2,18 +2,11 @@
  * @vitest-environment node
  */
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-
-const webRoot = process.cwd();
-
-async function readWebFile(path: string) {
-  return readFile(join(webRoot, path), "utf8");
-}
 
 describe("production observability wiring", () => {
   it("registers Sentry request-error capture for server and edge runtimes", async () => {
-    const instrumentation = await readWebFile("instrumentation.ts");
+    const instrumentation = await readFile("instrumentation.ts", "utf8");
 
     expect(instrumentation).toContain("sentry.server.config");
     expect(instrumentation).toContain("sentry.edge.config");
@@ -22,9 +15,9 @@ describe("production observability wiring", () => {
 
   it("keeps Sentry PII disabled in server, edge, and browser configs", async () => {
     const configs = await Promise.all([
-      readWebFile("sentry.server.config.ts"),
-      readWebFile("sentry.edge.config.ts"),
-      readWebFile("instrumentation-client.ts"),
+      readFile("sentry.server.config.ts", "utf8"),
+      readFile("sentry.edge.config.ts", "utf8"),
+      readFile("instrumentation-client.ts", "utf8"),
     ]);
 
     for (const config of configs) {

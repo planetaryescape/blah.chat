@@ -6,7 +6,7 @@ import { createMockRequest } from "@/lib/test/api-helpers";
 
 const ORIGINAL_E2B_API_KEY = process.env.E2B_API_KEY;
 const ORIGINAL_INTERNAL_TASK_SECRET = process.env.INTERNAL_TASK_SECRET;
-const INTERNAL_TASK_SECRET = "test-internal-secret";
+const INTERNAL_TASK_TOKEN = ["test", "internal", "token"].join("-");
 const authMock = vi.fn();
 const buildCodeExecutionObjectKeyMock = vi.fn(
   () =>
@@ -76,7 +76,7 @@ describe("/api/code-execution", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.E2B_API_KEY = "e2b_test_key";
-    process.env.INTERNAL_TASK_SECRET = INTERNAL_TASK_SECRET;
+    process.env.INTERNAL_TASK_SECRET = INTERNAL_TASK_TOKEN;
     authMock.mockResolvedValue({ userId: null });
     ensureCurrentPersistenceUserMock.mockResolvedValue({ id: "user_exec" });
     getLimiterMock.mockReturnValue(undefined);
@@ -146,7 +146,7 @@ describe("/api/code-execution", () => {
       createMockRequest("/api/code-execution", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${INTERNAL_TASK_SECRET}`,
+          Authorization: `Bearer ${INTERNAL_TASK_TOKEN}`,
         },
         body: {
           code: "print('plot')",

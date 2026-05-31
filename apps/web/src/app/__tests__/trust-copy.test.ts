@@ -2,19 +2,11 @@
  * @vitest-environment node
  */
 import { readFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-
-const appDir = dirname(dirname(fileURLToPath(import.meta.url)));
-
-async function readAppFile(path: string) {
-  return readFile(join(appDir, path), "utf8");
-}
 
 describe("public trust copy", () => {
   it("does not claim BYOK keys are never stored", async () => {
-    const privacy = await readAppFile("privacy/page.tsx");
+    const privacy = await readFile("src/app/privacy/page.tsx", "utf8");
 
     expect(privacy).not.toContain("We never store them");
     expect(privacy).not.toContain(
@@ -25,9 +17,9 @@ describe("public trust copy", () => {
 
   it("labels BYOD as preview or coming soon instead of GA-ready storage", async () => {
     const [privacy, terms, landing] = await Promise.all([
-      readAppFile("privacy/page.tsx"),
-      readAppFile("terms/page.tsx"),
-      readAppFile("LandingPageClient.tsx"),
+      readFile("src/app/privacy/page.tsx", "utf8"),
+      readFile("src/app/terms/page.tsx", "utf8"),
+      readFile("src/app/LandingPageClient.tsx", "utf8"),
     ]);
 
     expect(privacy).not.toContain(

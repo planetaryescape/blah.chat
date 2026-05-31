@@ -9,6 +9,43 @@ import { describe, expect, it } from "vitest";
 import { createTestPersistenceDb } from "../../../persistence-postgres/src/testing/pglite";
 import { generateImageForMessage } from "./generate-image";
 
+async function createImageConversationFixture(input: {
+  clerkId: string;
+  email: string;
+  name: string;
+  title: string;
+}) {
+  const db = await createTestPersistenceDb();
+  const users = createUserRepository(db);
+  const conversations = createConversationRepository(db);
+  const messages = createMessageRepository(db);
+
+  const user = await users.upsertFromClerk({
+    clerkId: input.clerkId,
+    email: input.email,
+    name: input.name,
+  });
+
+  const conversation = await conversations.create({
+    userId: user.id,
+    title: input.title,
+    model: "google:gemini-3-pro-image-preview",
+  });
+
+  const assistantMessage = await messages.create({
+    conversationId: conversation.id,
+    userId: user.id,
+    role: "assistant",
+    content: "",
+    status: "pending",
+    model: "google:gemini-3-pro-image-preview",
+    parentMessageIds: [],
+    siblingIndex: 0,
+  });
+
+  return { assistantMessage, conversation, db, user };
+}
+
 describe("generateImageForMessage", () => {
   it("stores generated image bytes in R2 and persists Postgres attachment metadata", async () => {
     const db = await createTestPersistenceDb();
@@ -193,33 +230,13 @@ describe("generateImageForMessage", () => {
   });
 
   it("does not load reference images outside the conversation owner's storage", async () => {
-    const db = await createTestPersistenceDb();
-    const users = createUserRepository(db);
-    const conversations = createConversationRepository(db);
-    const messages = createMessageRepository(db);
-
-    const user = await users.upsertFromClerk({
-      clerkId: "clerk_image_ref",
-      email: "image-ref@example.com",
-      name: "Image Ref",
-    });
-
-    const conversation = await conversations.create({
-      userId: user.id,
-      title: "Reference image",
-      model: "google:gemini-3-pro-image-preview",
-    });
-
-    const assistantMessage = await messages.create({
-      conversationId: conversation.id,
-      userId: user.id,
-      role: "assistant",
-      content: "",
-      status: "pending",
-      model: "google:gemini-3-pro-image-preview",
-      parentMessageIds: [],
-      siblingIndex: 0,
-    });
+    const { assistantMessage, conversation, db, user } =
+      await createImageConversationFixture({
+        clerkId: "clerk_image_ref",
+        email: "image-ref@example.com",
+        name: "Image Ref",
+        title: "Reference image",
+      });
 
     const loadReferenceImage = vi.fn(async () => "data:image/png;base64,aW1n");
     const createImage = vi.fn(async () => ({

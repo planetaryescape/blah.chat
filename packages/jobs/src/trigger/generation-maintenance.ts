@@ -9,7 +9,7 @@ import { recoverStuckGenerations } from "./recover-stuck-generations";
 import { recoverStuckMessages } from "./recover-stuck-messages";
 
 export const GENERATION_MAINTENANCE_CRON = {
-  pattern: "*/5 * * * *",
+  pattern: "0 * * * *",
   timezone: "UTC",
   environments: ["PRODUCTION"] as Array<"PRODUCTION">,
 };

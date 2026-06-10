@@ -5,6 +5,7 @@ Personal AI chat assistant: all models (OpenAI, Gemini, Claude), mid-chat switch
 ## Package Manager
 
 **Bun exclusively.** Never npm/pnpm/yarn/npx.
+
 - `bun install`, `bun add`, `bunx`, `bun run`
 - If `package-lock.json` exists, delete it. Only `bun.lock`.
 
@@ -38,6 +39,7 @@ bun run test:e2e           # Playwright E2E
 ## Design Philosophy
 
 Avoid generic AI aesthetic. Distinctive, creative, surprising.
+
 - Unique fonts (NOT Inter/Roboto). Dark theme. Layered backgrounds, high-impact motion.
 - Inspiration: code editor themes (Rose Pine, Tokyo Night, Vesper).
 

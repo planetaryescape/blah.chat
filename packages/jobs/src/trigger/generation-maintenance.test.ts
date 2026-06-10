@@ -3,9 +3,9 @@ import { GENERATION_MAINTENANCE_CRON } from "./generation-maintenance";
 import { runMaintenanceStep } from "./maintenance-utils";
 
 describe("generationMaintenance", () => {
-  it("runs one consolidated production schedule every five minutes", () => {
+  it("runs one consolidated production schedule hourly", () => {
     expect(GENERATION_MAINTENANCE_CRON).toEqual({
-      pattern: "*/5 * * * *",
+      pattern: "0 * * * *",
       timezone: "UTC",
       environments: ["PRODUCTION"],
     });

@@ -61,12 +61,12 @@
     }
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.0.18",
+    "@vitest/coverage-v8": "^4.1.8",
     "@types/node": "^22.19.0",
     "@types/pg": "^8.15.5",
     "pg": "^8.16.3",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.8"
   }
 }

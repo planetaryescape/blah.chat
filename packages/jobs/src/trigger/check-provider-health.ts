@@ -25,7 +25,7 @@ function getDatabaseUrl() {
 }
 
 export const CHECK_PROVIDER_HEALTH_CRON = {
-  pattern: "*/15 * * * *",
+  pattern: "0 * * * *",
   timezone: "UTC",
   environments: ["PRODUCTION"] as Array<"PRODUCTION">,
 };

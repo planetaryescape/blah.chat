@@ -56,6 +56,8 @@ export interface ClassifierResult {
   topSimilarityScore?: number;
   secondRouteLabel?: RouteLabel;
   secondSimilarityScore?: number;
+  /** True when the simplified LLM tiebreak resolved an ambiguous classification. */
+  usedFallbackLlm?: boolean;
 }
 
 // ============================================================================

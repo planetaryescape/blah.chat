@@ -39,6 +39,14 @@ export const ACK_GENERATION_MODEL: ModelConfig =
   MODEL_CONFIG["openrouter:gpt-5.4-nano"];
 
 /**
+ * Auto-router Stage 3 tiebreak — picks one route label from the classifier's
+ * top candidates when the embedding classification is ambiguous (~10-15% of
+ * routed traffic). Must be cheap and fast; output is a single label.
+ */
+export const ROUTER_TIEBREAK_MODEL: ModelConfig =
+  MODEL_CONFIG["openrouter:gpt-5.4-nano"];
+
+/**
  * Memory extraction from conversations.
  * Needs good reasoning to identify important facts, preferences, etc.
  */

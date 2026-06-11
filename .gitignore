@@ -50,3 +50,6 @@ playwright-report/
 
 # Fallow cache
 .fallow/
+
+# Stray cache dir created when $HOME is unset (e.g. npm/npx under MCP tools)
+/$HOME/

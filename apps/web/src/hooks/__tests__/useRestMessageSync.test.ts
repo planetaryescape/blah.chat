@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyGenerationEventToMessage,
   applyGenerationEventToMessages,
   createPendingAssistantMessages,
   extractMessagesFromPayload,
+  mergeSnapshotMessage,
 } from "../useRestMessageSync";
 
 describe("useRestMessageSync helpers", () => {
@@ -226,5 +228,114 @@ describe("useRestMessageSync helpers", () => {
         _creationTime: 123,
       },
     ]);
+  });
+});
+
+describe("mergeSnapshotMessage", () => {
+  const baseRow = {
+    _id: "m1",
+    conversationId: "c1",
+    role: "assistant" as const,
+    content: "",
+    createdAt: 1000,
+    updatedAt: 1000,
+    _creationTime: 1000,
+  };
+
+  it("keeps a settled local message over a stale in-flight snapshot", () => {
+    const existing = {
+      ...baseRow,
+      content: "full answer",
+      status: "complete",
+      updatedAt: 5000,
+    };
+    const incoming = {
+      ...baseRow,
+      content: "",
+      status: "pending",
+      updatedAt: 1000,
+    };
+
+    expect(mergeSnapshotMessage(existing, incoming)).toBe(existing);
+  });
+
+  it("never lets a non-terminal snapshot shrink streamed text", () => {
+    const existing = {
+      ...baseRow,
+      content: "partial streamed text",
+      partialContent: "partial streamed text",
+      status: "generating",
+      updatedAt: 5000,
+    };
+    const incoming = {
+      ...baseRow,
+      content: "partial",
+      status: "pending",
+      updatedAt: 6000,
+    };
+
+    const merged = mergeSnapshotMessage(existing, incoming);
+    expect(merged.partialContent).toBe("partial streamed text");
+    expect(merged.status).toBe("generating");
+  });
+
+  it("preserves the transient ack while the snapshot has no content", () => {
+    const existing = {
+      ...baseRow,
+      status: "pending",
+      ackText: "Got it, thinking...",
+    };
+    const incoming = { ...baseRow, status: "pending", updatedAt: 2000 };
+
+    const merged = mergeSnapshotMessage(existing, incoming);
+    expect(merged.ackText).toBe("Got it, thinking...");
+  });
+
+  it("lets a terminal snapshot replace in-flight state", () => {
+    const existing = {
+      ...baseRow,
+      content: "partial",
+      partialContent: "partial",
+      status: "generating",
+      updatedAt: 5000,
+    };
+    const incoming = {
+      ...baseRow,
+      content: "final",
+      status: "complete",
+      updatedAt: 6000,
+    };
+
+    expect(mergeSnapshotMessage(existing, incoming)).toBe(incoming);
+  });
+});
+
+describe("applyGenerationEventToMessage ack handling", () => {
+  it("does not flip the message model on ack events", () => {
+    const existing = {
+      _id: "m1",
+      conversationId: "c1",
+      role: "assistant" as const,
+      content: "",
+      status: "pending",
+      model: "auto",
+      createdAt: 1000,
+      updatedAt: 1000,
+      _creationTime: 1000,
+    };
+
+    const next = applyGenerationEventToMessage(existing, "c1", {
+      requestId: "r1",
+      sessionId: "r1:ack",
+      assistantMessageId: "m1",
+      modelId: "openrouter:gpt-5.4-nano",
+      seq: 0,
+      ts: 2000,
+      type: "ack",
+      text: "On it.",
+    });
+
+    expect(next?.ackText).toBe("On it.");
+    expect(next?.model).toBe("auto");
   });
 });

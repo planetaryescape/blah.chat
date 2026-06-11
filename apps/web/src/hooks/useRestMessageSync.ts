@@ -70,6 +70,27 @@ interface MessageSyncOptions {
 
 const NOOP_LOAD_MORE = (_count?: number) => Promise.resolve();
 
+/** Statuses for rows that may carry client-side streaming state. */
+const IN_FLIGHT_STATUSES = new Set(["pending", "generating"]);
+
+/** How often buffered streaming writes are flushed to Dexie. */
+const STREAM_FLUSH_INTERVAL_MS = 100;
+
+const MESSAGE_STREAM_RETRY_INITIAL_MS = 1_000;
+const MESSAGE_STREAM_RETRY_MAX_MS = 30_000;
+
+const REFETCH_EVENT = "messages-refetch-requested";
+
+/**
+ * Ask the active message sync for this conversation to refetch from the
+ * server now (e.g. after a branch switch changes isActiveBranch server-side).
+ */
+export function requestMessagesRefetch(conversationId: string) {
+  window.dispatchEvent(
+    new CustomEvent(REFETCH_EVENT, { detail: { conversationId } }),
+  );
+}
+
 function sortMessages(messages: ApiMessage[]) {
   return [...messages].sort((a, b) => {
     if (a.createdAt !== b.createdAt) return a.createdAt - b.createdAt;
@@ -133,22 +154,22 @@ export function extractMessagesFromPayload(payload: unknown): ApiMessage[] {
   return [];
 }
 
-export function applyGenerationEventToMessages(
-  messages: ApiMessage[],
+/**
+ * Apply a generation event to a single message row.
+ * Returns null when the event should be ignored (unknown start/ack, late ack).
+ */
+export function applyGenerationEventToMessage(
+  existing: ApiMessage | undefined,
   conversationId: string,
   event: GenerationEvent,
-) {
-  const index = messages.findIndex(
-    (message) => message._id === event.assistantMessageId,
-  );
+): ApiMessage | null {
   const shouldIgnoreUnknownNonTerminalEvent =
-    index === -1 && (event.type === "start" || event.type === "ack");
+    !existing && (event.type === "start" || event.type === "ack");
 
   if (shouldIgnoreUnknownNonTerminalEvent) {
-    return sortMessages(messages);
+    return null;
   }
 
-  const existing = index === -1 ? undefined : messages[index];
   const base: ApiMessage = existing ?? {
     _id: event.assistantMessageId,
     conversationId,
@@ -162,72 +183,92 @@ export function applyGenerationEventToMessages(
   };
   const currentContent = base.partialContent ?? base.content;
 
-  let nextMessage: ApiMessage = {
-    ...base,
-    model: event.modelId,
-    updatedAt: event.ts,
-  };
-
   switch (event.type) {
     case "ack":
       // Late ack arrival when real content already streamed — drop it.
       if ((base.partialContent ?? base.content ?? "").length > 0) {
-        return sortMessages(messages);
+        return null;
       }
-      nextMessage = { ...nextMessage, ackText: event.text };
-      break;
+      // The ack model must not flip the message's model badge.
+      return { ...base, ackText: event.text, updatedAt: event.ts };
     case "start":
-      nextMessage = {
-        ...nextMessage,
+      return {
+        ...base,
+        model: event.modelId,
         status: "generating",
         partialContent: currentContent || undefined,
+        updatedAt: event.ts,
       };
-      break;
     case "delta": {
       const nextContent = `${currentContent}${event.delta}`;
-      nextMessage = {
-        ...nextMessage,
+      return {
+        ...base,
+        model: event.modelId,
         content: nextContent,
         partialContent: nextContent,
         status: "generating",
         ackText: undefined,
+        updatedAt: event.ts,
       };
-      break;
     }
     case "checkpoint":
-      nextMessage = {
-        ...nextMessage,
+      return {
+        ...base,
+        model: event.modelId,
         content: event.content,
         partialContent: event.content,
         status: "generating",
         ackText: undefined,
+        updatedAt: event.ts,
       };
-      break;
     case "complete":
-      nextMessage = {
-        ...nextMessage,
+      return {
+        ...base,
+        model: event.modelId,
         content: event.content,
         partialContent: undefined,
         status: "complete",
         ackText: undefined,
+        updatedAt: event.ts,
       };
-      break;
     case "cancelled":
-      nextMessage = {
-        ...nextMessage,
+      return {
+        ...base,
+        model: event.modelId,
         status: "stopped",
         partialContent: undefined,
         ackText: undefined,
+        updatedAt: event.ts,
       };
-      break;
     case "error":
-      nextMessage = {
-        ...nextMessage,
+      return {
+        ...base,
+        model: event.modelId,
         status: "error",
         partialContent: undefined,
         ackText: undefined,
+        updatedAt: event.ts,
       };
-      break;
+  }
+}
+
+export function applyGenerationEventToMessages(
+  messages: ApiMessage[],
+  conversationId: string,
+  event: GenerationEvent,
+) {
+  const index = messages.findIndex(
+    (message) => message._id === event.assistantMessageId,
+  );
+  const existing = index === -1 ? undefined : messages[index];
+  const nextMessage = applyGenerationEventToMessage(
+    existing,
+    conversationId,
+    event,
+  );
+
+  if (!nextMessage) {
+    return sortMessages(messages);
   }
 
   const nextMessages = [...messages];
@@ -244,44 +285,54 @@ function isTerminalGenerationEvent(event: GenerationEvent) {
   return ["complete", "cancelled", "error"].includes(event.type);
 }
 
-async function syncConversationMessages(
-  conversationId: string,
-  messages: ApiMessage[],
-) {
-  const sorted = sortMessages(messages);
-  const incomingIds = new Set(sorted.map((message) => message._id));
-  const existing = await cache.messages
-    .where("conversationId")
-    .equals(conversationId)
-    .toArray();
+/**
+ * Merge a server snapshot row over local state without regressing live data:
+ * a snapshot must never blank streamed text, revert a completed message, or
+ * wipe the transient ack line.
+ */
+export function mergeSnapshotMessage(
+  existing: ApiMessage | undefined,
+  incoming: ApiMessage,
+): ApiMessage {
+  if (!existing) return incoming;
 
-  const orphanIds = existing
-    .filter((message) => !incomingIds.has(String(message._id)))
-    .map((message) => message._id);
+  const existingContent = existing.partialContent ?? existing.content ?? "";
+  const incomingContent = incoming.partialContent ?? incoming.content ?? "";
 
-  if (orphanIds.length > 0) {
-    await cache.messages.bulkDelete(orphanIds);
+  // A settled local message outranks any snapshot that claims it is still
+  // in flight (stale response or replica lag).
+  if (
+    (existing.status === "complete" ||
+      existing.status === "error" ||
+      existing.status === "stopped") &&
+    incoming.status !== "complete" &&
+    (existing.updatedAt ?? 0) >= (incoming.updatedAt ?? 0)
+  ) {
+    return existing;
   }
 
-  if (sorted.length > 0) {
-    await cache.messages.bulkPut(sorted as any[]);
+  if (existing.status && IN_FLIGHT_STATUSES.has(existing.status)) {
+    // Never let a non-terminal snapshot shrink streamed text.
+    if (
+      incoming.status !== "complete" &&
+      incomingContent.length < existingContent.length
+    ) {
+      return {
+        ...incoming,
+        content: existing.content,
+        partialContent: existing.partialContent,
+        status: existing.status,
+        ackText: existing.ackText,
+        updatedAt: existing.updatedAt,
+      };
+    }
+    // Snapshots never carry the transient ack; keep it until content lands.
+    if (incomingContent.length === 0 && existing.ackText) {
+      return { ...incoming, ackText: existing.ackText };
+    }
   }
-}
 
-async function syncGenerationEvent(
-  conversationId: string,
-  event: GenerationEvent,
-) {
-  const existing = await cache.messages
-    .where("conversationId")
-    .equals(conversationId)
-    .toArray();
-  const merged = applyGenerationEventToMessages(
-    existing as unknown as ApiMessage[],
-    conversationId,
-    event,
-  );
-  await cache.messages.bulkPut(merged as any[]);
+  return incoming;
 }
 
 export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
@@ -314,20 +365,111 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
     let cancelled = false;
     let pollTimer: ReturnType<typeof setInterval> | null = null;
     let messageEventSource: EventSource | null = null;
-    let generationEventSource: EventSource | null = null;
+    let messageStreamRetryTimer: ReturnType<typeof setTimeout> | null = null;
+    let messageStreamRetryDelay = MESSAGE_STREAM_RETRY_INITIAL_MS;
+    const generationStreams = new Map<string, EventSource>();
+
+    // All cache writes flow through this queue so SSE events, snapshot syncs,
+    // and polling can never interleave reads and writes (lost-delta race).
+    let queue: Promise<void> = Promise.resolve();
+    const enqueue = (task: () => Promise<void>) => {
+      queue = queue.then(task).catch((error) => {
+        console.warn("message sync task failed", error);
+      });
+      return queue;
+    };
+
+    // Streaming writes are buffered and flushed as single-row puts instead of
+    // rewriting the whole conversation per token.
+    const pendingWrites = new Map<string, ApiMessage>();
+    let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const flushPendingWrites = async () => {
+      if (flushTimer) {
+        clearTimeout(flushTimer);
+        flushTimer = null;
+      }
+      if (pendingWrites.size === 0) return;
+      const rows = [...pendingWrites.values()];
+      pendingWrites.clear();
+      await cache.messages.bulkPut(rows as any[]);
+    };
+
+    const scheduleFlush = () => {
+      if (flushTimer) return;
+      flushTimer = setTimeout(() => {
+        flushTimer = null;
+        void enqueue(flushPendingWrites);
+      }, STREAM_FLUSH_INTERVAL_MS);
+    };
 
     const closeRealtimeStreams = () => {
       messageEventSource?.close();
       messageEventSource = null;
-      generationEventSource?.close();
-      generationEventSource = null;
+      if (messageStreamRetryTimer) {
+        clearTimeout(messageStreamRetryTimer);
+        messageStreamRetryTimer = null;
+      }
+      for (const source of generationStreams.values()) {
+        source.close();
+      }
+      generationStreams.clear();
     };
 
-    const fetchMessages = async () => {
+    const markLoaded = () => {
+      if (cancelled) return;
+      setIsLoading(false);
+      setStatus("Exhausted");
+    };
+
+    const syncSnapshot = async (
+      incoming: ApiMessage[],
+      fetchStartedAt: number,
+    ) => {
+      // Flush buffered streaming state first so the merge sees latest local.
+      await flushPendingWrites();
+
+      const sorted = sortMessages(incoming);
+      const incomingIds = new Set(sorted.map((message) => message._id));
+      const existing = (await cache.messages
+        .where("conversationId")
+        .equals(conversationId)
+        .toArray()) as unknown as ApiMessage[];
+      const existingById = new Map(
+        existing.map((message) => [message._id, message]),
+      );
+
+      // Only delete rows the server confirmably no longer has: settled rows
+      // that predate this fetch. In-flight rows and rows created after the
+      // snapshot was taken are kept (they are newer than the snapshot).
+      const orphanIds = existing
+        .filter(
+          (message) =>
+            !incomingIds.has(message._id) &&
+            !(message.status && IN_FLIGHT_STATUSES.has(message.status)) &&
+            (message.updatedAt ?? 0) < fetchStartedAt,
+        )
+        .map((message) => message._id);
+
+      if (orphanIds.length > 0) {
+        await cache.messages.bulkDelete(orphanIds);
+      }
+
+      if (sorted.length > 0) {
+        const merged = sorted.map((message) =>
+          mergeSnapshotMessage(existingById.get(message._id), message),
+        );
+        await cache.messages.bulkPut(merged as any[]);
+      }
+    };
+
+    const fetchSnapshot = async () => {
+      const fetchStartedAt = Date.now();
       const response = await fetch(
         `/api/v1/conversations/${conversationId}/messages`,
         {
           credentials: "include",
+          cache: "no-store",
           headers: {
             Accept: "application/json",
           },
@@ -339,11 +481,19 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
       }
 
       const payload = await response.json();
-      const messages = extractMessagesFromPayload(payload);
-      await syncConversationMessages(conversationId, messages);
-      if (!cancelled) {
-        setIsLoading(false);
-        setStatus("Exhausted");
+      return { messages: extractMessagesFromPayload(payload), fetchStartedAt };
+    };
+
+    const syncFromServer = async () => {
+      try {
+        const { messages, fetchStartedAt } = await fetchSnapshot();
+        await syncSnapshot(messages, fetchStartedAt);
+        markLoaded();
+      } catch (error) {
+        if (!cancelled) {
+          setStatus("Error");
+        }
+        throw error;
       }
     };
 
@@ -353,98 +503,138 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
       }
 
       pollTimer = setInterval(() => {
-        void fetchMessages().catch(() => {
-          if (!cancelled) {
-            setStatus("Error");
-          }
+        void enqueue(async () => {
+          await syncFromServer().catch(() => {});
         });
       }, 1000);
     };
 
-    const connectMessageStream = () => {
+    const stopPollingFallback = () => {
       if (pollTimer) {
         clearInterval(pollTimer);
         pollTimer = null;
       }
-      generationEventSource?.close();
-      generationEventSource = null;
+    };
+
+    const connectMessageStream = () => {
+      if (cancelled || generationStreams.size > 0) {
+        return;
+      }
+      stopPollingFallback();
       messageEventSource?.close();
 
       messageEventSource = new EventSource(
         `/api/v1/messages/stream/${conversationId}`,
       );
 
-      const handleMessage = async (event: MessageEvent<string>) => {
-        const messages = extractMessagesFromPayload(JSON.parse(event.data));
-        await syncConversationMessages(conversationId, messages);
-        if (!cancelled) {
-          setIsLoading(false);
-          setStatus("Exhausted");
-        }
+      const handleMessage = (event: MessageEvent<string>) => {
+        const receivedAt = Date.now();
+        void enqueue(async () => {
+          const messages = extractMessagesFromPayload(JSON.parse(event.data));
+          await syncSnapshot(messages, receivedAt);
+          markLoaded();
+        });
       };
 
       messageEventSource.addEventListener("snapshot", (event) => {
-        void handleMessage(event as MessageEvent<string>);
+        handleMessage(event as MessageEvent<string>);
       });
       messageEventSource.addEventListener("update", (event) => {
-        void handleMessage(event as MessageEvent<string>);
+        handleMessage(event as MessageEvent<string>);
       });
+      messageEventSource.onopen = () => {
+        messageStreamRetryDelay = MESSAGE_STREAM_RETRY_INITIAL_MS;
+        stopPollingFallback();
+      };
       messageEventSource.onerror = () => {
         messageEventSource?.close();
         messageEventSource = null;
+        if (cancelled) return;
+        // Poll while disconnected, but keep retrying the stream with backoff
+        // instead of degrading to polling permanently.
         startPollingFallback();
+        if (messageStreamRetryTimer) {
+          clearTimeout(messageStreamRetryTimer);
+        }
+        messageStreamRetryTimer = setTimeout(() => {
+          messageStreamRetryTimer = null;
+          connectMessageStream();
+        }, messageStreamRetryDelay);
+        messageStreamRetryDelay = Math.min(
+          messageStreamRetryDelay * 2,
+          MESSAGE_STREAM_RETRY_MAX_MS,
+        );
       };
     };
 
-    const connectGenerationStream = (streamUrl: string) => {
-      if (pollTimer) {
-        clearInterval(pollTimer);
-        pollTimer = null;
+    const handleGenerationEvent = async (
+      requestId: string,
+      event: GenerationEvent,
+    ) => {
+      const id = event.assistantMessageId;
+      const current =
+        pendingWrites.get(id) ??
+        ((await cache.messages.get(id)) as unknown as ApiMessage | undefined);
+      const next = applyGenerationEventToMessage(
+        current,
+        conversationId,
+        event,
+      );
+      if (next) {
+        pendingWrites.set(id, next);
       }
+
+      if (isTerminalGenerationEvent(event)) {
+        await flushPendingWrites();
+        const source = generationStreams.get(requestId);
+        if (source) {
+          source.close();
+          generationStreams.delete(requestId);
+        }
+        await syncFromServer().catch(() => {});
+        if (!cancelled && generationStreams.size === 0) {
+          connectMessageStream();
+        }
+      } else {
+        scheduleFlush();
+        markLoaded();
+      }
+    };
+
+    const connectGenerationStream = (requestId: string, streamUrl: string) => {
+      stopPollingFallback();
       messageEventSource?.close();
       messageEventSource = null;
-      generationEventSource?.close();
+      generationStreams.get(requestId)?.close();
 
-      generationEventSource = new EventSource(streamUrl);
-      generationEventSource.addEventListener("generation", (event) => {
-        void (async () => {
+      const source = new EventSource(streamUrl);
+      generationStreams.set(requestId, source);
+
+      source.addEventListener("generation", (event) => {
+        void enqueue(async () => {
           const generationEvent = parseGenerationEvent(
             JSON.parse((event as MessageEvent<string>).data),
           );
-          await syncGenerationEvent(conversationId, generationEvent);
-          if (!cancelled) {
-            setIsLoading(false);
-            setStatus("Exhausted");
-          }
-
-          if (isTerminalGenerationEvent(generationEvent)) {
-            generationEventSource?.close();
-            generationEventSource = null;
-            await fetchMessages().catch(() => {
-              if (!cancelled) {
-                setStatus("Error");
+          await handleGenerationEvent(requestId, generationEvent);
+        });
+      });
+      source.onerror = () => {
+        source.close();
+        generationStreams.delete(requestId);
+        if (cancelled) return;
+        void enqueue(async () => {
+          await flushPendingWrites();
+          await syncFromServer().catch(() => {});
+        }).then(() => {
+          if (cancelled) return;
+          void connectActiveGenerationIfAny()
+            .catch(() => false)
+            .then((connected) => {
+              if (!cancelled && !connected && generationStreams.size === 0) {
+                connectMessageStream();
               }
             });
-            if (!cancelled) {
-              connectMessageStream();
-            }
-          }
-        })();
-      });
-      generationEventSource.onerror = () => {
-        generationEventSource?.close();
-        generationEventSource = null;
-        void fetchMessages()
-          .catch(() => {
-            if (!cancelled) {
-              setStatus("Error");
-            }
-          })
-          .finally(() => {
-            if (!cancelled) {
-              connectMessageStream();
-            }
-          });
+        });
       };
     };
 
@@ -453,6 +643,7 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
         `/api/v1/conversations/${conversationId}/active-generation`,
         {
           credentials: "include",
+          cache: "no-store",
           headers: {
             Accept: "application/json",
           },
@@ -471,11 +662,12 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
 
       const payload = (await response.json()) as ActiveGenerationEnvelope;
       const streamUrl = payload.data?.streamUrl;
+      const requestId = payload.data?.requestId;
       if (!streamUrl) {
         return false;
       }
 
-      connectGenerationStream(streamUrl);
+      connectGenerationStream(requestId ?? streamUrl, streamUrl);
       return true;
     };
 
@@ -485,7 +677,12 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
         return;
       }
 
-      void (async () => {
+      // Subscribe first, snapshot second: events buffer behind the queue and
+      // the Redis log replays from seq 0, so nothing is missed; the snapshot
+      // can never overwrite events that arrive while it is in flight.
+      connectGenerationStream(detail.requestId, detail.streamUrl);
+
+      void enqueue(async () => {
         const pendingAssistantMessages = createPendingAssistantMessages({
           conversationId,
           assistantMessageId: detail.assistantMessageId,
@@ -494,22 +691,59 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
           modelIds: detail.modelIds,
         });
 
-        if (pendingAssistantMessages.length > 0) {
-          await cache.messages.bulkPut(pendingAssistantMessages as any[]);
+        for (const message of pendingAssistantMessages) {
+          // Don't clobber rows the stream already updated (e.g. an ack).
+          const existing = await cache.messages.get(message._id);
+          if (!existing && !pendingWrites.has(message._id)) {
+            await cache.messages.put(message as any);
+          }
         }
 
-        await fetchMessages();
-      })()
-        .catch(() => {
-          if (!cancelled) {
-            setStatus("Error");
-          }
-        })
-        .finally(() => {
-          if (!cancelled) {
-            connectGenerationStream(detail.streamUrl);
-          }
-        });
+        await syncFromServer().catch(() => {});
+      });
+    };
+
+    const handleWake = () => {
+      if (cancelled) return;
+      void enqueue(async () => {
+        await syncFromServer().catch(() => {});
+      }).then(() => {
+        if (cancelled || generationStreams.size > 0) return;
+        void connectActiveGenerationIfAny()
+          .catch(() => false)
+          .then((connected) => {
+            if (
+              !cancelled &&
+              !connected &&
+              generationStreams.size === 0 &&
+              !messageEventSource
+            ) {
+              connectMessageStream();
+            }
+          });
+      });
+    };
+
+    const handlePageShow = (event: PageTransitionEvent) => {
+      // bfcache restore: streams are dead and state may be stale.
+      if (event.persisted) {
+        closeRealtimeStreams();
+        handleWake();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        handleWake();
+      }
+    };
+
+    const handleRefetchRequested = (event: Event) => {
+      const detail = (event as CustomEvent<{ conversationId?: string }>).detail;
+      if (detail?.conversationId !== conversationId) return;
+      void enqueue(async () => {
+        await syncFromServer().catch(() => {});
+      });
     };
 
     setIsLoading(true);
@@ -518,35 +752,44 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
       "generation-request-started",
       handleGenerationStarted as EventListener,
     );
+    window.addEventListener("online", handleWake);
+    window.addEventListener("pageshow", handlePageShow);
+    window.addEventListener(REFETCH_EVENT, handleRefetchRequested);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    void fetchMessages()
-      .catch(() => {
-        if (!cancelled) {
-          setStatus("Error");
-        }
-      })
-      .then(() => connectActiveGenerationIfAny())
-      .then((connected) => {
-        if (!cancelled && !connected) {
-          connectMessageStream();
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          connectMessageStream();
-        }
-      });
+    void enqueue(async () => {
+      await syncFromServer().catch(() => {});
+    }).then(() => {
+      if (cancelled) return;
+      void connectActiveGenerationIfAny()
+        .catch(() => false)
+        .then((connected) => {
+          if (!cancelled && !connected && generationStreams.size === 0) {
+            connectMessageStream();
+          }
+        });
+    });
 
     return () => {
       cancelled = true;
       closeRealtimeStreams();
-      if (pollTimer) {
-        clearInterval(pollTimer);
+      stopPollingFallback();
+      if (flushTimer) {
+        clearTimeout(flushTimer);
+        flushTimer = null;
+      }
+      if (pendingWrites.size > 0) {
+        void cache.messages.bulkPut([...pendingWrites.values()] as any[]);
+        pendingWrites.clear();
       }
       window.removeEventListener(
         "generation-request-started",
         handleGenerationStarted as EventListener,
       );
+      window.removeEventListener("online", handleWake);
+      window.removeEventListener("pageshow", handlePageShow);
+      window.removeEventListener(REFETCH_EVENT, handleRefetchRequested);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [conversationId]);
 

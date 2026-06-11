@@ -23,6 +23,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { requestMessagesRefetch } from "@/hooks/useRestMessageSync";
 import { useApiClient } from "@/lib/api/client";
 import { cache } from "@/lib/cache";
 import { useRegenerateMessage } from "@/lib/hooks/mutations/useRegenerateMessage";
@@ -75,6 +76,7 @@ export function MessageActionsMenuMobile({
         targetMessageId: message._id,
       })
       .then(() => {
+        requestMessagesRefetch(message.conversationId as string);
         router.push(`/chat/${message.conversationId}`);
       })
       .catch((error) => {

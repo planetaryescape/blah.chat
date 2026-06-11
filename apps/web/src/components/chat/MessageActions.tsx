@@ -22,6 +22,7 @@ import { useCachedSources } from "@/hooks/useCacheSync";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useHaptic } from "@/hooks/useHaptic";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
+import { requestMessagesRefetch } from "@/hooks/useRestMessageSync";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { useApiClient } from "@/lib/api/client";
 import { useRegenerateMessage } from "@/lib/hooks/mutations/useRegenerateMessage";
@@ -129,6 +130,7 @@ export function MessageActions({
           targetMessageId: message._id,
         },
       );
+      requestMessagesRefetch(message.conversationId);
       router.push(`/chat/${message.conversationId}`);
     } catch (error) {
       console.error("Failed to branch:", error);

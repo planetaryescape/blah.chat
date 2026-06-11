@@ -58,16 +58,17 @@ export function useMessageAnnouncer(messages: MessageLike[] | undefined) {
 
     const currentCount = messages.length;
     const lastMessage = messages[currentCount - 1];
-    const prevCount = prevCountRef.current;
     const prevLastId = prevLastIdRef.current;
 
-    // Detect new message added
-    const isNewMessage =
-      currentCount > prevCount || lastMessage._id !== prevLastId;
-
-    // Only announce complete messages (not partial/generating)
+    // Announce each message once: user messages on arrival, assistant
+    // messages when they reach "complete" (the id stays the same across the
+    // pending → generating → complete transition, so key on id + status).
+    const announceKey =
+      lastMessage.role === "assistant"
+        ? `${lastMessage._id}:${lastMessage.status}`
+        : lastMessage._id;
     const shouldAnnounce =
-      isNewMessage &&
+      announceKey !== prevLastId &&
       (lastMessage.role === "user" ||
         (lastMessage.role === "assistant" &&
           lastMessage.status === "complete"));
@@ -87,7 +88,9 @@ export function useMessageAnnouncer(messages: MessageLike[] | undefined) {
     }
 
     prevCountRef.current = currentCount;
-    prevLastIdRef.current = lastMessage._id;
+    if (shouldAnnounce) {
+      prevLastIdRef.current = announceKey;
+    }
   }, [messages, announce]);
 
   return { announcerRef };

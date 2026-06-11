@@ -21,6 +21,7 @@ import {
   useCachedChildMessages,
   useCachedSiblings,
 } from "@/hooks/useCacheSync";
+import { requestMessagesRefetch } from "@/hooks/useRestMessageSync";
 import { useApiClient } from "@/lib/api/client";
 import { BranchComparisonSheet } from "./BranchComparisonSheet";
 
@@ -75,6 +76,7 @@ export function MessageBranchIndicator({
           targetMessageId,
         },
       );
+      requestMessagesRefetch(conversationId);
     } catch (error) {
       console.error("Failed to switch branch:", error);
     }

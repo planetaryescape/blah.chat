@@ -6,6 +6,7 @@ import { analytics } from "@/lib/analytics";
 import { useApiClient } from "@/lib/api/client";
 import { useRegenerateMessage } from "@/lib/hooks/mutations/useRegenerateMessage";
 import { useCachedSiblings } from "./useCacheSync";
+import { requestMessagesRefetch } from "./useRestMessageSync";
 
 export type SiblingWithDuration = Record<string, any> & {
   generationDuration: number | null;
@@ -60,6 +61,7 @@ export function useBranchComparison({
             targetMessageId: targetId,
           },
         );
+        requestMessagesRefetch(conversationId);
         analytics.track("branch_switched", {
           conversationId,
           fromMessageId: messageId,

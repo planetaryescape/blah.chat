@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { CachePresets, getCacheControl } from "@/lib/api/cache";
 import { conversationsDAL } from "@/lib/api/dal/conversations";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
@@ -73,9 +72,7 @@ async function getHandler(req: NextRequest, { userId }: { userId: string }) {
     userId,
   });
 
-  // Add cache headers (30s cache for conversation lists)
-  const cacheControl = getCacheControl(CachePresets.LIST);
-
+  // Live data: caching makes new conversations/titles lag in the sidebar.
   return NextResponse.json(
     formatEntity(
       {
@@ -86,7 +83,7 @@ async function getHandler(req: NextRequest, { userId }: { userId: string }) {
     ),
     {
       headers: {
-        "Cache-Control": cacheControl,
+        "Cache-Control": "private, no-store",
       },
     },
   );

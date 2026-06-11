@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { CachePresets, getCacheControl } from "@/lib/api/cache";
 import { conversationsDAL } from "@/lib/api/dal/conversations";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
@@ -39,9 +38,10 @@ async function getHandler(
   });
   logger.info({ userId, conversationId: id, duration }, "Conversation fetched");
 
-  const cacheControl = getCacheControl(CachePresets.ITEM);
+  // Live data: a cached conversation makes model switches and settings
+  // appear stuck for the cache TTL.
   return NextResponse.json(result, {
-    headers: { "Cache-Control": cacheControl },
+    headers: { "Cache-Control": "private, no-store" },
   });
 }
 

@@ -5,6 +5,31 @@
  * and select optimal models.
  */
 
+import type { RouteLabel } from "./types";
+
+/**
+ * Simplified tiebreak prompt for the Stage 3 LLM fallback.
+ *
+ * Fired only when the embedding classifier is ambiguous (confidence or
+ * margin below threshold, ~10-15% of traffic). Deliberately NOT a full
+ * classification prompt: the model picks one label from the classifier's
+ * top candidates, nothing else.
+ */
+export function buildFallbackTiebreakPrompt(
+  message: string,
+  candidateLabels: RouteLabel[],
+): string {
+  const labels = candidateLabels.join(", ");
+  return `You are a routing tiebreaker. Pick the single best route label for the user message below.
+
+Allowed labels (pick exactly one): ${labels}
+
+Respond with ONLY the label, nothing else.
+
+User message:
+${message}`;
+}
+
 /**
  * Previous model context for sticky routing evaluation
  */

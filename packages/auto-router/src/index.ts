@@ -41,6 +41,7 @@ export {
 } from "./profiles";
 export {
   buildClassificationPrompt,
+  buildFallbackTiebreakPrompt,
   type PreviousModelContext,
   ROUTER_CLASSIFICATION_PROMPT,
   ROUTER_REASONING_TEMPLATE,
@@ -56,6 +57,7 @@ export {
 export {
   type ClassifyInput,
   createRouter,
+  type LlmFallbackFn,
   type RouteInput,
   type Router,
   type RouterConfig,

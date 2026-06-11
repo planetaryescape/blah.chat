@@ -202,3 +202,133 @@ describe("router.route", () => {
     expect(result.candidatesConsidered).toBeGreaterThanOrEqual(0);
   });
 });
+
+describe("router.classify LLM fallback tiebreak", () => {
+  const AMBIGUOUS_EXAMPLES = [
+    {
+      text: "alpha",
+      routeLabel: "code_heavy" as const,
+      embedding: [1, 0, 0],
+    },
+    {
+      text: "beta",
+      routeLabel: "creative_writing" as const,
+      embedding: [0, 1, 0],
+    },
+  ];
+
+  /** Message embeds equidistant from both examples → ambiguous split. */
+  function ambiguousProvider(): EmbeddingProvider {
+    return {
+      embedBatch: vi.fn(async (texts: string[]) =>
+        texts.map(() => [0.7, 0.7, 0]),
+      ),
+    };
+  }
+
+  it("resolves ambiguous classification via the tiebreak hook", async () => {
+    const llmFallback = vi.fn(async () => "creative_writing");
+    const router = createRouter({
+      embeddingProvider: ambiguousProvider(),
+      examples: AMBIGUOUS_EXAMPLES,
+      llmFallback,
+    });
+
+    const result = await router.classify({
+      message: "tell me about gardens",
+    });
+
+    expect(llmFallback).toHaveBeenCalledWith({
+      message: "tell me about gardens",
+      candidateLabels: expect.arrayContaining([
+        "code_heavy",
+        "creative_writing",
+      ]),
+    });
+    expect(result.routeLabel).toBe("creative_writing");
+    expect(result.usedFallbackLlm).toBe(true);
+    expect(result.needsFallback).toBe(false);
+  });
+
+  it("matches tiebreak labels case-insensitively with whitespace", async () => {
+    const llmFallback = vi.fn(async () => "  Creative_Writing\n");
+    const router = createRouter({
+      embeddingProvider: ambiguousProvider(),
+      examples: AMBIGUOUS_EXAMPLES,
+      llmFallback,
+    });
+
+    const result = await router.classify({ message: "tell me about gardens" });
+
+    expect(result.routeLabel).toBe("creative_writing");
+    expect(result.usedFallbackLlm).toBe(true);
+  });
+
+  it("keeps the classifier label when the hook returns an unknown label", async () => {
+    const llmFallback = vi.fn(async () => "not_a_label");
+    const router = createRouter({
+      embeddingProvider: ambiguousProvider(),
+      examples: AMBIGUOUS_EXAMPLES,
+      llmFallback,
+    });
+
+    const result = await router.classify({ message: "tell me about gardens" });
+
+    expect(["code_heavy", "creative_writing"]).toContain(result.routeLabel);
+    expect(result.usedFallbackLlm).toBeUndefined();
+    expect(result.needsFallback).toBe(true);
+  });
+
+  it("keeps the classifier label and warns when the hook throws", async () => {
+    const warnings: string[] = [];
+    const llmFallback = vi.fn(async () => {
+      throw new Error("provider down");
+    });
+    const router = createRouter({
+      embeddingProvider: ambiguousProvider(),
+      examples: AMBIGUOUS_EXAMPLES,
+      llmFallback,
+      onWarning: (msg) => warnings.push(msg),
+    });
+
+    const result = await router.classify({ message: "tell me about gardens" });
+
+    expect(["code_heavy", "creative_writing"]).toContain(result.routeLabel);
+    expect(result.needsFallback).toBe(true);
+    expect(warnings.some((w) => w.includes("provider down"))).toBe(true);
+  });
+
+  it("does not invoke the hook on confident classifications", async () => {
+    const llmFallback = vi.fn(async () => "creative_writing");
+    const provider: EmbeddingProvider = {
+      // Message embeds exactly on the code_heavy example → confident.
+      embedBatch: vi.fn(async (texts: string[]) => texts.map(() => [1, 0, 0])),
+    };
+    const router = createRouter({
+      embeddingProvider: provider,
+      examples: AMBIGUOUS_EXAMPLES,
+      llmFallback,
+    });
+
+    const result = await router.classify({ message: "tell me about gardens" });
+
+    expect(llmFallback).not.toHaveBeenCalled();
+    expect(result.routeLabel).toBe("code_heavy");
+    expect(result.needsFallback).toBe(false);
+  });
+
+  it("does not invoke the hook when fallback is disabled via config", async () => {
+    const llmFallback = vi.fn(async () => "creative_writing");
+    const router = createRouter({
+      embeddingProvider: ambiguousProvider(),
+      examples: AMBIGUOUS_EXAMPLES,
+      llmFallback,
+      classifierConfig: { fallbackEnabled: false },
+    });
+
+    const result = await router.classify({ message: "tell me about gardens" });
+
+    expect(llmFallback).not.toHaveBeenCalled();
+    expect(result.needsFallback).toBe(false);
+  });
+});

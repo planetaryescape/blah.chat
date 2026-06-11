@@ -28,6 +28,18 @@ import type {
 } from "./types";
 import { DEFAULT_CLASSIFIER_CONFIG } from "./types";
 
+/**
+ * Stage 3 LLM tiebreak hook. Called only when the embedding classifier is
+ * ambiguous (needsFallback). Receives the message and the classifier's top
+ * candidate labels; returns the picked label text (validated by the router)
+ * or null to keep the classifier's best guess. Injected like the embedding
+ * provider so the package stays I/O-free.
+ */
+export type LlmFallbackFn = (input: {
+  message: string;
+  candidateLabels: RouteLabel[];
+}) => Promise<string | null>;
+
 export interface RouterConfig {
   models?: Record<string, ModelConfigForRouter>;
   profiles?: Record<string, ModelProfile>;
@@ -37,6 +49,7 @@ export interface RouterConfig {
   classifierConfig?: Partial<ClassifierConfig>;
   defaultPreferences?: RouterPreferences;
   fallbackModelId?: string;
+  llmFallback?: LlmFallbackFn;
   onWarning?: (msg: string) => void;
 }
 
@@ -153,6 +166,54 @@ export function createRouter(config?: RouterConfig): Router {
     return embeddedExamples;
   }
 
+  /**
+   * Stage 3: simplified LLM tiebreak. Only fires on ambiguous classifications
+   * (needsFallback). Best-effort: any error, timeout, or unrecognized label
+   * keeps the classifier's top label.
+   */
+  async function resolveWithLlmFallback(
+    message: string,
+    result: ClassifierResult,
+  ): Promise<ClassifierResult> {
+    const llmFallback = config?.llmFallback;
+    if (
+      !result.needsFallback ||
+      !llmFallback ||
+      !result.candidateLabels ||
+      result.candidateLabels.length === 0
+    ) {
+      return result;
+    }
+
+    let picked: string | null = null;
+    try {
+      picked = await llmFallback({
+        message,
+        candidateLabels: result.candidateLabels,
+      });
+    } catch (error) {
+      warn(
+        `LLM fallback tiebreak failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return result;
+    }
+
+    const normalized = picked?.trim().toLowerCase() ?? "";
+    const matched = result.candidateLabels.find(
+      (label) => label.toLowerCase() === normalized,
+    );
+    if (!matched) {
+      return result;
+    }
+
+    return {
+      ...result,
+      routeLabel: matched,
+      needsFallback: false,
+      usedFallbackLlm: true,
+    };
+  }
+
   function doSelectModel(input: SelectModelInput): SelectModelResult {
     const binInput: BinSelectionInput = {
       routeLabel: input.routeLabel,
@@ -205,6 +266,7 @@ export function createRouter(config?: RouterConfig): Router {
           topRouteLabel: classification.routeLabel,
           secondRouteLabel: classification.secondRouteLabel,
           secondSimilarityScore: classification.secondSimilarityScore,
+          usedFallbackLlm: classification.usedFallbackLlm ?? false,
           candidateModels: selection.candidateModels,
         },
       };
@@ -228,7 +290,7 @@ export function createRouter(config?: RouterConfig): Router {
         ? { ...classifierConfig, ...input.classifierConfig }
         : classifierConfig;
 
-      return classifyFn({
+      const result = classifyFn({
         message: input.message,
         messageEmbedding,
         examples,
@@ -237,6 +299,8 @@ export function createRouter(config?: RouterConfig): Router {
         currentContextTokens: input.currentContextTokens,
         config: effectiveConfig,
       });
+
+      return resolveWithLlmFallback(input.message, result);
     },
 
     selectModel: doSelectModel,

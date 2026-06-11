@@ -1,5 +1,10 @@
-import { EMBEDDING_MODEL } from "@blah-chat/ai/operational-models";
 import {
+  EMBEDDING_MODEL,
+  ROUTER_TIEBREAK_MODEL,
+} from "@blah-chat/ai/operational-models";
+import { getModel } from "@blah-chat/ai/registry";
+import {
+  buildFallbackTiebreakPrompt,
   createRouter,
   ROUTE_BINS,
   MODEL_CONFIG as ROUTER_MODEL_CONFIG,
@@ -18,7 +23,7 @@ import {
   DEFAULT_POLICY_WEIGHTS as ENGINE_DEFAULT_WEIGHTS,
   type PolicyWeights,
 } from "@blah-chat/auto-router/types";
-import { embedMany } from "ai";
+import { embedMany, generateText } from "ai";
 import type { createGenerationV2Repository } from "./repository";
 import type { PersistedRequestBundle } from "./types";
 
@@ -26,6 +31,34 @@ const DEFAULT_FALLBACK_MODEL_ID =
   Object.keys(ROUTER_MODEL_CONFIG).find((modelId) => modelId !== "auto") ??
   "openai:gpt-5-mini";
 const DEFAULT_POLICY_HISTORY_WINDOW = 50;
+
+const TIEBREAK_TIMEOUT_MS = 3_000;
+const TIEBREAK_MAX_USER_CHARS = 4_000;
+
+/**
+ * Stage 3 LLM tiebreak: pick one label from the classifier's top candidates.
+ * Best-effort — null on timeout/error keeps the classifier's top label.
+ */
+async function runLlmTiebreak(input: {
+  message: string;
+  candidateLabels: RouteLabel[];
+}): Promise<string | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIEBREAK_TIMEOUT_MS);
+  try {
+    const result = await generateText({
+      model: getModel(ROUTER_TIEBREAK_MODEL.id),
+      prompt: buildFallbackTiebreakPrompt(
+        input.message.slice(0, TIEBREAK_MAX_USER_CHARS),
+        input.candidateLabels,
+      ),
+      abortSignal: controller.signal,
+    });
+    return result.text;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 const classifierRouter = createRouter({
   examples: SEED_EXAMPLES,
@@ -38,6 +71,7 @@ const classifierRouter = createRouter({
       return embeddings as number[][];
     },
   },
+  llmFallback: runLlmTiebreak,
 });
 
 function getCandidateModelIds(input: {
@@ -80,6 +114,7 @@ type ResolvedRouteLabel = {
   topSimilarityScore: number | null;
   secondRouteLabel: string | null;
   secondSimilarityScore: number | null;
+  usedFallbackLlm: boolean;
 };
 
 function fallbackRouteLabel(): ResolvedRouteLabel {
@@ -90,6 +125,7 @@ function fallbackRouteLabel(): ResolvedRouteLabel {
     topSimilarityScore: null,
     secondRouteLabel: null,
     secondSimilarityScore: null,
+    usedFallbackLlm: false,
   };
 }
 
@@ -99,6 +135,7 @@ type ClassifiedShape = {
   topSimilarityScore?: number | null;
   secondRouteLabel?: string | null;
   secondSimilarityScore?: number | null;
+  usedFallbackLlm?: boolean | null;
 };
 
 function nullable<T>(v: T | undefined | null): T | null {
@@ -115,6 +152,7 @@ function classifiedToResolvedRouteLabel(
     topSimilarityScore: nullable(c.topSimilarityScore),
     secondRouteLabel: nullable(c.secondRouteLabel),
     secondSimilarityScore: nullable(c.secondSimilarityScore),
+    usedFallbackLlm: c.usedFallbackLlm ?? false,
   };
 }
 
@@ -170,6 +208,7 @@ export async function resolveRouteLabel(input: {
       topSimilarityScore: null,
       secondRouteLabel: null,
       secondSimilarityScore: null,
+      usedFallbackLlm: false,
     };
   }
 
@@ -344,7 +383,7 @@ export async function resolveSessionRoute(
       resolvedRouteLabel.routerMode === "hard_rules"
         ? `Hard rule matched: ${resolvedRouteLabel.hardRuleMatched}`
         : resolvedRouteLabel.routerMode === "classifier_v1"
-          ? `Classifier selected ${routeLabel}; scored ${engineResult.rankedCandidates.length} candidates.${engineResult.isExploration ? " (exploration pick)" : ""}`
+          ? `Classifier selected ${routeLabel}${resolvedRouteLabel.usedFallbackLlm ? " (LLM tiebreak)" : ""}; scored ${engineResult.rankedCandidates.length} candidates.${engineResult.isExploration ? " (exploration pick)" : ""}`
           : "Classifier unavailable; used fallback_default scoring.",
     details: {
       source: "generation_v2",
@@ -355,6 +394,7 @@ export async function resolveSessionRoute(
       topSimilarityScore: resolvedRouteLabel.topSimilarityScore,
       secondRouteLabel: resolvedRouteLabel.secondRouteLabel,
       secondSimilarityScore: resolvedRouteLabel.secondSimilarityScore,
+      usedFallbackLlm: resolvedRouteLabel.usedFallbackLlm,
       candidateModels: engineResult.rankedCandidates.map((c) => c.modelId),
       candidatesConsidered: engineResult.rankedCandidates.length,
       isExploration: engineResult.isExploration,

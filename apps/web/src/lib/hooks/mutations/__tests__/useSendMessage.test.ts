@@ -288,18 +288,20 @@ describe("useSendMessage", () => {
       modelIds: ["openai:gpt-4o"],
     });
     mockMessageQueue.processQueue.mockImplementationOnce(async (sendFn) => {
-      await sendFn({
+      const queued = {
         id: "queued-1",
         conversationId,
         content: "Queued branch reply",
         parentMessageId: "msg-parent-1",
         modelId: "openai:gpt-4o",
         clientMessageId: "client-fixed-id",
-        thinkingEffort: "medium",
+        thinkingEffort: "medium" as const,
         attachments: undefined,
         timestamp: Date.now(),
         retries: 0,
-      });
+      };
+      await sendFn(queued);
+      return { sent: [queued], failed: [] };
     });
 
     renderHook(() => useSendMessage());

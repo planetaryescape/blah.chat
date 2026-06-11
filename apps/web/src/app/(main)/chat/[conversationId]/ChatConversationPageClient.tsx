@@ -549,13 +549,13 @@ function ChatPageContent({
                 )}
               </AnimatePresence>
 
-              {/* Message content - always rendered when loaded */}
+              {/* Message content - always rendered when loaded. No key/exit
+                  animation here: VirtualizedMessageList owns per-conversation
+                  remounting, a second remount layer just doubles the work. */}
               {!isLoading && (
                 <motion.div
-                  key={`messages-${conversationId}`}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
                   transition={{ duration: 0.2 }}
                   className="flex-1 flex flex-col min-h-0"
                 >

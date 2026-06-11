@@ -639,9 +639,20 @@ export const ChatInput = memo(function ChatInput({
     setLastCompletedMessageId,
   });
 
+  // Stop is async: the POST only requests cancellation; generation keeps
+  // running until the stream's terminal event flips isGenerating. Track the
+  // in-between so the button shows "stopping" instead of lying.
+  const [isStopping, setIsStopping] = useState(false);
+  useEffect(() => {
+    if (!isGenerating) {
+      setIsStopping(false);
+    }
+  }, [isGenerating]);
+
   const handleStop = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setIsStopping(true);
     void apiClient
       .post(`/api/v1/conversations/${conversationId}/stop`)
       .then(() => {
@@ -652,6 +663,7 @@ export const ChatInput = memo(function ChatInput({
         });
       })
       .catch((error) => {
+        setIsStopping(false);
         console.error("Failed to stop generation:", error);
       });
   };
@@ -1083,7 +1095,11 @@ export const ChatInput = memo(function ChatInput({
                           setIsSending(true);
                           void sendMessageAsync({
                             conversationId,
+                            parentMessageId,
                             content: text.trim(),
+                            clientMessageId: `client-${Date.now()}-${Math.random()
+                              .toString(36)
+                              .slice(2, 10)}`,
                             ...(isComparisonMode
                               ? { models: selectedModels }
                               : { modelId: selectedModel }),
@@ -1181,7 +1197,9 @@ export const ChatInput = memo(function ChatInput({
                     data-testid="send-button"
                     aria-label={
                       isGenerating
-                        ? "Stop generating response"
+                        ? isStopping
+                          ? "Stopping generation"
+                          : "Stop generating response"
                         : isRecording
                           ? "Stop recording and send"
                           : "Send message"
@@ -1198,7 +1216,7 @@ export const ChatInput = memo(function ChatInput({
                     )}
                     disabled={!canSend}
                   >
-                    {isSending ? (
+                    {isSending || isStopping ? (
                       <Loader2
                         className="w-5 h-5 animate-spin"
                         aria-hidden="true"

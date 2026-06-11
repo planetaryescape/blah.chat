@@ -75,7 +75,7 @@ export function useSendMessage(
         `Processing ${queueCount} queued message${queueCount > 1 ? "s" : ""}...`,
       );
 
-      await messageQueue.processQueue(async (msg) => {
+      const { failed } = await messageQueue.processQueue(async (msg) => {
         // Send queued message
         const response = await apiClient.post<GenerationRequestResponse>(
           `/api/v1/conversations/${msg.conversationId}/messages`,
@@ -93,7 +93,18 @@ export function useSendMessage(
         dispatchGenerationStartedEvent(msg.conversationId, response);
       });
 
-      toast.success("All queued messages sent");
+      if (failed.length > 0) {
+        toast.error(
+          `${failed.length} queued message${failed.length > 1 ? "s" : ""} could not be sent and ${failed.length > 1 ? "were" : "was"} discarded`,
+          {
+            description: failed
+              .map((msg) => `"${msg.content.slice(0, 60)}"`)
+              .join(", "),
+          },
+        );
+      } else {
+        toast.success("All queued messages sent");
+      }
     };
 
     window.addEventListener("online", handleOnline);

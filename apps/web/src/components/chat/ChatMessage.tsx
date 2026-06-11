@@ -680,6 +680,14 @@ export const ChatMessage = memo(
       prev.message.thinkingStartedAt === next.message.thinkingStartedAt &&
       prev.message.thinkingCompletedAt === next.message.thinkingCompletedAt &&
       prev.message.isConsolidation === next.message.isConsolidation &&
+      prev.message.model === next.message.model &&
+      prev.message.firstTokenAt === next.message.firstTokenAt &&
+      prev.message.generationStartedAt === next.message.generationStartedAt &&
+      prev.message.tokensPerSecond === next.message.tokensPerSecond &&
+      prev.message.inputTokens === next.message.inputTokens &&
+      prev.message.outputTokens === next.message.outputTokens &&
+      prev.message.routingDecision === next.message.routingDecision &&
+      prev.message.attachments === next.message.attachments &&
       prev.nextMessage?.status === next.nextMessage?.status &&
       prev.isCollaborative === next.isCollaborative &&
       prev.senderUser?.name === next.senderUser?.name &&

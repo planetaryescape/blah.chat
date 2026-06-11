@@ -46,18 +46,36 @@ export class MessageQueue {
 
   async processQueue(
     sendFn: (msg: QueuedMessage) => Promise<void>,
-  ): Promise<void> {
+  ): Promise<{ sent: QueuedMessage[]; failed: QueuedMessage[] }> {
     const queue = await this.getQueue();
+    const sent: QueuedMessage[] = [];
+    const failed: QueuedMessage[] = [];
 
     for (const msg of queue) {
       try {
         await sendFn(msg);
         await this.remove(msg.id);
-      } catch (_error) {
-        if (msg.retries >= this.MAX_RETRIES) {
+        sent.push(msg);
+      } catch (error) {
+        // Client errors won't succeed on retry (e.g. 404: conversation was
+        // deleted while the message sat in the queue). Drop immediately and
+        // report so the user isn't silently losing messages.
+        const status =
+          error && typeof error === "object" && "status" in error
+            ? (error as { status?: unknown }).status
+            : undefined;
+        const isPermanent =
+          typeof status === "number" &&
+          status >= 400 &&
+          status < 500 &&
+          status !== 408 &&
+          status !== 429;
+
+        if (isPermanent || msg.retries >= this.MAX_RETRIES) {
           await this.remove(msg.id);
+          failed.push(msg);
           console.error(
-            `[MessageQueue] Permanently failed after ${this.MAX_RETRIES} retries:`,
+            "[MessageQueue] Permanently failed:",
             msg.content.slice(0, 50),
           );
         } else {
@@ -69,6 +87,8 @@ export class MessageQueue {
         }
       }
     }
+
+    return { sent, failed };
   }
 
   async getQueue(): Promise<QueuedMessage[]> {

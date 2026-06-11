@@ -134,6 +134,13 @@
       "when": 1778156030607,
       "tag": "0018_premium_wolf_cub",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1781214559663,
+      "tag": "0019_generation_checkpoints_session_sequence_idx",
+      "breakpoints": true
     }
   ]
 }

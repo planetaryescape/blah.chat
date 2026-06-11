@@ -1,0 +1,1 @@
+CREATE INDEX "generation_checkpoints_by_session_sequence" ON "generation_checkpoints" USING btree ("session_id","sequence" DESC NULLS LAST);

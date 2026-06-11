@@ -23,6 +23,8 @@ import type {
 const CHECKPOINT_INTERVAL_MS = 250;
 const CHECKPOINT_INTERVAL_BYTES = 1024;
 const STOP_CHECK_INTERVAL_MS = 250;
+const STALL_TIMEOUT_MS = 90_000;
+const STALL_CHECK_INTERVAL_MS = 1_000;
 
 const terminalStatuses = new Set(["complete", "cancelled", "error"]);
 
@@ -339,6 +341,7 @@ export class GenerationV2Service {
     let sequence = 0;
     let accumulated = "";
     let firstTokenAt: number | null = null;
+    let stalled = false;
 
     if (resolvedModelId !== session.modelId) {
       await this.repository.updateSessionModel({
@@ -405,7 +408,7 @@ export class GenerationV2Service {
     });
 
     try {
-      for await (const delta of this.provider.streamText({
+      const stream = this.provider.streamText({
         modelId: resolvedModelId,
         userId: bundle.userId,
         conversationId: bundle.conversationId,
@@ -424,7 +427,28 @@ export class GenerationV2Service {
           byokKeys?.enabled && byokKeys.openRouterKey
             ? byokKeys.openRouterKey
             : undefined,
-      })) {
+      });
+      const iterator = stream[Symbol.asyncIterator]();
+      let lastDeltaAt = this.now();
+
+      while (true) {
+        const result = await this.nextDeltaOrStall(
+          iterator.next(),
+          () => lastDeltaAt,
+        );
+        if (result === "stalled") {
+          stalled = true;
+          abortController.abort();
+          throw new Error(
+            `Generation stalled: no output received for ${STALL_TIMEOUT_MS / 1000} seconds`,
+          );
+        }
+        if (result.done) {
+          break;
+        }
+
+        const delta = result.value;
+        lastDeltaAt = this.now();
         accumulated += delta;
         if (firstTokenAt === null) {
           firstTokenAt = this.now();
@@ -566,7 +590,7 @@ export class GenerationV2Service {
         .embedMessage?.(session.assistantMessageId)
         .catch(() => {});
     } catch (error) {
-      if (abortController.signal.aborted) {
+      if (abortController.signal.aborted && !stalled) {
         return;
       }
 
@@ -607,6 +631,28 @@ export class GenerationV2Service {
         type: "error",
         error: error instanceof Error ? error.message : String(error),
       });
+    }
+  }
+
+  private async nextDeltaOrStall(
+    next: Promise<IteratorResult<string, unknown>>,
+    lastDeltaAt: () => number,
+  ): Promise<IteratorResult<string, unknown> | "stalled"> {
+    while (true) {
+      const winner = await Promise.race([
+        next.then((result) => ({ result })),
+        this.sleep(STALL_CHECK_INTERVAL_MS).then(() => null),
+      ]);
+      if (winner) {
+        return winner.result;
+      }
+      if (this.now() - lastDeltaAt() >= STALL_TIMEOUT_MS) {
+        return "stalled";
+      }
+      // Yield to the macrotask queue so provider I/O can settle when an
+      // injected sleep resolves synchronously (tests), instead of starving
+      // pending timers with a microtask-only race loop.
+      await new Promise((resolve) => setTimeout(resolve, 0));
     }
   }
 

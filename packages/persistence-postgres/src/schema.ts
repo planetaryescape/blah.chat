@@ -1041,15 +1041,26 @@ export const generationSessions = pgTable("generation_sessions", {
   updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(now),
 });
 
-export const generationCheckpoints = pgTable("generation_checkpoints", {
-  id: text("id").primaryKey().$defaultFn(id),
-  sessionId: text("session_id")
-    .notNull()
-    .references(() => generationSessions.id, { onDelete: "cascade" }),
-  content: text("content").notNull(),
-  sequence: bigint("sequence", { mode: "number" }).notNull(),
-  createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(now),
-});
+export const generationCheckpoints = pgTable(
+  "generation_checkpoints",
+  {
+    id: text("id").primaryKey().$defaultFn(id),
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => generationSessions.id, { onDelete: "cascade" }),
+    content: text("content").notNull(),
+    sequence: bigint("sequence", { mode: "number" }).notNull(),
+    createdAt: bigint("created_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+  },
+  (table) => ({
+    bySessionSequence: index("generation_checkpoints_by_session_sequence").on(
+      table.sessionId,
+      table.sequence.desc(),
+    ),
+  }),
+);
 
 export const consolidations = pgTable(
   "consolidations",

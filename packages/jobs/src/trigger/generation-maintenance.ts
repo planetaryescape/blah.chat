@@ -5,6 +5,7 @@ import {
 import { schedules } from "@trigger.dev/sdk";
 import { cleanupStaleGenerationSessions } from "./cleanup-stale-generation-sessions";
 import { getDatabaseUrl, runMaintenanceStep } from "./maintenance-utils";
+import { pruneGenerationCheckpoints } from "./prune-generation-checkpoints";
 import { recoverStuckGenerations } from "./recover-stuck-generations";
 import { recoverStuckMessages } from "./recover-stuck-messages";
 
@@ -37,6 +38,9 @@ export async function runGenerationMaintenance(
     ),
     recoverStuckMessages: await runMaintenanceStep(() =>
       recoverStuckMessages({ db, now }),
+    ),
+    pruneGenerationCheckpoints: await runMaintenanceStep(() =>
+      pruneGenerationCheckpoints({ db, now }),
     ),
   };
 }

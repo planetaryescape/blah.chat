@@ -153,10 +153,6 @@ export const conversations = pgTable("conversations", {
   starred: boolean("starred").notNull().default(false),
   /** Per-conversation reasoning effort: "none" | "low" | "medium" | "high". */
   thinkingEffort: text("thinking_effort").notNull().default("none"),
-  /** Conversation rendering mode: "chat" | "document". Drives canvas auto-open. */
-  mode: text("mode").notNull().default("chat"),
-  /** Loose pointer to the canvas document currently bound to this conversation. */
-  activeDocumentId: text("active_document_id"),
   createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(now),
   updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(now),
 });
@@ -281,7 +277,7 @@ export const notifications = pgTable(
   },
   (t) => [
     index("notifications_by_user_created").on(t.userId, t.createdAt),
-    index("notifications_by_dedup")
+    uniqueIndex("notifications_by_dedup")
       .on(t.userId, t.type, t.dedupKey)
       .where(sql`${t.dedupKey} is not null`),
   ],
@@ -1115,6 +1111,9 @@ export const routingPolicies = pgTable(
   },
   (table) => ({
     byActive: index("routing_policies_by_active").on(table.isActive),
+    singleActive: uniqueIndex("routing_policies_single_active")
+      .on(table.isActive)
+      .where(sql`${table.isActive} = true`),
   }),
 );
 
@@ -1150,6 +1149,9 @@ export const routingDecisions = pgTable(
       table.conversationId,
     ),
     byCreatedAt: index("routing_decisions_by_created_at").on(table.createdAt),
+    requestModelUnique: uniqueIndex("routing_decisions_request_model_unique")
+      .on(table.generationRequestId, table.selectedModelId)
+      .where(sql`${table.generationRequestId} is not null`),
   }),
 );
 
@@ -1206,9 +1208,9 @@ export const routingOutcomes = pgTable(
   },
   (table) => ({
     byDecision: index("routing_outcomes_by_decision").on(table.decisionId),
-    bySession: index("routing_outcomes_by_session").on(
-      table.generationSessionId,
-    ),
+    bySession: uniqueIndex("routing_outcomes_by_session")
+      .on(table.generationSessionId)
+      .where(sql`${table.generationSessionId} is not null`),
     byCreatedAt: index("routing_outcomes_by_created_at").on(table.createdAt),
   }),
 );
@@ -1287,7 +1289,7 @@ export const messageEmbeddings = pgTable(
       .$defaultFn(now),
   },
   (table) => ({
-    byMessage: index("message_embeddings_by_message").on(table.messageId),
+    byMessage: uniqueIndex("message_embeddings_by_message").on(table.messageId),
     byConversation: index("message_embeddings_by_conversation").on(
       table.conversationId,
     ),
@@ -1348,7 +1350,7 @@ export const taskEmbeddings = pgTable(
   },
   (table) => ({
     byUser: index("task_embeddings_by_user").on(table.userId),
-    byTaskKey: index("task_embeddings_by_task_key").on(table.taskKey),
+    byTaskKey: uniqueIndex("task_embeddings_by_task_key").on(table.taskKey),
   }),
 );
 
@@ -1373,7 +1375,7 @@ export const noteEmbeddings = pgTable(
   },
   (table) => ({
     byUser: index("note_embeddings_by_user").on(table.userId),
-    byNoteKey: index("note_embeddings_by_note_key").on(table.noteKey),
+    byNoteKey: uniqueIndex("note_embeddings_by_note_key").on(table.noteKey),
   }),
 );
 

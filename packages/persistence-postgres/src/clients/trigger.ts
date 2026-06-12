@@ -9,6 +9,15 @@ export interface TriggerRunResponse {
   id?: string;
 }
 
+export interface TriggerTaskOptions {
+  /** Dedupes trigger calls: same key within the TTL returns the existing run. */
+  idempotencyKey?: string;
+  /** TTL for the idempotency key, e.g. "1h", "10m". Defaults to 30 days on the Trigger.dev side. */
+  idempotencyKeyTTL?: string;
+  /** Serializes runs sharing the same key within the task's queue. */
+  concurrencyKey?: string;
+}
+
 export interface TriggerRetrieveRunResponse {
   id?: string;
   status?: string;
@@ -59,9 +68,27 @@ export function createTriggerClient(env: Pick<PersistenceEnv, "trigger">) {
     async triggerTask(
       taskId: string,
       payload: Record<string, unknown>,
+      options?: TriggerTaskOptions,
     ): Promise<TriggerRunResponse> {
       if (!env.trigger.secretKey) {
         throw new Error("TRIGGER_SECRET_KEY is not set");
+      }
+
+      const body: Record<string, unknown> = { payload };
+      if (options?.idempotencyKey || options?.concurrencyKey) {
+        body.options = {
+          ...(options.idempotencyKey
+            ? {
+                idempotencyKey: options.idempotencyKey,
+                ...(options.idempotencyKeyTTL
+                  ? { idempotencyKeyTTL: options.idempotencyKeyTTL }
+                  : {}),
+              }
+            : {}),
+          ...(options.concurrencyKey
+            ? { concurrencyKey: options.concurrencyKey }
+            : {}),
+        };
       }
 
       const response = await fetch(
@@ -73,7 +100,7 @@ export function createTriggerClient(env: Pick<PersistenceEnv, "trigger">) {
             Accept: "application/json",
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ payload }),
+          body: JSON.stringify(body),
         },
       );
 

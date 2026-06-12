@@ -72,6 +72,9 @@ describe("transcribeAudioFromStorage", () => {
             .mockResolvedValueOnce({ value: true })
             .mockResolvedValueOnce({ value: "openai" }),
         },
+        adminSettings: {
+          findFirst: vi.fn().mockResolvedValue(undefined),
+        },
       },
     });
   });

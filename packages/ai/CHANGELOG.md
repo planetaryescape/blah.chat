@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.0](https://github.com/planetaryescape/blah.chat/compare/ai-v0.7.0...ai-v0.8.0) (2026-06-12)
+
+
+### Features
+
+* mark all expensive models as pro ([34fdb93](https://github.com/planetaryescape/blah.chat/commit/34fdb932972ab0fb78bf4e3be5a3396fbb72e424))
+* refresh model catalog to latest, deprecate superseded models ([6da5f7d](https://github.com/planetaryescape/blah.chat/commit/6da5f7d5eb0bfc4f5fb7e1ac48bbfa140d0caf19))
+
 ## [0.7.0](https://github.com/planetaryescape/blah.chat/compare/ai-v0.6.0...ai-v0.7.0) (2026-06-12)
 
 

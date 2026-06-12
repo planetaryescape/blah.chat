@@ -277,7 +277,7 @@ export default function NoteDetailScreen() {
   );
 
   const handleAutoTag = useCallback(() => {
-    if (!note || !note.content || note.content.length < 50) return;
+    if (!note?.content || note.content.length < 50) return;
     haptic.medium();
     setIsMenuOpen(false);
     void runAutoTag(note._id);

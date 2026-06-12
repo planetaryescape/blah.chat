@@ -5,6 +5,7 @@ import {
 } from "@blah-chat/persistence-postgres";
 import { and, desc, eq } from "drizzle-orm";
 import { NotFoundError } from "@/lib/api/errors";
+import logger from "@/lib/logger";
 import { ensureCurrentPersistenceUser } from "./current-user";
 import { getPersistenceDb } from "./server";
 
@@ -170,7 +171,11 @@ export async function createTask(
 
   // Fire-and-forget embedding generation
   const trigger = createTriggerClient(parsePersistenceEnv(process.env));
-  trigger.triggerTask("embed-task", { taskId: task.id }).catch(() => {});
+  trigger
+    .triggerTask("embed-task", { taskId: task.id }, { concurrencyKey: task.id })
+    .catch((err) => {
+      logger.warn({ err, taskId: task.id }, "Failed to enqueue embed-task");
+    });
 
   return toApiProjectTask(task);
 }
@@ -251,7 +256,18 @@ export async function updateTask(
   // Re-embed on title/description change
   if (input.title !== undefined || input.description !== undefined) {
     const trigger = createTriggerClient(parsePersistenceEnv(process.env));
-    trigger.triggerTask("embed-task", { taskId: updated.id }).catch(() => {});
+    trigger
+      .triggerTask(
+        "embed-task",
+        { taskId: updated.id },
+        { concurrencyKey: updated.id },
+      )
+      .catch((err) => {
+        logger.warn(
+          { err, taskId: updated.id },
+          "Failed to enqueue embed-task",
+        );
+      });
   }
 
   return toApiProjectTask(updated);

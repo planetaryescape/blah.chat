@@ -83,7 +83,11 @@ async function assertOwnedKnowledgeSource(
 
 async function enqueueProcessing(sourceId: string) {
   const trigger = createTriggerClient(parsePersistenceEnv(process.env));
-  await trigger.triggerTask("process-source", { sourceId });
+  await trigger.triggerTask(
+    "process-source",
+    { sourceId },
+    { concurrencyKey: sourceId },
+  );
 }
 
 export async function listKnowledgeSources(

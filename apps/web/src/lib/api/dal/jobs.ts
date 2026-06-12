@@ -59,9 +59,11 @@ export async function createEmbedFileJob(
 ) {
   const validated = embedFileInputSchema.parse(input);
   const trigger = getTrigger();
-  const run = await trigger.triggerTask("embed-file", {
-    fileId: validated.fileId,
-  });
+  const run = await trigger.triggerTask(
+    "embed-file",
+    { fileId: validated.fileId },
+    { concurrencyKey: validated.fileId },
+  );
   return run.id ?? "unknown";
 }
 

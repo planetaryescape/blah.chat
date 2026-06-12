@@ -60,7 +60,11 @@ export function getGenerationV2Service() {
         await trigger.triggerTask(
           "embed-message",
           { messageId },
-          { idempotencyKey: messageId, idempotencyKeyTTL: "10m" },
+          {
+            idempotencyKey: messageId,
+            idempotencyKeyTTL: "10m",
+            concurrencyKey: messageId,
+          },
         );
       },
       autoTitleConversation: async (conversationId: string) => {

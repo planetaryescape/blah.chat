@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  getMobileTransportMode,
-  shouldUseConvexTransport,
-  supportsR2BlobTransport,
-} from "./mode";
+import { getMobileTransportMode, supportsR2BlobTransport } from "./mode";
 
 // These functions return constants defining the mobile transport contract.
 // Other modules depend on these values — if any changes, SSE streaming
@@ -16,12 +12,6 @@ describe("getMobileTransportMode", () => {
 
   it("returns a string (type contract for consumers)", () => {
     expect(typeof getMobileTransportMode()).toBe("string");
-  });
-});
-
-describe("shouldUseConvexTransport", () => {
-  it("returns false — mobile never uses Convex WebSocket transport", () => {
-    expect(shouldUseConvexTransport()).toBe(false);
   });
 });
 

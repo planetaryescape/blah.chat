@@ -37,6 +37,8 @@ vi.mock("@/lib/cache", () => ({
       put: vi.fn(async () => {}),
     },
   },
+  prefetchConversationIntoCache: vi.fn(async () => {}),
+  prefetchMessagesIntoCache: vi.fn(async () => {}),
 }));
 
 // Mock Clerk auth - requires ClerkProvider context

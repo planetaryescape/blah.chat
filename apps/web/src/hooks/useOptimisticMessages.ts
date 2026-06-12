@@ -8,6 +8,12 @@ export type MessageWithOptimistic = ServerMessage | OptimisticMessage;
 
 interface UseOptimisticMessagesOptions {
   serverMessages: ServerMessage[] | undefined;
+  /**
+   * Route-owned conversation id. Optimistic state is scoped to it — deriving
+   * the id from serverMessages[0] broke for new/empty conversations
+   * (undefined) and leaked optimistic messages into the next conversation.
+   */
+  conversationId: string | undefined;
 }
 
 interface UseOptimisticMessagesReturn {
@@ -181,14 +187,23 @@ function findBestOptimisticMatchIndex(
 function mergeWithOptimisticMessages(
   serverMessages: ServerMessage[],
   optimisticMessages: OptimisticMessage[],
+  conversationId: string | undefined,
 ): MessageWithOptimistic[] {
   const orderedServerMessages = stabilizeServerOrder(serverMessages);
 
-  if (optimisticMessages.length === 0) {
+  // Optimistic messages are stamped with their conversation at creation;
+  // never overlay messages that belong to a different conversation.
+  const scopedOptimistic = conversationId
+    ? optimisticMessages.filter(
+        (message) => message.conversationId === conversationId,
+      )
+    : [];
+
+  if (scopedOptimistic.length === 0) {
     return orderedServerMessages;
   }
 
-  const remainingOptimistic = [...optimisticMessages];
+  const remainingOptimistic = [...scopedOptimistic];
   for (const serverMessage of orderedServerMessages) {
     if (serverMessage.role !== "user") {
       continue;
@@ -215,29 +230,24 @@ function mergeWithOptimisticMessages(
  */
 export function useOptimisticMessages({
   serverMessages,
+  conversationId,
 }: UseOptimisticMessagesOptions): UseOptimisticMessagesReturn {
   const [optimisticMessages, setOptimisticMessages] = useState<
     OptimisticMessage[]
   >([]);
 
-  // Track conversation ID to clear optimistic messages on conversation switch
-  const conversationIdRef = useRef<string | undefined>(undefined);
-  const currentConversationId = serverMessages?.[0]?.conversationId;
+  // Track the route conversation id to clear optimistic messages on switch.
+  // Using the route id (not serverMessages[0].conversationId) means new/empty
+  // conversations are handled too — they have no server messages to derive
+  // an id from.
+  const conversationIdRef = useRef<string | undefined>(conversationId);
 
-  // Clear optimistic messages when conversation changes
-  // This handles all transitions:
-  // - Conversation A → B (clear A's optimistic messages)
-  // - Conversation A → undefined/loading (clear A's optimistic messages)
-  // - undefined → Conversation A (keep empty, no messages to clear)
   useEffect(() => {
-    if (
-      conversationIdRef.current &&
-      conversationIdRef.current !== currentConversationId
-    ) {
+    if (conversationIdRef.current !== conversationId) {
+      conversationIdRef.current = conversationId;
       setOptimisticMessages([]);
     }
-    conversationIdRef.current = currentConversationId;
-  }, [currentConversationId]);
+  }, [conversationId]);
 
   // Callback for ChatInput to add optimistic messages (instant, before API call)
   const addOptimisticMessages = useCallback(
@@ -259,7 +269,7 @@ export function useOptimisticMessages({
     if (serverMessages === undefined) {
       if (
         prevConversationIdRef.current &&
-        prevConversationIdRef.current === currentConversationId
+        prevConversationIdRef.current === conversationId
       ) {
         return prevMessagesRef.current ?? undefined;
       }
@@ -269,11 +279,12 @@ export function useOptimisticMessages({
     const merged = mergeWithOptimisticMessages(
       serverMessages,
       optimisticMessages,
+      conversationId,
     );
     prevMessagesRef.current = merged;
-    prevConversationIdRef.current = currentConversationId;
+    prevConversationIdRef.current = conversationId;
     return merged;
-  }, [serverMessages, optimisticMessages, currentConversationId]);
+  }, [serverMessages, optimisticMessages, conversationId]);
 
   // NOTE: We intentionally don't clean up optimistic messages from state
   // The useMemo already filters them out visually when server confirms.

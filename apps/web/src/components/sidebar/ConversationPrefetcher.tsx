@@ -1,42 +1,58 @@
 "use client";
 
+import { useParams } from "next/navigation";
 import { useEffect } from "react";
-import { cache } from "@/lib/cache";
+import {
+  type PrefetchableRow,
+  prefetchConversationIntoCache,
+  prefetchMessagesIntoCache,
+} from "@/lib/cache";
 
-function extractConversation(payload: unknown): any | undefined {
+function extractConversation(payload: unknown): PrefetchableRow | undefined {
   if (
     payload &&
     typeof payload === "object" &&
     "data" in payload &&
     payload.data
   ) {
-    return payload.data as any;
+    return payload.data as PrefetchableRow;
   }
 
   return undefined;
 }
 
-function extractMessages(payload: unknown): any[] {
+function extractMessages(payload: unknown): PrefetchableRow[] {
   if (!Array.isArray(payload)) {
     return [];
   }
 
   return payload.flatMap((item) =>
     item && typeof item === "object" && "data" in item && item.data
-      ? [item.data as any]
+      ? [item.data as PrefetchableRow]
       : [],
   );
 }
 
 /**
  * Best-effort REST prefetch to warm the local cache ahead of navigation.
+ * Writes go through the prefetch merge guards so a stale snapshot can never
+ * clobber rows the active sync already streamed or persisted.
  */
 export function ConversationPrefetcher({
   conversationId,
 }: {
   conversationId: string;
 }) {
+  const params = useParams<{ conversationId?: string }>();
+  const activeConversationId = params?.conversationId;
+
   useEffect(() => {
+    // The open conversation is owned by the live message sync; prefetching it
+    // is wasted work and risks racing the sync's writes.
+    if (conversationId === activeConversationId) {
+      return;
+    }
+
     const controller = new AbortController();
     let cancelled = false;
 
@@ -76,10 +92,10 @@ export function ConversationPrefetcher({
         const messages = extractMessages(messagesPayload);
 
         if (conversation) {
-          await cache.conversations.put(conversation);
+          await prefetchConversationIntoCache(conversation);
         }
         if (messages.length > 0) {
-          await cache.messages.bulkPut(messages);
+          await prefetchMessagesIntoCache(messages);
         }
       } catch (error) {
         if (!controller.signal.aborted) {
@@ -94,7 +110,7 @@ export function ConversationPrefetcher({
       cancelled = true;
       controller.abort();
     };
-  }, [conversationId]);
+  }, [conversationId, activeConversationId]);
 
   return null;
 }

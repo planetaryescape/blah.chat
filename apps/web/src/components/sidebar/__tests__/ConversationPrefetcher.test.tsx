@@ -1,20 +1,14 @@
 import { render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockBulkPut, mockConversationPut } = vi.hoisted(() => ({
-  mockBulkPut: vi.fn(),
-  mockConversationPut: vi.fn(),
+const { mockPrefetchConversation, mockPrefetchMessages } = vi.hoisted(() => ({
+  mockPrefetchConversation: vi.fn(async () => {}),
+  mockPrefetchMessages: vi.fn(async () => {}),
 }));
 
 vi.mock("@/lib/cache", () => ({
-  cache: {
-    conversations: {
-      put: mockConversationPut,
-    },
-    messages: {
-      bulkPut: mockBulkPut,
-    },
-  },
+  prefetchConversationIntoCache: mockPrefetchConversation,
+  prefetchMessagesIntoCache: mockPrefetchMessages,
 }));
 
 import { ConversationPrefetcher } from "../ConversationPrefetcher";
@@ -53,7 +47,7 @@ describe("ConversationPrefetcher", () => {
     );
   });
 
-  it("warms the local cache through REST routes", async () => {
+  it("warms the local cache through guarded prefetch writes", async () => {
     render(<ConversationPrefetcher conversationId={"conv_1" as string} />);
 
     await waitFor(() => {
@@ -74,12 +68,24 @@ describe("ConversationPrefetcher", () => {
     });
 
     await waitFor(() => {
-      expect(mockConversationPut).toHaveBeenCalledWith(
+      expect(mockPrefetchConversation).toHaveBeenCalledWith(
         expect.objectContaining({ _id: "conv_1" }),
       );
-      expect(mockBulkPut).toHaveBeenCalledWith([
+      expect(mockPrefetchMessages).toHaveBeenCalledWith([
         expect.objectContaining({ _id: "msg_1", conversationId: "conv_1" }),
       ]);
     });
+  });
+
+  it("skips the currently open conversation", async () => {
+    // setup.ts mocks useParams to return { conversationId: "test-id" }.
+    render(<ConversationPrefetcher conversationId={"test-id" as string} />);
+
+    // Give any (incorrect) prefetch a chance to fire.
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(mockPrefetchConversation).not.toHaveBeenCalled();
+    expect(mockPrefetchMessages).not.toHaveBeenCalled();
   });
 });

@@ -121,6 +121,22 @@ export function useRestConversationSync(projectId?: string | "none" | null) {
     let pollTimer: ReturnType<typeof setInterval> | null = null;
     let eventSource: EventSource | null = null;
 
+    // All cache writes flow through this queue: SSE updates and full fetches
+    // each do a read -> bulkDelete -> bulkPut sequence that must never
+    // interleave with another writer's.
+    let queue: Promise<void> = Promise.resolve();
+    const enqueue = (task: () => Promise<void>) => {
+      queue = queue.then(task).catch((error) => {
+        console.warn("conversation sync task failed", error);
+      });
+      return queue;
+    };
+
+    // Bumped on every applied SSE update. A full fetch snapshots it before
+    // hitting the network; if it moved by the time the payload is applied,
+    // the payload is stale (it could resurrect rows the stream deleted).
+    let appliedGeneration = 0;
+
     const params = new URLSearchParams();
     if (projectId) {
       params.set("projectId", projectId);
@@ -135,8 +151,10 @@ export function useRestConversationSync(projectId?: string | "none" | null) {
       : "/api/v1/conversations/stream";
 
     const fetchConversations = async () => {
+      const generationAtStart = appliedGeneration;
       const response = await fetch(listUrl, {
         credentials: "include",
+        cache: "no-store",
         headers: {
           Accept: "application/json",
         },
@@ -147,10 +165,17 @@ export function useRestConversationSync(projectId?: string | "none" | null) {
       }
 
       const payload = (await response.json()) as ConversationListPayload;
-      await syncConversationCache(
-        extractConversationsFromPayload(payload),
-        projectId ?? undefined,
-      );
+      await enqueue(async () => {
+        // SSE updates landed while this fetch was in flight — the payload is
+        // stale, drop it (the stream already carries the newer state).
+        if (appliedGeneration !== generationAtStart) {
+          return;
+        }
+        await syncConversationCache(
+          extractConversationsFromPayload(payload),
+          projectId ?? undefined,
+        );
+      });
       if (!cancelled) {
         setIsLoading(false);
       }
@@ -159,22 +184,25 @@ export function useRestConversationSync(projectId?: string | "none" | null) {
     const connect = () => {
       eventSource = new EventSource(streamUrl);
 
-      const handleMessage = async (event: MessageEvent<string>) => {
+      const handleMessage = (event: MessageEvent<string>) => {
         const payload = JSON.parse(event.data) as ConversationListPayload;
-        await syncConversationCache(
-          extractConversationsFromPayload(payload),
-          projectId ?? undefined,
-        );
-        if (!cancelled) {
-          setIsLoading(false);
-        }
+        void enqueue(async () => {
+          await syncConversationCache(
+            extractConversationsFromPayload(payload),
+            projectId ?? undefined,
+          );
+          appliedGeneration += 1;
+          if (!cancelled) {
+            setIsLoading(false);
+          }
+        });
       };
 
       eventSource.addEventListener("snapshot", (event) => {
-        void handleMessage(event as MessageEvent<string>);
+        handleMessage(event as MessageEvent<string>);
       });
       eventSource.addEventListener("update", (event) => {
-        void handleMessage(event as MessageEvent<string>);
+        handleMessage(event as MessageEvent<string>);
       });
       eventSource.onerror = () => {
         eventSource?.close();

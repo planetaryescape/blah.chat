@@ -42,7 +42,7 @@ describe("useOptimisticMessages", () => {
     const serverMessages = [assistantMessage, userMessage];
 
     const { result } = renderHook(() =>
-      useOptimisticMessages({ serverMessages }),
+      useOptimisticMessages({ serverMessages, conversationId: "conv-1" }),
     );
 
     expect(result.current.messages?.map((m) => m.role)).toEqual([
@@ -67,7 +67,8 @@ describe("useOptimisticMessages", () => {
     };
 
     const { result, rerender } = renderHook(
-      ({ serverMessages }) => useOptimisticMessages({ serverMessages }),
+      ({ serverMessages }) =>
+        useOptimisticMessages({ serverMessages, conversationId: "conv-1" }),
       { initialProps: { serverMessages: [] as any[] } },
     );
 
@@ -123,7 +124,8 @@ describe("useOptimisticMessages", () => {
     };
 
     const { result, rerender } = renderHook(
-      ({ serverMessages }) => useOptimisticMessages({ serverMessages }),
+      ({ serverMessages }) =>
+        useOptimisticMessages({ serverMessages, conversationId: "conv-1" }),
       { initialProps: { serverMessages: [] as any[] } },
     );
 
@@ -159,5 +161,74 @@ describe("useOptimisticMessages", () => {
     expect(
       result.current.messages?.some((m) => String(m._id).startsWith("temp-")),
     ).toBe(false);
+  });
+
+  it("does not leak optimistic messages into another conversation", () => {
+    const timestamp = 1_700_000_300_000;
+    const optimisticUserMessage: OptimisticMessage = {
+      _id: "temp-user-leak",
+      conversationId: "conv-1" as string,
+      userId: "user-1" as string,
+      role: "user",
+      content: "Leak test",
+      status: "optimistic",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      _creationTime: timestamp,
+      _optimistic: true,
+    };
+
+    const { result, rerender } = renderHook(
+      ({ serverMessages, conversationId }) =>
+        useOptimisticMessages({ serverMessages, conversationId }),
+      {
+        initialProps: {
+          // New/empty conversation: no server messages to derive an id from.
+          serverMessages: [] as any[],
+          conversationId: "conv-1" as string | undefined,
+        },
+      },
+    );
+
+    act(() => {
+      result.current.addOptimisticMessages([optimisticUserMessage]);
+    });
+    expect(result.current.messages?.map((m) => m._id)).toEqual([
+      "temp-user-leak",
+    ]);
+
+    // Switch to another (also empty) conversation.
+    rerender({ serverMessages: [] as any[], conversationId: "conv-2" });
+
+    expect(result.current.messages).toEqual([]);
+  });
+
+  it("filters optimistic messages stamped for a different conversation", () => {
+    const timestamp = 1_700_000_400_000;
+    const foreignOptimistic: OptimisticMessage = {
+      _id: "temp-user-foreign",
+      conversationId: "conv-other" as string,
+      userId: "user-1" as string,
+      role: "user",
+      content: "Wrong conversation",
+      status: "optimistic",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      _creationTime: timestamp,
+      _optimistic: true,
+    };
+
+    const { result } = renderHook(() =>
+      useOptimisticMessages({
+        serverMessages: [] as any[],
+        conversationId: "conv-1",
+      }),
+    );
+
+    act(() => {
+      result.current.addOptimisticMessages([foreignOptimistic]);
+    });
+
+    expect(result.current.messages).toEqual([]);
   });
 });

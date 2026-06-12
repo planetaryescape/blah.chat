@@ -35,9 +35,6 @@ export const DEFAULT_NOTIFICATION_CHIME_SOUNDS = {
 
 export const PREFERENCE_DEFAULTS = {
   // Appearance
-  theme: "dark" as const,
-  fontSize: "medium" as const,
-  codeTheme: "rose-pine" as const,
   chatWidth: "standard" as const,
 
   // Models
@@ -55,10 +52,8 @@ export const PREFERENCE_DEFAULTS = {
   // Chat
   sendOnEnter: true,
   alwaysShowMessageActions: true,
-  minimalAssistantStyle: false,
   showMessageStatistics: true,
   showComparisonStatistics: true,
-  enableHybridSearch: false,
   showModelNamesDuringComparison: false,
   showModelProvider: false,
   autoCompressContext: false,
@@ -68,7 +63,6 @@ export const PREFERENCE_DEFAULTS = {
   sttEnabled: true,
   sttProvider: "openai" as const, // DEPRECATED (2025-12-18): Moved to adminSettings.transcriptProvider - kept for rollback safety only
   ttsEnabled: false,
-  ttsProvider: "deepgram",
   ttsVoice: "aura-asteria-en",
   ttsSpeed: 1.0,
   ttsAutoRead: false,
@@ -81,7 +75,6 @@ export const PREFERENCE_DEFAULTS = {
   showProjects: true,
   showBookmarks: true,
   showTasks: true,
-  showSlides: true as boolean,
   showSmartAssistant: true,
 
   // Smart Assistant
@@ -122,9 +115,6 @@ export const PREFERENCE_DEFAULTS = {
 
 export const PREFERENCE_CATEGORIES: Record<string, string> = {
   // Appearance
-  theme: "appearance",
-  fontSize: "appearance",
-  codeTheme: "appearance",
   chatWidth: "appearance",
 
   // Models
@@ -142,10 +132,8 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   // Chat
   sendOnEnter: "chat",
   alwaysShowMessageActions: "chat",
-  minimalAssistantStyle: "chat",
   showMessageStatistics: "chat",
   showComparisonStatistics: "chat",
-  enableHybridSearch: "chat",
   showModelNamesDuringComparison: "chat",
   showModelProvider: "chat",
   autoCompressContext: "chat",
@@ -155,7 +143,6 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   sttEnabled: "audio",
   sttProvider: "audio",
   ttsEnabled: "audio",
-  ttsProvider: "audio",
   ttsVoice: "audio",
   ttsSpeed: "audio",
   ttsAutoRead: "audio",
@@ -168,7 +155,6 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   showProjects: "advanced",
   showBookmarks: "advanced",
   showTasks: "advanced",
-  showSlides: "advanced",
   showSmartAssistant: "advanced",
 
   // Smart Assistant

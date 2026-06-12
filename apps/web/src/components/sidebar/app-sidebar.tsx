@@ -81,7 +81,6 @@ interface SidebarFeatures {
   showTemplates: boolean;
   showProjects: boolean;
   showBookmarks: boolean;
-  showSlides: boolean;
   showTasks: boolean;
   showSmartAssistant: boolean;
   isLoading: boolean;
@@ -113,7 +112,6 @@ function useSidebarFeatureVisibility(isMobile: boolean) {
       showTemplates: showTemplates ?? true,
       showProjects: showProjects ?? true,
       showBookmarks: showBookmarks ?? true,
-      showSlides: false,
       showTasks: showTasks ?? true,
       showSmartAssistant: showSmartAssistant ?? true,
       isLoading: false,

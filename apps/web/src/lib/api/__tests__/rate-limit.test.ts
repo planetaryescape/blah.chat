@@ -8,6 +8,7 @@ import { applyRateLimit } from "../rate-limit";
 vi.mock("@/lib/logger", () => ({
   default: {
     error: vi.fn(),
+    warn: vi.fn(),
   },
 }));
 
@@ -112,5 +113,72 @@ describe("applyRateLimit", () => {
           "Message sending is temporarily unavailable. Please try again in a minute.",
       },
     });
+  });
+});
+
+describe("getLimiter without Upstash configured", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "");
+    vi.stubEnv("VERCEL_ENV", "");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("fails closed with a 503 rate_limiter_unconfigured envelope in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const mod = await import("../rate-limit");
+
+    const limiter = mod.getLimiter({
+      prefix: "test-prod",
+      limit: 10,
+      window: "1 h",
+    });
+    expect(limiter).toBeDefined();
+
+    const response = await mod.applyRateLimit(limiter!, "user_prod");
+    expect(response?.status).toBe(503);
+    const body = await response?.json();
+    expect(body).toMatchObject({
+      status: "error",
+      error: { code: "rate_limiter_unconfigured" },
+    });
+  });
+
+  it("fails closed on Vercel deployments even when NODE_ENV is not production", async () => {
+    vi.stubEnv("NODE_ENV", "test");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    const mod = await import("../rate-limit");
+
+    const limiter = mod.getLimiter({
+      prefix: "test-vercel",
+      limit: 10,
+      window: "1 h",
+    });
+    expect(limiter).toBeDefined();
+
+    const response = await mod.applyRateLimit(limiter!, "user_vercel");
+    expect(response?.status).toBe(503);
+  });
+
+  it("stays permissive in development", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const mod = await import("../rate-limit");
+
+    const limiter = mod.getLimiter({
+      prefix: "test-dev",
+      limit: 10,
+      window: "1 h",
+    });
+    expect(limiter).toBeUndefined();
+
+    const allowed = await mod.enforceRateLimit(
+      { prefix: "test-dev", limit: 10, window: "1 h" },
+      "user_dev",
+    );
+    expect(allowed).toBeNull();
   });
 });

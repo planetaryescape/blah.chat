@@ -1,3 +1,4 @@
+import type { ThinkingEffort } from "@blah-chat/ai";
 import {
   attachments,
   comparisonVotes,
@@ -1337,6 +1338,8 @@ export function createGenerationV2Repository(db: PersistenceDb) {
           connectionStatus: integration.connectionStatus,
         })),
         promptMessages: promptChain,
+        thinkingEffort: (conversation.thinkingEffort ??
+          "none") as ThinkingEffort,
         sessions: sessions.map((session) => ({
           sessionId: session.id,
           assistantMessageId: session.assistantMessageId,

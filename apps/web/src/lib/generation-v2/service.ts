@@ -441,6 +441,7 @@ export class GenerationV2Service {
         integrations: bundle.integrations,
         tools:
           Object.keys(composioTools).length > 0 ? composioTools : undefined,
+        thinkingEffort: bundle.thinkingEffort,
         signal: abortController.signal,
         byokGatewayKey:
           byokKeys?.enabled && byokKeys.gatewayKey

@@ -29,6 +29,10 @@ vi.mock("@/lib/generation-v2/runtime", () => ({
   }),
 }));
 
+vi.mock("@/lib/api/dal/generationPolicy", () => ({
+  assertGenerationAllowed: vi.fn(async () => {}),
+}));
+
 vi.mock("@/lib/persistence/current-user", () => ({
   ensureCurrentPersistenceUser: vi.fn(async () => ({
     id: "pg_user_1",

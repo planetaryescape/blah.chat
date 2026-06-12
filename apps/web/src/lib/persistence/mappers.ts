@@ -1,3 +1,4 @@
+import type { ThinkingEffort } from "@blah-chat/ai";
 import type { Conversation, Message } from "@blah-chat/persistence-postgres";
 
 export function toApiConversation(
@@ -17,6 +18,7 @@ export function toApiConversation(
     pinned: conversation.pinned,
     archived: conversation.archived,
     starred: conversation.starred,
+    thinkingEffort: (conversation.thinkingEffort ?? "none") as ThinkingEffort,
     selectedIntegrationIds: conversation.selectedIntegrationIds ?? [],
     modelRecommendation: conversation.modelRecommendation ?? undefined,
     messageCount: conversation.messageCount ?? 0,

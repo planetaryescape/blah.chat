@@ -1,4 +1,10 @@
-import { normalizeUsageTokens } from "@blah-chat/ai";
+import {
+  buildReasoningOptions,
+  getModelConfig,
+  isActiveThinkingEffort,
+  normalizeUsageTokens,
+  type ThinkingEffort,
+} from "@blah-chat/ai";
 import { streamText } from "ai";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import { getModel, getModelWithApiKey } from "@/lib/ai/registry";
@@ -173,25 +179,42 @@ export class AiSdkGenerationProvider implements GenerationProvider {
     sessionId: string;
     messages: GenerationPromptMessage[];
     tools?: Record<string, unknown>;
+    thinkingEffort?: ThinkingEffort;
     signal?: AbortSignal;
     byokGatewayKey?: string;
     byokOpenRouterKey?: string;
   }) {
     const hasByokKey = Boolean(input.byokGatewayKey || input.byokOpenRouterKey);
-    const model = hasByokKey
+    let model = hasByokKey
       ? getModelWithApiKey(input.modelId, {
           gatewayKey: input.byokGatewayKey,
           openRouterKey: input.byokOpenRouterKey,
         })
       : getModel(input.modelId);
+
+    // Per-conversation reasoning effort. "none"/undefined keeps the default
+    // behavior; models without a reasoning config degrade gracefully (null).
+    const modelConfig = getModelConfig(input.modelId);
+    const reasoning =
+      isActiveThinkingEffort(input.thinkingEffort) && modelConfig
+        ? buildReasoningOptions(modelConfig, input.thinkingEffort)
+        : null;
+    if (reasoning?.applyMiddleware) {
+      model = reasoning.applyMiddleware(model);
+    }
+
     const result = streamText({
       model,
       messages: toModelMessages(input.messages),
       ...(input.tools ? { tools: input.tools as any } : {}),
-      providerOptions: getGatewayOptions(input.modelId, input.userId, [
-        "chat",
-        "generation-v2",
-      ]),
+      providerOptions: {
+        ...getGatewayOptions(input.modelId, input.userId, [
+          "chat",
+          "generation-v2",
+        ]),
+        ...(reasoning?.providerOptions ?? {}),
+      },
+      ...(reasoning?.headers ? { headers: reasoning.headers } : {}),
       abortSignal: input.signal,
     });
     const sessionKey = this.getSessionKey(input);

@@ -329,15 +329,29 @@ export function createGenerationStreamState(
 }
 
 /**
- * Seq-aware replay guard: the server replays the full event log from seq 0 on
- * every (re)connect, so an event at or below the last applied seq for its
- * session is already folded into local state and must be dropped — appending
- * it again would duplicate streamed text.
+ * Only `delta` and `checkpoint` events carry ordered/incremental content where
+ * re-applying a stale event corrupts state (a replayed delta double-appends; a
+ * stale checkpoint regresses content). Those are seq-deduped per session.
+ *
+ * `start`/`ack` set absolute state, and `complete`/`cancelled`/`error` are
+ * terminal and idempotent — they must NEVER be dropped by the seq guard. A
+ * canonical DB replay assigns its terminal `complete` a seq of
+ * `lastCheckpointSeq + 1`, which is *below* the live delta counter the client
+ * already advanced past; guarding it would strand the message in "generating"
+ * until a later snapshot healed it (the "answers, then back to loading" bug).
  */
+const SEQ_GUARDED_EVENT_TYPES = new Set<GenerationEvent["type"]>([
+  "delta",
+  "checkpoint",
+]);
+
 export function shouldApplyGenerationEvent(
   state: GenerationStreamState,
   event: GenerationEvent,
 ): boolean {
+  if (!SEQ_GUARDED_EVENT_TYPES.has(event.type)) {
+    return true;
+  }
   const lastApplied = state.lastAppliedSeqBySession.get(event.sessionId);
   return lastApplied === undefined || event.seq > lastApplied;
 }
@@ -346,7 +360,18 @@ export function trackGenerationEvent(
   state: GenerationStreamState,
   event: GenerationEvent,
 ): void {
-  state.lastAppliedSeqBySession.set(event.sessionId, event.seq);
+  // `start` resets accumulated content, so the per-session high-water mark
+  // resets with it — the deltas that follow must re-apply to rebuild the text.
+  // Every other event may only raise the mark: a low-seq canonical-replay
+  // terminal event must not lower it and let already-applied deltas re-append.
+  if (event.type === "start") {
+    state.lastAppliedSeqBySession.set(event.sessionId, event.seq);
+  } else {
+    const prev = state.lastAppliedSeqBySession.get(event.sessionId);
+    if (prev === undefined || event.seq > prev) {
+      state.lastAppliedSeqBySession.set(event.sessionId, event.seq);
+    }
+  }
   if (event.type !== "ack") {
     state.seenMessageIds.add(event.assistantMessageId);
   }

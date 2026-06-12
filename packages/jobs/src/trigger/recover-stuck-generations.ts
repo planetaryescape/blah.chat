@@ -4,8 +4,8 @@ import {
   generationSessions,
   type PersistenceDb,
 } from "@blah-chat/persistence-postgres";
-import { and, eq, gte, inArray, lt, notExists, sql } from "drizzle-orm";
-import { processGeneration } from "./process-generation";
+import { and, asc, eq, gte, inArray, lt, notExists, sql } from "drizzle-orm";
+import { processGenerationTask } from "./process-generation";
 
 function getDatabaseUrl() {
   const url = process.env.DATABASE_URL;
@@ -14,11 +14,14 @@ function getDatabaseUrl() {
 }
 
 const STUCK_THRESHOLD_MS = 90 * 1000;
+const DEFAULT_RECOVERY_BATCH_SIZE = 25;
+const MAX_RECOVERY_BATCH_SIZE = 100;
 
 export interface RecoverStuckGenerationsDeps {
   db?: PersistenceDb;
   now?: number;
   enqueue?: (requestId: string) => Promise<void>;
+  batchSize?: number;
 }
 
 export async function recoverStuckGenerations(
@@ -27,10 +30,21 @@ export async function recoverStuckGenerations(
   const db = deps.db ?? createNeonDatabase(getDatabaseUrl());
   const now = deps.now ?? Date.now();
   const cutoff = now - STUCK_THRESHOLD_MS;
+  const batchSize = Math.min(
+    Math.max(1, deps.batchSize ?? DEFAULT_RECOVERY_BATCH_SIZE),
+    MAX_RECOVERY_BATCH_SIZE,
+  );
   const enqueue =
     deps.enqueue ??
     (async (requestId: string) => {
-      await processGeneration({ requestId });
+      await processGenerationTask.trigger(
+        { requestId },
+        {
+          concurrencyKey: requestId,
+          idempotencyKey: `recover-generation:${requestId}`,
+          idempotencyKeyTTL: "15m",
+        },
+      );
     });
 
   // Reset stale running/cancelling requests back to pending so the next worker
@@ -39,11 +53,40 @@ export async function recoverStuckGenerations(
   // freshest of its generation_sessions: the web app heartbeats session
   // updatedAt on every checkpoint, so a request with any fresh session is
   // still alive even if request.updatedAt lagged behind.
+  const staleRequests = await db
+    .select({ id: generationRequests.id })
+    .from(generationRequests)
+    .where(
+      and(
+        inArray(generationRequests.status, ["running", "cancelling"]),
+        lt(generationRequests.updatedAt, cutoff),
+        notExists(
+          db
+            .select({ one: sql`1` })
+            .from(generationSessions)
+            .where(
+              and(
+                eq(generationSessions.requestId, generationRequests.id),
+                gte(generationSessions.updatedAt, cutoff),
+              ),
+            ),
+        ),
+      ),
+    )
+    .orderBy(asc(generationRequests.updatedAt), asc(generationRequests.id))
+    .limit(batchSize);
+
+  if (staleRequests.length === 0) {
+    return { recovered: 0 };
+  }
+
+  const staleRequestIds = staleRequests.map((request) => request.id);
   const recovered = await db
     .update(generationRequests)
     .set({ status: "pending", updatedAt: now })
     .where(
       and(
+        inArray(generationRequests.id, staleRequestIds),
         inArray(generationRequests.status, ["running", "cancelling"]),
         lt(generationRequests.updatedAt, cutoff),
         notExists(

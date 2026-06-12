@@ -4,7 +4,10 @@ import {
 } from "@blah-chat/persistence-postgres";
 import { schedules } from "@trigger.dev/sdk";
 import { cleanupStaleIncognito } from "./cleanup-stale-incognito";
-import { extractInactiveConversations } from "./extract-inactive-conversations";
+import {
+  type ExtractionTarget,
+  extractInactiveConversations,
+} from "./extract-inactive-conversations";
 import { getDatabaseUrl, runMaintenanceStep } from "./maintenance-utils";
 import { markExpiredMemories } from "./mark-expired-memories";
 
@@ -22,7 +25,7 @@ function isDailyMaintenanceWindow(now: number) {
 export async function runMemoryMaintenance(
   deps: {
     db?: PersistenceDb;
-    enqueueExtraction?: (conversationId: string) => Promise<void>;
+    enqueueExtraction?: (target: ExtractionTarget) => Promise<void>;
     now?: number;
   } = {},
 ) {

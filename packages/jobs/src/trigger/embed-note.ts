@@ -60,24 +60,40 @@ export async function embedNote(
 
   const timestamp = now();
 
-  await db.delete(noteEmbeddings).where(eq(noteEmbeddings.noteKey, note.id));
-
-  await db.insert(noteEmbeddings).values({
-    userId: note.userId,
-    noteKey: note.id,
-    content,
-    embedding,
-    searchDocument: content,
-    metadata: { tags: note.tags },
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  });
+  // Atomic upsert on the note_embeddings.note_key unique index — no
+  // delete-then-insert window where the row is missing.
+  await db
+    .insert(noteEmbeddings)
+    .values({
+      userId: note.userId,
+      noteKey: note.id,
+      content,
+      embedding,
+      searchDocument: content,
+      metadata: { tags: note.tags },
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    .onConflictDoUpdate({
+      target: noteEmbeddings.noteKey,
+      set: {
+        userId: note.userId,
+        content,
+        embedding,
+        searchDocument: content,
+        metadata: { tags: note.tags },
+        updatedAt: timestamp,
+      },
+    });
 
   return { success: true };
 }
 
 export const embedNoteTask = task({
   id: "embed-note",
+  // Serialize per entity: enqueuers pass concurrencyKey=noteId so each note
+  // gets its own single-slot queue (stale runs can't clobber fresh).
+  queue: { concurrencyLimit: 1 },
   maxDuration: 300,
   retry: {
     maxAttempts: 3,

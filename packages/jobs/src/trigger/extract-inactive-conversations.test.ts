@@ -62,9 +62,9 @@ describe("extractInactiveConversations", () => {
   it("enqueues extraction for inactive conversations with enough messages", async () => {
     const db = await createTestPersistenceDb();
     const now = Date.now();
-    const enqueued: string[] = [];
+    const enqueued: Array<{ conversationId: string; userId: string }> = [];
 
-    await seedConversationWithMessages(db, {
+    const { user, conversation } = await seedConversationWithMessages(db, {
       updatedAtAge: 30 * MINUTE,
       messageCount: 3,
     });
@@ -72,13 +72,15 @@ describe("extractInactiveConversations", () => {
     const result = await extractInactiveConversations({
       db,
       now,
-      enqueueExtraction: async (conversationId) => {
-        enqueued.push(conversationId);
+      enqueueExtraction: async (target) => {
+        enqueued.push(target);
       },
     });
 
     expect(result.scheduled).toBe(1);
-    expect(enqueued).toHaveLength(1);
+    expect(enqueued).toEqual([
+      { conversationId: conversation.id, userId: user.id },
+    ]);
   });
 
   it("skips conversations that are too recent (still active)", async () => {
@@ -94,8 +96,8 @@ describe("extractInactiveConversations", () => {
     const result = await extractInactiveConversations({
       db,
       now,
-      enqueueExtraction: async (id) => {
-        enqueued.push(id);
+      enqueueExtraction: async (target) => {
+        enqueued.push(target.conversationId);
       },
     });
 
@@ -116,8 +118,8 @@ describe("extractInactiveConversations", () => {
     const result = await extractInactiveConversations({
       db,
       now,
-      enqueueExtraction: async (id) => {
-        enqueued.push(id);
+      enqueueExtraction: async (target) => {
+        enqueued.push(target.conversationId);
       },
     });
 
@@ -137,8 +139,8 @@ describe("extractInactiveConversations", () => {
     const result = await extractInactiveConversations({
       db,
       now,
-      enqueueExtraction: async (id) => {
-        enqueued.push(id);
+      enqueueExtraction: async (target) => {
+        enqueued.push(target.conversationId);
       },
     });
 
@@ -169,8 +171,8 @@ describe("extractInactiveConversations", () => {
     const result = await extractInactiveConversations({
       db,
       now,
-      enqueueExtraction: async (id) => {
-        enqueued.push(id);
+      enqueueExtraction: async (target) => {
+        enqueued.push(target.conversationId);
       },
     });
 

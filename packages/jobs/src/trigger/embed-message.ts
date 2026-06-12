@@ -63,27 +63,40 @@ export async function embedMessage(
 
   const timestamp = now();
 
-  // Delete existing embedding for this message (idempotent upsert)
+  // Atomic upsert on the message_embeddings.message_id unique index — no
+  // delete-then-insert window where the row is missing.
   await db
-    .delete(messageEmbeddings)
-    .where(eq(messageEmbeddings.messageId, message.id));
-
-  await db.insert(messageEmbeddings).values({
-    messageId: message.id,
-    conversationId: message.conversationId,
-    userId: message.userId,
-    content,
-    embedding,
-    searchDocument: content,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  });
+    .insert(messageEmbeddings)
+    .values({
+      messageId: message.id,
+      conversationId: message.conversationId,
+      userId: message.userId,
+      content,
+      embedding,
+      searchDocument: content,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    .onConflictDoUpdate({
+      target: messageEmbeddings.messageId,
+      set: {
+        conversationId: message.conversationId,
+        userId: message.userId,
+        content,
+        embedding,
+        searchDocument: content,
+        updatedAt: timestamp,
+      },
+    });
 
   return { success: true };
 }
 
 export const embedMessageTask = task({
   id: "embed-message",
+  // Serialize per entity: enqueuers pass concurrencyKey=messageId so each
+  // message gets its own single-slot queue (stale runs can't clobber fresh).
+  queue: { concurrencyLimit: 1 },
   maxDuration: 300,
   retry: {
     maxAttempts: 3,

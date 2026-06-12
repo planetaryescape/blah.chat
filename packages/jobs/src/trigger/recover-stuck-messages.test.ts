@@ -120,7 +120,7 @@ describe("recoverStuckMessages", () => {
     expect(result.recovered).toBe(0);
   });
 
-  it("also fails stale pending generation sessions for recovered conversations", async () => {
+  it("also errors stale pending sessions belonging to recovered messages", async () => {
     const db = await createTestPersistenceDb();
     const now = Date.now();
     const gens = createGenerationRepository(db);
@@ -130,11 +130,47 @@ describe("recoverStuckMessages", () => {
       ageMs: TEN_MINUTES + 60_000,
     });
 
-    // Create a generation with a pending session for this conversation
+    // Create a generation whose assistant message + session are both stale
     const gen = await gens.createSingleModel({
       conversationId: conversation.id,
       userId: user.id,
       content: "Test prompt",
+      modelId: "openai:gpt-5-mini",
+    });
+    await db
+      .update(messages)
+      .set({ updatedAt: now - TEN_MINUTES - 60_000 })
+      .where(eq(messages.id, gen.assistantMessage.id));
+    await db
+      .update(generationSessions)
+      .set({ updatedAt: now - TEN_MINUTES - 60_000 })
+      .where(eq(generationSessions.id, gen.session.id));
+
+    const result = await recoverStuckMessages({ db, now });
+
+    expect(result.recovered).toBeGreaterThanOrEqual(1);
+
+    const session = await db.query.generationSessions.findFirst({
+      where: eq(generationSessions.id, gen.session.id),
+    });
+    expect(session?.status).toBe("error");
+  });
+
+  it("leaves sessions alone when they do not belong to a recovered message", async () => {
+    const db = await createTestPersistenceDb();
+    const now = Date.now();
+    const gens = createGenerationRepository(db);
+
+    const { user, conversation } = await seedStuckMessage(db, {
+      status: "generating",
+      ageMs: TEN_MINUTES + 60_000,
+    });
+
+    // Fresh generation in the same conversation: its session must survive
+    const gen = await gens.createSingleModel({
+      conversationId: conversation.id,
+      userId: user.id,
+      content: "Another prompt",
       modelId: "openai:gpt-5-mini",
     });
 
@@ -145,6 +181,6 @@ describe("recoverStuckMessages", () => {
     const session = await db.query.generationSessions.findFirst({
       where: eq(generationSessions.id, gen.session.id),
     });
-    expect(session?.status).toBe("failed");
+    expect(session?.status).toBe("pending");
   });
 });

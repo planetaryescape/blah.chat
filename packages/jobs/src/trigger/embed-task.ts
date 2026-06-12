@@ -63,24 +63,40 @@ export async function embedTask(
 
   const timestamp = now();
 
-  await db.delete(taskEmbeddings).where(eq(taskEmbeddings.taskKey, taskRow.id));
-
-  await db.insert(taskEmbeddings).values({
-    userId: taskRow.userId,
-    taskKey: taskRow.id,
-    content,
-    embedding,
-    searchDocument: content,
-    metadata: { status: taskRow.status, tags: taskRow.tags },
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  });
+  // Atomic upsert on the task_embeddings.task_key unique index — no
+  // delete-then-insert window where the row is missing.
+  await db
+    .insert(taskEmbeddings)
+    .values({
+      userId: taskRow.userId,
+      taskKey: taskRow.id,
+      content,
+      embedding,
+      searchDocument: content,
+      metadata: { status: taskRow.status, tags: taskRow.tags },
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    .onConflictDoUpdate({
+      target: taskEmbeddings.taskKey,
+      set: {
+        userId: taskRow.userId,
+        content,
+        embedding,
+        searchDocument: content,
+        metadata: { status: taskRow.status, tags: taskRow.tags },
+        updatedAt: timestamp,
+      },
+    });
 
   return { success: true };
 }
 
 export const embedTaskTask = task({
   id: "embed-task",
+  // Serialize per entity: enqueuers pass concurrencyKey=taskId so each task
+  // gets its own single-slot queue (stale runs can't clobber fresh).
+  queue: { concurrencyLimit: 1 },
   maxDuration: 300,
   retry: {
     maxAttempts: 3,

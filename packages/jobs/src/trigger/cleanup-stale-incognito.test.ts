@@ -34,10 +34,12 @@ async function seedIncognitoConversation(
     .update(conversations)
     .set({
       isIncognito: true,
+      updatedAt: now - opts.lastActivityAge,
       incognitoSettings: {
         enableReadTools: true,
         applyCustomInstructions: true,
-        lastActivityAt: now - opts.lastActivityAge,
+        // Intentionally stale: cleanup must key off updatedAt, not this field.
+        lastActivityAt: now - 30 * 24 * HOUR,
       },
     })
     .where(eq(conversations.id, conversation.id));

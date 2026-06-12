@@ -17,7 +17,12 @@ const INACTIVITY_THRESHOLD_MS = 15 * 60 * 1000;
 const STALE_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000;
 const BATCH_SIZE = 50;
 
-async function defaultEnqueueExtraction(conversationId: string) {
+export interface ExtractionTarget {
+  conversationId: string;
+  userId: string;
+}
+
+async function defaultEnqueueExtraction(target: ExtractionTarget) {
   const secretKey = process.env.TRIGGER_SECRET_KEY;
   if (!secretKey) throw new Error("TRIGGER_SECRET_KEY is not set");
 
@@ -29,7 +34,12 @@ async function defaultEnqueueExtraction(conversationId: string) {
       "Content-Type": "application/json",
       Accept: "application/json",
     },
-    body: JSON.stringify({ payload: { conversationId } }),
+    body: JSON.stringify({
+      payload: {
+        conversationId: target.conversationId,
+        userId: target.userId,
+      },
+    }),
   });
 }
 
@@ -37,7 +47,7 @@ export async function extractInactiveConversations(
   deps: {
     db?: PersistenceDb;
     now?: number;
-    enqueueExtraction?: (conversationId: string) => Promise<void>;
+    enqueueExtraction?: (target: ExtractionTarget) => Promise<void>;
   } = {},
 ) {
   const db = deps.db ?? createNeonDatabase(getDatabaseUrl());
@@ -52,7 +62,7 @@ export async function extractInactiveConversations(
   // 2. Have >= 2 messages
   // 3. Have no memory embeddings yet for this conversation
   const candidates = await db
-    .select({ id: conversations.id })
+    .select({ id: conversations.id, userId: conversations.userId })
     .from(conversations)
     .where(
       and(
@@ -70,7 +80,7 @@ export async function extractInactiveConversations(
     .limit(BATCH_SIZE);
 
   // Filter to those with >= 2 messages
-  const qualified: string[] = [];
+  const qualified: ExtractionTarget[] = [];
   for (const candidate of candidates) {
     const [result] = await db
       .select({ msgCount: count() })
@@ -78,13 +88,16 @@ export async function extractInactiveConversations(
       .where(eq(messages.conversationId, candidate.id));
 
     if (result && result.msgCount >= 2) {
-      qualified.push(candidate.id);
+      qualified.push({
+        conversationId: candidate.id,
+        userId: candidate.userId,
+      });
     }
   }
 
   // Enqueue extraction for each qualified conversation
-  for (const conversationId of qualified) {
-    await enqueue(conversationId);
+  for (const target of qualified) {
+    await enqueue(target);
   }
 
   return { scheduled: qualified.length };

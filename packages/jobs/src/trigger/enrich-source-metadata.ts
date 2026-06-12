@@ -8,6 +8,7 @@ import {
 } from "@blah-chat/persistence-postgres";
 import { task } from "@trigger.dev/sdk";
 import { and, eq } from "drizzle-orm";
+import { fetchPublicUrl } from "../lib/url-guard";
 
 type FetchedMetadata = {
   title?: string;
@@ -49,7 +50,10 @@ function getUrlHash(url: string) {
 }
 
 async function fetchOpenGraphMetadata(url: string): Promise<FetchedMetadata> {
-  const response = await fetch(url, {
+  // SSRF guard with manual redirect handling: re-validates every hop (max 3
+  // redirects). Guard failures throw and are recorded as enrichment errors by
+  // the caller's try/catch.
+  const response = await fetchPublicUrl(url, {
     signal: AbortSignal.timeout(5_000),
     headers: {
       "User-Agent":

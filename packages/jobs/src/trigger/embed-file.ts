@@ -125,23 +125,37 @@ export async function embedAttachmentFile(
 
   const embeddings = await embedBatch(chunks.map((chunk) => chunk.content));
 
-  await db.delete(fileChunks).where(eq(fileChunks.attachmentId, attachment.id));
-  await db.insert(fileChunks).values(
-    chunks.map((chunk, index) => ({
-      attachmentId: attachment.id,
-      conversationId: attachment.conversationId,
-      userId: attachment.userId,
-      chunkIndex: chunk.chunkIndex,
-      content: chunk.content,
-      searchDocument: chunk.content,
-      embedding: embeddings[index] ?? [],
-      metadata: {
-        charOffset: chunk.charOffset,
-        tokenCount: chunk.tokenCount,
-      },
-      createdAt: now(),
-    })),
-  );
+  // Atomic replace: the delete runs as a data-modifying CTE on the insert, so
+  // both happen in one statement (one implicit transaction). The neon-http
+  // driver used in production does not support interactive transactions, so a
+  // db.transaction() wrapper is not an option here.
+  const purged = db
+    .$with("purged")
+    .as(
+      db
+        .delete(fileChunks)
+        .where(eq(fileChunks.attachmentId, attachment.id))
+        .returning(),
+    );
+  await db
+    .with(purged)
+    .insert(fileChunks)
+    .values(
+      chunks.map((chunk, index) => ({
+        attachmentId: attachment.id,
+        conversationId: attachment.conversationId,
+        userId: attachment.userId,
+        chunkIndex: chunk.chunkIndex,
+        content: chunk.content,
+        searchDocument: chunk.content,
+        embedding: embeddings[index] ?? [],
+        metadata: {
+          charOffset: chunk.charOffset,
+          tokenCount: chunk.tokenCount,
+        },
+        createdAt: now(),
+      })),
+    );
 
   return {
     success: true,
@@ -151,6 +165,9 @@ export async function embedAttachmentFile(
 
 export const embedFileTask = task({
   id: "embed-file",
+  // Serialize per entity: enqueuers pass concurrencyKey=attachmentId so each
+  // attachment gets its own single-slot queue.
+  queue: { concurrencyLimit: 1 },
   maxDuration: 600,
   retry: {
     maxAttempts: 3,

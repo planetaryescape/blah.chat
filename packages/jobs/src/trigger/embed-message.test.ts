@@ -4,14 +4,24 @@ import {
   createUserRepository,
   messageEmbeddings,
 } from "@blah-chat/persistence-postgres";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createTestPersistenceDb } from "../../../persistence-postgres/src/testing/pglite";
 import { embedMessage } from "./embed-message";
 
+// The pglite bootstrap schema lags behind schema.ts, which declares this
+// unique index (message_embeddings_by_message); the upsert relies on it.
+async function createDb() {
+  const db = await createTestPersistenceDb();
+  await db.execute(
+    sql`CREATE UNIQUE INDEX IF NOT EXISTS message_embeddings_by_message ON message_embeddings (message_id)`,
+  );
+  return db;
+}
+
 describe("embedMessage", () => {
   it("generates embedding and inserts into messageEmbeddings", async () => {
-    const db = await createTestPersistenceDb();
+    const db = await createDb();
     const users = createUserRepository(db);
     const conversations = createConversationRepository(db);
     const messages = createMessageRepository(db);
@@ -64,7 +74,7 @@ describe("embedMessage", () => {
   });
 
   it("skips if message not found", async () => {
-    const db = await createTestPersistenceDb();
+    const db = await createDb();
     const result = await embedMessage(
       { messageId: "nonexistent" },
       {
@@ -78,7 +88,7 @@ describe("embedMessage", () => {
   });
 
   it("is idempotent - upserts on re-embed", async () => {
-    const db = await createTestPersistenceDb();
+    const db = await createDb();
     const users = createUserRepository(db);
     const conversations = createConversationRepository(db);
     const messages = createMessageRepository(db);

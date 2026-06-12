@@ -308,6 +308,29 @@ export async function generateImageForMessage(
     return { success: true, skipped: "message_not_found" as const };
   }
 
+  // Retry safety: if a previous attempt already completed (message marked
+  // complete, or the generated attachment for this prompt was persisted),
+  // return success instead of generating/uploading/charging again.
+  const priorAttachment = await db.query.attachments.findFirst({
+    where: and(
+      eq(attachments.messageId, payload.messageId),
+      eq(attachments.type, "image"),
+    ),
+  });
+  const priorAttachmentMatchesPrompt =
+    priorAttachment?.metadata?.prompt === payload.prompt;
+
+  if (
+    assistantMessage.status === "complete" ||
+    (priorAttachment && priorAttachmentMatchesPrompt)
+  ) {
+    return {
+      success: true,
+      skipped: "already_generated" as const,
+      storageId: priorAttachment?.key,
+    };
+  }
+
   let referenceImageBase64: string | undefined;
   if (payload.referenceImageStorageId) {
     if (
@@ -366,6 +389,18 @@ export async function generateImageForMessage(
     createdAt: timestamp,
   });
 
+  // Usage is recorded after the attachment insert (so a retry short-circuits
+  // on the prior-attachment guard and never double-charges) but before the
+  // message completion update.
+  await recordUsage({
+    db,
+    conversationId: payload.conversationId,
+    messageId: payload.messageId,
+    userId: conversation.userId,
+    modelId,
+    usage: generated.usage,
+  });
+
   await db
     .update(messages)
     .set({
@@ -375,15 +410,6 @@ export async function generateImageForMessage(
       updatedAt: timestamp,
     })
     .where(eq(messages.id, payload.messageId));
-
-  await recordUsage({
-    db,
-    conversationId: payload.conversationId,
-    messageId: payload.messageId,
-    userId: conversation.userId,
-    modelId,
-    usage: generated.usage,
-  });
 
   return {
     success: true,

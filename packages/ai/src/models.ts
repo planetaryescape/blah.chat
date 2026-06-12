@@ -112,6 +112,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
   "openai:gpt-5.4-pro": {
     id: "openai:gpt-5.4-pro",
+    isPro: true,
     provider: "openai",
     name: "GPT-5.4 Pro",
     description:
@@ -287,6 +288,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   // Anthropic
   "anthropic:claude-opus-4.5": {
     id: "anthropic:claude-opus-4.5",
+    isPro: true,
     isDeprecated: true,
     provider: "anthropic",
     name: "Claude 4.5 Opus",
@@ -311,6 +313,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
   "anthropic:claude-sonnet-4.5": {
     id: "anthropic:claude-sonnet-4.5",
+    isPro: true,
     isDeprecated: true,
     provider: "anthropic",
     name: "Claude 4.5 Sonnet",
@@ -499,6 +502,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
 
   "google:gemini-3-pro-image-preview": {
     id: "google:gemini-3-pro-image-preview",
+    isPro: true,
     name: "Gemini 3 Pro Image (Nano Banana Pro)",
     provider: "google",
     contextWindow: 65536, // 65K tokens
@@ -621,6 +625,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
   "perplexity:sonar-pro": {
     id: "perplexity:sonar-pro",
+    isPro: true,
     provider: "perplexity",
     name: "Sonar Pro",
     description: "Advanced search with grounding",
@@ -1016,6 +1021,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   // Anthropic
   "openrouter:claude-opus-4.7": {
     id: "openrouter:claude-opus-4.7",
+    isPro: true,
     provider: "anthropic",
     name: "Claude Opus 4.7",
     description:
@@ -1032,6 +1038,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
   "openrouter:claude-sonnet-4.6": {
     id: "openrouter:claude-sonnet-4.6",
+    isPro: true,
     provider: "anthropic",
     name: "Claude Sonnet 4.6",
     description:
@@ -1065,6 +1072,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   // OpenAI
   "openrouter:gpt-5.5": {
     id: "openrouter:gpt-5.5",
+    isPro: true,
     provider: "openai",
     name: "GPT-5.5",
     description:
@@ -1385,6 +1393,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
   "openrouter:claude-opus-4.8": {
     id: "openrouter:claude-opus-4.8",
+    isPro: true,
     provider: "anthropic",
     name: "Claude Opus 4.8",
     description:

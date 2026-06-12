@@ -405,7 +405,18 @@ describe("generation stream state", () => {
       content: "done",
     }) as const;
 
-  it("drops replayed events at or below the last applied seq per session", () => {
+  const checkpointEvent = (sessionId: string, messageId: string, seq: number) =>
+    ({
+      ...baseEvent,
+      type: "checkpoint",
+      sessionId,
+      assistantMessageId: messageId,
+      seq,
+      ts: seq,
+      content: "snapshot",
+    }) as const;
+
+  it("dedupes duplicate delta events but a replayed start resets and rebuilds", () => {
     const state = createGenerationStreamState();
 
     const first = deltaEvent("s1", "m1", 1);
@@ -416,19 +427,58 @@ describe("generation stream state", () => {
     expect(shouldApplyGenerationEvent(state, second)).toBe(true);
     trackGenerationEvent(state, second);
 
-    // Reconnect replays the log from seq 0.
-    expect(shouldApplyGenerationEvent(state, startEvent("s1", "m1", 0))).toBe(
-      false,
-    );
+    // A bare duplicate delta (no preceding start reset) is dropped.
     expect(shouldApplyGenerationEvent(state, deltaEvent("s1", "m1", 1))).toBe(
       false,
     );
     expect(shouldApplyGenerationEvent(state, deltaEvent("s1", "m1", 2))).toBe(
       false,
     );
-    // New events after the replay still apply.
-    expect(shouldApplyGenerationEvent(state, deltaEvent("s1", "m1", 3))).toBe(
+
+    // A replayed `start` always applies and resets the per-session high-water
+    // mark (it also resets content), so the deltas that follow rebuild the text.
+    const replayStart = startEvent("s1", "m1", 0);
+    expect(shouldApplyGenerationEvent(state, replayStart)).toBe(true);
+    trackGenerationEvent(state, replayStart);
+    expect(shouldApplyGenerationEvent(state, deltaEvent("s1", "m1", 1))).toBe(
       true,
+    );
+    expect(shouldApplyGenerationEvent(state, deltaEvent("s1", "m1", 2))).toBe(
+      true,
+    );
+  });
+
+  it("never drops a terminal complete whose seq is below the live delta counter", () => {
+    const state = createGenerationStreamState();
+    // Live stream advances well past the last persisted checkpoint.
+    for (let s = 1; s <= 50; s++) {
+      trackGenerationEvent(state, deltaEvent("s1", "m1", s));
+    }
+    // Reconnect: a canonical DB replay emits its terminal `complete` at
+    // lastCheckpointSeq + 1 — far below the live counter. It must still apply,
+    // otherwise the message is stranded in "generating".
+    expect(
+      shouldApplyGenerationEvent(state, completeEvent("s1", "m1", 31)),
+    ).toBe(true);
+  });
+
+  it("still dedupes a stale checkpoint to avoid content regression", () => {
+    const state = createGenerationStreamState();
+    trackGenerationEvent(state, deltaEvent("s1", "m1", 50));
+    expect(
+      shouldApplyGenerationEvent(state, checkpointEvent("s1", "m1", 30)),
+    ).toBe(false);
+  });
+
+  it("does not let a low-seq terminal event lower the high-water mark", () => {
+    const state = createGenerationStreamState();
+    for (let s = 1; s <= 50; s++) {
+      trackGenerationEvent(state, deltaEvent("s1", "m1", s));
+    }
+    trackGenerationEvent(state, completeEvent("s1", "m1", 31));
+    // A stale delta below the live counter is still dropped after the terminal.
+    expect(shouldApplyGenerationEvent(state, deltaEvent("s1", "m1", 40))).toBe(
+      false,
     );
   });
 

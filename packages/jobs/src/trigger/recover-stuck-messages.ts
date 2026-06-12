@@ -4,7 +4,7 @@ import {
   messages,
   type PersistenceDb,
 } from "@blah-chat/persistence-postgres";
-import { and, eq, inArray, lt, or } from "drizzle-orm";
+import { and, asc, eq, inArray, lt } from "drizzle-orm";
 
 function getDatabaseUrl() {
   const url = process.env.DATABASE_URL;
@@ -13,17 +13,40 @@ function getDatabaseUrl() {
 }
 
 const STUCK_THRESHOLD_MS = 10 * 60 * 1000;
+const DEFAULT_RECOVERY_BATCH_SIZE = 500;
+const MAX_RECOVERY_BATCH_SIZE = 1000;
 
 export async function recoverStuckMessages(
-  deps: { db?: PersistenceDb; now?: number } = {},
+  deps: { db?: PersistenceDb; now?: number; batchSize?: number } = {},
 ) {
   const db = deps.db ?? createNeonDatabase(getDatabaseUrl());
   const now = deps.now ?? Date.now();
   const cutoff = now - STUCK_THRESHOLD_MS;
+  const batchSize = Math.min(
+    Math.max(1, deps.batchSize ?? DEFAULT_RECOVERY_BATCH_SIZE),
+    MAX_RECOVERY_BATCH_SIZE,
+  );
 
-  // Single-statement update: the staleness predicate lives in the WHERE so a
-  // message that progressed between scheduling and execution is never
-  // clobbered (no select-then-update race).
+  const staleMessages = await db
+    .select({ id: messages.id })
+    .from(messages)
+    .where(
+      and(
+        inArray(messages.status, ["pending", "generating"]),
+        lt(messages.updatedAt, cutoff),
+      ),
+    )
+    .orderBy(asc(messages.updatedAt), asc(messages.id))
+    .limit(batchSize);
+
+  if (staleMessages.length === 0) {
+    return { recovered: 0 };
+  }
+
+  const staleMessageIds = staleMessages.map((message) => message.id);
+
+  // Keep the staleness predicate in the update so a message that progressed
+  // between selection and execution is never clobbered.
   const recovered = await db
     .update(messages)
     .set({
@@ -32,7 +55,8 @@ export async function recoverStuckMessages(
     })
     .where(
       and(
-        or(eq(messages.status, "pending"), eq(messages.status, "generating")),
+        inArray(messages.id, staleMessageIds),
+        inArray(messages.status, ["pending", "generating"]),
         lt(messages.updatedAt, cutoff),
       ),
     )

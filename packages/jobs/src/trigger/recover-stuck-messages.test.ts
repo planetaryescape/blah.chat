@@ -6,7 +6,7 @@ import {
   generationSessions,
   messages,
 } from "@blah-chat/persistence-postgres";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createTestPersistenceDb } from "../../../persistence-postgres/src/testing/pglite";
 import { recoverStuckMessages } from "./recover-stuck-messages";
@@ -182,5 +182,32 @@ describe("recoverStuckMessages", () => {
       where: eq(generationSessions.id, gen.session.id),
     });
     expect(session?.status).toBe("pending");
+  });
+
+  it("limits recovered messages to the configured batch size", async () => {
+    const db = await createTestPersistenceDb();
+    const now = Date.now();
+
+    await seedStuckMessage(db, {
+      status: "generating",
+      ageMs: TEN_MINUTES + 60_000,
+    });
+    await seedStuckMessage(db, {
+      status: "generating",
+      ageMs: TEN_MINUTES + 60_000,
+    });
+    await seedStuckMessage(db, {
+      status: "pending",
+      ageMs: TEN_MINUTES + 60_000,
+    });
+
+    const result = await recoverStuckMessages({ db, now, batchSize: 2 });
+
+    expect(result.recovered).toBe(2);
+
+    const stillStuck = await db.query.messages.findMany({
+      where: inArray(messages.status, ["pending", "generating"]),
+    });
+    expect(stillStuck).toHaveLength(1);
   });
 });

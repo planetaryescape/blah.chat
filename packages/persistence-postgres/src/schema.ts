@@ -1746,14 +1746,6 @@ export interface AdminSettingsValue {
     defaultDailyMessageLimit: number;
     defaultMaxIntegrations: number;
   };
-  features: {
-    canvasMode: boolean;
-    comparisonMode: boolean;
-    voiceInput: boolean;
-    imageGeneration: boolean;
-    codeExecution: boolean;
-    autoRouter: boolean;
-  };
   proTier: {
     proModelsEnabled: boolean;
     /** 0 = unlimited */

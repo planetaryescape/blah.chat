@@ -8,14 +8,6 @@ export const DEFAULT_ADMIN_SETTINGS: AdminSettingsValue = {
     defaultDailyMessageLimit: 50,
     defaultMaxIntegrations: 5,
   },
-  features: {
-    canvasMode: true,
-    comparisonMode: true,
-    voiceInput: true,
-    imageGeneration: true,
-    codeExecution: true,
-    autoRouter: true,
-  },
   proTier: {
     proModelsEnabled: false,
     tier1DailyProModelLimit: 1,
@@ -52,7 +44,6 @@ export function mergeAdminSettings(
 ): AdminSettingsValue {
   return {
     limits: { ...DEFAULT_ADMIN_SETTINGS.limits, ...partial?.limits },
-    features: { ...DEFAULT_ADMIN_SETTINGS.features, ...partial?.features },
     proTier: { ...DEFAULT_ADMIN_SETTINGS.proTier, ...partial?.proTier },
     search: { ...DEFAULT_ADMIN_SETTINGS.search, ...partial?.search },
     memory: { ...DEFAULT_ADMIN_SETTINGS.memory, ...partial?.memory },

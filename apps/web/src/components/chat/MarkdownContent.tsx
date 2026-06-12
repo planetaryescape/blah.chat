@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useLazyMathRenderer } from "@/hooks/useLazyMathRenderer";
 import { useMathAccessibility } from "@/hooks/useMathAccessibility";
 import { useMathCopyButtons } from "@/hooks/useMathCopyButtons";
+import { useStreamBuffer } from "@/hooks/useStreamBuffer";
 import { findAllVerses, parseVerseReference } from "@/lib/bible/parser";
 import { cn } from "@/lib/utils";
 import "katex/dist/contrib/mhchem.mjs"; // Chemistry notation support
@@ -365,8 +366,12 @@ export function MarkdownContent({
     return processBibleVerses(withCitations);
   }, [content]);
 
-  const displayContent = processedContent;
-  const hasBufferedContent = false;
+  // Decouple network timing (chunky ~250ms server checkpoints) from visual
+  // timing: smoothly reveal buffered words via RAF instead of jumping.
+  const { displayContent, hasBufferedContent } = useStreamBuffer(
+    processedContent,
+    isStreaming,
+  );
 
   // Phase 4A: Lazy rendering for mobile performance
   const { observeRef, isRendered, isMobile } = useLazyMathRenderer({
@@ -405,7 +410,7 @@ export function MarkdownContent({
       <MathErrorBoundary>
         <Streamdown
           components={markdownComponents}
-          parseIncompleteMarkdown={isStreaming}
+          parseIncompleteMarkdown={showCursor}
           controls={{
             code: false, // We handle code controls via custom CodeBlock component
             mermaid: false, // We handle mermaid controls via custom MermaidRenderer

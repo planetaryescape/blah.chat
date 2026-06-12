@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.45.1](https://github.com/planetaryescape/blah.chat/compare/v1.45.0...v1.45.1) (2026-06-12)
+
+
+### Bug Fixes
+
+* restore smooth streaming text reveal ([a985c8d](https://github.com/planetaryescape/blah.chat/commit/a985c8d03c1227ec7f58aa293dd97f143f4c98b8))
+
 ## [1.45.0](https://github.com/planetaryescape/blah.chat/compare/v1.44.0...v1.45.0) (2026-06-12)
 
 

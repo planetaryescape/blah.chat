@@ -1,6 +1,6 @@
 {
   "name": "@blah-chat/cognitive-memory",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Human-like memory for AI agents with Ebbinghaus decay, spaced repetition, and associative linking",
   "type": "module",
   "main": "./dist/index.js",

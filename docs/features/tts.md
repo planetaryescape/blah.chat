@@ -1,5 +1,7 @@
 # Text-to-Speech (Deepgram Aura)
 
+> **Note (post-Postgres migration).** Implementation references below are Convex-era. The feature now runs on the REST API + Postgres stack (apps/web, packages/persistence-postgres, packages/jobs); treat file paths and code samples as historical.
+
 **Status**: Live (Deepgram only - ElevenLabs & LMNT removed, no pay-as-you-go)
 **Updated**: 2025-12-08
 

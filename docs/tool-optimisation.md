@@ -1,5 +1,7 @@
 # Tool Optimisation: Search & Safeguards
 
+> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; file paths and code samples below no longer apply.
+
 Architecture and design decisions for AI tool calling in blah.chat.
 
 ---
@@ -153,16 +155,13 @@ Response (or clarification request)
 
 ---
 
-## Key Files
+## Key Files (current equivalents)
 
-| File | Purpose |
+| Location | Purpose |
 |------|---------|
-| `convex/search/hybrid.ts` | Hybrid full-text + vector search |
-| `convex/tools/search/searchAll.ts` | Unified search action |
-| `convex/ai/tools/search/searchAll.ts` | Tool wrapper exposed to AI |
-| `convex/generation.ts` | Main generation loop with all safeguards |
-| `convex/lib/budgetTracker.ts` | Token budget tracking and injection |
-| `convex/lib/utils/search.ts` | RRF implementation with weights |
+| `apps/web/src/lib/generation-v2/` | Generation runtime, provider, and tool wiring |
+| `packages/jobs/src/trigger/` | Trigger.dev tasks (generation, embeddings, maintenance) |
+| `apps/web/src/lib/persistence/search.ts` | Search over Postgres (full-text + pgvector) |
 
 ---
 

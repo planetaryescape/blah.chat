@@ -1,5 +1,7 @@
 # Phase 2: Convex Backend Extraction
 
+> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; file paths and code samples below no longer apply.
+
 ## Overview
 
 This phase extracts the Convex backend from `apps/web/convex/` to `packages/backend/`, creating the `@blah-chat/backend` package that all future apps will share.

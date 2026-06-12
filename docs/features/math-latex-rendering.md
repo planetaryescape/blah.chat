@@ -1,5 +1,7 @@
 # Math and LaTeX Rendering Feature
 
+> **Note (post-Postgres migration).** Implementation references below are Convex-era. The feature now runs on the REST API + Postgres stack (apps/web, packages/persistence-postgres, packages/jobs); treat file paths and code samples as historical.
+
 **Last Updated:** December 7, 2025
 **Status:** Production Ready
 **Owner:** Engineering Team

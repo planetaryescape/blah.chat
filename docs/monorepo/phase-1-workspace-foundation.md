@@ -1,5 +1,7 @@
 # Phase 1: Workspace Foundation
 
+> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; file paths and code samples below no longer apply.
+
 ## Overview
 
 This phase establishes the Turborepo monorepo foundation by creating the workspace structure and moving the existing Next.js application into `apps/web/`.

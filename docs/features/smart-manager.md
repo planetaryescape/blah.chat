@@ -1,5 +1,7 @@
 # Smart Manager
 
+> **Note (post-Postgres migration).** Implementation references below are Convex-era. The feature now runs on the REST API + Postgres stack (apps/web, packages/persistence-postgres, packages/jobs); treat file paths and code samples as historical.
+
 Smart Manager is a dual-feature enhancement that adds task extraction from meeting transcripts and transforms projects into full workspace hubs with file RAG capabilities.
 
 ## Features

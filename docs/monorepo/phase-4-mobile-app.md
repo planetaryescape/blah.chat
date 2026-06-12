@@ -1,5 +1,7 @@
 # Phase 4: Mobile App (Future)
 
+> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; file paths and code samples below no longer apply.
+
 ## Overview
 
 This phase creates the Expo/React Native mobile app that shares the Convex backend and AI configurations with the web app.

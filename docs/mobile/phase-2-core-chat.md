@@ -1,5 +1,7 @@
 # Phase 2: Core Chat Implementation
 
+> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; file paths and code samples below no longer apply.
+
 **Duration**: 8-12 hours
 **Difficulty**: Advanced
 **Prerequisites**: Phase 1 complete, authentication working

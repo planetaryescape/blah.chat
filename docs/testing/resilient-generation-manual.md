@@ -78,7 +78,7 @@
 
 ## Test 3: Network Disconnect Mid-Generation ✅❌
 
-**Objective:** Verify Convex reconnect continues streaming
+**Objective:** Verify SSE reconnect continues streaming
 
 **Steps:**
 1. Open DevTools Network tab
@@ -104,7 +104,7 @@
 
 **Status:** _[PASS / FAIL / SKIP]_
 
-**Notes:** _[Note Convex reconnect behavior]_
+**Notes:** _[Note SSE reconnect behavior]_
 
 ---
 

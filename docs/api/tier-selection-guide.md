@@ -55,8 +55,8 @@ This guide helps you choose the right API tier for new operations based on **act
 export const POST = withErrorHandling(withAuth(async (req, { userId }) => {
   const validated = schema.parse(await req.json());
 
-  // Direct Convex action call
-  const result = await fetchAction(api.path.to.action, validated);
+  // Direct server-side call (persistence layer / service)
+  const result = await someService(validated);
 
   return Response.json(formatEntityList(result, "entity"));
 }));
@@ -289,7 +289,7 @@ export function useOperationWithPolling() {
 
 - [ ] Measure actual duration (< 5s)
 - [ ] Create sync endpoint: `src/app/api/v1/{resource}/route.ts`
-- [ ] Direct Convex action call (no jobs)
+- [ ] Direct server-side call (no background jobs)
 - [ ] Client: standard `useQuery` or `useMutation`
 - [ ] Test: response time < 1s in production
 

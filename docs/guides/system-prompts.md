@@ -466,10 +466,10 @@ Different models have different strengths. Add hints for specific providers:
 
 ### Our Implementation
 
-The blah.chat system prompt is implemented in:
+The blah.chat prompts are implemented in:
 
-- **`convex/lib/prompts/base.ts`** - Main system prompt with XML structure
-- **`convex/generation.ts`** - Prompt injection at runtime
+- **`packages/shared/src/prompts/`** and **`apps/web/src/lib/prompts/`** - Centralized prompt templates
+- **`apps/web/src/lib/generation-v2/`** and **`packages/jobs/src/trigger/process-generation.ts`** - Prompt injection at runtime
 
 ### Token Budget
 

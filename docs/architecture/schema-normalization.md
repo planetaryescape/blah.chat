@@ -1,5 +1,7 @@
 # Schema Normalization Reference Guide
 
+> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; file paths and code samples below no longer apply.
+
 **Purpose**: Preserve knowledge and decision-making context from the complete schema normalization migration (Phases 1-7)
 **Audience**: Future maintainers, developers extending the system
 **Status**: Migration complete (Phases 1-2), remaining phases documented for future reference

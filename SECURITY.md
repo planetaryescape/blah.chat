@@ -84,7 +84,7 @@ git log HEAD..origin/main --oneline
 # Update (after reviewing changes)
 git pull origin main
 bun install
-bunx convex deploy
+bun run db:migrate
 bun run build
 ```
 
@@ -109,9 +109,10 @@ bun run build
 - Only trusted users should have `isAdmin: true` in the database
 - Admin routes are protected, but verify in production
 
-**Convex/Clerk dashboards**:
-- Enable 2FA on Convex account
+**Service dashboards**:
+- Enable 2FA on your database host account (e.g. Neon)
 - Enable 2FA on Clerk account
+- Enable 2FA on Trigger.dev account
 - Limit team member access to "need-to-know"
 
 ### 4. Network Security
@@ -120,7 +121,7 @@ bun run build
 - Vercel/Railway provide this automatically
 - For VPS, use Let's Encrypt + nginx/Caddy
 
-**Restrict Convex/Clerk webhooks**:
+**Restrict Clerk webhooks**:
 - Verify webhook signatures (already implemented in code)
 - Use firewall rules to only allow Clerk IPs (if self-hosting)
 
@@ -133,17 +134,16 @@ limit_req zone=api burst=20 nodelay;
 
 ### 5. Database Security
 
-**Convex security** (built-in):
-- All queries check `ctx.auth.getUserIdentity()`
-- Row-level security via user ID filtering
-- Encrypted at rest (AES-256)
-- Encrypted in transit (TLS 1.3)
+**Application-level security** (built-in):
+- All API routes require Clerk authentication
+- Queries are scoped by user ID at the persistence layer (Drizzle)
+- All queries are parameterized via Drizzle ORM
 
-**If migrating to PostgreSQL**:
-- Use connection pooling (PgBouncer)
-- Enable RLS (Row-Level Security)
+**Postgres hardening** (your responsibility):
+- Use connection pooling (Neon pooled connections or PgBouncer)
 - Restrict database user permissions
-- Regular backups with encryption
+- Encrypt at rest (Neon does this by default; enable disk encryption if self-managed)
+- Regular backups with encryption (`pg_dump` or Neon point-in-time restore)
 
 ### 6. Dependency Security
 
@@ -176,7 +176,7 @@ bun audit
 
 **Add CSP headers** (if using reverse proxy):
 ```nginx
-add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.com https://convex.cloud; connect-src 'self' https://*.clerk.accounts.dev https://*.convex.cloud https://api.vercel.com;";
+add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.com; connect-src 'self' https://*.clerk.accounts.dev;";
 ```
 
 Adjust based on your integrations.
@@ -187,10 +187,10 @@ Adjust based on your integrations.
 
 ### Architecture Decisions
 
-**External services** (Convex, Clerk, AI providers):
+**External services** (Neon, Trigger.dev, Clerk, AI providers):
 - **Trade-off**: Convenience vs. control
-- **Mitigation**: All services are SOC 2 Type II certified
-- **Alternative**: See CONTRIBUTING.md for self-hosted alternatives (Better Auth, PostgreSQL)
+- **Mitigation**: Core services are SOC 2 certified
+- **Alternative**: Postgres, Redis, and object storage can be fully self-hosted via Docker Compose (see SELF_HOSTING.md)
 
 **AI model access**:
 - **Risk**: Message content sent to third-party AI providers
@@ -211,16 +211,15 @@ Adjust based on your integrations.
 - User input never rendered as raw HTML
 
 **SQL injection**:
-- N/A - Convex doesn't use SQL
-- If migrating to PostgreSQL, use parameterized queries (Drizzle ORM)
+- All database access goes through Drizzle ORM (parameterized queries)
+- No raw SQL built from user input
 
 **Command injection**:
 - No user input passed to shell commands
-- `child_process` only used in Convex actions with validated input
 
 **Authentication bypass**:
-- All Convex mutations/queries check `ctx.auth.getUserIdentity()`
-- Clerk middleware protects all authenticated routes
+- All API routes verify the Clerk session server-side
+- Persistence-layer queries are filtered by the authenticated user's ID
 - No client-side auth checks relied upon
 
 **Rate limiting**:
@@ -233,7 +232,7 @@ Adjust based on your integrations.
 **High-risk dependencies** (regularly monitored):
 - `next` - Core framework
 - `react` - Core UI library
-- `convex` - Backend runtime
+- `drizzle-orm` - Database ORM
 - `@clerk/nextjs` - Authentication
 
 **Audit frequency**: Dependencies reviewed weekly, critical updates applied within 24h.
@@ -246,11 +245,11 @@ Before going to production:
 
 - [ ] HTTPS enabled (certificate valid)
 - [ ] Environment variables secured (not committed, encrypted at rest)
-- [ ] 2FA enabled on Convex account
+- [ ] 2FA enabled on database host account (e.g. Neon)
 - [ ] 2FA enabled on Clerk account
 - [ ] Webhook secrets configured and verified
 - [ ] Admin access limited to trusted users only
-- [ ] Backups configured (Convex export scheduled)
+- [ ] Backups configured (scheduled `pg_dump` or managed backups, e.g. Neon)
 - [ ] Monitoring enabled (error tracking, uptime)
 - [ ] Rate limiting configured (if reverse proxy)
 - [ ] Logs reviewed for sensitive data exposure
@@ -266,7 +265,7 @@ If you discover a security breach in your self-hosted instance:
 1. **Contain**:
    - Revoke compromised API keys immediately
    - Lock down admin access
-   - Review access logs (Convex dashboard → Logs)
+   - Review access logs (database host dashboard, application logs)
 
 2. **Assess**:
    - What data was accessed?
@@ -347,27 +346,17 @@ const wh = new Webhook(process.env.CLERK_WEBHOOK_SECRET);
 wh.verify(body, headers); // Throws if invalid signature
 ```
 
-### Convex Security Best Practices
+### Database Query Best Practices
 
-**Row-level security** (example from codebase):
+**User scoping** (pattern used throughout the persistence layer):
 ```typescript
-// ✅ GOOD - filters by user
-export const getConversations = query({
-  handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
-    return ctx.db
-      .query("conversations")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .collect();
-  },
+// ✅ GOOD - filters by authenticated user
+const conversations = await db.query.conversations.findMany({
+  where: eq(conversations.userId, user.id),
 });
 
 // ❌ BAD - returns all users' conversations
-export const getAllConversations = query({
-  handler: async (ctx) => {
-    return ctx.db.query("conversations").collect();
-  },
-});
+const conversations = await db.query.conversations.findMany();
 ```
 
 ---
@@ -376,16 +365,16 @@ export const getAllConversations = query({
 
 **GDPR** (if serving EU users):
 - See PRIVACY.md for data handling
-- User data export: `bunx convex export`
+- User data export: `pg_dump` or per-user SQL export
 - User data deletion: Delete user account (cascades to all data)
-- DPA agreements: Required with Convex, Clerk
+- DPA agreements: Required with your Postgres host (e.g. Neon), Trigger.dev, Clerk
 
 **CCPA** (if serving California users):
 - Same rights as GDPR
 - "Do Not Sell" - N/A (we don't sell data)
 
 **SOC 2** (for enterprise self-hosters):
-- Convex: SOC 2 Type II certified
+- Neon: SOC 2 Type II certified
 - Clerk: SOC 2 Type II certified
 - Your responsibility: Access controls, logging, incident response
 

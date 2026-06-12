@@ -3,7 +3,7 @@
 **Status**: Legacy Convex design; current BYOD is gated
 **Last Updated**: December 2025
 
-> Current runtime note: blah.chat now runs on Postgres, Redis, R2-compatible storage, Clerk, and Trigger.dev. The Convex BYOD design below is historical. Current BYOD enablement is gated behind `BYOD_CHAT_ROUTING_ENABLED` until per-user Postgres chat routing is complete; see [`docs/operations/production-env-checklist.md`](../operations/production-env-checklist.md).
+> Current runtime note: blah.chat now runs on Postgres, Redis, R2-compatible storage, Clerk, and Trigger.dev. The Convex BYOD design below is historical; current BYOD means bring-your-own-Neon-Postgres (see [`docs/architecture/postgres-rewrite/13-byod-v1-bring-your-own-neon.md`](../architecture/postgres-rewrite/13-byod-v1-bring-your-own-neon.md)). As of June 2026, `BYOD_CHAT_ROUTING_ENABLED` is still checked in `apps/web/src/app/api/v1/byod/route.ts` and the setup endpoint refuses to run unless it is set to `1`, because chat routing to per-user databases is not complete; see [`docs/operations/production-env-checklist.md`](../operations/production-env-checklist.md).
 
 ---
 
@@ -266,7 +266,7 @@ In `src/lib/features.ts`:
 ## Limitations
 
 ### Current Limitations
-1. **File storage** - Files currently stored on blah.chat's storage (migration planned)
+1. **File storage** - Files are stored on blah.chat's R2-compatible object storage; BYOD only moves the tenant database (Redis and blob storage remain app-managed in v1)
 2. **Schema updates** - Deployed by blah.chat, you can't modify schema
 3. **Connection required** - App blocks if your instance unreachable
 

@@ -1,3 +1,5 @@
+> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; file paths and code samples below no longer apply.
+
 <project>
 <current_status_note>
 This spec predates the Postgres rewrite. It is useful product context, but its
@@ -21,15 +23,15 @@ This is a serious, production-quality application for personal use. It should fe
   </core_framework>
 
 <database>
-- Convex - Reactive database with built-in vector search capabilities. This is crucial because:
-  - Real-time reactivity means chat messages appear instantly without polling
-  - Built-in vector search powers the RAG memory system
-  - Handles file storage
-  - No need for a separate ORM like Drizzle
+- Postgres (Neon) with pgvector - Primary database, accessed via Drizzle ORM (packages/persistence-postgres):
+  - pgvector powers the RAG memory system and semantic search
+  - Redis (Upstash-compatible) provides cache and the live event log for streaming
+  - File storage on S3-compatible object storage (Cloudflare R2 in production, MinIO locally)
+  - Background jobs (generation, embeddings, transcription, maintenance) run on Trigger.dev (packages/jobs)
 </database>
 
 <authentication>
-- Clerk - Handle all authentication, user management, sessions. Integrate with Convex for user data sync.
+- Clerk - Handle all authentication, user management, sessions. Users sync into Postgres via Clerk webhooks.
 </authentication>
 
 <ai_llm>
@@ -48,7 +50,7 @@ This is a serious, production-quality application for personal use. It should fe
 
 <data_fetching>
 
-- TanStack React Query - Client-side data fetching, caching, and state management. Use alongside Convex's reactive queries where appropriate.
+- TanStack React Query - Client-side data fetching, caching, and state management over the REST API, with SSE for live streaming updates.
   </data_fetching>
 
 <logging>

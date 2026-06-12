@@ -1,5 +1,7 @@
 # Phase 0: Mobile App Implementation Plan
 
+> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; file paths and code samples below no longer apply.
+
 **Status**: ✅ Phase 0 & Phase 1 COMPLETE
 **Current Phase**: Phase 2 - Core Chat Implementation
 **Completed**: December 2025

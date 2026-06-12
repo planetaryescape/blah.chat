@@ -5,7 +5,7 @@ This repo is a monorepo. Reusable capabilities live in publishable npm packages 
 ## Goals
 
 - Composable capabilities: `@blah-chat/*` packages can be mixed/matched across apps.
-- Clean boundaries: core capability packages must not import Next.js, React, or Convex.
+- Clean boundaries: core capability packages must not import Next.js, React, or database clients.
 - Independent releases: each package version is tracked and published independently.
 
 ## Package Types
@@ -13,7 +13,7 @@ This repo is a monorepo. Reusable capabilities live in publishable npm packages 
 - `*-core`: pure types + algorithms + domain logic. No framework imports.
 - `*-tools` / `*-ingest`: implementations/adapters (still framework-agnostic).
 - `*-web`: browser-only modules (Web Workers, DOM helpers). No React/Next unless explicitly a UI package (we avoid UI packages).
-- `persistence-*`: persistence adapters. `persistence-convex` may depend on Convex, but capability cores must not.
+- `persistence-*`: persistence adapters. `persistence-postgres` may depend on Drizzle/Postgres, but capability cores must not.
 
 ## Independent Versioning (release-please)
 

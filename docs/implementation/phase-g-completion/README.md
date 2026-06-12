@@ -1,5 +1,7 @@
 # Phase G Completion Plan
 
+> **Status: COMPLETE (shipped May 2026) — kept for history.**
+
 **Goal:** finish the half-shipped Convex→Postgres migration. Wire every stubbed surface to a real REST route and Postgres-backed DAL. Build, do not cut, the features that don't have tables yet (Canvas, Notifications, Onboarding tracking, Admin Settings, Admin Models, Auto-Router config).
 
 **Date opened:** 2026-05-04

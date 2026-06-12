@@ -1,5 +1,7 @@
 # Notes System Documentation
 
+> **Note (post-Postgres migration).** Implementation references below are Convex-era. The feature now runs on the REST API + Postgres stack (apps/web, packages/persistence-postgres, packages/jobs); treat file paths and code samples as historical.
+
 ## Overview
 
 The Notes system is a markdown-based note-taking feature integrated into blah.chat. It allows users to capture ideas, save message summaries, and organize information with AI-assisted tagging.

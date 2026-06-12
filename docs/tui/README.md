@@ -1,5 +1,7 @@
 # blah.chat Terminal UI Client
 
+> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; file paths and code samples below no longer apply.
+
 A terminal-based chat client for blah.chat, built with Ink (React for CLI) and shared hooks.
 
 ## Overview

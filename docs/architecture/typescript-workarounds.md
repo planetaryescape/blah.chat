@@ -1,5 +1,7 @@
 # TypeScript Type Depth Resolution in Convex Codebase
 
+> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; file paths and code samples below no longer apply.
+
 **Date**: December 10, 2025
 **Status**: Implemented
 **Last Updated**: December 10, 2025 (Added Frontend Pattern)

@@ -1,5 +1,7 @@
 # blah.chat Implementation Rollup - blah.chat
 
+> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; file paths and code samples below no longer apply.
+
 **Knowledge document for maintainers and future contributors**
 
 This document captures the thinking, design decisions, and implementation approach for all completed features (Phases 0-12). Focus: WHY not WHAT.

@@ -1,5 +1,7 @@
 # Phase 3: Convex Function Unit Tests
 
+> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; file paths and code samples below no longer apply.
+
 **Priority:** P1 (High)
 **Estimated Effort:** 4-5 hours
 **Prerequisites:** Phase 1 (vitest.config.ts, factories.ts)

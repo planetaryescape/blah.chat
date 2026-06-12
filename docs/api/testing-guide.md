@@ -69,13 +69,11 @@ logger.info({ duration, resultCount: result.length }, "Search performance");
 **Goal**: Verify graceful timeout handling
 
 ```typescript
-// Simulate slow operation (Convex action)
-export const slowSearch = internalAction({
-  handler: async (ctx, args) => {
-    await new Promise(r => setTimeout(r, 10000)); // 10s delay
-    return await ctx.runQuery(internal.search.hybrid.hybridSearch, args);
-  },
-});
+// Simulate slow operation (server-side search function)
+export async function slowSearch(args: SearchArgs) {
+  await new Promise((r) => setTimeout(r, 10000)); // 10s delay
+  return hybridSearch(args);
+}
 ```
 
 **Test**:
@@ -113,12 +111,10 @@ curl -X POST http://localhost:3000/api/v1/search/hybrid \
 
 #### Test Case 3: Server Error
 ```typescript
-// Temporarily break Convex action
-export const hybridSearch = internalAction({
-  handler: async () => {
-    throw new Error("Simulated error");
-  },
-});
+// Temporarily break the server-side search function
+export async function hybridSearch() {
+  throw new Error("Simulated error");
+}
 
 // Test: Search should return 500 with error message
 ```
@@ -743,8 +739,8 @@ jobs:
 **Symptom**: Search takes 2-3s instead of < 1s
 
 **Debug Steps**:
-1. Check Convex logs for action duration
-2. Add timing logs in action:
+1. Check application logs for query duration
+2. Add timing logs in the search function:
    ```typescript
    const t1 = Date.now();
    const vectorResults = await ctx.vectorSearch(...);

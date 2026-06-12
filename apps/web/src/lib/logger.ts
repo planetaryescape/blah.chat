@@ -13,6 +13,7 @@ const REDACTED_PATHS = [
   "*.encryptedGroqKey",
   "*.encryptedDeepgramKey",
   "*.apiKey",
+  "*.key",
   "*.secret",
   "*.authorization",
   "*.Authorization",

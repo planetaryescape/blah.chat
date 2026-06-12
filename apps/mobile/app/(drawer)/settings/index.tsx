@@ -1,4 +1,5 @@
 import { useAuth, useUser } from "@clerk/clerk-expo";
+import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import {
   AlertTriangle,
@@ -15,7 +16,14 @@ import {
   Wrench,
 } from "lucide-react-native";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Image, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ModelPicker } from "@/components/chat/ModelPicker";
 import { SettingsRow } from "@/components/settings/SettingsRow";
@@ -25,11 +33,12 @@ import { haptic } from "@/lib/haptics";
 import { usePreferences } from "@/lib/hooks/usePreferences";
 import { useUpdatePreference } from "@/lib/hooks/useUpdatePreference";
 import { palette, spacing, typography } from "@/lib/theme/designSystem";
+import { createMobileSdkClient } from "@/lib/transport/httpClient";
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { user } = useUser();
-  const { signOut } = useAuth();
+  const { signOut, getToken } = useAuth();
   const prefs = usePreferences();
   const updatePref = useUpdatePreference();
   const [isModelPickerOpen, setIsModelPickerOpen] = useState(false);
@@ -41,6 +50,42 @@ export default function SettingsScreen() {
     },
     [updatePref],
   );
+
+  const cleanupMutation = useMutation({
+    mutationFn: async () => {
+      const client = createMobileSdkClient(() => getToken());
+      return client.cleanupEmptyConversations({ keepOne: true });
+    },
+    onSuccess: (result) => {
+      haptic.success();
+      Alert.alert(
+        "Cleanup Complete",
+        `Deleted ${result.deletedCount} empty conversation${
+          result.deletedCount === 1 ? "" : "s"
+        }.`,
+      );
+    },
+    onError: () => {
+      haptic.error();
+      Alert.alert("Error", "Failed to clean up conversations.");
+    },
+  });
+
+  const handleCleanupEmpty = useCallback(() => {
+    haptic.medium();
+    Alert.alert(
+      "Clean Up Empty Conversations",
+      "Remove all conversations with no messages?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Clean Up",
+          style: "destructive",
+          onPress: () => cleanupMutation.mutate(),
+        },
+      ],
+    );
+  }, [cleanupMutation]);
 
   const handleSignOut = useCallback(async () => {
     haptic.medium();
@@ -393,10 +438,7 @@ export default function SettingsScreen() {
             label="Clean Up Empty Conversations"
             description="Remove conversations with no messages"
             icon={Wrench}
-            onPress={() => {
-              // TODO: Implement cleanup action (Phase 8)
-              haptic.medium();
-            }}
+            onPress={handleCleanupEmpty}
           />
         </SettingsSection>
 

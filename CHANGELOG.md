@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.44.0](https://github.com/planetaryescape/blah.chat/compare/v1.43.0...v1.44.0) (2026-06-12)
+
+
+### Features
+
+* stage-3 LLM tiebreak for ambiguous auto-router classifications ([f34d9a4](https://github.com/planetaryescape/blah.chat/commit/f34d9a43baa47c90f53cb0470ba840177cf7256a))
+
+
+### Bug Fixes
+
+* AGENTS.md formatting for Codacy ([564c942](https://github.com/planetaryescape/blah.chat/commit/564c94202ab2c4241d93ac854ae5b143fa1f4f6f))
+* audit backlog — generation correctness, security hardening, feature completion, convex cleanup ([#555](https://github.com/planetaryescape/blah.chat/issues/555)) ([8c943e5](https://github.com/planetaryescape/blah.chat/commit/8c943e566f2e2615cf76bd32aa05c65a7ae07dc6))
+* bump apps/web to vitest 4.1.8 to fix jest-dom rejects.toThrow regression ([6a0833e](https://github.com/planetaryescape/blah.chat/commit/6a0833e83b084c160176d2bf7fe00479b6e28427))
+* chat flow and rendering jank fixes ([d5ba8cf](https://github.com/planetaryescape/blah.chat/commit/d5ba8cf815a6132bc95b2c46e8e199e1ba86893a))
+* format iOS JSON files for biome lint ([856ebfb](https://github.com/planetaryescape/blah.chat/commit/856ebfb8a2f9e9b24bd287c52f3e482800df7d1e))
+* override shell-quote to 1.8.4 to resolve critical audit vuln ([57f79be](https://github.com/planetaryescape/blah.chat/commit/57f79be2d07f68d2fac8c24ed48f873dac6d0a2a))
+* rebuild message sync with reconciliation guards and batched writes ([eb403dd](https://github.com/planetaryescape/blah.chat/commit/eb403dd965c3a3fd1c0e15531a94a3eca4e42ec3))
+* reduce scheduled job frequency to allow Neon autosuspend ([a70a6ff](https://github.com/planetaryescape/blah.chat/commit/a70a6ff7a1803fdd9909b0cf4072162d1ee13e90))
+* serve live chat data with no-store and fire ack on the real send path ([f431b7d](https://github.com/planetaryescape/blah.chat/commit/f431b7de460e5cbb3a2b69d4f63a737af1dd4519))
+* server generation hardening ([8e8d8f9](https://github.com/planetaryescape/blah.chat/commit/8e8d8f91bae4b610aca070d238b2b024ac35fa29))
+* update vitest to 4.1.8 to resolve security vulnerabilities ([bd046d7](https://github.com/planetaryescape/blah.chat/commit/bd046d7c89267368d3d89dfb453cfcd40bce1451))
+
 ## [1.43.0](https://github.com/planetaryescape/blah.chat/compare/v1.42.1...v1.43.0) (2026-05-31)
 
 

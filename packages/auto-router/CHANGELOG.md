@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/planetaryescape/blah.chat/compare/auto-router-v0.5.0...auto-router-v0.6.0) (2026-06-12)
+
+
+### Features
+
+* stage-3 LLM tiebreak for ambiguous auto-router classifications ([f34d9a4](https://github.com/planetaryescape/blah.chat/commit/f34d9a43baa47c90f53cb0470ba840177cf7256a))
+
+
+### Bug Fixes
+
+* update vitest to 4.1.8 to resolve security vulnerabilities ([bd046d7](https://github.com/planetaryescape/blah.chat/commit/bd046d7c89267368d3d89dfb453cfcd40bce1451))
+
 ## [0.5.0](https://github.com/planetaryescape/blah.chat/compare/auto-router-v0.4.0...auto-router-v0.5.0) (2026-05-05)
 
 

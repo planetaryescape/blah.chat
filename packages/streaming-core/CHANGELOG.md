@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/planetaryescape/blah.chat/compare/streaming-core-v0.4.0...streaming-core-v0.4.1) (2026-06-12)
+
+
+### Bug Fixes
+
+* update vitest to 4.1.8 to resolve security vulnerabilities ([bd046d7](https://github.com/planetaryescape/blah.chat/commit/bd046d7c89267368d3d89dfb453cfcd40bce1451))
+
 ## [0.4.0](https://github.com/planetaryescape/blah.chat/compare/streaming-core-v0.3.0...streaming-core-v0.4.0) (2026-05-18)
 
 

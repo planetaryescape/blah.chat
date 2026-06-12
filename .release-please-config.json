@@ -41,88 +41,10 @@
       "package-name": "@blah-chat/sdk",
       "include-component-in-tag": true
     },
-    "packages/content-core": {
-      "release-type": "node",
-      "component": "content-core",
-      "package-name": "@blah-chat/content-core",
-      "include-component-in-tag": true
-    },
-    "packages/content-ingest": {
-      "release-type": "node",
-      "component": "content-ingest",
-      "package-name": "@blah-chat/content-ingest",
-      "include-component-in-tag": true
-    },
-    "packages/notes-core": {
-      "release-type": "node",
-      "component": "notes-core",
-      "package-name": "@blah-chat/notes-core",
-      "include-component-in-tag": true
-    },
-    "packages/search-core": {
-      "release-type": "node",
-      "component": "search-core",
-      "package-name": "@blah-chat/search-core",
-      "include-component-in-tag": true
-    },
-    "packages/search-tools": {
-      "release-type": "node",
-      "component": "search-tools",
-      "package-name": "@blah-chat/search-tools",
-      "include-component-in-tag": true
-    },
-    "packages/rag-core": {
-      "release-type": "node",
-      "component": "rag-core",
-      "package-name": "@blah-chat/rag-core",
-      "include-component-in-tag": true
-    },
-    "packages/speech": {
-      "release-type": "node",
-      "component": "speech",
-      "package-name": "@blah-chat/speech",
-      "include-component-in-tag": true
-    },
-    "packages/storage": {
-      "release-type": "node",
-      "component": "storage",
-      "package-name": "@blah-chat/storage",
-      "include-component-in-tag": true
-    },
     "packages/jobs": {
       "release-type": "node",
       "component": "jobs",
       "package-name": "@blah-chat/jobs",
-      "include-component-in-tag": true
-    },
-    "packages/bible-core": {
-      "release-type": "node",
-      "component": "bible-core",
-      "package-name": "@blah-chat/bible-core",
-      "include-component-in-tag": true
-    },
-    "packages/bible-service": {
-      "release-type": "node",
-      "component": "bible-service",
-      "package-name": "@blah-chat/bible-service",
-      "include-component-in-tag": true
-    },
-    "packages/diagrams-mermaid": {
-      "release-type": "node",
-      "component": "diagrams-mermaid",
-      "package-name": "@blah-chat/diagrams-mermaid",
-      "include-component-in-tag": true
-    },
-    "packages/markdown-web": {
-      "release-type": "node",
-      "component": "markdown-web",
-      "package-name": "@blah-chat/markdown-web",
-      "include-component-in-tag": true
-    },
-    "packages/api-envelope": {
-      "release-type": "node",
-      "component": "api-envelope",
-      "package-name": "@blah-chat/api-envelope",
       "include-component-in-tag": true
     },
     "packages/streaming-core": {
@@ -131,34 +53,10 @@
       "package-name": "@blah-chat/streaming-core",
       "include-component-in-tag": true
     },
-    "packages/crypto-core": {
-      "release-type": "node",
-      "component": "crypto-core",
-      "package-name": "@blah-chat/crypto-core",
-      "include-component-in-tag": true
-    },
-    "packages/assistant-tools-core": {
-      "release-type": "node",
-      "component": "assistant-tools-core",
-      "package-name": "@blah-chat/assistant-tools-core",
-      "include-component-in-tag": true
-    },
-    "packages/code-execution-core": {
-      "release-type": "node",
-      "component": "code-execution-core",
-      "package-name": "@blah-chat/code-execution-core",
-      "include-component-in-tag": true
-    },
     "packages/cognitive-memory": {
       "release-type": "node",
       "component": "cognitive-memory",
       "package-name": "@blah-chat/cognitive-memory",
-      "include-component-in-tag": true
-    },
-    "packages/integrations-composio": {
-      "release-type": "node",
-      "component": "integrations-composio",
-      "package-name": "@blah-chat/integrations-composio",
       "include-component-in-tag": true
     },
     "apps/cli": {

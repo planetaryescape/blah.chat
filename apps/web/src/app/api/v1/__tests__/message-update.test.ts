@@ -4,7 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const update = vi.fn();
-const process = vi.fn();
+const enqueueProcessing = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("@/lib/api/dal/messages", () => ({
   messagesDAL: {
@@ -13,9 +13,7 @@ vi.mock("@/lib/api/dal/messages", () => ({
 }));
 
 vi.mock("@/lib/generation-v2/runtime", () => ({
-  getGenerationV2Service: () => ({
-    process,
-  }),
+  getEnqueueGenerationProcessing: () => enqueueProcessing,
 }));
 
 vi.mock("next/server", async () => {
@@ -100,7 +98,7 @@ describe("/api/v1/messages/[id]", () => {
     expect(update).toHaveBeenCalledWith("user_1", "msg_old", "Edited content", {
       modelId: "openai:gpt-5",
     });
-    expect(process).toHaveBeenCalledWith("req_edit");
+    expect(enqueueProcessing).toHaveBeenCalledWith("req_edit");
     expect(json.data).toMatchObject({
       requestId: "req_edit",
       assistantMessageId: "msg_assistant_new",

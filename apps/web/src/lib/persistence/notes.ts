@@ -11,6 +11,7 @@ import {
 } from "@blah-chat/persistence-postgres";
 import { normalizeTagSlug } from "@blah-chat/shared/utils";
 import { generateObject } from "ai";
+import bcrypt from "bcrypt";
 import { and, desc, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -19,6 +20,7 @@ import {
   ForbiddenError,
   NotFoundError,
 } from "@/lib/api/errors";
+import logger from "@/lib/logger";
 import { buildAutoTagPrompt } from "@/lib/prompts/operational";
 import { ensureCurrentPersistenceUser } from "./current-user";
 import { getPersistenceDb } from "./server";
@@ -87,8 +89,39 @@ function isShareExpired(note: ProjectNoteRecord) {
   );
 }
 
-function hashSharePassword(password: string) {
+const BCRYPT_COST = 10;
+const LEGACY_SHA256_HEX = /^[a-f0-9]{64}$/;
+
+function legacySha256Hash(password: string) {
   return createHash("sha256").update(password).digest("hex");
+}
+
+async function hashSharePassword(password: string) {
+  return bcrypt.hash(password, BCRYPT_COST);
+}
+
+/**
+ * Verify a share password against the stored hash. Legacy shares stored
+ * unsalted sha256 hex; on a successful legacy match the hash is upgraded
+ * to bcrypt in place so it only ever verifies via sha256 once.
+ */
+async function verifySharePassword(
+  password: string,
+  note: ProjectNoteRecord & { sharePassword: string },
+): Promise<boolean> {
+  if (LEGACY_SHA256_HEX.test(note.sharePassword)) {
+    const matches = legacySha256Hash(password) === note.sharePassword;
+    if (matches) {
+      const upgraded = await hashSharePassword(password);
+      await getPersistenceDb()
+        .update(notes)
+        .set({ sharePassword: upgraded, updatedAt: Date.now() })
+        .where(eq(notes.id, note.id));
+    }
+    return matches;
+  }
+
+  return bcrypt.compare(password, note.sharePassword);
 }
 
 function logAutoTagUsage(input: {
@@ -310,7 +343,11 @@ export async function createNote(
 
   // Fire-and-forget embedding generation
   const trigger = createTriggerClient(parsePersistenceEnv(process.env));
-  trigger.triggerTask("embed-note", { noteId: note.id }).catch(() => {});
+  trigger
+    .triggerTask("embed-note", { noteId: note.id }, { concurrencyKey: note.id })
+    .catch((err) => {
+      logger.warn({ err, noteId: note.id }, "Failed to enqueue embed-note");
+    });
 
   return toApiProjectNote(note);
 }
@@ -382,7 +419,18 @@ export async function updateNote(
   // Re-embed on content/title change
   if (input.title !== undefined || input.content !== undefined) {
     const trigger = createTriggerClient(parsePersistenceEnv(process.env));
-    trigger.triggerTask("embed-note", { noteId: updated.id }).catch(() => {});
+    trigger
+      .triggerTask(
+        "embed-note",
+        { noteId: updated.id },
+        { concurrencyKey: updated.id },
+      )
+      .catch((err) => {
+        logger.warn(
+          { err, noteId: updated.id },
+          "Failed to enqueue embed-note",
+        );
+      });
   }
 
   return toApiProjectNote(updated);
@@ -510,7 +558,7 @@ export async function createNoteShare(
       ? Date.now() + input.expiresIn * 24 * 60 * 60 * 1000
       : null;
   const hashedPassword = input.password
-    ? hashSharePassword(input.password)
+    ? await hashSharePassword(input.password)
     : null;
 
   const [updated] = await db
@@ -594,7 +642,11 @@ export async function verifyNoteShare(
       throw new ForbiddenError("Password required");
     }
 
-    if (hashSharePassword(input.password) !== note.sharePassword) {
+    const valid = await verifySharePassword(input.password, {
+      ...note,
+      sharePassword: note.sharePassword,
+    });
+    if (!valid) {
       throw new ForbiddenError("Invalid password");
     }
   }

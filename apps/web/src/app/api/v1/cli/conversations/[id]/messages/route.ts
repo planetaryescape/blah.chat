@@ -1,9 +1,10 @@
-import { after, type NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { cliChatDAL, cliSendMessageSchema } from "@/lib/api/dal/cliChat";
 import { withApiKeyAuth } from "@/lib/api/middleware/apiKeyAuth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
+import { enforceRateLimit } from "@/lib/api/rate-limit";
 import { parseBody } from "@/lib/api/utils";
-import { getGenerationV2Service } from "@/lib/generation-v2/runtime";
+import { getEnqueueGenerationProcessing } from "@/lib/generation-v2/runtime";
 import logger from "@/lib/logger";
 
 async function getHandler(
@@ -47,6 +48,13 @@ async function postHandler(
     };
   },
 ) {
+  // Shares the per-user send bucket with the web send path.
+  const limited = await enforceRateLimit(
+    { prefix: "messages", limit: 60, window: "1 h" },
+    user.clerkId,
+  );
+  if (limited) return limited;
+
   const { id: conversationId } = (await params) as { id: string };
   const body = await parseBody(req, cliSendMessageSchema);
   const result = await cliChatDAL.sendMessage(user, conversationId, body);
@@ -59,17 +67,15 @@ async function postHandler(
       : null;
 
   if (requestId) {
-    const service = getGenerationV2Service();
-    after(async () => {
-      try {
-        await service.process(requestId);
-      } catch (error) {
-        logger.error(
-          { error, requestId },
-          "cli chat route background generation failed",
-        );
-      }
-    });
+    try {
+      await getEnqueueGenerationProcessing()(requestId);
+    } catch (error) {
+      logger.error(
+        { error, requestId },
+        "failed to enqueue cli chat generation processing",
+      );
+      throw error;
+    }
   }
 
   return NextResponse.json(result, { status: 202 });

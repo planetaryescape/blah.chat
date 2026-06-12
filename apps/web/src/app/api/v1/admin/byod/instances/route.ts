@@ -8,7 +8,9 @@ async function getHandler(req: NextRequest) {
   const cursor = url.searchParams.get("cursor") ?? undefined;
   const status = url.searchParams.get("status") ?? undefined;
   const limitParam = Number.parseInt(url.searchParams.get("limit") ?? "", 10);
-  const limit = Number.isFinite(limitParam) ? limitParam : undefined;
+  const limit = Number.isFinite(limitParam)
+    ? Math.min(100, Math.max(1, limitParam))
+    : undefined;
   const result = await adminByodDAL.listInstances({ cursor, status, limit });
   return NextResponse.json(result, { status: 200 });
 }

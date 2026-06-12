@@ -1,10 +1,11 @@
-import { after, type NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { messagesDAL } from "@/lib/api/dal/messages";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { trackAPIPerformance } from "@/lib/api/monitoring";
-import { getGenerationV2Service } from "@/lib/generation-v2/runtime";
+import { enforceRateLimit } from "@/lib/api/rate-limit";
+import { getEnqueueGenerationProcessing } from "@/lib/generation-v2/runtime";
 import logger from "@/lib/logger";
 
 const regenerateSchema = z
@@ -27,6 +28,13 @@ async function postHandler(
     "POST /api/v1/messages/[id]/regenerate",
   );
 
+  // Shares the send bucket: a regeneration costs the same as a fresh send.
+  const limited = await enforceRateLimit(
+    { prefix: "messages", limit: 60, window: "1 h" },
+    userId,
+  );
+  if (limited) return limited;
+
   const rawBody = await req.text();
   const body = regenerateSchema.parse(
     rawBody.length > 0 ? JSON.parse(rawBody) : undefined,
@@ -39,17 +47,15 @@ async function postHandler(
       : undefined;
 
   if (requestId) {
-    const service = getGenerationV2Service();
-    after(async () => {
-      try {
-        await service.process(requestId);
-      } catch (error) {
-        logger.error(
-          { error, requestId },
-          "regenerate route background generation failed",
-        );
-      }
-    });
+    try {
+      await getEnqueueGenerationProcessing()(requestId);
+    } catch (error) {
+      logger.error(
+        { error, requestId },
+        "failed to enqueue regenerate generation processing",
+      );
+      throw error;
+    }
   }
 
   const duration = performance.now() - startTime;

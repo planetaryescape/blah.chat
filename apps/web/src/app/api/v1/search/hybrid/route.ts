@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
+import { enforceRateLimit } from "@/lib/api/rate-limit";
 import logger from "@/lib/logger";
 import { searchMessages } from "@/lib/persistence/search";
 import { formatEntityList } from "@/lib/utils/formatEntity";
@@ -17,6 +18,12 @@ const searchSchema = z.object({
 
 async function handler(req: NextRequest, { userId }: { userId: string }) {
   const startTime = Date.now();
+  const limited = await enforceRateLimit(
+    { prefix: "search-hybrid", limit: 60, window: "1 h" },
+    userId,
+  );
+  if (limited) return limited;
+
   const body = await req.json();
   const validated = searchSchema.parse(body);
 

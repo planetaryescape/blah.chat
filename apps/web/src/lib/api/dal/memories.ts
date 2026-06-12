@@ -19,7 +19,7 @@ const listMemoriesSchema = z.object({
 });
 
 const createMemorySchema = z.object({
-  content: z.string().min(1),
+  content: z.string().min(1).max(16_000),
   category: z.string().optional(),
 });
 

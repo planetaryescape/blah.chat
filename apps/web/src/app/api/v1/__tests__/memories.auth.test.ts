@@ -21,6 +21,7 @@ const triggerTaskMock = vi.fn();
 const retrieveRunMock = vi.fn();
 const getLimiterMock = vi.fn();
 const applyRateLimitMock = vi.fn();
+const enforceRateLimitMock = vi.fn();
 let db: Awaited<ReturnType<typeof createTestPersistenceDb>>;
 
 vi.mock("@clerk/nextjs/server", () => ({
@@ -74,6 +75,7 @@ vi.mock("@/lib/persistence/server", () => ({
 vi.mock("@/lib/api/rate-limit", () => ({
   getLimiter: getLimiterMock,
   applyRateLimit: applyRateLimitMock,
+  enforceRateLimit: enforceRateLimitMock,
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -99,6 +101,7 @@ describe("memories auth with Clerk + Postgres", () => {
     });
     getLimiterMock.mockReturnValue(undefined);
     applyRateLimitMock.mockResolvedValue(null);
+    enforceRateLimitMock.mockResolvedValue(null);
     retrieveRunMock.mockResolvedValue({
       id: "run_123",
       status: "QUEUED",

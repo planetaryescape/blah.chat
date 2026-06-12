@@ -304,5 +304,88 @@ describe("note auto-tag and sharing routes", () => {
     expect(persisted?.shareId).toBe(sharedNote.shareId);
     expect(persisted?.isPublic).toBe(true);
     expect(persisted?.sharePassword).not.toBe("secret-pass");
+    // New shares are bcrypt-hashed, never the legacy unsalted sha256 hex.
+    expect(persisted?.sharePassword).toMatch(/^\$2[aby]\$/);
+  });
+
+  it("verifies legacy sha256-hashed share passwords and upgrades them to bcrypt", async () => {
+    const { createHash } = await import("node:crypto");
+    const users = createUserRepository(db);
+    const user = await users.upsertFromClerk({
+      clerkId: "clerk_notes_share",
+      email: "notes@example.com",
+      name: "Notes User",
+      imageUrl: "https://example.com/notes.png",
+    });
+
+    const now = Date.now();
+    const legacyHash = createHash("sha256").update("legacy-pass").digest("hex");
+    const [legacyNote] = await db
+      .insert(notes)
+      .values({
+        userId: user.id,
+        title: "Legacy share",
+        content: "Shared before bcrypt hashing landed.",
+        tags: [],
+        isPinned: false,
+        shareId: "legacy-share-id",
+        isPublic: true,
+        sharePassword: legacyHash,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+    expect(legacyNote).toBeDefined();
+
+    authMock.mockResolvedValue({
+      userId: null,
+      getToken: vi.fn(async () => null),
+    });
+
+    const verifyRoute = await import(
+      "../public/notes/shares/[shareId]/verify/route"
+    );
+
+    const wrongResponse = await verifyRoute.POST(
+      createMockRequest("/api/v1/public/notes/shares/legacy-share-id/verify", {
+        method: "POST",
+        body: { password: "wrong-pass" },
+      }),
+      { params: Promise.resolve({ shareId: "legacy-share-id" }) },
+    );
+    expect(wrongResponse.status).toBe(403);
+
+    // A failed attempt must not upgrade or alter the stored hash.
+    let [persisted] = await db
+      .select()
+      .from(notes)
+      .where(eq(notes.id, legacyNote!.id));
+    expect(persisted?.sharePassword).toBe(legacyHash);
+
+    const verifyResponse = await verifyRoute.POST(
+      createMockRequest("/api/v1/public/notes/shares/legacy-share-id/verify", {
+        method: "POST",
+        body: { password: "legacy-pass" },
+      }),
+      { params: Promise.resolve({ shareId: "legacy-share-id" }) },
+    );
+    expect(verifyResponse.status).toBe(200);
+
+    // Successful legacy verification rewrites the stored hash as bcrypt.
+    [persisted] = await db
+      .select()
+      .from(notes)
+      .where(eq(notes.id, legacyNote!.id));
+    expect(persisted?.sharePassword).toMatch(/^\$2[aby]\$/);
+
+    // The upgraded hash still verifies via bcrypt.
+    const reVerifyResponse = await verifyRoute.POST(
+      createMockRequest("/api/v1/public/notes/shares/legacy-share-id/verify", {
+        method: "POST",
+        body: { password: "legacy-pass" },
+      }),
+      { params: Promise.resolve({ shareId: "legacy-share-id" }) },
+    );
+    expect(reVerifyResponse.status).toBe(200);
   });
 });

@@ -1,15 +1,15 @@
-import { after, type NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { CachePresets, getCacheControl } from "@/lib/api/cache";
 import { messagesDAL } from "@/lib/api/dal/messages";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { trackAPIPerformance } from "@/lib/api/monitoring";
-import { getGenerationV2Service } from "@/lib/generation-v2/runtime";
+import { getEnqueueGenerationProcessing } from "@/lib/generation-v2/runtime";
 import logger from "@/lib/logger";
 
 const updateMessageSchema = z.object({
-  content: z.string().min(1),
+  content: z.string().min(1).max(64_000),
   modelId: z.string().optional(),
 });
 
@@ -81,17 +81,15 @@ async function patchHandler(
       : undefined;
 
   if (requestId) {
-    const service = getGenerationV2Service();
-    after(async () => {
-      try {
-        await service.process(requestId);
-      } catch (error) {
-        logger.error(
-          { error, requestId },
-          "message update route background generation failed",
-        );
-      }
-    });
+    try {
+      await getEnqueueGenerationProcessing()(requestId);
+    } catch (error) {
+      logger.error(
+        { error, requestId },
+        "failed to enqueue message edit generation processing",
+      );
+      throw error;
+    }
   }
 
   const duration = performance.now() - startTime;

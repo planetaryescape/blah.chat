@@ -4,6 +4,8 @@ const DEFAULT_ALLOW_HEADERS =
   "Authorization, Content-Type, Accept, Cache-Control, X-API-Key";
 const DEFAULT_ALLOW_METHODS = "GET,POST,PATCH,PUT,DELETE,OPTIONS";
 
+let warnedFallbackOrigins = false;
+
 function getConfiguredOrigins(): string[] {
   const raw =
     process.env.BLAH_API_CORS_ORIGINS || process.env.API_CORS_ORIGINS || "";
@@ -14,6 +16,25 @@ function getConfiguredOrigins(): string[] {
     .filter(Boolean);
 }
 
+function getDefaultOrigins(): string[] {
+  const origins = new Set<string>(["https://blah.chat"]);
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (appUrl) {
+    try {
+      origins.add(new URL(appUrl).origin);
+    } catch {
+      // Ignore malformed NEXT_PUBLIC_APP_URL; keep the hardcoded default.
+    }
+  }
+  return [...origins];
+}
+
+function isProduction(): boolean {
+  return (
+    process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL_ENV)
+  );
+}
+
 function resolveAllowOrigin(origin: string | null): string {
   if (!origin) {
     return "*";
@@ -21,7 +42,18 @@ function resolveAllowOrigin(origin: string | null): string {
 
   const configuredOrigins = getConfiguredOrigins();
   if (configuredOrigins.length === 0) {
-    return "*";
+    if (!isProduction()) {
+      return "*";
+    }
+    if (!warnedFallbackOrigins) {
+      warnedFallbackOrigins = true;
+      // console (not pino): this module is bundled into edge middleware.
+      console.warn(
+        "No CORS origins configured in production; falling back to the app's own origin(s)",
+      );
+    }
+    const defaults = getDefaultOrigins();
+    return defaults.includes(origin) ? origin : "null";
   }
 
   return configuredOrigins.includes(origin) ? origin : "null";

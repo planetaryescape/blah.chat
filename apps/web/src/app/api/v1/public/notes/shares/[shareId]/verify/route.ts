@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { notesDAL } from "@/lib/api/dal/notes";
 import { withOptionalAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
+import { enforceRateLimit, identifierFromRequest } from "@/lib/api/rate-limit";
 import logger from "@/lib/logger";
 
 async function postHandler(
@@ -14,6 +15,13 @@ async function postHandler(
     userId?: string;
   },
 ) {
+  // Public endpoint: throttle by IP to slow password brute-forcing.
+  const limited = await enforceRateLimit(
+    { prefix: "note-share-verify", limit: 10, window: "1 m" },
+    identifierFromRequest(req),
+  );
+  if (limited) return limited;
+
   const { shareId } = (await params) as { shareId: string };
   const body = await req.json().catch(() => ({}));
   logger.info({ shareId }, "POST /api/v1/public/notes/shares/[shareId]/verify");

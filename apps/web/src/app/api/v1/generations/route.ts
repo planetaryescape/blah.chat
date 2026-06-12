@@ -1,4 +1,4 @@
-import { type NextRequest, NextResponse } from "next/server";
+import { after, type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { withUserAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
@@ -10,37 +10,15 @@ import {
   getEnqueueGenerationProcessing,
   getGenerationV2Service,
 } from "@/lib/generation-v2/runtime";
-import type { GenerationV2Service } from "@/lib/generation-v2/service";
 import logger from "@/lib/logger";
 import { formatEntity } from "@/lib/utils/formatEntity";
 
-function fireAndForgetAck(
-  service: GenerationV2Service,
-  userMessage: string,
-  requestId: string,
-  assistantMessageId: string,
-) {
-  void generateConversationAck(userMessage)
-    .then((ack) => {
-      if (!ack) return;
-      return service.dispatchAck({
-        requestId,
-        assistantMessageId,
-        modelId: ack.modelId,
-        text: ack.text,
-      });
-    })
-    .catch((error) => {
-      logger.warn({ error, requestId }, "ack generation failed");
-    });
-}
-
 const createGenerationSchema = z.object({
   conversationId: z.string().min(1),
-  content: z.string().min(1),
+  content: z.string().min(1).max(64_000),
   clientMessageId: z.string().optional(),
   modelId: z.string().optional(),
-  models: z.array(z.string()).optional(),
+  models: z.array(z.string()).max(8).optional(),
   parentMessageId: z.string().optional(),
 });
 
@@ -78,14 +56,27 @@ async function postHandler(req: NextRequest, { userId }: { userId: string }) {
     parentMessageId: body.parentMessageId,
   });
 
+  // Fast ack from a small model while the heavy generation spins up.
+  // after() keeps the work alive past the 202 response on serverless.
   const primaryAssistantMessageId = started.assistantMessageIds[0];
   if (primaryAssistantMessageId) {
-    fireAndForgetAck(
-      service,
-      body.content,
-      started.requestId,
-      primaryAssistantMessageId,
-    );
+    after(async () => {
+      try {
+        const ack = await generateConversationAck(body.content);
+        if (!ack) return;
+        await service.dispatchAck({
+          requestId: started.requestId,
+          assistantMessageId: primaryAssistantMessageId,
+          modelId: ack.modelId,
+          text: ack.text,
+        });
+      } catch (error) {
+        logger.warn(
+          { error, requestId: started.requestId },
+          "ack generation failed",
+        );
+      }
+    });
   }
 
   try {

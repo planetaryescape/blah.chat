@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { knowledgeDAL } from "@/lib/api/dal/knowledge";
 import { withUserAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
+import { enforceRateLimit } from "@/lib/api/rate-limit";
 import logger from "@/lib/logger";
 
 async function postHandler(
@@ -14,6 +15,12 @@ async function postHandler(
     userId: string;
   },
 ) {
+  const limited = await enforceRateLimit(
+    { prefix: "knowledge-reprocess", limit: 30, window: "1 h" },
+    userId,
+  );
+  if (limited) return limited;
+
   const resolvedParams = await params;
   const id = String(resolvedParams.id);
   logger.info(

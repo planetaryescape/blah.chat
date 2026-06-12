@@ -14,9 +14,9 @@ import {
 import logger from "@/lib/logger";
 
 const sendSchema = z.object({
-  content: z.string().min(1),
+  content: z.string().min(1).max(64_000),
   modelId: z.string().optional(),
-  models: z.array(z.string()).optional(),
+  models: z.array(z.string()).max(8).optional(),
   parentMessageId: z.string().optional(),
   clientMessageId: z.string().optional(),
   thinkingEffort: z.enum(["none", "low", "medium", "high"]).optional(),
@@ -30,6 +30,7 @@ const sendSchema = z.object({
         size: z.number(),
       }),
     )
+    .max(20)
     .optional(),
 });
 

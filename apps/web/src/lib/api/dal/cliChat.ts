@@ -1,6 +1,7 @@
 import { conversations } from "@blah-chat/persistence-postgres";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
+import { assertGenerationAllowed } from "@/lib/api/dal/generationPolicy";
 import { getGenerationV2Service } from "@/lib/generation-v2/runtime";
 import { ensurePersistenceUserFromIdentity } from "@/lib/persistence/current-user";
 import { toApiMessageWithMeta } from "@/lib/persistence/mappers";
@@ -9,7 +10,7 @@ import { formatEntity, formatEntityList } from "@/lib/utils/formatEntity";
 import "server-only";
 
 export const cliSendMessageSchema = z.object({
-  content: z.string().min(1),
+  content: z.string().min(1).max(64_000),
   modelId: z.string().optional(),
 });
 
@@ -76,6 +77,14 @@ export const cliChatDAL = {
     }
 
     const validated = cliSendMessageSchema.parse(payload);
+    await assertGenerationAllowed({
+      db: ownedConversation.db,
+      userId: ownedConversation.user.id,
+      requestedModelIds: [
+        validated.modelId ?? ownedConversation.conversation.model,
+      ],
+      source: "send",
+    });
     const service = getGenerationV2Service();
     const started = await service.start({
       clerkUser: identity,

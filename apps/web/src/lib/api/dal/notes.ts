@@ -22,7 +22,7 @@ import "server-only";
 
 const createProjectNoteSchema = z.object({
   title: z.string().optional(),
-  content: z.string().optional(),
+  content: z.string().max(512_000).optional(),
   tags: z.array(z.string()).optional(),
   isPinned: z.boolean().optional(),
   sourceMessageId: z.string().optional(),

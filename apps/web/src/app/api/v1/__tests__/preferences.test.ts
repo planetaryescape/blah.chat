@@ -3,13 +3,19 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/api/dal/preferences", () => ({
-  preferencesDAL: {
-    get: vi.fn(),
-    getAll: vi.fn(),
-    update: vi.fn(),
-  },
-}));
+vi.mock("@/lib/api/dal/preferences", async () => {
+  const { z } = await import("zod");
+  return {
+    preferencesDAL: {
+      get: vi.fn(),
+      getAll: vi.fn(),
+      update: vi.fn(),
+    },
+    // Schema behavior is covered by the DAL schema unit tests; the route
+    // tests only need a permissive stand-in.
+    preferenceValueSchema: z.unknown(),
+  };
+});
 
 vi.mock("@/lib/api/middleware/auth", () => ({
   withAuth:

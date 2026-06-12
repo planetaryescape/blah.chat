@@ -1,10 +1,11 @@
-import { after, type NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { comparisonsDAL } from "@/lib/api/dal/comparisons";
 import { withUserAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { parseBody } from "@/lib/api/utils";
-import { getGenerationV2Service } from "@/lib/generation-v2/runtime";
+import { getEnqueueGenerationProcessing } from "@/lib/generation-v2/runtime";
+import logger from "@/lib/logger";
 
 const consolidateSchema = z.object({
   consolidationModel: z.string().min(1),
@@ -30,9 +31,15 @@ async function postHandler(
     throw new Error("Consolidation request missing request id");
   }
 
-  after(async () => {
-    await getGenerationV2Service().process(requestId);
-  });
+  try {
+    await getEnqueueGenerationProcessing()(requestId);
+  } catch (error) {
+    logger.error(
+      { error, requestId },
+      "failed to enqueue consolidation generation processing",
+    );
+    throw error;
+  }
 
   return NextResponse.json(result, { status: 202 });
 }

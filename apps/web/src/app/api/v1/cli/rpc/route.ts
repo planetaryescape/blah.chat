@@ -11,6 +11,7 @@ import {
   withApiKeyAuth,
 } from "@/lib/api/middleware/apiKeyAuth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
+import { enforceRateLimit } from "@/lib/api/rate-limit";
 import logger from "@/lib/logger";
 import { createBookmark, listBookmarks } from "@/lib/persistence/bookmarks";
 import { toApiConversation } from "@/lib/persistence/mappers";
@@ -68,11 +69,91 @@ const bodySchema = z.object({
   params: z.record(z.string(), z.unknown()).optional(),
 });
 
+// Per-method parameter schemas: bound every client-supplied string/number so
+// the RPC surface can't smuggle unbounded payloads past validation.
+const idSchema = z.string().min(1);
+const limitSchema = z.number().int().min(1).max(100);
+const taskUrgencySchema = z.enum(["low", "medium", "high", "urgent"]);
+const taskStatusSchema = z.enum([
+  "suggested",
+  "confirmed",
+  "in_progress",
+  "completed",
+  "cancelled",
+]);
+
+const rpcParams = {
+  listConversations: z.object({ limit: limitSchema.optional() }),
+  getConversation: z.object({ conversationId: idSchema }),
+  listMessages: z.object({ conversationId: idSchema }),
+  searchConversations: z.object({
+    query: z.string().min(1).max(500),
+    limit: limitSchema.optional(),
+  }),
+  sendMessage: z.object({
+    conversationId: idSchema,
+    content: z.string().min(1).max(64_000),
+    modelId: z.string().max(200).optional(),
+  }),
+  createConversation: z.object({
+    title: z.string().max(200).optional(),
+    model: z.string().max(200).optional(),
+  }),
+  archiveConversation: z.object({ conversationId: idSchema }),
+  deleteConversation: z.object({ conversationId: idSchema }),
+  updateConversationModel: z.object({
+    conversationId: idSchema,
+    model: z.string().min(1).max(200),
+  }),
+  renameConversation: z.object({
+    conversationId: idSchema,
+    title: z.string().min(1).max(200),
+  }),
+  createBookmark: z.object({
+    messageId: idSchema,
+    conversationId: idSchema,
+    note: z.string().max(10_000).optional(),
+  }),
+  listMemories: z.object({ limit: limitSchema.optional() }),
+  createTask: z.object({
+    title: z.string().min(1).max(500),
+    description: z.string().max(64_000).optional(),
+    urgency: taskUrgencySchema.optional(),
+    deadline: z.number().int().optional(),
+    deadlineSource: z.string().max(200).optional(),
+    projectId: idSchema.optional(),
+  }),
+  updateTask: z.object({
+    taskId: idSchema,
+    title: z.string().min(1).max(500).optional(),
+    description: z.string().max(64_000).optional(),
+    status: taskStatusSchema.optional(),
+    urgency: taskUrgencySchema.optional(),
+    deadline: z.number().int().optional(),
+  }),
+  completeTask: z.object({ taskId: idSchema }),
+  deleteTask: z.object({ taskId: idSchema }),
+  createNote: z.object({
+    content: z.string().max(512_000).optional(),
+    title: z.string().max(500).optional(),
+    sourceMessageId: idSchema.optional(),
+    sourceConversationId: idSchema.optional(),
+    projectId: idSchema.optional(),
+  }),
+  updateNote: z.object({
+    noteId: idSchema,
+    title: z.string().max(500).optional(),
+    content: z.string().max(512_000).optional(),
+    isPinned: z.boolean().optional(),
+  }),
+  deleteNote: z.object({ noteId: idSchema }),
+} as const;
+
 async function handler(req: NextRequest, context: ApiKeyAuthContext) {
   const { user } = context;
   const startTime = Date.now();
   const body = bodySchema.parse(await req.json());
-  const params = body.params ?? {};
+  const rawParams: unknown = body.params ?? {};
 
   const clerkId = user.clerkId;
   const identity = { clerkId, email: user.email, name: user.name };
@@ -89,8 +170,9 @@ async function handler(req: NextRequest, context: ApiKeyAuthContext) {
       break;
     }
     case "listConversations": {
+      const p = rpcParams.listConversations.parse(rawParams);
       const db = getPersistenceDb();
-      const limit = typeof params.limit === "number" ? params.limit : 50;
+      const limit = p.limit ?? 50;
       const rows = await db
         .select({
           conversation: conversations,
@@ -122,10 +204,11 @@ async function handler(req: NextRequest, context: ApiKeyAuthContext) {
       break;
     }
     case "getConversation": {
+      const p = rpcParams.getConversation.parse(rawParams);
       const db = getPersistenceDb();
       const conversation = await db.query.conversations.findFirst({
         where: and(
-          eq(conversations.id, params.conversationId as string),
+          eq(conversations.id, p.conversationId),
           eq(conversations.userId, user.userId),
         ),
       });
@@ -148,10 +231,8 @@ async function handler(req: NextRequest, context: ApiKeyAuthContext) {
       break;
     }
     case "listMessages": {
-      result = await cliChatDAL.listMessages(
-        identity,
-        params.conversationId as string,
-      );
+      const p = rpcParams.listMessages.parse(rawParams);
+      result = await cliChatDAL.listMessages(identity, p.conversationId);
       break;
     }
     case "listModels": {
@@ -177,32 +258,38 @@ async function handler(req: NextRequest, context: ApiKeyAuthContext) {
       break;
     }
     case "searchConversations": {
+      const p = rpcParams.searchConversations.parse(rawParams);
       result = await searchMessages(clerkId, {
-        query: params.query as string,
-        limit: typeof params.limit === "number" ? params.limit : 20,
+        query: p.query,
+        limit: p.limit ?? 20,
       });
       break;
     }
     case "sendMessage": {
-      result = await cliChatDAL.sendMessage(
-        identity,
-        params.conversationId as string,
-        {
-          content: params.content as string,
-          modelId: params.modelId as string | undefined,
-        },
+      // Shares the per-user send bucket with the web send path.
+      const limited = await enforceRateLimit(
+        { prefix: "messages", limit: 60, window: "1 h" },
+        clerkId,
       );
+      if (limited) return limited;
+
+      const p = rpcParams.sendMessage.parse(rawParams);
+      result = await cliChatDAL.sendMessage(identity, p.conversationId, {
+        content: p.content,
+        modelId: p.modelId,
+      });
       break;
     }
     case "createConversation": {
+      const p = rpcParams.createConversation.parse(rawParams);
       const db = getPersistenceDb();
       const now = Date.now();
       const [conversation] = await db
         .insert(conversations)
         .values({
           userId: user.userId,
-          title: (params.title as string) || "New Chat",
-          model: (params.model as string) || "gpt-4o",
+          title: p.title || "New Chat",
+          model: p.model || "gpt-4o",
           createdAt: now,
           updatedAt: now,
         })
@@ -217,13 +304,14 @@ async function handler(req: NextRequest, context: ApiKeyAuthContext) {
       break;
     }
     case "archiveConversation": {
+      const p = rpcParams.archiveConversation.parse(rawParams);
       const db = getPersistenceDb();
       await db
         .update(conversations)
         .set({ archived: true, updatedAt: Date.now() })
         .where(
           and(
-            eq(conversations.id, params.conversationId as string),
+            eq(conversations.id, p.conversationId),
             eq(conversations.userId, user.userId),
           ),
         );
@@ -231,12 +319,13 @@ async function handler(req: NextRequest, context: ApiKeyAuthContext) {
       break;
     }
     case "deleteConversation": {
+      const p = rpcParams.deleteConversation.parse(rawParams);
       const db = getPersistenceDb();
       await db
         .delete(conversations)
         .where(
           and(
-            eq(conversations.id, params.conversationId as string),
+            eq(conversations.id, p.conversationId),
             eq(conversations.userId, user.userId),
           ),
         );
@@ -244,13 +333,14 @@ async function handler(req: NextRequest, context: ApiKeyAuthContext) {
       break;
     }
     case "updateConversationModel": {
+      const p = rpcParams.updateConversationModel.parse(rawParams);
       const db = getPersistenceDb();
       await db
         .update(conversations)
-        .set({ model: params.model as string, updatedAt: Date.now() })
+        .set({ model: p.model, updatedAt: Date.now() })
         .where(
           and(
-            eq(conversations.id, params.conversationId as string),
+            eq(conversations.id, p.conversationId),
             eq(conversations.userId, user.userId),
           ),
         );
@@ -258,13 +348,14 @@ async function handler(req: NextRequest, context: ApiKeyAuthContext) {
       break;
     }
     case "renameConversation": {
+      const p = rpcParams.renameConversation.parse(rawParams);
       const db = getPersistenceDb();
       await db
         .update(conversations)
-        .set({ title: params.title as string, updatedAt: Date.now() })
+        .set({ title: p.title, updatedAt: Date.now() })
         .where(
           and(
-            eq(conversations.id, params.conversationId as string),
+            eq(conversations.id, p.conversationId),
             eq(conversations.userId, user.userId),
           ),
         );
@@ -272,16 +363,18 @@ async function handler(req: NextRequest, context: ApiKeyAuthContext) {
       break;
     }
     case "createBookmark": {
+      const p = rpcParams.createBookmark.parse(rawParams);
       result = await createBookmark(clerkId, {
-        messageId: params.messageId as string,
-        conversationId: params.conversationId as string,
-        note: params.note as string | undefined,
+        messageId: p.messageId,
+        conversationId: p.conversationId,
+        note: p.note,
       });
       break;
     }
     case "listMemories": {
+      const p = rpcParams.listMemories.parse(rawParams);
       result = await listMemories(clerkId, {
-        limit: typeof params.limit === "number" ? params.limit : undefined,
+        limit: p.limit,
       });
       break;
     }
@@ -302,52 +395,40 @@ async function handler(req: NextRequest, context: ApiKeyAuthContext) {
       break;
     }
     case "createTask": {
+      const p = rpcParams.createTask.parse(rawParams);
       result = await createTask(clerkId, {
-        title: params.title as string,
-        description: params.description as string | undefined,
-        urgency: params.urgency as
-          | "low"
-          | "medium"
-          | "high"
-          | "urgent"
-          | undefined,
-        deadline: params.deadline as number | undefined,
-        deadlineSource: params.deadlineSource as string | undefined,
-        projectId: params.projectId as string | undefined,
+        title: p.title,
+        description: p.description,
+        urgency: p.urgency,
+        deadline: p.deadline,
+        deadlineSource: p.deadlineSource,
+        projectId: p.projectId,
       });
       break;
     }
     case "updateTask": {
-      await updateTask(clerkId, params.taskId as string, {
-        title: params.title as string | undefined,
-        description: params.description as string | undefined,
-        status: params.status as
-          | "suggested"
-          | "confirmed"
-          | "in_progress"
-          | "completed"
-          | "cancelled"
-          | undefined,
-        urgency: params.urgency as
-          | "low"
-          | "medium"
-          | "high"
-          | "urgent"
-          | undefined,
-        deadline: params.deadline as number | undefined,
+      const p = rpcParams.updateTask.parse(rawParams);
+      await updateTask(clerkId, p.taskId, {
+        title: p.title,
+        description: p.description,
+        status: p.status,
+        urgency: p.urgency,
+        deadline: p.deadline,
       });
       result = { success: true };
       break;
     }
     case "completeTask": {
-      await updateTask(clerkId, params.taskId as string, {
+      const p = rpcParams.completeTask.parse(rawParams);
+      await updateTask(clerkId, p.taskId, {
         status: "completed",
       });
       result = { success: true };
       break;
     }
     case "deleteTask": {
-      await deleteTask(clerkId, params.taskId as string);
+      const p = rpcParams.deleteTask.parse(rawParams);
+      await deleteTask(clerkId, p.taskId);
       result = { success: true };
       break;
     }
@@ -356,26 +437,29 @@ async function handler(req: NextRequest, context: ApiKeyAuthContext) {
       break;
     }
     case "createNote": {
+      const p = rpcParams.createNote.parse(rawParams);
       result = await createNote(clerkId, {
-        content: params.content as string | undefined,
-        title: params.title as string | undefined,
-        sourceMessageId: params.sourceMessageId as string | undefined,
-        sourceConversationId: params.sourceConversationId as string | undefined,
-        projectId: params.projectId as string | undefined,
+        content: p.content,
+        title: p.title,
+        sourceMessageId: p.sourceMessageId,
+        sourceConversationId: p.sourceConversationId,
+        projectId: p.projectId,
       });
       break;
     }
     case "updateNote": {
-      await updateNote(clerkId, params.noteId as string, {
-        title: params.title as string | undefined,
-        content: params.content as string | undefined,
-        isPinned: params.isPinned as boolean | undefined,
+      const p = rpcParams.updateNote.parse(rawParams);
+      await updateNote(clerkId, p.noteId, {
+        title: p.title,
+        content: p.content,
+        isPinned: p.isPinned,
       });
       result = { success: true };
       break;
     }
     case "deleteNote": {
-      await deleteNote(clerkId, params.noteId as string);
+      const p = rpcParams.deleteNote.parse(rawParams);
+      await deleteNote(clerkId, p.noteId);
       result = { success: true };
       break;
     }

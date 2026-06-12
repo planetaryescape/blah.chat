@@ -11,6 +11,7 @@ export {
   EXTRACTION_THRESHOLDS,
   type MemoryExtractionLevel,
 } from "./memory-extraction";
+export { TEXT_SUMMARIZATION_PROMPT } from "./summarize";
 export {
   CONVERSATION_TITLE_PROMPT,
   NOTE_TITLE_PROMPT,

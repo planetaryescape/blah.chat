@@ -38,6 +38,7 @@ vi.mock("@/lib/generation-v2/runtime", () => ({
     streamToSse: streamToSseMock,
     repository: createGenerationV2Repository(db),
   }),
+  getEnqueueGenerationProcessing: () => processMock,
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -50,6 +51,10 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 vi.mock("server-only", () => ({}));
+
+vi.mock("@/lib/api/dal/generationPolicy", () => ({
+  assertGenerationAllowed: vi.fn(async () => {}),
+}));
 
 describe("CLI chat API-key routes", () => {
   beforeEach(async () => {

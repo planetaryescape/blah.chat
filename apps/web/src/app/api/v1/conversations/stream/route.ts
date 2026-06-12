@@ -24,8 +24,10 @@ async function getHandler(
 
   // Parse query parameters
   const searchQuery = searchParams.get("search") || undefined;
-  const limit = searchParams.get("limit")
-    ? Number.parseInt(searchParams.get("limit")!, 10)
+  const rawLimit = searchParams.get("limit");
+  const parsedLimit = rawLimit ? Number.parseInt(rawLimit, 10) : Number.NaN;
+  const limit = Number.isFinite(parsedLimit)
+    ? Math.min(100, Math.max(1, parsedLimit))
     : undefined;
   const projectId = searchParams.get("projectId") || undefined;
 

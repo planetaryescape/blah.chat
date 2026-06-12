@@ -1,7 +1,7 @@
 {
-  ".": "1.44.0",
+  ".": "1.45.0",
   "packages/api-client": "0.7.0",
-  "packages/ai": "0.7.0",
+  "packages/ai": "0.8.0",
   "packages/shared": "0.6.1",
   "packages/config": "0.1.0",
   "packages/auto-router": "0.6.0",

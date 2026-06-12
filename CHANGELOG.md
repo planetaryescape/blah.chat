@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.45.0](https://github.com/planetaryescape/blah.chat/compare/v1.44.0...v1.45.0) (2026-06-12)
+
+
+### Features
+
+* mark all expensive models as pro ([34fdb93](https://github.com/planetaryescape/blah.chat/commit/34fdb932972ab0fb78bf4e3be5a3396fbb72e424))
+* refresh model catalog to latest, deprecate superseded models ([6da5f7d](https://github.com/planetaryescape/blah.chat/commit/6da5f7d5eb0bfc4f5fb7e1ac48bbfa140d0caf19))
+
+
+### Bug Fixes
+
+* never drop terminal stream events in the seq guard ([#558](https://github.com/planetaryescape/blah.chat/issues/558)) ([b22a9e8](https://github.com/planetaryescape/blah.chat/commit/b22a9e86d905ea8aba04d96b713f75ffb65bf972))
+
 ## [1.44.0](https://github.com/planetaryescape/blah.chat/compare/v1.43.0...v1.44.0) (2026-06-12)
 
 

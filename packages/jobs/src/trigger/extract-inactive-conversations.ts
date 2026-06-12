@@ -1,4 +1,5 @@
 import {
+  adminSettings,
   conversations,
   createNeonDatabase,
   memoryEmbeddings,
@@ -53,6 +54,13 @@ export async function extractInactiveConversations(
   const db = deps.db ?? createNeonDatabase(getDatabaseUrl());
   const now = deps.now ?? Date.now();
   const enqueue = deps.enqueueExtraction ?? defaultEnqueueExtraction;
+
+  const adminRow = await db.query.adminSettings.findFirst({
+    where: eq(adminSettings.id, "global"),
+  });
+  if (adminRow?.value?.memory?.autoExtractionEnabled === false) {
+    return { scanned: 0, enqueued: 0, skipped: "auto_extraction_disabled" };
+  }
 
   const inactivityCutoff = now - INACTIVITY_THRESHOLD_MS;
   const staleCutoff = now - STALE_THRESHOLD_MS;

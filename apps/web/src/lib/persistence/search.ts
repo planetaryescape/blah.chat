@@ -9,6 +9,7 @@ import {
 } from "@blah-chat/persistence-postgres";
 import { embed } from "ai";
 import { and, eq, gte, lte, sql } from "drizzle-orm";
+import { getAdminSettings } from "./adminSettings";
 import { ensureCurrentPersistenceUser } from "./current-user";
 import { toApiMessage } from "./mappers";
 import { getPersistenceDb } from "./server";
@@ -79,9 +80,14 @@ export async function searchMessages(
     )
     .limit(searchLimit);
 
-  // Vector similarity search
+  // Vector similarity search (admin-toggleable: hybridEnabled=false -> text-only)
+  const adminSettings = await getAdminSettings().catch(() => null);
+  const hybridEnabled = adminSettings?.search?.hybridEnabled ?? true;
   let vectorResults: typeof textResults = [];
   try {
+    if (!hybridEnabled) {
+      throw new Error("hybrid_disabled");
+    }
     const queryEmbedding = await embedQueryFn(input.query);
     const vecLiteral = serializeVector(queryEmbedding);
 

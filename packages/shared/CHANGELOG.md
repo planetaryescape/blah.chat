@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/planetaryescape/blah.chat/compare/shared-v0.6.0...shared-v0.6.1) (2026-06-12)
+
+
+### Bug Fixes
+
+* audit backlog — generation correctness, security hardening, feature completion, convex cleanup ([#555](https://github.com/planetaryescape/blah.chat/issues/555)) ([8c943e5](https://github.com/planetaryescape/blah.chat/commit/8c943e566f2e2615cf76bd32aa05c65a7ae07dc6))
+
 ## [0.6.0](https://github.com/planetaryescape/blah.chat/compare/shared-v0.5.0...shared-v0.6.0) (2026-05-31)
 
 

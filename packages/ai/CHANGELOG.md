@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.0](https://github.com/planetaryescape/blah.chat/compare/ai-v0.6.0...ai-v0.7.0) (2026-06-12)
+
+
+### Features
+
+* stage-3 LLM tiebreak for ambiguous auto-router classifications ([f34d9a4](https://github.com/planetaryescape/blah.chat/commit/f34d9a43baa47c90f53cb0470ba840177cf7256a))
+
+
+### Bug Fixes
+
+* audit backlog — generation correctness, security hardening, feature completion, convex cleanup ([#555](https://github.com/planetaryescape/blah.chat/issues/555)) ([8c943e5](https://github.com/planetaryescape/blah.chat/commit/8c943e566f2e2615cf76bd32aa05c65a7ae07dc6))
+
 ## [0.6.0](https://github.com/planetaryescape/blah.chat/compare/ai-v0.5.1...ai-v0.6.0) (2026-05-18)
 
 

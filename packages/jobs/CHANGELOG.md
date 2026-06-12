@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.7.7](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.7.6...jobs-v0.7.7) (2026-06-12)
+
+
+### Bug Fixes
+
+* audit backlog — generation correctness, security hardening, feature completion, convex cleanup ([#555](https://github.com/planetaryescape/blah.chat/issues/555)) ([8c943e5](https://github.com/planetaryescape/blah.chat/commit/8c943e566f2e2615cf76bd32aa05c65a7ae07dc6))
+* reduce scheduled job frequency to allow Neon autosuspend ([a70a6ff](https://github.com/planetaryescape/blah.chat/commit/a70a6ff7a1803fdd9909b0cf4072162d1ee13e90))
+* server generation hardening ([8e8d8f9](https://github.com/planetaryescape/blah.chat/commit/8e8d8f91bae4b610aca070d238b2b024ac35fa29))
+* update vitest to 4.1.8 to resolve security vulnerabilities ([bd046d7](https://github.com/planetaryescape/blah.chat/commit/bd046d7c89267368d3d89dfb453cfcd40bce1451))
+
 ## [0.7.6](https://github.com/planetaryescape/blah.chat/compare/jobs-v0.7.5...jobs-v0.7.6) (2026-05-31)
 
 

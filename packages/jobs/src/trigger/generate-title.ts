@@ -12,7 +12,7 @@ import {
 import { CONVERSATION_TITLE_PROMPT } from "@blah-chat/shared/prompts";
 import { task } from "@trigger.dev/sdk";
 import { generateText } from "ai";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 const MAX_TRANSCRIPT_CHARS = 16_000;
 
@@ -212,18 +212,25 @@ export async function generateTitleForConversation(
       usage: result.usage,
     });
 
+    // Conditional write: only title an untitled conversation, so a concurrent
+    // user rename (or duplicate task run) is never clobbered.
     const [updated] = await db
       .update(conversations)
       .set({
         title,
         updatedAt: now(),
       })
-      .where(eq(conversations.id, payload.conversationId))
+      .where(
+        and(
+          eq(conversations.id, payload.conversationId),
+          eq(conversations.title, "New Chat"),
+        ),
+      )
       .returning();
 
     return updated
       ? { success: true, title: updated.title }
-      : { success: true, skipped: "not_found" };
+      : { success: true, skipped: "already_titled" };
   } catch (error) {
     console.warn("title generation failed", {
       conversationId: payload.conversationId,

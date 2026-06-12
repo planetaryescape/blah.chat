@@ -1,5 +1,7 @@
 # Incognito Mode
 
+> **Note (post-Postgres migration).** Implementation references below are Convex-era. The feature now runs on the REST API + Postgres stack (apps/web, packages/persistence-postgres, packages/jobs); treat file paths and code samples as historical.
+
 ## Why This Feature Exists
 
 Users sometimes want conversations that don't persist. Maybe they're discussing something sensitive, testing how the AI behaves without their customizations, or just want a "throwaway" chat. Browser incognito mode and DuckDuckGo's "fire button" set user expectations here.

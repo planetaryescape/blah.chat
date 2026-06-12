@@ -11,15 +11,6 @@ function getTrigger() {
   return createTriggerClient(env);
 }
 
-export const searchInputSchema = z.object({
-  query: z.string().min(1).max(500),
-  conversationId: z.string().optional(),
-  limit: z.number().int().min(1).max(100).optional(),
-  dateFrom: z.number().optional(),
-  dateTo: z.number().optional(),
-  messageType: z.enum(["user", "assistant"]).optional(),
-});
-
 export const extractMemoriesInputSchema = z.object({
   conversationId: z.string(),
 });
@@ -33,23 +24,6 @@ export const transcribeInputSchema = z.object({
 export const embedFileInputSchema = z.object({
   fileId: z.string(),
 });
-
-export async function createSearchJob(
-  _userId: string,
-  input: z.infer<typeof searchInputSchema>,
-) {
-  const validated = searchInputSchema.parse(input);
-  const trigger = getTrigger();
-  const run = await trigger.triggerTask("hybrid-search", {
-    query: validated.query,
-    conversationId: validated.conversationId,
-    limit: validated.limit,
-    dateFrom: validated.dateFrom,
-    dateTo: validated.dateTo,
-    messageType: validated.messageType,
-  });
-  return run.id ?? "unknown";
-}
 
 export async function createExtractMemoriesJob(
   userId: string,
@@ -85,9 +59,11 @@ export async function createEmbedFileJob(
 ) {
   const validated = embedFileInputSchema.parse(input);
   const trigger = getTrigger();
-  const run = await trigger.triggerTask("embed-file", {
-    fileId: validated.fileId,
-  });
+  const run = await trigger.triggerTask(
+    "embed-file",
+    { fileId: validated.fileId },
+    { concurrencyKey: validated.fileId },
+  );
   return run.id ?? "unknown";
 }
 

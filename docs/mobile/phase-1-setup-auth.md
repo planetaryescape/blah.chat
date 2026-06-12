@@ -1,5 +1,7 @@
 # Phase 1: Project Setup & Authentication
 
+> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; file paths and code samples below no longer apply.
+
 **Duration**: 4-6 hours
 **Difficulty**: Intermediate
 **Prerequisites**: Phase 0 complete, web app running locally

@@ -1,5 +1,7 @@
 # Phase 4: Projects & Organization
 
+> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; file paths and code samples below no longer apply.
+
 > **V2 - FUTURE WORK**
 >
 > This phase is **deferred to V2**. The content below is preserved for future reference.

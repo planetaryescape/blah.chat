@@ -93,6 +93,10 @@ vi.mock("@/lib/api/monitoring", () => ({
 
 vi.mock("server-only", () => ({}));
 
+vi.mock("@/lib/api/dal/generationPolicy", () => ({
+  assertGenerationAllowed: vi.fn(async () => {}),
+}));
+
 describe("file upload auth with Clerk + Postgres", () => {
   beforeEach(async () => {
     vi.clearAllMocks();

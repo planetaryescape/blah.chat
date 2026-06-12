@@ -66,6 +66,7 @@ vi.mock("@/lib/generation-v2/runtime", () => ({
       stopSession: stopSessionMock,
     };
   },
+  getEnqueueGenerationProcessing: () => processMock,
 }));
 
 vi.mock("@/lib/logger", () => ({

@@ -23,7 +23,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' https://blah.chat https://*.blah.chat; script-src 'self' https://blah.chat https://*.blah.chat; style-src 'self' 'unsafe-inline' https://blah.chat https://*.blah.chat; img-src 'self' data: blob: https:; font-src 'self' https://blah.chat https://*.blah.chat; connect-src 'self' https://blah.chat https://*.blah.chat wss://blah.chat wss://*.blah.chat https://*.convex.cloud wss://*.convex.cloud",
+      "csp": "default-src 'self' https://blah.chat https://*.blah.chat; script-src 'self' https://blah.chat https://*.blah.chat; style-src 'self' 'unsafe-inline' https://blah.chat https://*.blah.chat; img-src 'self' data: blob: https:; font-src 'self' https://blah.chat https://*.blah.chat; connect-src 'self' https://blah.chat https://*.blah.chat wss://blah.chat wss://*.blah.chat",
       "capabilities": ["desktop-shell"]
     }
   },

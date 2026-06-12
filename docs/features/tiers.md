@@ -1,5 +1,7 @@
 # User Tier System
 
+> **Note (post-Postgres migration).** Implementation references below are Convex-era. The feature now runs on the REST API + Postgres stack (apps/web, packages/persistence-postgres, packages/jobs); treat file paths and code samples as historical.
+
 ## Overview
 
 The tier system controls access to expensive "pro" AI models. It prevents runaway costs from models like Sonar Deep Research ($5+ input, $15+ output) while enabling future monetization.

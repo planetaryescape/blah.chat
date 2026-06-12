@@ -645,6 +645,14 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
                   placeholder={placeholder}
                   placeholderTextColor={palette.starlightDim}
                   multiline
+                  submitBehavior={
+                    prefs?.sendOnEnter ? "blurAndSubmit" : "newline"
+                  }
+                  onSubmitEditing={() => {
+                    if (prefs?.sendOnEnter) {
+                      void sendPayload(value);
+                    }
+                  }}
                   style={{
                     flex: 1,
                     height: inputHeight,

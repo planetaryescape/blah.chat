@@ -109,7 +109,7 @@ body:
     id: logs
     attributes:
       label: Relevant logs
-      description: Console errors, server logs, Convex logs, etc.
+      description: Console errors, server logs, etc.
       placeholder: |
         Paste logs here (remove sensitive data like API keys!)
       render: shell

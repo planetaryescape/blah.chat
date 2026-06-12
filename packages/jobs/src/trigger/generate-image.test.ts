@@ -169,6 +169,116 @@ describe("generateImageForMessage", () => {
     });
   });
 
+  it("returns early on retry when a prior attempt already completed", async () => {
+    const { assistantMessage, conversation, db, user } =
+      await createImageConversationFixture({
+        clerkId: "clerk_image_retry",
+        email: "image-retry@example.com",
+        name: "Image Retry",
+        title: "Retry image generation",
+      });
+
+    const createImage = vi.fn(async () => ({
+      bytes: new Uint8Array([1, 2, 3, 4]),
+      mimeType: "image/png",
+    }));
+    const uploadImage = vi.fn();
+
+    const payload = {
+      userId: user.id,
+      conversationId: conversation.id,
+      messageId: assistantMessage.id,
+      prompt: "A repair bot rebuilding the storage layer",
+    };
+
+    // First attempt completes normally.
+    const first = await generateImageForMessage(payload, {
+      db,
+      bucket: "blah-chat-test",
+      createImage,
+      uploadImage,
+    });
+    expect(first.success).toBe(true);
+    expect(createImage).toHaveBeenCalledTimes(1);
+
+    // Retry must not regenerate, re-upload, or re-insert.
+    const second = await generateImageForMessage(payload, {
+      db,
+      bucket: "blah-chat-test",
+      createImage,
+      uploadImage,
+    });
+    expect(second).toMatchObject({
+      success: true,
+      skipped: "already_generated",
+      storageId: expect.any(String),
+    });
+    expect(createImage).toHaveBeenCalledTimes(1);
+    expect(uploadImage).toHaveBeenCalledTimes(1);
+
+    const allAttachments = await db.query.attachments.findMany({
+      where: eq(attachments.messageId, assistantMessage.id),
+    });
+    expect(allAttachments).toHaveLength(1);
+  });
+
+  it("returns early when an attachment exists for the prompt but the message update was lost", async () => {
+    const { assistantMessage, conversation, db, user } =
+      await createImageConversationFixture({
+        clerkId: "clerk_image_partial",
+        email: "image-partial@example.com",
+        name: "Image Partial",
+        title: "Partial image generation",
+      });
+
+    // Simulate a crash after the attachment insert but before message update.
+    await db.insert(attachments).values({
+      messageId: assistantMessage.id,
+      conversationId: conversation.id,
+      userId: user.id,
+      type: "image",
+      key: "users/x/generated/partial.png",
+      bucket: "blah-chat-test",
+      name: "generated-image.png",
+      mimeType: "image/png",
+      size: 4,
+      metadata: {
+        prompt: "A partial image",
+        model: "google:gemini-3-pro-image-preview",
+      },
+      createdAt: Date.now(),
+    });
+
+    const createImage = vi.fn(async () => ({
+      bytes: new Uint8Array([1, 2, 3, 4]),
+      mimeType: "image/png",
+    }));
+    const uploadImage = vi.fn();
+
+    const result = await generateImageForMessage(
+      {
+        userId: user.id,
+        conversationId: conversation.id,
+        messageId: assistantMessage.id,
+        prompt: "A partial image",
+      },
+      {
+        db,
+        bucket: "blah-chat-test",
+        createImage,
+        uploadImage,
+      },
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      skipped: "already_generated",
+      storageId: "users/x/generated/partial.png",
+    });
+    expect(createImage).not.toHaveBeenCalled();
+    expect(uploadImage).not.toHaveBeenCalled();
+  });
+
   it("does not generate or upload images for a conversation owned by another user", async () => {
     const db = await createTestPersistenceDb();
     const users = createUserRepository(db);

@@ -1,5 +1,7 @@
 # Canvas Feature Architecture
 
+> **Note (post-Postgres migration).** Implementation references below are Convex-era. The feature now runs on the REST API + Postgres stack (apps/web, packages/persistence-postgres, packages/jobs); treat file paths and code samples as historical.
+
 This document consolidates the design decisions, architecture, and implementation details for the Canvas feature - a split-screen document editor for collaborative writing and coding with the LLM.
 
 ## Overview

@@ -9,6 +9,7 @@ import {
 } from "@blah-chat/persistence-postgres";
 import { asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
+import { assertGenerationAllowed } from "@/lib/api/dal/generationPolicy";
 import { createGenerationV2Repository } from "@/lib/generation-v2/repository";
 import { getGenerationV2Service } from "@/lib/generation-v2/runtime";
 import { ensureCurrentPersistenceUser } from "@/lib/persistence/current-user";
@@ -231,6 +232,13 @@ export const messagesDAL = {
     if (validated.attachments?.length) {
       assertOwnedAttachmentKeys(user.id, conversationId, validated.attachments);
     }
+    const db = getPersistenceDb();
+    await assertGenerationAllowed({
+      db,
+      userId: user.id,
+      requestedModelIds: [validated.modelId, ...(validated.models ?? [])],
+      source: "send",
+    });
     const service = getGenerationV2Service();
     const started = await service.start({
       clerkUser: {
@@ -246,7 +254,6 @@ export const messagesDAL = {
       models: validated.models,
       parentMessageId: validated.parentMessageId,
     });
-    const db = getPersistenceDb();
     const env = getPersistenceEnv();
     if (validated.attachments && validated.attachments.length > 0) {
       const insertedAttachments = await db
@@ -402,7 +409,16 @@ export const messagesDAL = {
   },
 
   regenerate: async (userId: string, messageId: string, modelId?: string) => {
-    const { db, message } = await getOwnedRequestMessage(userId, messageId);
+    const { db, user, message } = await getOwnedRequestMessage(
+      userId,
+      messageId,
+    );
+    await assertGenerationAllowed({
+      db,
+      userId: user.id,
+      requestedModelIds: [modelId ?? message.model],
+      source: "regenerate",
+    });
     const repo = createGenerationV2Repository(db);
     const started = await repo.createRegenerationRequest({
       assistantMessageId: message.id,

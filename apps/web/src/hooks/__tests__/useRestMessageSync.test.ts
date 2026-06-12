@@ -2,9 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   applyGenerationEventToMessage,
   applyGenerationEventToMessages,
+  createGenerationStreamState,
   createPendingAssistantMessages,
   extractMessagesFromPayload,
+  isGenerationRequestSettled,
   mergeSnapshotMessage,
+  shouldApplyGenerationEvent,
+  trackGenerationEvent,
 } from "../useRestMessageSync";
 
 describe("useRestMessageSync helpers", () => {
@@ -307,6 +311,184 @@ describe("mergeSnapshotMessage", () => {
     };
 
     expect(mergeSnapshotMessage(existing, incoming)).toBe(incoming);
+  });
+});
+
+describe("applyGenerationEventToMessage start handling", () => {
+  it("resets persisted partial content on start so replayed deltas don't duplicate text", () => {
+    // After a refresh mid-generation, Dexie still holds the partial text and
+    // the server replays the event log from seq 0.
+    const existing = {
+      _id: "m1",
+      conversationId: "c1",
+      role: "assistant" as const,
+      content: "Hello wor",
+      partialContent: "Hello wor",
+      status: "generating",
+      model: "openai:gpt-5",
+      createdAt: 1000,
+      updatedAt: 1000,
+      _creationTime: 1000,
+    };
+
+    const afterStart = applyGenerationEventToMessage(existing, "c1", {
+      type: "start",
+      requestId: "r1",
+      sessionId: "s1",
+      assistantMessageId: "m1",
+      modelId: "openai:gpt-5",
+      seq: 0,
+      ts: 2000,
+    });
+
+    expect(afterStart).toMatchObject({
+      content: "",
+      partialContent: undefined,
+      status: "generating",
+    });
+
+    const afterReplayedDelta = applyGenerationEventToMessage(
+      afterStart ?? undefined,
+      "c1",
+      {
+        type: "delta",
+        requestId: "r1",
+        sessionId: "s1",
+        assistantMessageId: "m1",
+        modelId: "openai:gpt-5",
+        seq: 1,
+        ts: 2001,
+        delta: "Hello wor",
+      },
+    );
+
+    expect(afterReplayedDelta?.content).toBe("Hello wor");
+    expect(afterReplayedDelta?.partialContent).toBe("Hello wor");
+  });
+});
+
+describe("generation stream state", () => {
+  const baseEvent = {
+    requestId: "r1",
+    modelId: "openai:gpt-5",
+  } as const;
+
+  const startEvent = (sessionId: string, messageId: string, seq = 0) =>
+    ({
+      ...baseEvent,
+      type: "start",
+      sessionId,
+      assistantMessageId: messageId,
+      seq,
+      ts: seq,
+    }) as const;
+
+  const deltaEvent = (sessionId: string, messageId: string, seq: number) =>
+    ({
+      ...baseEvent,
+      type: "delta",
+      sessionId,
+      assistantMessageId: messageId,
+      seq,
+      ts: seq,
+      delta: "x",
+    }) as const;
+
+  const completeEvent = (sessionId: string, messageId: string, seq: number) =>
+    ({
+      ...baseEvent,
+      type: "complete",
+      sessionId,
+      assistantMessageId: messageId,
+      seq,
+      ts: seq,
+      content: "done",
+    }) as const;
+
+  it("drops replayed events at or below the last applied seq per session", () => {
+    const state = createGenerationStreamState();
+
+    const first = deltaEvent("s1", "m1", 1);
+    expect(shouldApplyGenerationEvent(state, first)).toBe(true);
+    trackGenerationEvent(state, first);
+
+    const second = deltaEvent("s1", "m1", 2);
+    expect(shouldApplyGenerationEvent(state, second)).toBe(true);
+    trackGenerationEvent(state, second);
+
+    // Reconnect replays the log from seq 0.
+    expect(shouldApplyGenerationEvent(state, startEvent("s1", "m1", 0))).toBe(
+      false,
+    );
+    expect(shouldApplyGenerationEvent(state, deltaEvent("s1", "m1", 1))).toBe(
+      false,
+    );
+    expect(shouldApplyGenerationEvent(state, deltaEvent("s1", "m1", 2))).toBe(
+      false,
+    );
+    // New events after the replay still apply.
+    expect(shouldApplyGenerationEvent(state, deltaEvent("s1", "m1", 3))).toBe(
+      true,
+    );
+  });
+
+  it("tracks seq independently per session", () => {
+    const state = createGenerationStreamState();
+
+    trackGenerationEvent(state, deltaEvent("s1", "m1", 5));
+
+    // A different session at a lower seq is not a replay.
+    expect(shouldApplyGenerationEvent(state, deltaEvent("s2", "m2", 1))).toBe(
+      true,
+    );
+  });
+
+  it("only settles a comparison request once every expected session is terminal", () => {
+    const state = createGenerationStreamState(["m1", "m2"]);
+
+    trackGenerationEvent(state, startEvent("s1", "m1"));
+    trackGenerationEvent(state, startEvent("s2", "m2"));
+    trackGenerationEvent(state, completeEvent("s1", "m1", 9));
+    expect(isGenerationRequestSettled(state)).toBe(false);
+
+    trackGenerationEvent(state, completeEvent("s2", "m2", 7));
+    expect(isGenerationRequestSettled(state)).toBe(true);
+  });
+
+  it("falls back to seen sessions when the expected set is unknown (resume path)", () => {
+    const state = createGenerationStreamState();
+
+    trackGenerationEvent(state, startEvent("s1", "m1"));
+    trackGenerationEvent(state, startEvent("s2", "m2"));
+    trackGenerationEvent(state, completeEvent("s1", "m1", 9));
+    expect(isGenerationRequestSettled(state)).toBe(false);
+
+    trackGenerationEvent(state, completeEvent("s2", "m2", 7));
+    expect(isGenerationRequestSettled(state)).toBe(true);
+  });
+
+  it("never settles before any session has been seen", () => {
+    expect(isGenerationRequestSettled(createGenerationStreamState())).toBe(
+      false,
+    );
+  });
+
+  it("ignores ack sessions when deciding whether the request is settled", () => {
+    const state = createGenerationStreamState();
+
+    trackGenerationEvent(state, {
+      ...baseEvent,
+      type: "ack",
+      sessionId: "s1:ack",
+      assistantMessageId: "m1",
+      seq: 0,
+      ts: 0,
+      text: "On it.",
+    });
+    trackGenerationEvent(state, startEvent("s1", "m1"));
+    trackGenerationEvent(state, completeEvent("s1", "m1", 4));
+
+    expect(isGenerationRequestSettled(state)).toBe(true);
   });
 });
 

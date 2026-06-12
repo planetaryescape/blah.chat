@@ -11,7 +11,7 @@ function getDatabaseUrl() {
   return url;
 }
 
-const STALE_LOCK_TIMEOUT_MS = 60_000;
+const STALE_LOCK_TIMEOUT_MS = 10 * 60 * 1000;
 
 export async function cleanupStaleGenerationSessions(
   deps: { db?: PersistenceDb; now?: number } = {},
@@ -22,7 +22,7 @@ export async function cleanupStaleGenerationSessions(
 
   const result = await db
     .update(generationSessions)
-    .set({ status: "failed", updatedAt: now })
+    .set({ status: "error", updatedAt: now })
     .where(
       and(
         eq(generationSessions.status, "pending"),

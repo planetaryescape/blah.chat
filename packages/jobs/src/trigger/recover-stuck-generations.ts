@@ -1,9 +1,10 @@
 import {
   createNeonDatabase,
   generationRequests,
+  generationSessions,
   type PersistenceDb,
 } from "@blah-chat/persistence-postgres";
-import { and, inArray, lt } from "drizzle-orm";
+import { and, eq, gte, inArray, lt, notExists, sql } from "drizzle-orm";
 import { processGeneration } from "./process-generation";
 
 function getDatabaseUrl() {
@@ -34,6 +35,10 @@ export async function recoverStuckGenerations(
 
   // Reset stale running/cancelling requests back to pending so the next worker
   // can re-claim via the pending->running CAS in service.process.
+  // Staleness is judged against both the request's own updatedAt and the
+  // freshest of its generation_sessions: the web app heartbeats session
+  // updatedAt on every checkpoint, so a request with any fresh session is
+  // still alive even if request.updatedAt lagged behind.
   const recovered = await db
     .update(generationRequests)
     .set({ status: "pending", updatedAt: now })
@@ -41,6 +46,17 @@ export async function recoverStuckGenerations(
       and(
         inArray(generationRequests.status, ["running", "cancelling"]),
         lt(generationRequests.updatedAt, cutoff),
+        notExists(
+          db
+            .select({ one: sql`1` })
+            .from(generationSessions)
+            .where(
+              and(
+                eq(generationSessions.requestId, generationRequests.id),
+                gte(generationSessions.updatedAt, cutoff),
+              ),
+            ),
+        ),
       ),
     )
     .returning();

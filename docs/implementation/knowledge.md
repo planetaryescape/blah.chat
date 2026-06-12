@@ -1,5 +1,7 @@
 # blah.chat Implementation Knowledge
 
+> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; the Convex-specific sections, file paths, and code samples below no longer apply. Resilient generation still holds as a principle — it is now implemented with Trigger.dev tasks + SSE instead of Convex actions.
+
 This document captures key decisions, architectural patterns, and lessons learned during implementation. For code details, refer to the source files directly.
 
 ---

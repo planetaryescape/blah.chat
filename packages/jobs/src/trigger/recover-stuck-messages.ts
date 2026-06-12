@@ -4,7 +4,7 @@ import {
   messages,
   type PersistenceDb,
 } from "@blah-chat/persistence-postgres";
-import { and, eq, inArray, lt, or, sql } from "drizzle-orm";
+import { and, eq, inArray, lt, or } from "drizzle-orm";
 
 function getDatabaseUrl() {
   const url = process.env.DATABASE_URL;
@@ -21,59 +21,40 @@ export async function recoverStuckMessages(
   const now = deps.now ?? Date.now();
   const cutoff = now - STUCK_THRESHOLD_MS;
 
-  // Find stuck messages (pending or generating with old updatedAt)
-  const stuckMessages = await db
-    .select({ id: messages.id, conversationId: messages.conversationId })
-    .from(messages)
-    .where(
-      and(
-        or(eq(messages.status, "pending"), eq(messages.status, "generating")),
-        lt(messages.updatedAt, cutoff),
-      ),
-    );
-
-  if (stuckMessages.length === 0) {
-    return { recovered: 0 };
-  }
-
-  // Mark stuck messages as error
-  const stuckIds = stuckMessages.map((m) => m.id);
-  await db
+  // Single-statement update: the staleness predicate lives in the WHERE so a
+  // message that progressed between scheduling and execution is never
+  // clobbered (no select-then-update race).
+  const recovered = await db
     .update(messages)
     .set({
       status: "error",
       updatedAt: now,
     })
-    .where(inArray(messages.id, stuckIds));
+    .where(
+      and(
+        or(eq(messages.status, "pending"), eq(messages.status, "generating")),
+        lt(messages.updatedAt, cutoff),
+      ),
+    )
+    .returning();
 
-  // Fail pending generation sessions for affected conversations
-  const conversationIds = [
-    ...new Set(stuckMessages.map((m) => m.conversationId)),
-  ];
-  if (conversationIds.length > 0) {
-    await db
-      .update(generationSessions)
-      .set({ status: "failed", updatedAt: now })
-      .where(
-        and(
-          eq(generationSessions.status, "pending"),
-          inArray(
-            generationSessions.requestId,
-            db
-              .select({
-                id: sql<string>`generation_requests.id`,
-              })
-              .from(sql`generation_requests`)
-              .where(
-                inArray(
-                  sql`generation_requests.conversation_id`,
-                  conversationIds,
-                ),
-              ),
-          ),
-        ),
-      );
+  if (recovered.length === 0) {
+    return { recovered: 0 };
   }
 
-  return { recovered: stuckMessages.length };
+  // Fail only the recovered messages' own sessions, with the same staleness
+  // guard so an actively heartbeating session is left alone.
+  const stuckIds = recovered.map((m) => m.id);
+  await db
+    .update(generationSessions)
+    .set({ status: "error", updatedAt: now })
+    .where(
+      and(
+        eq(generationSessions.status, "pending"),
+        inArray(generationSessions.assistantMessageId, stuckIds),
+        lt(generationSessions.updatedAt, cutoff),
+      ),
+    );
+
+  return { recovered: recovered.length };
 }

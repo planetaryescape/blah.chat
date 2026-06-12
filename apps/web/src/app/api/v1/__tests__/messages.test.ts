@@ -69,6 +69,7 @@ vi.mock("next/server", async () => {
 
 // 2. Imports AFTER mocks
 import { messagesDAL } from "@/lib/api/dal/messages";
+import { ApiError } from "@/lib/api/errors";
 import {
   assertEnvelopeError,
   assertEnvelopeSuccess,
@@ -356,6 +357,51 @@ describe("/api/v1/conversations/[id]/messages", () => {
       });
 
       expect(response.status).toBe(202);
+    });
+
+    it("surfaces a 403 pro_models_disabled denial from the DAL", async () => {
+      vi.mocked(messagesDAL.send).mockRejectedValue(
+        new ApiError(
+          403,
+          "Pro models are currently disabled by the administrator",
+          "pro_models_disabled",
+        ),
+      );
+
+      const { POST } = await import("../conversations/[id]/messages/route");
+      const req = createMockRequest("/api/v1/conversations/conv-123/messages", {
+        method: "POST",
+        body: { content: "Hello", modelId: "anthropic:claude-opus-4.5" },
+      });
+      const response = await POST(req, {
+        params: Promise.resolve({ id: "conv-123" }),
+      });
+      const json = await response.json();
+
+      expect(response.status).toBe(403);
+      assertEnvelopeError(json);
+      expect(json.error.code).toBe("pro_models_disabled");
+      expect(json.error.message).toContain("disabled by the administrator");
+    });
+
+    it("surfaces a 403 budget_exceeded denial from the DAL", async () => {
+      vi.mocked(messagesDAL.send).mockRejectedValue(
+        new ApiError(403, "Monthly budget exceeded", "budget_exceeded"),
+      );
+
+      const { POST } = await import("../conversations/[id]/messages/route");
+      const req = createMockRequest("/api/v1/conversations/conv-123/messages", {
+        method: "POST",
+        body: { content: "Hello" },
+      });
+      const response = await POST(req, {
+        params: Promise.resolve({ id: "conv-123" }),
+      });
+      const json = await response.json();
+
+      expect(response.status).toBe(403);
+      assertEnvelopeError(json);
+      expect(json.error.code).toBe("budget_exceeded");
     });
 
     it("rejects invalid thinkingEffort value", async () => {

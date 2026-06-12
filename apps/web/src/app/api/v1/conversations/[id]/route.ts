@@ -12,6 +12,7 @@ const updateSchema = z
     title: z.string().optional(),
     model: z.string().optional(),
     selectedIntegrationIds: z.array(z.string()).optional(),
+    thinkingEffort: z.enum(["none", "low", "medium", "high"]).optional(),
   })
   .partial();
 

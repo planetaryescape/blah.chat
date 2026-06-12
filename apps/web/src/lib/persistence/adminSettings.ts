@@ -52,7 +52,6 @@ export async function updateAdminSettings(
     ...current,
     ...patch,
     limits: { ...current.limits, ...(patch.limits ?? {}) },
-    features: { ...current.features, ...(patch.features ?? {}) },
     proTier: { ...current.proTier, ...(patch.proTier ?? {}) },
     search: { ...current.search, ...(patch.search ?? {}) },
     memory: { ...current.memory, ...(patch.memory ?? {}) },

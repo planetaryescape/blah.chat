@@ -100,6 +100,7 @@ function ChatPageContent({
   // Optimistic UI: Overlay local optimistic messages on top of server state
   const { messages, addOptimisticMessages } = useOptimisticMessages({
     serverMessages,
+    conversationId: validConversationId ?? undefined,
   });
 
   // Announce new messages to screen readers

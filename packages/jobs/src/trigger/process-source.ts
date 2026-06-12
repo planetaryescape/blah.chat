@@ -12,6 +12,7 @@ import {
 import { task } from "@trigger.dev/sdk";
 import { embedMany } from "ai";
 import { eq } from "drizzle-orm";
+import { assertPublicHttpUrl, fetchPublicUrl } from "../lib/url-guard";
 import { extractDocumentBlobText } from "./extract-text";
 
 const CHARS_PER_TOKEN = 4;
@@ -133,6 +134,9 @@ async function fetchKnowledgeFileText(source: KnowledgeSource) {
 }
 
 async function fetchWebSource(url: string): Promise<ExtractContentResult> {
+  // SSRF guard: reject private/internal targets before fetching anywhere.
+  await assertPublicHttpUrl(url);
+
   const firecrawlApiKey = process.env.FIRECRAWL_API_KEY;
 
   if (firecrawlApiKey) {
@@ -165,7 +169,9 @@ async function fetchWebSource(url: string): Promise<ExtractContentResult> {
     }
   }
 
-  const response = await fetch(url, {
+  // Manual redirect handling: fetchPublicUrl re-runs the SSRF guard on every
+  // hop (up to 3 redirects).
+  const response = await fetchPublicUrl(url, {
     signal: AbortSignal.timeout(10_000),
     headers: {
       "User-Agent":
@@ -278,30 +284,46 @@ export async function processKnowledgeSource(
     const text = extracted.text.trim();
     const chunks = chunkText(text);
 
-    await db
-      .delete(knowledgeChunks)
-      .where(eq(knowledgeChunks.sourceKey, source.id));
-
     if (chunks.length > 0) {
       const embeddings = await embedBatch(chunks.map((chunk) => chunk.content));
-      await db.insert(knowledgeChunks).values(
-        chunks.map((chunk, index) => ({
-          userId: source.userId,
-          conversationId: null,
-          sourceKey: source.id,
-          chunkIndex: chunk.chunkIndex,
-          content: chunk.content,
-          searchDocument: chunk.content,
-          embedding: embeddings[index] ?? [],
-          metadata: {
-            charOffset: chunk.charOffset,
-            tokenCount: chunk.tokenCount,
-            projectId: source.projectId ?? null,
-            type: source.type,
-          },
-          createdAt: now(),
-        })),
-      );
+
+      // Atomic replace: the delete runs as a data-modifying CTE on the
+      // insert, so both happen in one statement (one implicit transaction).
+      // The neon-http driver used in production does not support interactive
+      // transactions, so a db.transaction() wrapper is not an option here.
+      const purged = db
+        .$with("purged")
+        .as(
+          db
+            .delete(knowledgeChunks)
+            .where(eq(knowledgeChunks.sourceKey, source.id))
+            .returning(),
+        );
+      await db
+        .with(purged)
+        .insert(knowledgeChunks)
+        .values(
+          chunks.map((chunk, index) => ({
+            userId: source.userId,
+            conversationId: null,
+            sourceKey: source.id,
+            chunkIndex: chunk.chunkIndex,
+            content: chunk.content,
+            searchDocument: chunk.content,
+            embedding: embeddings[index] ?? [],
+            metadata: {
+              charOffset: chunk.charOffset,
+              tokenCount: chunk.tokenCount,
+              projectId: source.projectId ?? null,
+              type: source.type,
+            },
+            createdAt: now(),
+          })),
+        );
+    } else {
+      await db
+        .delete(knowledgeChunks)
+        .where(eq(knowledgeChunks.sourceKey, source.id));
     }
 
     await db
@@ -343,6 +365,9 @@ export async function processKnowledgeSource(
 
 export const processSourceTask = task({
   id: "process-source",
+  // Serialize per entity: enqueuers pass concurrencyKey=sourceId so each
+  // knowledge source gets its own single-slot queue.
+  queue: { concurrencyLimit: 1 },
   maxDuration: 600,
   retry: {
     maxAttempts: 3,

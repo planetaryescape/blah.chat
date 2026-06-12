@@ -25,7 +25,7 @@
     "@blah-chat/ai": "workspace:*",
     "@blah-chat/api-client": "workspace:*",
     "@blah-chat/chat-ui-core": "workspace:*",
-    "@blah-chat/shared": "^0.2.0",
+    "@blah-chat/shared": "workspace:*",
     "@clerk/clerk-expo": "2.19.36",
     "@expo-google-fonts/manrope": "^0.4.2",
     "@expo-google-fonts/syne": "^0.4.2",

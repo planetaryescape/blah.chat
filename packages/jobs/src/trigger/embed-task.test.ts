@@ -3,14 +3,24 @@ import {
   taskEmbeddings,
   tasks,
 } from "@blah-chat/persistence-postgres";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createTestPersistenceDb } from "../../../persistence-postgres/src/testing/pglite";
 import { embedTask } from "./embed-task";
 
+// The pglite bootstrap schema lags behind schema.ts, which declares this
+// unique index (task_embeddings_by_task_key); the upsert relies on it.
+async function createDb() {
+  const db = await createTestPersistenceDb();
+  await db.execute(
+    sql`CREATE UNIQUE INDEX IF NOT EXISTS task_embeddings_by_task_key ON task_embeddings (task_key)`,
+  );
+  return db;
+}
+
 describe("embedTask", () => {
   it("generates embedding from title + description and inserts into taskEmbeddings", async () => {
-    const db = await createTestPersistenceDb();
+    const db = await createDb();
     const users = createUserRepository(db);
 
     const user = await users.upsertFromClerk({
@@ -58,7 +68,7 @@ describe("embedTask", () => {
   });
 
   it("skips if task not found", async () => {
-    const db = await createTestPersistenceDb();
+    const db = await createDb();
     const result = await embedTask(
       { taskId: "nonexistent" },
       { db, now: () => 1, embedBatch: async (v) => v.map(() => [0.1]) },
@@ -67,7 +77,7 @@ describe("embedTask", () => {
   });
 
   it("handles task with no description", async () => {
-    const db = await createTestPersistenceDb();
+    const db = await createDb();
     const users = createUserRepository(db);
 
     const user = await users.upsertFromClerk({

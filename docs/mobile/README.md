@@ -1,5 +1,7 @@
 # blah.chat Mobile App - Implementation Guide
 
+> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; file paths and code samples below no longer apply.
+
 **Last Updated**: December 2025
 **Target Platform**: React Native (iOS & Android) via Expo
 **Architecture**: Convex Direct (WebSocket real-time subscriptions)

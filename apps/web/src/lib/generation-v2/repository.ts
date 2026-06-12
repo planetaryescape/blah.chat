@@ -1,3 +1,4 @@
+import type { ThinkingEffort } from "@blah-chat/ai";
 import {
   attachments,
   comparisonVotes,
@@ -36,6 +37,21 @@ import type {
 } from "./types";
 
 const now = () => Date.now();
+const TERMINAL_STATUSES = new Set(["complete", "cancelled", "error"]);
+
+const POSTGRES_UNIQUE_VIOLATION = "23505";
+
+function isUniqueViolation(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  const candidate = error as { code?: unknown; cause?: unknown };
+  if (candidate.code === POSTGRES_UNIQUE_VIOLATION) {
+    return true;
+  }
+  return isUniqueViolation(candidate.cause);
+}
+
 const DEFAULT_ROUTING_POLICY_CONFIG = {
   version: 1,
   historyWindow: 50,
@@ -353,21 +369,18 @@ async function updateConversationActiveLeaf(input: {
     .where(eq(conversations.id, input.conversationId));
 }
 
-async function createPendingRequestBundle(
-  input: CreatePendingRequestBundleInput,
-): Promise<StartedGeneration> {
-  const userMessage = await createUserRequestMessage(input);
-
-  await createReplyEdgesForParents({
-    db: input.db,
-    childMessageId: userMessage.id,
-    parentIds: input.parentIds,
-  });
-
+async function createRequestBundleForUserMessage(input: {
+  db: PersistenceDb;
+  conversationId: string;
+  userId: string;
+  userMessage: Message;
+  modelIds: string[];
+  comparisonGroupId: string | null;
+}): Promise<StartedGeneration> {
   const request = await createGenerationRequestRow({
     db: input.db,
     conversationId: input.conversationId,
-    userMessageId: userMessage.id,
+    userMessageId: input.userMessage.id,
     modelIds: input.modelIds,
   });
 
@@ -382,7 +395,7 @@ async function createPendingRequestBundle(
     db: input.db,
     requestId: request.id,
     conversationId: input.conversationId,
-    userMessage,
+    userMessage: input.userMessage,
     modelIds: input.modelIds,
     comparisonGroupId: input.comparisonGroupId,
   });
@@ -396,9 +409,80 @@ async function createPendingRequestBundle(
   return {
     requestId: request.id,
     conversationId: input.conversationId,
-    userMessageId: userMessage.id,
+    userMessageId: input.userMessage.id,
     assistantMessageIds: assistantRows.map((row) => row.assistantMessage.id),
     modelIds: input.modelIds,
+  };
+}
+
+async function createPendingRequestBundle(
+  input: CreatePendingRequestBundleInput,
+): Promise<StartedGeneration> {
+  const userMessage = await createUserRequestMessage(input);
+
+  await createReplyEdgesForParents({
+    db: input.db,
+    childMessageId: userMessage.id,
+    parentIds: input.parentIds,
+  });
+
+  return createRequestBundleForUserMessage({
+    db: input.db,
+    conversationId: input.conversationId,
+    userId: input.userId,
+    userMessage,
+    modelIds: input.modelIds,
+    comparisonGroupId: input.comparisonGroupId,
+  });
+}
+
+/**
+ * Look up a previously persisted bundle for a (conversation, clientMessageId)
+ * pair. Returns the bundle when the full request graph exists, or the orphaned
+ * user message when a prior attempt persisted the message but crashed before
+ * creating its generation request.
+ */
+async function findExistingBundleByClientMessageId(input: {
+  db: PersistenceDb;
+  conversationId: string;
+  clientMessageId: string;
+}): Promise<{
+  bundle: StartedGeneration | null;
+  orphanUserMessage: Message | null;
+}> {
+  const existing = await input.db.query.messages.findFirst({
+    where: and(
+      eq(messages.conversationId, input.conversationId),
+      eq(messages.clientMessageId, input.clientMessageId),
+    ),
+  });
+  if (!existing) {
+    return { bundle: null, orphanUserMessage: null };
+  }
+
+  const existingRequest = await input.db.query.generationRequests.findFirst({
+    where: eq(generationRequests.userMessageId, existing.id),
+  });
+  if (!existingRequest) {
+    return { bundle: null, orphanUserMessage: existing };
+  }
+
+  const sessions = await input.db.query.generationSessions.findMany({
+    where: eq(generationSessions.requestId, existingRequest.id),
+    orderBy: (table, { asc: orderAsc }) => [orderAsc(table.createdAt)],
+  });
+
+  return {
+    bundle: {
+      requestId: existingRequest.id,
+      conversationId: input.conversationId,
+      userMessageId: existing.id,
+      assistantMessageIds: sessions.map(
+        (session) => session.assistantMessageId,
+      ),
+      modelIds: existingRequest.requestedModels,
+    },
+    orphanUserMessage: null,
   };
 }
 
@@ -439,30 +523,7 @@ function normalizeVoteOutcome(
 export function createGenerationV2Repository(db: PersistenceDb) {
   return {
     async upsertUser(clerkUser: ClerkUserProfile) {
-      const existing = await db.query.users.findFirst({
-        where: eq(users.clerkId, clerkUser.clerkId),
-      });
-
-      if (existing) {
-        const [updated] = await db
-          .update(users)
-          .set({
-            email: clerkUser.email,
-            name: clerkUser.name,
-            imageUrl: clerkUser.imageUrl,
-            updatedAt: now(),
-          })
-          .where(eq(users.id, existing.id))
-          .returning();
-
-        if (!updated) {
-          throw new Error("Failed to update user");
-        }
-
-        return updated;
-      }
-
-      const [created] = await db
+      const [upserted] = await db
         .insert(users)
         .values({
           clerkId: clerkUser.clerkId,
@@ -472,13 +533,22 @@ export function createGenerationV2Repository(db: PersistenceDb) {
           createdAt: now(),
           updatedAt: now(),
         })
+        .onConflictDoUpdate({
+          target: users.clerkId,
+          set: {
+            email: clerkUser.email,
+            name: clerkUser.name,
+            imageUrl: clerkUser.imageUrl,
+            updatedAt: now(),
+          },
+        })
         .returning();
 
-      if (!created) {
-        throw new Error("Failed to create user");
+      if (!upserted) {
+        throw new Error("Failed to upsert user");
       }
 
-      return created;
+      return upserted;
     },
 
     async createRequest(
@@ -503,34 +573,32 @@ export function createGenerationV2Repository(db: PersistenceDb) {
 
       // Idempotent retry path — if the client has already sent this
       // clientMessageId for this conversation, return the existing bundle.
+      // Orphaned user messages (message persisted, request creation crashed)
+      // are adopted instead of re-inserted, which would hit the unique index.
       if (input.clientMessageId) {
-        const existing = await db.query.messages.findFirst({
-          where: and(
-            eq(messages.conversationId, conversation.id),
-            eq(messages.clientMessageId, input.clientMessageId),
-          ),
-        });
-        if (existing) {
-          const existingRequest = await db.query.generationRequests.findFirst({
-            where: eq(generationRequests.userMessageId, existing.id),
+        const { bundle, orphanUserMessage } =
+          await findExistingBundleByClientMessageId({
+            db,
+            conversationId: conversation.id,
+            clientMessageId: input.clientMessageId,
           });
-          if (existingRequest) {
-            const sessions = await db.query.generationSessions.findMany({
-              where: eq(generationSessions.requestId, existingRequest.id),
-              orderBy: (table, { asc: orderAsc }) => [
-                orderAsc(table.createdAt),
-              ],
-            });
-            return {
-              requestId: existingRequest.id,
+        if (bundle) {
+          return bundle;
+        }
+        if (orphanUserMessage) {
+          const comparisonGroupId =
+            orphanUserMessage.comparisonGroupId ??
+            (modelIds.length > 1 ? nanoid() : null);
+          return await db.transaction(async (tx) =>
+            createRequestBundleForUserMessage({
+              db: tx as PersistenceDb,
               conversationId: conversation.id,
-              userMessageId: existing.id,
-              assistantMessageIds: sessions.map(
-                (session) => session.assistantMessageId,
-              ),
-              modelIds: existingRequest.requestedModels,
-            };
-          }
+              userId: user.id,
+              userMessage: orphanUserMessage,
+              modelIds,
+              comparisonGroupId,
+            }),
+          );
         }
       }
 
@@ -552,19 +620,52 @@ export function createGenerationV2Repository(db: PersistenceDb) {
       }
       const comparisonGroupId = modelIds.length > 1 ? nanoid() : null;
 
-      return await db.transaction(async (tx) =>
-        createPendingRequestBundle({
-          db: tx as PersistenceDb,
-          conversationId: conversation.id,
-          userId: user.id,
-          content: input.content,
-          clientMessageId: input.clientMessageId,
-          parentIds,
-          parentMessage,
-          modelIds,
-          comparisonGroupId,
-        }),
-      );
+      try {
+        return await db.transaction(async (tx) =>
+          createPendingRequestBundle({
+            db: tx as PersistenceDb,
+            conversationId: conversation.id,
+            userId: user.id,
+            content: input.content,
+            clientMessageId: input.clientMessageId,
+            parentIds,
+            parentMessage,
+            modelIds,
+            comparisonGroupId,
+          }),
+        );
+      } catch (error) {
+        // Concurrent retries with the same clientMessageId race past the
+        // pre-check and collide on messages_conversation_client_message_unique.
+        // Resolve the loser by returning the winner's bundle.
+        if (!input.clientMessageId || !isUniqueViolation(error)) {
+          throw error;
+        }
+
+        const { bundle, orphanUserMessage } =
+          await findExistingBundleByClientMessageId({
+            db,
+            conversationId: conversation.id,
+            clientMessageId: input.clientMessageId,
+          });
+        if (bundle) {
+          return bundle;
+        }
+        if (orphanUserMessage) {
+          return await db.transaction(async (tx) =>
+            createRequestBundleForUserMessage({
+              db: tx as PersistenceDb,
+              conversationId: conversation.id,
+              userId: user.id,
+              userMessage: orphanUserMessage,
+              modelIds,
+              comparisonGroupId:
+                orphanUserMessage.comparisonGroupId ?? comparisonGroupId,
+            }),
+          );
+        }
+        throw error;
+      }
     },
 
     async createRegenerationRequest(input: {
@@ -601,73 +702,77 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         throw new Error("No model available for regeneration");
       }
 
-      const siblingRows = await db
-        .select({ siblingIndex: messages.siblingIndex })
-        .from(messages)
-        .innerJoin(messageEdges, eq(messageEdges.childMessageId, messages.id))
-        .where(eq(messageEdges.parentMessageId, userMessage.id));
-
-      const nextSiblingIndex =
-        siblingRows.reduce(
-          (max, row) => Math.max(max, row.siblingIndex ?? 0),
-          -1,
-        ) + 1;
-
-      const [request] = await db
-        .insert(generationRequests)
-        .values({
-          conversationId: assistantMessage.conversationId,
-          userMessageId: userMessage.id,
-          requestedModels: [resolvedModel],
-          promptOverride: null,
-          status: "pending",
-          createdAt: now(),
-          updatedAt: now(),
-        })
-        .returning();
-
-      if (!request) {
-        throw new Error("Failed to create regeneration request");
-      }
-
       if (!userMessage.userId) {
         throw new Error("User message missing user id");
       }
+      const userId = userMessage.userId;
 
-      await snapshotConversationIntegrationsForRequest({
-        db,
-        requestId: request.id,
-        conversationId: assistantMessage.conversationId,
-        userId: userMessage.userId,
-      });
+      return await db.transaction(async (txDb) => {
+        const tx = txDb as PersistenceDb;
+        const siblingRows = await tx
+          .select({ siblingIndex: messages.siblingIndex })
+          .from(messages)
+          .innerJoin(messageEdges, eq(messageEdges.childMessageId, messages.id))
+          .where(eq(messageEdges.parentMessageId, userMessage.id));
 
-      const { assistantMessage: regeneratedAssistant } =
-        await createAssistantSession({
-          db,
+        const nextSiblingIndex =
+          siblingRows.reduce(
+            (max, row) => Math.max(max, row.siblingIndex ?? 0),
+            -1,
+          ) + 1;
+
+        const [request] = await tx
+          .insert(generationRequests)
+          .values({
+            conversationId: assistantMessage.conversationId,
+            userMessageId: userMessage.id,
+            requestedModels: [resolvedModel],
+            promptOverride: null,
+            status: "pending",
+            createdAt: now(),
+            updatedAt: now(),
+          })
+          .returning();
+
+        if (!request) {
+          throw new Error("Failed to create regeneration request");
+        }
+
+        await snapshotConversationIntegrationsForRequest({
+          db: tx,
           requestId: request.id,
           conversationId: assistantMessage.conversationId,
-          parentMessageId: userMessage.id,
-          modelId: resolvedModel,
-          rootMessageId: userMessage.rootMessageId ?? userMessage.id,
-          siblingIndex: nextSiblingIndex,
-          forkReason: "regenerate",
+          userId,
         });
 
-      await db
-        .update(conversations)
-        .set({
-          activeLeafMessageId: regeneratedAssistant.id,
-          updatedAt: now(),
-        })
-        .where(eq(conversations.id, assistantMessage.conversationId));
+        const { assistantMessage: regeneratedAssistant } =
+          await createAssistantSession({
+            db: tx,
+            requestId: request.id,
+            conversationId: assistantMessage.conversationId,
+            parentMessageId: userMessage.id,
+            modelId: resolvedModel,
+            rootMessageId: userMessage.rootMessageId ?? userMessage.id,
+            siblingIndex: nextSiblingIndex,
+            forkReason: "regenerate",
+          });
 
-      return {
-        requestId: request.id,
-        conversationId: assistantMessage.conversationId,
-        userMessageId: userMessage.id,
-        assistantMessageIds: [regeneratedAssistant.id],
-        modelIds: [resolvedModel],
-      };
+        await tx
+          .update(conversations)
+          .set({
+            activeLeafMessageId: regeneratedAssistant.id,
+            updatedAt: now(),
+          })
+          .where(eq(conversations.id, assistantMessage.conversationId));
+
+        return {
+          requestId: request.id,
+          conversationId: assistantMessage.conversationId,
+          userMessageId: userMessage.id,
+          assistantMessageIds: [regeneratedAssistant.id],
+          modelIds: [resolvedModel],
+        };
+      });
     },
 
     async createEditRequest(input: {
@@ -692,103 +797,108 @@ export function createGenerationV2Repository(db: PersistenceDb) {
       }
 
       const parentIds = await getParentIds(db, originalMessage.id);
-      const siblingIndex = await getNextSiblingIndex({
-        db,
-        conversationId: originalMessage.conversationId,
-        parentIds,
-      });
       const resolvedModel = input.modelId ?? conversation.model;
       if (!resolvedModel) {
         throw new Error("No model available for edited branch");
       }
 
-      const editedMessageId = nanoid();
-      const [editedUserMessage] = await db
-        .insert(messages)
-        .values({
-          id: editedMessageId,
+      return await db.transaction(async (txDb) => {
+        const tx = txDb as PersistenceDb;
+        const siblingIndex = await getNextSiblingIndex({
+          db: tx,
           conversationId: originalMessage.conversationId,
-          userId: originalMessage.userId,
-          role: "user",
-          content: input.content,
-          status: "complete",
-          rootMessageId: originalMessage.rootMessageId ?? originalMessage.id,
-          siblingIndex,
-          forkReason: "edit",
-          createdAt: now(),
-          updatedAt: now(),
-        })
-        .returning();
+          parentIds,
+        });
 
-      if (!editedUserMessage) {
-        throw new Error("Failed to create edited user message");
-      }
-
-      if (parentIds.length > 0) {
-        await db.insert(messageEdges).values(
-          parentIds.map((parentMessageId, index) => ({
-            parentMessageId,
-            childMessageId: editedUserMessage.id,
-            position: index,
-            edgeType: "reply",
+        const editedMessageId = nanoid();
+        const [editedUserMessage] = await tx
+          .insert(messages)
+          .values({
+            id: editedMessageId,
+            conversationId: originalMessage.conversationId,
+            userId: originalMessage.userId,
+            role: "user",
+            content: input.content,
+            status: "complete",
+            rootMessageId: originalMessage.rootMessageId ?? originalMessage.id,
+            siblingIndex,
+            forkReason: "edit",
             createdAt: now(),
-          })),
-        );
-      }
+            updatedAt: now(),
+          })
+          .returning();
 
-      const [request] = await db
-        .insert(generationRequests)
-        .values({
+        if (!editedUserMessage) {
+          throw new Error("Failed to create edited user message");
+        }
+
+        if (parentIds.length > 0) {
+          await tx.insert(messageEdges).values(
+            parentIds.map((parentMessageId, index) => ({
+              parentMessageId,
+              childMessageId: editedUserMessage.id,
+              position: index,
+              edgeType: "reply",
+              createdAt: now(),
+            })),
+          );
+        }
+
+        const [request] = await tx
+          .insert(generationRequests)
+          .values({
+            conversationId: originalMessage.conversationId,
+            userMessageId: editedUserMessage.id,
+            requestedModels: [resolvedModel],
+            promptOverride: null,
+            status: "pending",
+            createdAt: now(),
+            updatedAt: now(),
+          })
+          .returning();
+
+        if (!request) {
+          throw new Error("Failed to create edit request");
+        }
+
+        if (!editedUserMessage.userId) {
+          throw new Error("Edited message missing user id");
+        }
+
+        await snapshotConversationIntegrationsForRequest({
+          db: tx,
+          requestId: request.id,
+          conversationId: originalMessage.conversationId,
+          userId: editedUserMessage.userId,
+        });
+
+        const { assistantMessage } = await createAssistantSession({
+          db: tx,
+          requestId: request.id,
+          conversationId: originalMessage.conversationId,
+          parentMessageId: editedUserMessage.id,
+          modelId: resolvedModel,
+          rootMessageId:
+            editedUserMessage.rootMessageId ?? editedUserMessage.id,
+          siblingIndex: 0,
+        });
+
+        await tx
+          .update(conversations)
+          .set({
+            activeLeafMessageId: assistantMessage.id,
+            updatedAt: now(),
+          })
+          .where(eq(conversations.id, originalMessage.conversationId));
+
+        return {
+          requestId: request.id,
           conversationId: originalMessage.conversationId,
           userMessageId: editedUserMessage.id,
-          requestedModels: [resolvedModel],
-          promptOverride: null,
-          status: "pending",
-          createdAt: now(),
-          updatedAt: now(),
-        })
-        .returning();
-
-      if (!request) {
-        throw new Error("Failed to create edit request");
-      }
-
-      if (!editedUserMessage.userId) {
-        throw new Error("Edited message missing user id");
-      }
-
-      await snapshotConversationIntegrationsForRequest({
-        db,
-        requestId: request.id,
-        conversationId: originalMessage.conversationId,
-        userId: editedUserMessage.userId,
+          assistantMessageIds: [assistantMessage.id],
+          modelIds: [resolvedModel],
+        };
       });
-
-      const { assistantMessage } = await createAssistantSession({
-        db,
-        requestId: request.id,
-        conversationId: originalMessage.conversationId,
-        parentMessageId: editedUserMessage.id,
-        modelId: resolvedModel,
-        rootMessageId: editedUserMessage.rootMessageId ?? editedUserMessage.id,
-        siblingIndex: 0,
-      });
-
-      await db
-        .update(conversations)
-        .set({
-          activeLeafMessageId: assistantMessage.id,
-          updatedAt: now(),
-        })
-        .where(eq(conversations.id, originalMessage.conversationId));
-
-      return {
-        requestId: request.id,
-        conversationId: originalMessage.conversationId,
-        userMessageId: editedUserMessage.id,
-        assistantMessageIds: [assistantMessage.id],
-        modelIds: [resolvedModel],
-      };
     },
 
     async getComparisonContext(comparisonGroupId: string) {
@@ -983,72 +1093,76 @@ export function createGenerationV2Repository(db: PersistenceDb) {
       const { conversation, userMessage, responses, prompt } =
         await this.getComparisonContext(input.comparisonGroupId);
 
-      const [request] = await db
-        .insert(generationRequests)
-        .values({
-          conversationId: conversation.id,
-          userMessageId: userMessage.id,
-          requestedModels: [input.consolidationModel],
-          promptOverride: prompt,
-          status: "pending",
-          createdAt: now(),
-          updatedAt: now(),
-        })
-        .returning();
-
-      if (!request) {
-        throw new Error("Failed to create consolidation request");
-      }
-
       if (!userMessage.userId) {
         throw new Error("Comparison prompt missing user id");
       }
+      const userId = userMessage.userId;
 
-      await snapshotConversationIntegrationsForRequest({
-        db,
-        requestId: request.id,
-        conversationId: conversation.id,
-        userId: userMessage.userId,
+      return await db.transaction(async (txDb) => {
+        const tx = txDb as PersistenceDb;
+        const [request] = await tx
+          .insert(generationRequests)
+          .values({
+            conversationId: conversation.id,
+            userMessageId: userMessage.id,
+            requestedModels: [input.consolidationModel],
+            promptOverride: prompt,
+            status: "pending",
+            createdAt: now(),
+            updatedAt: now(),
+          })
+          .returning();
+
+        if (!request) {
+          throw new Error("Failed to create consolidation request");
+        }
+
+        await snapshotConversationIntegrationsForRequest({
+          db: tx,
+          requestId: request.id,
+          conversationId: conversation.id,
+          userId,
+        });
+
+        const { assistantMessage } = await createAssistantSession({
+          db: tx,
+          requestId: request.id,
+          conversationId: conversation.id,
+          parentMessageId: userMessage.id,
+          modelId: input.consolidationModel,
+          rootMessageId: userMessage.rootMessageId ?? userMessage.id,
+          isConsolidation: true,
+        });
+
+        await Promise.all(
+          responses.map((response) =>
+            tx
+              .update(messages)
+              .set({
+                consolidatedMessageId: assistantMessage.id,
+                updatedAt: now(),
+              })
+              .where(eq(messages.id, response.id)),
+          ),
+        );
+
+        await tx
+          .update(conversations)
+          .set({
+            activeLeafMessageId: assistantMessage.id,
+            model: input.consolidationModel,
+            updatedAt: now(),
+          })
+          .where(eq(conversations.id, conversation.id));
+
+        return {
+          requestId: request.id,
+          conversationId: conversation.id,
+          userMessageId: userMessage.id,
+          assistantMessageIds: [assistantMessage.id],
+          modelIds: [input.consolidationModel],
+        };
       });
-
-      const { assistantMessage } = await createAssistantSession({
-        db,
-        requestId: request.id,
-        conversationId: conversation.id,
-        parentMessageId: userMessage.id,
-        modelId: input.consolidationModel,
-        rootMessageId: userMessage.rootMessageId ?? userMessage.id,
-        isConsolidation: true,
-      });
-
-      await Promise.all(
-        responses.map((response) =>
-          db
-            .update(messages)
-            .set({
-              consolidatedMessageId: assistantMessage.id,
-              updatedAt: now(),
-            })
-            .where(eq(messages.id, response.id)),
-        ),
-      );
-
-      await db
-        .update(conversations)
-        .set({
-          activeLeafMessageId: assistantMessage.id,
-          model: input.consolidationModel,
-          updatedAt: now(),
-        })
-        .where(eq(conversations.id, conversation.id));
-
-      return {
-        requestId: request.id,
-        conversationId: conversation.id,
-        userMessageId: userMessage.id,
-        assistantMessageIds: [assistantMessage.id],
-        modelIds: [input.consolidationModel],
-      };
     },
 
     async createNewConversationConsolidationRequest(input: {
@@ -1059,91 +1173,95 @@ export function createGenerationV2Repository(db: PersistenceDb) {
       const { userMessage, prompt } = await this.getComparisonContext(
         input.comparisonGroupId,
       );
-      const [conversation] = await db
-        .insert(conversations)
-        .values({
-          userId: input.userId,
-          model: input.consolidationModel,
-          title: `Consolidation: ${userMessage.content.slice(0, 50)}${userMessage.content.length > 50 ? "..." : ""}`,
-          createdAt: now(),
-          updatedAt: now(),
-        })
-        .returning();
 
-      if (!conversation) {
-        throw new Error("Failed to create consolidation conversation");
-      }
+      return await db.transaction(async (txDb) => {
+        const tx = txDb as PersistenceDb;
+        const [conversation] = await tx
+          .insert(conversations)
+          .values({
+            userId: input.userId,
+            model: input.consolidationModel,
+            title: `Consolidation: ${userMessage.content.slice(0, 50)}${userMessage.content.length > 50 ? "..." : ""}`,
+            createdAt: now(),
+            updatedAt: now(),
+          })
+          .returning();
 
-      const consolidationPromptMessageId = nanoid();
-      const [consolidationPromptMessage] = await db
-        .insert(messages)
-        .values({
-          id: consolidationPromptMessageId,
+        if (!conversation) {
+          throw new Error("Failed to create consolidation conversation");
+        }
+
+        const consolidationPromptMessageId = nanoid();
+        const [consolidationPromptMessage] = await tx
+          .insert(messages)
+          .values({
+            id: consolidationPromptMessageId,
+            conversationId: conversation.id,
+            userId: input.userId,
+            role: "user",
+            content: prompt,
+            status: "complete",
+            rootMessageId: consolidationPromptMessageId,
+            siblingIndex: 0,
+            createdAt: now(),
+            updatedAt: now(),
+          })
+          .returning();
+
+        if (!consolidationPromptMessage) {
+          throw new Error("Failed to create consolidation prompt message");
+        }
+
+        const [request] = await tx
+          .insert(generationRequests)
+          .values({
+            conversationId: conversation.id,
+            userMessageId: consolidationPromptMessage.id,
+            requestedModels: [input.consolidationModel],
+            promptOverride: null,
+            status: "pending",
+            createdAt: now(),
+            updatedAt: now(),
+          })
+          .returning();
+
+        if (!request) {
+          throw new Error("Failed to create consolidation generation request");
+        }
+
+        await snapshotConversationIntegrationsForRequest({
+          db: tx,
+          requestId: request.id,
           conversationId: conversation.id,
           userId: input.userId,
-          role: "user",
-          content: prompt,
-          status: "complete",
-          rootMessageId: consolidationPromptMessageId,
+        });
+
+        const { assistantMessage } = await createAssistantSession({
+          db: tx,
+          requestId: request.id,
+          conversationId: conversation.id,
+          parentMessageId: consolidationPromptMessage.id,
+          modelId: input.consolidationModel,
+          rootMessageId: consolidationPromptMessage.id,
           siblingIndex: 0,
-          createdAt: now(),
-          updatedAt: now(),
-        })
-        .returning();
+        });
 
-      if (!consolidationPromptMessage) {
-        throw new Error("Failed to create consolidation prompt message");
-      }
+        await tx
+          .update(conversations)
+          .set({
+            activeLeafMessageId: assistantMessage.id,
+            updatedAt: now(),
+          })
+          .where(eq(conversations.id, conversation.id));
 
-      const [request] = await db
-        .insert(generationRequests)
-        .values({
+        return {
+          requestId: request.id,
           conversationId: conversation.id,
           userMessageId: consolidationPromptMessage.id,
-          requestedModels: [input.consolidationModel],
-          promptOverride: null,
-          status: "pending",
-          createdAt: now(),
-          updatedAt: now(),
-        })
-        .returning();
-
-      if (!request) {
-        throw new Error("Failed to create consolidation generation request");
-      }
-
-      await snapshotConversationIntegrationsForRequest({
-        db,
-        requestId: request.id,
-        conversationId: conversation.id,
-        userId: input.userId,
+          assistantMessageIds: [assistantMessage.id],
+          modelIds: [input.consolidationModel],
+        };
       });
-
-      const { assistantMessage } = await createAssistantSession({
-        db,
-        requestId: request.id,
-        conversationId: conversation.id,
-        parentMessageId: consolidationPromptMessage.id,
-        modelId: input.consolidationModel,
-        rootMessageId: consolidationPromptMessage.id,
-        siblingIndex: 0,
-      });
-
-      await db
-        .update(conversations)
-        .set({
-          activeLeafMessageId: assistantMessage.id,
-          updatedAt: now(),
-        })
-        .where(eq(conversations.id, conversation.id));
-
-      return {
-        requestId: request.id,
-        conversationId: conversation.id,
-        userMessageId: consolidationPromptMessage.id,
-        assistantMessageIds: [assistantMessage.id],
-        modelIds: [input.consolidationModel],
-      };
     },
 
     async getRequestBundle(
@@ -1220,6 +1338,8 @@ export function createGenerationV2Repository(db: PersistenceDb) {
           connectionStatus: integration.connectionStatus,
         })),
         promptMessages: promptChain,
+        thinkingEffort: (conversation.thinkingEffort ??
+          "none") as ThinkingEffort,
         sessions: sessions.map((session) => ({
           sessionId: session.id,
           assistantMessageId: session.assistantMessageId,
@@ -1273,7 +1393,12 @@ export function createGenerationV2Repository(db: PersistenceDb) {
       await db
         .update(generationRequests)
         .set({ status, updatedAt: now() })
-        .where(eq(generationRequests.id, requestId));
+        .where(
+          and(
+            eq(generationRequests.id, requestId),
+            sql`${generationRequests.status} not in ('complete', 'cancelled', 'error')`,
+          ),
+        );
     },
 
     async claimRequestForProcessing(requestId: string) {
@@ -1340,7 +1465,12 @@ export function createGenerationV2Repository(db: PersistenceDb) {
           ...(provider !== undefined ? { provider } : {}),
           updatedAt: now(),
         })
-        .where(eq(generationSessions.id, sessionId));
+        .where(
+          and(
+            eq(generationSessions.id, sessionId),
+            sql`${generationSessions.status} not in ('complete', 'cancelled', 'error')`,
+          ),
+        );
     },
 
     async markRequestCancelling(requestId: string) {
@@ -1350,7 +1480,12 @@ export function createGenerationV2Repository(db: PersistenceDb) {
           status: "cancelling",
           updatedAt: now(),
         })
-        .where(eq(generationRequests.id, requestId));
+        .where(
+          and(
+            eq(generationRequests.id, requestId),
+            sql`${generationRequests.status} in ('pending', 'running')`,
+          ),
+        );
     },
 
     async markRequestSessionsCancelling(requestId: string) {
@@ -1417,7 +1552,12 @@ export function createGenerationV2Repository(db: PersistenceDb) {
           status: input.status,
           updatedAt: now(),
         })
-        .where(eq(messages.id, input.assistantMessageId));
+        .where(
+          and(
+            eq(messages.id, input.assistantMessageId),
+            sql`${messages.status} not in ('complete', 'cancelled', 'error')`,
+          ),
+        );
     },
 
     async replaceAssistantToolCalls(input: {
@@ -1452,15 +1592,24 @@ export function createGenerationV2Repository(db: PersistenceDb) {
     },
 
     async insertCheckpoint(input: {
+      requestId: string;
       sessionId: string;
       content: string;
       sequence: number;
     }) {
-      await db.insert(generationCheckpoints).values({
-        sessionId: input.sessionId,
-        content: input.content,
-        sequence: input.sequence,
-        createdAt: now(),
+      await db.transaction(async (tx) => {
+        await tx.insert(generationCheckpoints).values({
+          sessionId: input.sessionId,
+          content: input.content,
+          sequence: input.sequence,
+          createdAt: now(),
+        });
+        // Heartbeat: the recover-stuck-generations cron keys staleness off
+        // generationRequests.updatedAt, so live streams must keep it fresh.
+        await tx
+          .update(generationRequests)
+          .set({ updatedAt: now() })
+          .where(eq(generationRequests.id, input.requestId));
       });
     },
 
@@ -1485,6 +1634,8 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         return existing;
       }
 
+      // Parallel sessions can race this insert; the partial unique index on
+      // (generationRequestId, selectedModelId) makes the loser refetch.
       const [decision] = await db
         .insert(routingDecisions)
         .values({
@@ -1498,13 +1649,25 @@ export function createGenerationV2Repository(db: PersistenceDb) {
           input: input.details ?? null,
           createdAt: now(),
         })
+        .onConflictDoNothing()
         .returning();
 
-      if (!decision) {
+      if (decision) {
+        return decision;
+      }
+
+      const winner = await db.query.routingDecisions.findFirst({
+        where: and(
+          eq(routingDecisions.generationRequestId, input.requestId),
+          eq(routingDecisions.selectedModelId, input.selectedModelId),
+        ),
+      });
+
+      if (!winner) {
         throw new Error("Failed to create routing decision");
       }
 
-      return decision;
+      return winner;
     },
 
     async getOrCreateActiveRoutingPolicy() {
@@ -1516,6 +1679,8 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         return existing;
       }
 
+      // The routing_policies_single_active partial unique index serializes
+      // concurrent bootstrap inserts; losers refetch the active policy.
       const [policy] = await db
         .insert(routingPolicies)
         .values({
@@ -1527,13 +1692,22 @@ export function createGenerationV2Repository(db: PersistenceDb) {
           createdAt: now(),
           updatedAt: now(),
         })
+        .onConflictDoNothing()
         .returning();
 
-      if (!policy) {
+      if (policy) {
+        return policy;
+      }
+
+      const winner = await db.query.routingPolicies.findFirst({
+        where: eq(routingPolicies.isActive, true),
+      });
+
+      if (!winner) {
         throw new Error("Failed to create active routing policy");
       }
 
-      return policy;
+      return winner;
     },
 
     async replaceRoutingCandidateScores(input: {
@@ -1647,11 +1821,7 @@ export function createGenerationV2Repository(db: PersistenceDb) {
       costUsd?: number | null;
       metadata?: Record<string, unknown>;
     }) {
-      const existing = await db.query.routingOutcomes.findFirst({
-        where: eq(routingOutcomes.generationSessionId, input.sessionId),
-      });
-
-      if (existing) {
+      const updateExisting = async (outcomeId: string) => {
         const [updated] = await db
           .update(routingOutcomes)
           .set({
@@ -1666,7 +1836,7 @@ export function createGenerationV2Repository(db: PersistenceDb) {
             costUsd: input.costUsd ?? null,
             metadata: input.metadata ?? null,
           })
-          .where(eq(routingOutcomes.id, existing.id))
+          .where(eq(routingOutcomes.id, outcomeId))
           .returning();
 
         if (!updated) {
@@ -1674,8 +1844,18 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         }
 
         return updated;
+      };
+
+      const existing = await db.query.routingOutcomes.findFirst({
+        where: eq(routingOutcomes.generationSessionId, input.sessionId),
+      });
+
+      if (existing) {
+        return updateExisting(existing.id);
       }
 
+      // Concurrent writers race this insert; the partial unique index on
+      // generationSessionId sends the loser through the update path.
       const [outcome] = await db
         .insert(routingOutcomes)
         .values({
@@ -1692,13 +1872,22 @@ export function createGenerationV2Repository(db: PersistenceDb) {
           metadata: input.metadata ?? null,
           createdAt: now(),
         })
+        .onConflictDoNothing()
         .returning();
 
-      if (!outcome) {
+      if (outcome) {
+        return outcome;
+      }
+
+      const winner = await db.query.routingOutcomes.findFirst({
+        where: eq(routingOutcomes.generationSessionId, input.sessionId),
+      });
+
+      if (!winner) {
         throw new Error("Failed to create routing outcome");
       }
 
-      return outcome;
+      return updateExisting(winner.id);
     },
 
     async recordRegenerationFeedback(assistantMessageId: string) {
@@ -2040,6 +2229,9 @@ export function createGenerationV2Repository(db: PersistenceDb) {
       }
 
       const statuses = sessions.map((session) => session.status);
+      const allSessionsComplete = statuses.every(
+        (value) => value === "complete",
+      );
 
       let status = "running";
       if (statuses.every((value) => value === "cancelled")) {
@@ -2058,7 +2250,42 @@ export function createGenerationV2Repository(db: PersistenceDb) {
         status = "pending";
       }
 
-      await this.updateRequestStatus(requestId, status);
+      const currentStatus = await this.getRequestStatus(requestId);
+      if (currentStatus && TERMINAL_STATUSES.has(currentStatus)) {
+        // Never downgrade a terminal request status.
+        return currentStatus;
+      }
+      if (
+        currentStatus === "cancelling" &&
+        status === "complete" &&
+        !allSessionsComplete
+      ) {
+        // Preserve cancel intent: a cancelling request only resolves to
+        // complete when every session genuinely completed ("stop arrived too
+        // late"). Any cancelled/errored session keeps the cancellation.
+        status = "cancelled";
+      }
+
+      const updated = await db
+        .update(generationRequests)
+        .set({ status, updatedAt: now() })
+        .where(
+          and(
+            eq(generationRequests.id, requestId),
+            sql`${generationRequests.status} not in ('complete', 'cancelled', 'error')`,
+            status === "complete" && !allSessionsComplete
+              ? sql`${generationRequests.status} <> 'cancelling'`
+              : undefined,
+          ),
+        )
+        .returning();
+
+      if (updated.length === 0) {
+        // The request reached a guarded state concurrently; report what the
+        // database actually holds instead of the computed value.
+        return (await this.getRequestStatus(requestId)) ?? status;
+      }
+
       return status;
     },
 

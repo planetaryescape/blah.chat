@@ -263,7 +263,7 @@ DEBUG (image-processor): Starting image processing
 DEBUG (image-processor): Image processing completed
       outputSize: 512000
 
-DEBUG (upload-user-photo): Uploading to Convex storage
+DEBUG (upload-user-photo): Uploading to object storage
       blobSize: 512000
 
 INFO  (upload-user-photo): Photo upload completed successfully

@@ -1,5 +1,7 @@
 # Tool Calling System
 
+> **Note (post-Postgres migration).** Implementation references below are Convex-era. The feature now runs on the REST API + Postgres stack (apps/web, packages/persistence-postgres, packages/jobs); treat file paths and code samples as historical.
+
 LLM tool calling for blah.chat. Gives the AI capabilities beyond text generation.
 
 ---

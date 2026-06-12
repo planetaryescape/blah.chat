@@ -54,25 +54,19 @@ curl -X POST https://blah.chat/api/v1/conversations/conv_abc123/messages \
 ### Tech Stack
 
 - **Framework**: Next.js 15 (App Router) + TypeScript
-- **Database**: Convex (real-time, vector search)
+- **Database**: Postgres (Neon) + pgvector, via Drizzle ORM
+- **Jobs**: Trigger.dev (server-side generation, embeddings, maintenance)
 - **Auth**: Clerk (JWT tokens)
 - **Real-time**: SSE (Server-Sent Events)
 - **Caching**: React Query + HTTP Cache-Control
 - **AI**: Vercel AI SDK with Gateway (10+ models)
 
-### Hybrid Approach
+### Transport
 
-blah.chat uses **dual architecture**:
+All clients (web and mobile) use the same REST API plus SSE:
 
-1. **Web**: Convex client SDK (real-time WebSocket subscriptions)
-   - Instant updates (<100ms latency)
-   - Reactive queries (automatic re-renders)
-   - Best for web apps
-
-2. **Mobile**: REST API + React Query (HTTP polling + SSE)
-   - React Native compatible
-   - Standard HTTP caching
-   - Best for mobile apps
+- REST endpoints for CRUD, cached with React Query
+- SSE streams for live generation updates, with attach/reconnect support
 
 ### Resilient Generation
 
@@ -80,9 +74,9 @@ blah.chat uses **dual architecture**:
 
 **How it works**:
 1. User sends message → API creates DB record (status: `pending`)
-2. Convex action streams from LLM, updates DB with `partialContent` every ~100ms
-3. Client subscribes to message via reactive query → sees updates in real-time
-4. On reconnect: message still there with completed response from DB
+2. A server-side Trigger.dev task streams from the LLM, persisting partial content as it goes
+3. Client attaches to the SSE stream for the generation → sees updates in real-time
+4. On refresh/reconnect: client re-attaches to the live stream, or reads the completed response from the DB
 
 **Message states**: `pending` → `generating` → `complete` | `error`
 
@@ -188,7 +182,7 @@ All responses use **envelope pattern**:
 
 ```typescript
 {
-  staleTime: 5 * 60 * 1000,      // 5min (trust Convex for updates)
+  staleTime: 5 * 60 * 1000,      // 5min (trust SSE for live updates)
   gcTime: 30 * 60 * 1000,        // 30min (keep cache longer)
   refetchOnWindowFocus: false,   // Don't refetch on tab switch
   refetchOnMount: false,         // Use cache on component mount

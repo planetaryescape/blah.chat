@@ -1,5 +1,7 @@
 # Phase 1A: Shared Hooks Package
 
+> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; file paths and code samples below no longer apply.
+
 ## Context
 
 blah.chat is building a Terminal UI (TUI) client using Ink (React for CLI). Since Ink uses React, we can **share hooks between the web app and CLI app**.

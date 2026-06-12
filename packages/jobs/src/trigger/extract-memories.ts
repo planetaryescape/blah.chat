@@ -335,12 +335,13 @@ export async function extractMemoriesForConversation(
         continue;
       }
 
-      // Check for duplicate via pgvector cosine distance
+      // Check for duplicate via pgvector cosine distance. The vector literal
+      // is passed as a bound parameter (cast server-side), never interpolated.
       const vecLiteral = serializeVector(embedding);
       const duplicateCheck = await db.execute(
         sql`SELECT 1 FROM memory_embeddings
             WHERE user_id = ${conversation.userId}
-              AND (1 - (embedding <=> ${sql.raw(`'${vecLiteral}'::vector`)})) > ${SIMILARITY_THRESHOLD}
+              AND (1 - (embedding <=> ${vecLiteral}::vector)) > ${SIMILARITY_THRESHOLD}
             LIMIT 1`,
       );
 

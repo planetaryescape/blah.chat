@@ -1,7 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { CachePresets, getCacheControl } from "@/lib/api/cache";
-import { preferencesDAL } from "@/lib/api/dal/preferences";
+import {
+  preferencesDAL,
+  preferenceValueSchema,
+} from "@/lib/api/dal/preferences";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { trackAPIPerformance } from "@/lib/api/monitoring";
@@ -9,8 +12,8 @@ import { getQueryParam, parseBody } from "@/lib/api/utils";
 import logger from "@/lib/logger";
 
 const updateSchema = z.object({
-  key: z.string(),
-  value: z.any(),
+  key: z.string().min(1),
+  value: preferenceValueSchema,
 });
 
 async function getHandler(req: NextRequest, { userId }: { userId: string }) {

@@ -1,5 +1,7 @@
 # Shared Conversations Feature
 
+> **Note (post-Postgres migration).** Implementation references below are Convex-era. The feature now runs on the REST API + Postgres stack (apps/web, packages/persistence-postgres, packages/jobs); treat file paths and code samples as historical.
+
 **Status**: ✅ Complete (Implemented December 2024)
 **Version**: 1.0
 **Maintainer Reference**: Living documentation for the Shared Conversations feature

@@ -15,6 +15,8 @@ const service = {
   process: vi.fn(),
 };
 
+const enqueueProcessing = vi.fn().mockResolvedValue(undefined);
+
 vi.mock("next/server", async () => {
   const actual = await vi.importActual("next/server");
   return {
@@ -31,6 +33,7 @@ vi.mock("@/lib/api/dal/comparisons", () => ({
 
 vi.mock("@/lib/generation-v2/runtime", () => ({
   getGenerationV2Service: vi.fn(() => service),
+  getEnqueueGenerationProcessing: () => enqueueProcessing,
 }));
 
 vi.mock("@/lib/api/middleware/auth", () => ({
@@ -209,7 +212,7 @@ describe("/api/v1/comparisons", () => {
       json,
     );
     expect(data.requestId).toBe("req_consolidate");
-    expect(service.process).toHaveBeenCalledWith("req_consolidate");
+    expect(enqueueProcessing).toHaveBeenCalledWith("req_consolidate");
   });
 
   it("returns original responses for a consolidated message", async () => {

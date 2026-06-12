@@ -516,6 +516,7 @@ CREATE TABLE message_embeddings (
   updated_at bigint NOT NULL
 );
 CREATE INDEX message_embeddings_fts ON message_embeddings USING gin(search_tsv);
+CREATE UNIQUE INDEX message_embeddings_by_message ON message_embeddings (message_id);
 
 CREATE TABLE memory_embeddings (
   id text PRIMARY KEY,
@@ -546,6 +547,7 @@ CREATE TABLE task_embeddings (
   updated_at bigint NOT NULL
 );
 CREATE INDEX task_embeddings_fts ON task_embeddings USING gin(search_tsv);
+CREATE UNIQUE INDEX task_embeddings_by_task_key ON task_embeddings (task_key);
 
 CREATE TABLE note_embeddings (
   id text PRIMARY KEY,
@@ -560,6 +562,7 @@ CREATE TABLE note_embeddings (
   updated_at bigint NOT NULL
 );
 CREATE INDEX note_embeddings_fts ON note_embeddings USING gin(search_tsv);
+CREATE UNIQUE INDEX note_embeddings_by_note_key ON note_embeddings (note_key);
 
 CREATE TABLE file_chunks (
   id text PRIMARY KEY,

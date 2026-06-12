@@ -157,6 +157,122 @@ describe("createRequest idempotency on clientMessageId", () => {
     expect(userMessages).toHaveLength(1);
   });
 
+  it("adopts an orphaned user message (message persisted, request creation crashed)", async () => {
+    const db = await createTestPersistenceDb();
+    const { user, conversation } = await seedConversation(db, "orphan");
+    const repo = createGenerationV2Repository(db);
+
+    // Simulate a prior attempt that persisted the user message but crashed
+    // before creating the generation request.
+    await insertMessage(db, {
+      conversationId: conversation.id,
+      userId: user.id,
+      clientMessageId: "client-orphan-1",
+    });
+
+    const adopted = await repo.createRequest({
+      clerkUser: {
+        clerkId: "clerk_orphan",
+        email: "orphan@test.com",
+        name: "orphan",
+      },
+      conversationId: conversation.id,
+      content: "hi",
+      clientMessageId: "client-orphan-1",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    const orphanRows = await db.query.messages.findMany({
+      where: eq(messages.clientMessageId, "client-orphan-1"),
+    });
+    expect(orphanRows).toHaveLength(1);
+    expect(adopted.userMessageId).toBe(orphanRows[0]!.id);
+    expect(adopted.assistantMessageIds).toHaveLength(1);
+
+    // A retry after adoption returns the same bundle.
+    const retried = await repo.createRequest({
+      clerkUser: {
+        clerkId: "clerk_orphan",
+        email: "orphan@test.com",
+        name: "orphan",
+      },
+      conversationId: conversation.id,
+      content: "hi",
+      clientMessageId: "client-orphan-1",
+      modelId: "openai:gpt-5-mini",
+    });
+    expect(retried.requestId).toBe(adopted.requestId);
+  });
+
+  it("resolves a unique violation from a concurrent retry by returning the existing bundle", async () => {
+    const db = await createTestPersistenceDb();
+    const { conversation } = await seedConversation(db, "race");
+
+    const clerkUser = {
+      clerkId: "clerk_race",
+      email: "race@test.com",
+      name: "race",
+    };
+
+    const winner = await createGenerationV2Repository(db).createRequest({
+      clerkUser,
+      conversationId: conversation.id,
+      content: "Say hi",
+      clientMessageId: "client-race-1",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    // Simulate the check-then-insert race: the retry's dedupe pre-check ran
+    // before the winner committed, so its insert hits the unique index.
+    let suppressedPreCheck = false;
+    const raceDb = new Proxy(db, {
+      get(target, prop, receiver) {
+        if (prop === "query") {
+          return new Proxy(target.query, {
+            get(queryTarget, queryProp, queryReceiver) {
+              if (queryProp === "messages") {
+                const messagesQuery = Reflect.get(
+                  queryTarget,
+                  queryProp,
+                  queryReceiver,
+                );
+                return new Proxy(messagesQuery, {
+                  get(messagesTarget, messagesProp) {
+                    if (messagesProp === "findFirst" && !suppressedPreCheck) {
+                      return (..._args: unknown[]) => {
+                        suppressedPreCheck = true;
+                        return Promise.resolve(undefined);
+                      };
+                    }
+                    return Reflect.get(messagesTarget, messagesProp);
+                  },
+                });
+              }
+              return Reflect.get(queryTarget, queryProp, queryReceiver);
+            },
+          });
+        }
+        return Reflect.get(target, prop, receiver);
+      },
+    }) as typeof db;
+
+    const loser = await createGenerationV2Repository(raceDb).createRequest({
+      clerkUser,
+      conversationId: conversation.id,
+      content: "Say hi",
+      clientMessageId: "client-race-1",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    expect(loser.requestId).toBe(winner.requestId);
+    expect(loser.userMessageId).toBe(winner.userMessageId);
+
+    const userMessages = await db.query.messages.findMany({
+      where: eq(messages.clientMessageId, "client-race-1"),
+    });
+    expect(userMessages).toHaveLength(1);
+  });
+
   it("creates the request/message/session graph inside one database transaction", async () => {
     const db = await createTestPersistenceDb();
     const { conversation } = await seedConversation(db, "tx");

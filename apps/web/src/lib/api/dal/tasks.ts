@@ -24,7 +24,7 @@ const taskUrgency = z.enum(["low", "medium", "high", "urgent"]);
 
 const createProjectTaskSchema = z.object({
   title: z.string().trim().min(1),
-  description: z.string().optional(),
+  description: z.string().max(64_000).optional(),
   status: taskStatus.optional(),
   urgency: taskUrgency.optional(),
   deadline: z.number().int().optional(),
@@ -34,7 +34,7 @@ const createProjectTaskSchema = z.object({
 
 const updateProjectTaskSchema = z.object({
   title: z.string().trim().min(1).optional(),
-  description: z.string().optional(),
+  description: z.string().max(64_000).optional(),
   status: taskStatus.optional(),
   urgency: taskUrgency.optional(),
   deadline: z.number().int().optional(),

@@ -27,7 +27,7 @@ const createKnowledgeSchema = z.discriminatedUnion("type", [
     type: z.literal("text"),
     title: z.string().min(1),
     projectId: z.string().optional().nullable(),
-    content: z.string().min(1),
+    content: z.string().min(1).max(1_000_000),
   }),
   z.object({
     type: z.literal("web"),

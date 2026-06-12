@@ -1,5 +1,7 @@
 # Cognitive Memory System - Technical Specification
 
+> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; file paths and code samples below no longer apply. Only the Postgres adapter (`packages/cognitive-memory/src/adapters/postgres.ts`) exists today; any Convex adapter described below was removed.
+
 **Version:** 1.0  
 **Date:** 2026-02-10  
 **Status:** Implementation  

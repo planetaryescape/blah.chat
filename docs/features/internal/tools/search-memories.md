@@ -1,5 +1,7 @@
 # Search Memories Tool
 
+> **Note (post-Postgres migration).** Implementation references below are Convex-era. The feature now runs on the REST API + Postgres stack (apps/web, packages/persistence-postgres, packages/jobs); treat file paths and code samples as historical.
+
 ## Overview
 
 Retrieve past conversation facts and context from the user's memory bank using hybrid search (full-text + semantic vector search).

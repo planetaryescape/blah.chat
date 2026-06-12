@@ -71,6 +71,7 @@ function createConversationEnvelope(
     pinned: boolean;
     archived: boolean;
     starred: boolean;
+    thinkingEffort: "none" | "low" | "medium" | "high";
     modelRecommendation: undefined;
     messageCount: number;
     lastMessageAt: number;
@@ -94,6 +95,7 @@ function createConversationEnvelope(
       pinned: overrides?.pinned ?? false,
       archived: overrides?.archived ?? false,
       starred: overrides?.starred ?? false,
+      thinkingEffort: overrides?.thinkingEffort ?? "none",
       modelRecommendation: overrides?.modelRecommendation,
       messageCount: overrides?.messageCount ?? 0,
       lastMessageAt: overrides?.lastMessageAt ?? timestamp,
@@ -291,6 +293,51 @@ describe("/api/v1/conversations", () => {
       const response = await POST(req, { params: Promise.resolve({}) });
 
       expect(response.status).toBe(201);
+    });
+  });
+
+  describe("PATCH /api/v1/conversations/:id", () => {
+    it("forwards thinkingEffort to the DAL and returns it", async () => {
+      const mockResult = createConversationEnvelope({
+        _id: "conv-1",
+        thinkingEffort: "high",
+      });
+      vi.mocked(conversationsDAL.update).mockResolvedValue(mockResult);
+
+      const { PATCH } = await import("../conversations/[id]/route");
+      const req = createMockRequest("/api/v1/conversations/conv-1", {
+        method: "PATCH",
+        body: { thinkingEffort: "high" },
+      });
+      const response = await PATCH(req, {
+        params: Promise.resolve({ id: "conv-1" }),
+      });
+      const json = await response.json();
+
+      expect(response.status).toBe(200);
+      assertEnvelopeSuccess(json);
+      expect(conversationsDAL.update).toHaveBeenCalledWith(
+        "test-user-id",
+        "conv-1",
+        { thinkingEffort: "high" },
+      );
+      expect(json.data.thinkingEffort).toBe("high");
+    });
+
+    it("rejects invalid thinkingEffort values", async () => {
+      const { PATCH } = await import("../conversations/[id]/route");
+      const req = createMockRequest("/api/v1/conversations/conv-1", {
+        method: "PATCH",
+        body: { thinkingEffort: "extreme" },
+      });
+      const response = await PATCH(req, {
+        params: Promise.resolve({ id: "conv-1" }),
+      });
+      const json = await response.json();
+
+      expect(response.status).toBe(400);
+      assertEnvelopeError(json);
+      expect(conversationsDAL.update).not.toHaveBeenCalled();
     });
   });
 });

@@ -106,4 +106,76 @@ describe("GenerationV2Service.process idempotency", () => {
     expect(provider.callCount).toBe(1);
     expect([resultA, resultB]).toContain("complete");
   });
+
+  it("does not process sessions when the request is already running (re-entrancy guard)", async () => {
+    const provider = new CountingProvider({
+      "openai:gpt-5-mini": ["Hello", " world"],
+    });
+    const { service, conversation } = await setupService(provider);
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_idempotency",
+        email: "idempotency@test.com",
+        name: "Idempotency Tester",
+      },
+      conversationId: conversation.id,
+      content: "Say hi",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    // Simulate another worker owning the request: it already claimed
+    // pending -> running, so this invocation must not stream anything.
+    await service.repository.updateRequestStatus(started.requestId, "running");
+
+    const status = await service.process(started.requestId);
+
+    expect(status).toBe("running");
+    expect(provider.callCount).toBe(0);
+  });
+
+  it("skips sessions that already reached a terminal status", async () => {
+    const provider = new CountingProvider({
+      "openai:gpt-5-mini": ["Hello", " world"],
+    });
+    const { service, conversation } = await setupService(provider);
+
+    const started = await service.start({
+      clerkUser: {
+        clerkId: "user_idempotency",
+        email: "idempotency@test.com",
+        name: "Idempotency Tester",
+      },
+      conversationId: conversation.id,
+      content: "Say hi",
+      modelId: "openai:gpt-5-mini",
+    });
+
+    const bundle = await service.repository.getRequestBundle(started.requestId);
+    const session = bundle?.sessions[0];
+    expect(session).toBeTruthy();
+
+    await service.repository.updateSessionStatus(
+      session!.sessionId,
+      "cancelled",
+    );
+    await service.repository.updateAssistantMessage({
+      assistantMessageId: session!.assistantMessageId,
+      content: "partial before cancel",
+      status: "cancelled",
+    });
+
+    const status = await service.process(started.requestId);
+
+    expect(provider.callCount).toBe(0);
+    expect(status).toBe("cancelled");
+
+    const assistants = await service.repository.getAssistantMessagesForRequest(
+      started.requestId,
+    );
+    expect(assistants[0]).toMatchObject({
+      content: "partial before cancel",
+      status: "cancelled",
+    });
+  });
 });

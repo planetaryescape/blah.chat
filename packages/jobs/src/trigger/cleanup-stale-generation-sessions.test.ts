@@ -46,12 +46,14 @@ async function seedPendingSession(
   return gen;
 }
 
+const TEN_MINUTES = 10 * 60 * 1000;
+
 describe("cleanupStaleGenerationSessions", () => {
-  it("fails pending sessions older than 60s", async () => {
+  it("errors pending sessions older than 10 minutes", async () => {
     const db = await createTestPersistenceDb();
     const now = Date.now();
 
-    const gen = await seedPendingSession(db, { ageMs: 90_000 });
+    const gen = await seedPendingSession(db, { ageMs: TEN_MINUTES + 60_000 });
 
     const result = await cleanupStaleGenerationSessions({ db, now });
 
@@ -60,14 +62,14 @@ describe("cleanupStaleGenerationSessions", () => {
     const session = await db.query.generationSessions.findFirst({
       where: eq(generationSessions.id, gen.session.id),
     });
-    expect(session?.status).toBe("failed");
+    expect(session?.status).toBe("error");
   });
 
-  it("does not touch sessions younger than 60s", async () => {
+  it("does not touch sessions younger than 10 minutes", async () => {
     const db = await createTestPersistenceDb();
     const now = Date.now();
 
-    const gen = await seedPendingSession(db, { ageMs: 30_000 });
+    const gen = await seedPendingSession(db, { ageMs: 5 * 60 * 1000 });
 
     const result = await cleanupStaleGenerationSessions({ db, now });
 
@@ -83,7 +85,7 @@ describe("cleanupStaleGenerationSessions", () => {
     const db = await createTestPersistenceDb();
     const now = Date.now();
 
-    const gen = await seedPendingSession(db, { ageMs: 90_000 });
+    const gen = await seedPendingSession(db, { ageMs: TEN_MINUTES + 60_000 });
 
     // Mark session as completed first
     await db

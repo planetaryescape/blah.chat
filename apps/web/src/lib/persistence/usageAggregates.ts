@@ -7,6 +7,7 @@ import {
   users,
 } from "@blah-chat/persistence-postgres";
 import { and, desc, eq, gte, lte, type SQL, sql } from "drizzle-orm";
+import { getAdminSettings } from "./adminSettings";
 import { getPersistenceDb } from "./server";
 
 /**
@@ -57,23 +58,27 @@ export async function getMonthlyTotal(opts: { userId?: string } = {}) {
     startDate: `${month}-01`,
     endDate: `${month}-31`,
   });
-  const [row] = await db
-    .select({
-      cost: sql<number>`coalesce(sum(${usageRecords.cost}), 0)`,
-      tokens: sql<number>`coalesce(sum(${usageRecords.inputTokens} + ${usageRecords.outputTokens}), 0)`,
-      messages: sql<number>`coalesce(sum(${usageRecords.messageCount}), 0)`,
-    })
-    .from(usageRecords)
-    .where(where);
+  const [[row], adminSettings] = await Promise.all([
+    db
+      .select({
+        cost: sql<number>`coalesce(sum(${usageRecords.cost}), 0)`,
+        tokens: sql<number>`coalesce(sum(${usageRecords.inputTokens} + ${usageRecords.outputTokens}), 0)`,
+        messages: sql<number>`coalesce(sum(${usageRecords.messageCount}), 0)`,
+      })
+      .from(usageRecords)
+      .where(where),
+    getAdminSettings(),
+  ]);
+  const cost = n(row?.cost);
+  // Admin-configured default monthly budget; 0 means unset/unlimited.
+  const budget = adminSettings.limits.defaultMonthlyBudget;
   return {
     month,
-    cost: n(row?.cost),
+    cost,
     tokens: n(row?.tokens),
     messages: n(row?.messages),
-    // Budget is admin-tunable; kept as 0 here so consumers can blend with
-    // adminSettings.limits.defaultMonthlyBudget client-side.
-    budget: 0,
-    percentUsed: 0,
+    budget,
+    percentUsed: budget > 0 ? (cost / budget) * 100 : 0,
   };
 }
 

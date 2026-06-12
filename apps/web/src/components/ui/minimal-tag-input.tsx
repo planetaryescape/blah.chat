@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  getTagLabel,
+  normalizeTag,
+  validateTag,
+} from "@blah-chat/shared/utils";
 import { Plus, Tag, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -20,7 +25,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useApiClient } from "@/lib/api/client";
-import { getTagLabel, normalizeTag, validateTag } from "@/lib/utils/tagUtils";
 
 interface MinimalTagInputProps {
   noteId: string;

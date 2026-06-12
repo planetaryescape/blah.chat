@@ -1,6 +1,7 @@
+import { TTS_VOICE_OPTIONS } from "@blah-chat/shared/tts";
 import { useRouter } from "expo-router";
-import { ArrowLeft } from "lucide-react-native";
-import { useCallback } from "react";
+import { ArrowLeft, Check } from "lucide-react-native";
+import { useCallback, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,6 +16,7 @@ export default function VoiceSettingsScreen() {
   const router = useRouter();
   const prefs = usePreferences();
   const updatePref = useUpdatePreference();
+  const [isVoicePickerOpen, setIsVoicePickerOpen] = useState(false);
 
   const handleToggle = useCallback(
     (key: string) => (value: boolean) => {
@@ -101,11 +103,62 @@ export default function VoiceSettingsScreen() {
               <SettingsRow
                 variant="value"
                 label="Voice"
-                value={prefs.ttsVoice.replace("aura-", "").replace("-en", "")}
+                value={
+                  TTS_VOICE_OPTIONS.find((v) => v.value === prefs.ttsVoice)
+                    ?.label ??
+                  prefs.ttsVoice.replace("aura-", "").replace("-en", "")
+                }
                 onPress={() => {
-                  // TODO: Voice picker bottom sheet
+                  haptic.light();
+                  setIsVoicePickerOpen((open) => !open);
                 }}
               />
+              {isVoicePickerOpen && (
+                <View
+                  style={{
+                    borderTopWidth: 1,
+                    borderTopColor: palette.glassBorder,
+                  }}
+                >
+                  {TTS_VOICE_OPTIONS.map((voice) => {
+                    const selected = voice.value === prefs.ttsVoice;
+                    return (
+                      <TouchableOpacity
+                        key={voice.value}
+                        onPress={() => {
+                          haptic.light();
+                          updatePref("ttsVoice", voice.value);
+                          setIsVoicePickerOpen(false);
+                        }}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          paddingHorizontal: spacing.md,
+                          paddingVertical: spacing.sm,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontFamily: selected
+                              ? typography.bodySemiBold
+                              : typography.body,
+                            fontSize: 15,
+                            color: selected
+                              ? palette.roseQuartz
+                              : palette.starlight,
+                          }}
+                        >
+                          {voice.label}
+                        </Text>
+                        {selected && (
+                          <Check size={16} color={palette.roseQuartz} />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
               <View
                 style={{
                   height: 1,

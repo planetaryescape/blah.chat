@@ -139,46 +139,46 @@ packages/backend/
 
 ## Target Structure
 
+> **Updated post-Postgres-rewrite.** `packages/backend` (Convex) no longer exists — the backend is Postgres + Drizzle in `packages/persistence-postgres` with Trigger.dev jobs in `packages/jobs`. `packages/persistence-convex` and 17 unused scaffold packages were also deleted during cleanup. The original Convex-era structure described in the phase docs is historical.
+
+Current packages (see `packages/` for the authoritative list):
+
 ```
 blah.chat/
 ├── apps/
-│   ├── web/                 # Next.js 15 (current app)
-│   └── (future: mobile, cli, tui, raycast)
+│   ├── web/                 # Next.js (current app)
+│   └── mobile/              # React Native (Expo)
 │
 ├── packages/
-│   ├── backend/             # @blah-chat/backend - Convex
-│   │   ├── convex/
-│   │   │   ├── _generated/  # Auto-generated types
-│   │   │   ├── schema.ts    # 1,666 lines, ~30 tables
-│   │   │   ├── chat.ts, messages.ts, generation.ts, etc.
-│   │   │   └── lib/         # Server-side utilities
-│   │   ├── convex.json
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   ├── ai/                  # @blah-chat/ai - Model configs, prompts
-│   │   ├── src/
-│   │   │   ├── models.ts    # 46 model definitions
-│   │   │   ├── prompts/     # Centralized prompt templates
-│   │   │   ├── types.ts     # AI-related types
-│   │   │   └── index.ts     # Barrel export
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   ├── shared/              # @blah-chat/shared - Cross-platform utils
-│   │   ├── src/
-│   │   │   ├── formatEntity.ts
-│   │   │   ├── tokens.ts
-│   │   │   ├── date.ts
-│   │   │   ├── types/       # Shared TypeScript types
-│   │   │   └── index.ts     # Barrel export
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   └── config/              # @blah-chat/config - Shared configs
-│       ├── tsconfig.base.json
-│       ├── biome.base.json
-│       └── package.json
+│   ├── ai/                  # Model configs, prompts
+│   ├── api-client/          # Typed REST client
+│   ├── api-envelope/        # Response envelope helpers
+│   ├── assistant-tools-core/
+│   ├── auto-router/
+│   ├── bible-core/
+│   ├── bible-service/
+│   ├── chat-ui-core/
+│   ├── code-execution-core/
+│   ├── cognitive-memory/    # Memory decay/strengthening (Postgres adapter)
+│   ├── config/              # Shared tsconfig/biome configs
+│   ├── content-core/
+│   ├── content-ingest/
+│   ├── crypto-core/
+│   ├── diagrams-mermaid/
+│   ├── integrations-composio/
+│   ├── jobs/                # Trigger.dev background jobs
+│   ├── markdown-web/
+│   ├── migration/           # Convex→Postgres data migration tooling
+│   ├── notes-core/
+│   ├── persistence-postgres/ # Drizzle schema + Postgres persistence
+│   ├── rag-core/
+│   ├── sdk/
+│   ├── search-core/
+│   ├── search-tools/
+│   ├── shared/              # Cross-platform utils
+│   ├── speech/
+│   ├── storage/             # S3-compatible object storage helpers
+│   └── streaming-core/
 │
 ├── turbo.json               # Task orchestration
 ├── package.json             # Root workspace: "workspaces": ["apps/*", "packages/*"]

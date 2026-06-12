@@ -15,9 +15,6 @@ current production architecture intact.
 - AI: Vercel AI Gateway by default; per-user BYOK is supported
 - Encryption: `BYOD_ENCRYPTION_KEY` for BYOK/BYOD secrets
 
-The legacy Convex backend under `packages/backend/convex` is not required for
-new deployments.
-
 ## Docker Compose
 
 Start from the checked-out repository:

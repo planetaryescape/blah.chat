@@ -116,9 +116,11 @@ describe("knowledge auth with Clerk + Postgres", () => {
     }>((await createResponse.json()) as any);
     expect(created.type).toBe("text");
     expect(created.status).toBe("pending");
-    expect(triggerTaskMock).toHaveBeenCalledWith("process-source", {
-      sourceId: created._id,
-    });
+    expect(triggerTaskMock).toHaveBeenCalledWith(
+      "process-source",
+      { sourceId: created._id },
+      { concurrencyKey: created._id },
+    );
 
     const listResponse = await collectionRoute.GET(
       createMockRequest("/api/v1/knowledge/sources", {
@@ -161,9 +163,11 @@ describe("knowledge auth with Clerk + Postgres", () => {
       { params: Promise.resolve({ id: created._id }) },
     );
     expect(reprocessResponse.status).toBe(200);
-    expect(triggerTaskMock).toHaveBeenCalledWith("process-source", {
-      sourceId: created._id,
-    });
+    expect(triggerTaskMock).toHaveBeenCalledWith(
+      "process-source",
+      { sourceId: created._id },
+      { concurrencyKey: created._id },
+    );
 
     const deleteResponse = await detailRoute.DELETE(
       createMockRequest(`/api/v1/knowledge/sources/${created._id}`, {

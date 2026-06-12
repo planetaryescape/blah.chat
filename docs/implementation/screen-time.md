@@ -1,5 +1,7 @@
 # Screen Time API — Implementation Plan
 
+> **Status: unscheduled proposal.** No implementation exists. Do not implement from this doc without explicit prioritization.
+
 ## Overview
 
 Apple's Screen Time APIs (DeviceActivity framework + FamilyControls) provide access to device usage data: pickups, screen time by app category, first pickup time, and notification counts. This is high-value coaching data for understanding digital habits.

@@ -49,7 +49,10 @@ async function getHandler(req: NextRequest, { userId }: { userId: string }) {
   const startTime = performance.now();
   logger.info({ userId }, "GET /api/v1/conversations");
 
-  const limit = Number.parseInt(getQueryParam(req, "limit") || "50", 10);
+  const parsedLimit = Number.parseInt(getQueryParam(req, "limit") || "50", 10);
+  const limit = Number.isFinite(parsedLimit)
+    ? Math.min(100, Math.max(1, parsedLimit))
+    : 50;
   const archived = getQueryParam(req, "archived") === "true";
   const projectId = getQueryParam(req, "projectId");
 

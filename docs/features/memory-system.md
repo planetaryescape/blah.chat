@@ -1,5 +1,7 @@
 # Memory System: Complete Technical Documentation
 
+> **Note (post-Postgres migration).** Implementation references below are Convex-era. The feature now runs on the REST API + Postgres stack (apps/web, packages/persistence-postgres, packages/jobs); treat file paths and code samples as historical.
+
 ## Overview
 
 blah.chat's memory system is a production-ready RAG (Retrieval-Augmented Generation) implementation that personalizes AI conversations by remembering user context across sessions. The system extracts facts from conversations, stores them with vector embeddings, and retrieves relevant context before each LLM generation.

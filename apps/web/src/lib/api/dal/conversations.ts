@@ -40,12 +40,13 @@ const updateConversationSchema = z
     title: z.string().min(1).max(200).optional(),
     model: z.string().min(1).optional(),
     selectedIntegrationIds: z.array(z.string()).optional(),
+    thinkingEffort: z.enum(["none", "low", "medium", "high"]).optional(),
   })
   .partial();
 
 const importMessageSchema = z.object({
   role: z.enum(["user", "assistant", "system"]),
-  content: z.string(),
+  content: z.string().max(256_000),
   createdAt: z.number().int().optional(),
   model: z.string().optional(),
 });
@@ -55,7 +56,7 @@ const importConversationSchema = z.object({
   model: z.string().optional(),
   systemPrompt: z.string().optional(),
   createdAt: z.number().int().optional(),
-  messages: z.array(importMessageSchema),
+  messages: z.array(importMessageSchema).max(10_000),
 });
 
 const importBatchSchema = z.object({
@@ -257,6 +258,9 @@ export const conversationsDAL = {
       .set({
         ...(validated.title !== undefined ? { title: validated.title } : {}),
         ...(validated.model !== undefined ? { model: validated.model } : {}),
+        ...(validated.thinkingEffort !== undefined
+          ? { thinkingEffort: validated.thinkingEffort }
+          : {}),
         updatedAt: Date.now(),
       })
       .where(eq(conversations.id, conversation.id))

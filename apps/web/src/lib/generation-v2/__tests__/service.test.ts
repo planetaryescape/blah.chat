@@ -1094,6 +1094,7 @@ export const greet = (name: string) => \`hi \${name}\`;
       status: "streaming",
     });
     await service.repository.insertCheckpoint({
+      requestId: started.requestId,
       sessionId: session!.sessionId,
       content: "partial checkpoint",
       sequence: 7,
@@ -1839,7 +1840,9 @@ export const greet = (name: string) => \`hi \${name}\`;
       (message) => message.status === "complete",
     );
 
-    expect(status).toBe("complete");
+    // The stop marked the request cancelling, so the request-level status
+    // preserves the cancel intent even though the sibling session completed.
+    expect(status).toBe("cancelled");
     expect(cancelled).toBeTruthy();
     expect(complete).toBeTruthy();
   });

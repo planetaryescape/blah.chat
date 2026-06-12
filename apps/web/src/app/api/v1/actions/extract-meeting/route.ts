@@ -2,9 +2,16 @@ import { type NextRequest, NextResponse } from "next/server";
 import { meetingExtractionDAL } from "@/lib/api/dal/meetingExtraction";
 import { withUserAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
+import { enforceRateLimit } from "@/lib/api/rate-limit";
 import logger from "@/lib/logger";
 
 async function postHandler(req: NextRequest, { userId }: { userId: string }) {
+  const limited = await enforceRateLimit(
+    { prefix: "extract-meeting", limit: 30, window: "1 h" },
+    userId,
+  );
+  if (limited) return limited;
+
   const body = await req.json();
   logger.info(
     { userId, transcriptLength: body?.transcript?.length ?? 0 },

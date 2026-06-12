@@ -1,5 +1,7 @@
 # Phase 5: CLI, TUI, and Raycast Extension (Future)
 
+> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; file paths and code samples below no longer apply.
+
 ## Overview
 
 This phase creates additional apps for terminal and launcher users: a CLI for quick commands, a TUI for interactive terminal sessions, and a Raycast extension for macOS users.

@@ -1,4 +1,5 @@
 import {
+  adminSettings,
   createNeonDatabase,
   createR2Client,
   createSignedReadUrl,
@@ -137,6 +138,14 @@ export async function transcribeAudioFromStorage(input: {
       throw new Error("Voice input disabled in settings");
     }
     preferredProvider = await getUserPreference(db, ownerId, "sttProvider");
+  }
+  // Admin-configured transcript provider wins over the deprecated user pref.
+  const adminRow = await db.query.adminSettings.findFirst({
+    where: eq(adminSettings.id, "global"),
+  });
+  const adminProvider = adminRow?.value?.transcriptProvider?.provider;
+  if (typeof adminProvider === "string" && adminProvider.length > 0) {
+    preferredProvider = adminProvider;
   }
 
   const r2 = createR2Client(env);

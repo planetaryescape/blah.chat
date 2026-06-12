@@ -1,5 +1,7 @@
 # Save Memory Tool
 
+> **Note (post-Postgres migration).** Implementation references below are Convex-era. The feature now runs on the REST API + Postgres stack (apps/web, packages/persistence-postgres, packages/jobs); treat file paths and code samples as historical.
+
 ## Overview
 
 Save important information about the user to their memory bank for future recall. Uses automatic embedding generation and duplicate detection.

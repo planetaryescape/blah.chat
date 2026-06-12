@@ -82,6 +82,14 @@ const MESSAGE_STREAM_RETRY_MAX_MS = 30_000;
 const REFETCH_EVENT = "messages-refetch-requested";
 
 /**
+ * Per-conversation cache write queues, hoisted to module scope so a remount
+ * (StrictMode double-mount, fast navigation back into a conversation) chains
+ * behind the previous mount's in-flight writes — including the unmount flush —
+ * instead of racing its read-merge-write against them.
+ */
+const conversationWriteQueues = new Map<string, Promise<void>>();
+
+/**
  * Ask the active message sync for this conversation to refetch from the
  * server now (e.g. after a branch switch changes isActiveBranch server-side).
  */
@@ -192,11 +200,16 @@ export function applyGenerationEventToMessage(
       // The ack model must not flip the message's model badge.
       return { ...base, ackText: event.text, updatedAt: event.ts };
     case "start":
+      // The server replays the event log from seq 0 on every (re)connect, so
+      // the deltas that follow a start rebuild the full text from scratch.
+      // Drop locally persisted partial content here, otherwise replayed
+      // deltas append onto it and duplicate the text.
       return {
         ...base,
         model: event.modelId,
         status: "generating",
-        partialContent: currentContent || undefined,
+        content: "",
+        partialContent: undefined,
         updatedAt: event.ts,
       };
     case "delta": {
@@ -286,6 +299,85 @@ function isTerminalGenerationEvent(event: GenerationEvent) {
 }
 
 /**
+ * Client-side bookkeeping for one generation request's SSE stream.
+ * A single requestId can multiplex several sessions (comparison mode), each
+ * with its own assistantMessageId and per-session event seq numbering.
+ */
+export type GenerationStreamState = {
+  /** Assistant message ids the request is expected to produce (from the send path). */
+  expectedMessageIds?: Set<string>;
+  /** Assistant message ids observed on the stream (ack sessions excluded). */
+  seenMessageIds: Set<string>;
+  /** Assistant message ids that have emitted a terminal event. */
+  terminalMessageIds: Set<string>;
+  /** Highest applied event seq per sessionId, used to drop replayed events. */
+  lastAppliedSeqBySession: Map<string, number>;
+};
+
+export function createGenerationStreamState(
+  expectedAssistantMessageIds?: string[],
+): GenerationStreamState {
+  return {
+    expectedMessageIds:
+      expectedAssistantMessageIds && expectedAssistantMessageIds.length > 0
+        ? new Set(expectedAssistantMessageIds)
+        : undefined,
+    seenMessageIds: new Set(),
+    terminalMessageIds: new Set(),
+    lastAppliedSeqBySession: new Map(),
+  };
+}
+
+/**
+ * Seq-aware replay guard: the server replays the full event log from seq 0 on
+ * every (re)connect, so an event at or below the last applied seq for its
+ * session is already folded into local state and must be dropped — appending
+ * it again would duplicate streamed text.
+ */
+export function shouldApplyGenerationEvent(
+  state: GenerationStreamState,
+  event: GenerationEvent,
+): boolean {
+  const lastApplied = state.lastAppliedSeqBySession.get(event.sessionId);
+  return lastApplied === undefined || event.seq > lastApplied;
+}
+
+export function trackGenerationEvent(
+  state: GenerationStreamState,
+  event: GenerationEvent,
+): void {
+  state.lastAppliedSeqBySession.set(event.sessionId, event.seq);
+  if (event.type !== "ack") {
+    state.seenMessageIds.add(event.assistantMessageId);
+  }
+  if (isTerminalGenerationEvent(event)) {
+    state.terminalMessageIds.add(event.assistantMessageId);
+  }
+}
+
+/**
+ * Comparison mode multiplexes several sessions over one requestId, so the
+ * stream may only close once every expected assistant message — or, when the
+ * expected set is unknown (resume path), every message seen on the stream —
+ * has emitted a terminal event. Closing on the first terminal event truncated
+ * the remaining comparison responses.
+ */
+export function isGenerationRequestSettled(
+  state: GenerationStreamState,
+): boolean {
+  const expected = state.expectedMessageIds ?? state.seenMessageIds;
+  if (expected.size === 0) {
+    return false;
+  }
+  for (const messageId of expected) {
+    if (!state.terminalMessageIds.has(messageId)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Merge a server snapshot row over local state without regressing live data:
  * a snapshot must never blank streamed text, revert a completed message, or
  * wipe the transient ack line.
@@ -368,15 +460,26 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
     let messageStreamRetryTimer: ReturnType<typeof setTimeout> | null = null;
     let messageStreamRetryDelay = MESSAGE_STREAM_RETRY_INITIAL_MS;
     const generationStreams = new Map<string, EventSource>();
+    const generationStreamStates = new Map<string, GenerationStreamState>();
 
     // All cache writes flow through this queue so SSE events, snapshot syncs,
     // and polling can never interleave reads and writes (lost-delta race).
-    let queue: Promise<void> = Promise.resolve();
+    // The queue lives at module scope keyed by conversationId so a remount
+    // awaits the previous mount's writes (incl. the unmount flush).
     const enqueue = (task: () => Promise<void>) => {
-      queue = queue.then(task).catch((error) => {
+      const prior =
+        conversationWriteQueues.get(conversationId) ?? Promise.resolve();
+      const next = prior.then(task).catch((error) => {
         console.warn("message sync task failed", error);
       });
-      return queue;
+      conversationWriteQueues.set(conversationId, next);
+      void next.finally(() => {
+        // Drop the settled queue so the map can't grow unbounded.
+        if (conversationWriteQueues.get(conversationId) === next) {
+          conversationWriteQueues.delete(conversationId);
+        }
+      });
+      return next;
     };
 
     // Streaming writes are buffered and flushed as single-row puts instead of
@@ -422,10 +525,7 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
       setStatus("Exhausted");
     };
 
-    const syncSnapshot = async (
-      incoming: ApiMessage[],
-      fetchStartedAt: number,
-    ) => {
+    const syncSnapshot = async (incoming: ApiMessage[]) => {
       // Flush buffered streaming state first so the merge sees latest local.
       await flushPendingWrites();
 
@@ -439,15 +539,23 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
         existing.map((message) => [message._id, message]),
       );
 
-      // Only delete rows the server confirmably no longer has: settled rows
-      // that predate this fetch. In-flight rows and rows created after the
-      // snapshot was taken are kept (they are newer than the snapshot).
+      // Deletion decisions stay in the server clock domain. Invariant: a
+      // snapshot proves a local row was deleted server-side only if the row
+      // is settled, absent from the snapshot, AND older than the newest row
+      // the snapshot itself carries (its max updatedAt — a server timestamp).
+      // Comparing against client receipt time (Date.now()) deleted settled
+      // rows after branch switches and broke under client-ahead clock skew.
+      const snapshotMaxUpdatedAt = sorted.reduce(
+        (max, message) => Math.max(max, message.updatedAt ?? 0),
+        0,
+      );
       const orphanIds = existing
         .filter(
           (message) =>
             !incomingIds.has(message._id) &&
             !(message.status && IN_FLIGHT_STATUSES.has(message.status)) &&
-            (message.updatedAt ?? 0) < fetchStartedAt,
+            !pendingWrites.has(message._id) &&
+            (message.updatedAt ?? 0) < snapshotMaxUpdatedAt,
         )
         .map((message) => message._id);
 
@@ -464,7 +572,6 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
     };
 
     const fetchSnapshot = async () => {
-      const fetchStartedAt = Date.now();
       const response = await fetch(
         `/api/v1/conversations/${conversationId}/messages`,
         {
@@ -481,13 +588,13 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
       }
 
       const payload = await response.json();
-      return { messages: extractMessagesFromPayload(payload), fetchStartedAt };
+      return extractMessagesFromPayload(payload);
     };
 
     const syncFromServer = async () => {
       try {
-        const { messages, fetchStartedAt } = await fetchSnapshot();
-        await syncSnapshot(messages, fetchStartedAt);
+        const messages = await fetchSnapshot();
+        await syncSnapshot(messages);
         markLoaded();
       } catch (error) {
         if (!cancelled) {
@@ -528,10 +635,9 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
       );
 
       const handleMessage = (event: MessageEvent<string>) => {
-        const receivedAt = Date.now();
         void enqueue(async () => {
           const messages = extractMessagesFromPayload(JSON.parse(event.data));
-          await syncSnapshot(messages, receivedAt);
+          await syncSnapshot(messages);
           markLoaded();
         });
       };
@@ -567,10 +673,27 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
       };
     };
 
+    const getGenerationStreamState = (requestId: string) => {
+      let state = generationStreamStates.get(requestId);
+      if (!state) {
+        state = createGenerationStreamState();
+        generationStreamStates.set(requestId, state);
+      }
+      return state;
+    };
+
     const handleGenerationEvent = async (
       requestId: string,
       event: GenerationEvent,
     ) => {
+      const state = getGenerationStreamState(requestId);
+      // Reconnects replay the event log from seq 0; drop already-applied
+      // events instead of appending their deltas a second time.
+      if (!shouldApplyGenerationEvent(state, event)) {
+        return;
+      }
+      trackGenerationEvent(state, event);
+
       const id = event.assistantMessageId;
       const current =
         pendingWrites.get(id) ??
@@ -586,11 +709,18 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
 
       if (isTerminalGenerationEvent(event)) {
         await flushPendingWrites();
+        // Comparison mode: one requestId carries several sessions. Keep the
+        // stream open until every expected session has settled.
+        if (!isGenerationRequestSettled(state)) {
+          markLoaded();
+          return;
+        }
         const source = generationStreams.get(requestId);
         if (source) {
           source.close();
           generationStreams.delete(requestId);
         }
+        generationStreamStates.delete(requestId);
         await syncFromServer().catch(() => {});
         if (!cancelled && generationStreams.size === 0) {
           connectMessageStream();
@@ -601,11 +731,24 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
       }
     };
 
-    const connectGenerationStream = (requestId: string, streamUrl: string) => {
+    const connectGenerationStream = (
+      requestId: string,
+      streamUrl: string,
+      expectedAssistantMessageIds?: string[],
+    ) => {
       stopPollingFallback();
       messageEventSource?.close();
       messageEventSource = null;
       generationStreams.get(requestId)?.close();
+
+      if (
+        expectedAssistantMessageIds &&
+        expectedAssistantMessageIds.length > 0
+      ) {
+        getGenerationStreamState(requestId).expectedMessageIds = new Set(
+          expectedAssistantMessageIds,
+        );
+      }
 
       const source = new EventSource(streamUrl);
       generationStreams.set(requestId, source);
@@ -680,7 +823,17 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
       // Subscribe first, snapshot second: events buffer behind the queue and
       // the Redis log replays from seq 0, so nothing is missed; the snapshot
       // can never overwrite events that arrive while it is in flight.
-      connectGenerationStream(detail.requestId, detail.streamUrl);
+      const expectedAssistantMessageIds =
+        detail.assistantMessageIds && detail.assistantMessageIds.length > 0
+          ? detail.assistantMessageIds
+          : detail.assistantMessageId
+            ? [detail.assistantMessageId]
+            : undefined;
+      connectGenerationStream(
+        detail.requestId,
+        detail.streamUrl,
+        expectedAssistantMessageIds,
+      );
 
       void enqueue(async () => {
         const pendingAssistantMessages = createPendingAssistantMessages({
@@ -779,8 +932,13 @@ export function useRestMessageSync({ conversationId }: MessageSyncOptions) {
         flushTimer = null;
       }
       if (pendingWrites.size > 0) {
-        void cache.messages.bulkPut([...pendingWrites.values()] as any[]);
+        const rows = [...pendingWrites.values()];
         pendingWrites.clear();
+        // Flush through the shared per-conversation queue so the next mount's
+        // read-merge-write chains behind this write instead of racing it.
+        void enqueue(async () => {
+          await cache.messages.bulkPut(rows);
+        });
       }
       window.removeEventListener(
         "generation-request-started",

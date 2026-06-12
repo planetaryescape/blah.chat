@@ -5,6 +5,7 @@ import {
 } from "@blah-chat/persistence-postgres";
 import type { GenerationEvent } from "@blah-chat/streaming-core";
 import { eq } from "drizzle-orm";
+import logger from "@/lib/logger";
 import type { MetricsCollector } from "@/lib/observability/metrics";
 import { persistMessageSources } from "@/lib/persistence/sources";
 import { createComposioTools } from "./composioTools";
@@ -127,6 +128,17 @@ export class GenerationV2Service {
     if (terminalStatuses.has(bundle.requestStatus)) {
       await this.store.setRequestStatus(requestId, bundle.requestStatus);
       return bundle.requestStatus;
+    }
+
+    // Re-entrancy guard: a running request is owned by the worker that won the
+    // pending->running CAS. Recovery reruns reset the request to pending first,
+    // so claiming is the only legitimate way into session processing.
+    if (bundle.requestStatus === "running") {
+      const currentStatus =
+        (await this.repository.getRequestStatus(requestId)) ??
+        bundle.requestStatus;
+      await this.store.setRequestStatus(requestId, currentStatus);
+      return currentStatus;
     }
 
     let effectiveStatus = bundle.requestStatus;
@@ -320,6 +332,13 @@ export class GenerationV2Service {
     byokKeys?: ByokKeys;
   }) {
     const { bundle, session, promptMessages, collector, byokKeys } = input;
+
+    // A session that already reached a terminal state (e.g. via a concurrent
+    // worker or cancellation) must never be re-streamed or overwritten.
+    if (terminalStatuses.has(session.status)) {
+      return;
+    }
+
     const abortController = new AbortController();
     const sessionStartedAt = this.now();
     const routerStartedAt = this.now();
@@ -361,8 +380,12 @@ export class GenerationV2Service {
       if (prevAutoRouted) {
         await this.repository
           .recordModelSwitchFeedback(prevAutoRouted)
-          .catch(() => {
+          .catch((error: unknown) => {
             // Non-critical — don't fail the generation
+            logger.warn(
+              { err: error, requestId: bundle.requestId },
+              "Failed to record model-switch routing feedback",
+            );
           });
       }
     }
@@ -418,6 +441,7 @@ export class GenerationV2Service {
         integrations: bundle.integrations,
         tools:
           Object.keys(composioTools).length > 0 ? composioTools : undefined,
+        thinkingEffort: bundle.thinkingEffort,
         signal: abortController.signal,
         byokGatewayKey:
           byokKeys?.enabled && byokKeys.gatewayKey
@@ -585,10 +609,20 @@ export class GenerationV2Service {
         content: accumulated,
       });
 
-      // Embed the completed assistant message for search
-      this.backgroundTasks
-        .embedMessage?.(session.assistantMessageId)
-        .catch(() => {});
+      // Embed the completed assistant message for search. The enqueue is a
+      // cheap HTTP call to Trigger; await it but never fail the generation.
+      try {
+        await this.backgroundTasks.embedMessage?.(session.assistantMessageId);
+      } catch (error) {
+        logger.warn(
+          {
+            err: error,
+            requestId: bundle.requestId,
+            assistantMessageId: session.assistantMessageId,
+          },
+          "Failed to enqueue message embedding",
+        );
+      }
     } catch (error) {
       if (abortController.signal.aborted && !stalled) {
         return;
@@ -682,8 +716,12 @@ export class GenerationV2Service {
         userId: input.userId,
         toolCalls,
       });
-    } catch {
+    } catch (error) {
       // Non-critical: generation completion must stay green if tool metadata persistence fails.
+      logger.warn(
+        { err: error, requestId: input.requestId, sessionId: input.sessionId },
+        "Failed to persist assistant tool calls",
+      );
     }
   }
 
@@ -811,6 +849,7 @@ export class GenerationV2Service {
       status,
     });
     await this.repository.insertCheckpoint({
+      requestId,
       sessionId: session.sessionId,
       content,
       sequence,
@@ -907,8 +946,12 @@ export class GenerationV2Service {
 
     try {
       await this.backgroundTasks.autoTitleConversation(conversationId);
-    } catch {
+    } catch (error) {
       // Non-critical background task: generation completion must stay green.
+      logger.warn(
+        { err: error, conversationId },
+        "Failed to enqueue conversation auto-title",
+      );
     }
   }
 
@@ -933,8 +976,16 @@ export class GenerationV2Service {
         currentModelId: session.modelId,
         wasAutoSelected: bundle.requestedModelIds.includes("auto"),
       });
-    } catch {
+    } catch (error) {
       // Non-critical background task: generation completion must stay green.
+      logger.warn(
+        {
+          err: error,
+          requestId: bundle.requestId,
+          conversationId: bundle.conversationId,
+        },
+        "Failed to enqueue model-fit analysis",
+      );
     }
   }
 
@@ -978,8 +1029,12 @@ export class GenerationV2Service {
           sourceUrls: result.unenrichedUrls,
         });
       }
-    } catch {
+    } catch (error) {
       // Non-critical background task: generation completion must stay green.
+      logger.warn(
+        { err: error, requestId: input.requestId, sessionId: input.sessionId },
+        "Failed to persist sources or enqueue metadata enrichment",
+      );
     }
   }
 }

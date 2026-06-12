@@ -6,6 +6,31 @@ import { formatErrorEntity } from "@/lib/utils/formatEntity";
 
 let cachedRedis: Redis | undefined;
 const cachedLimiters = new Map<string, Ratelimit>();
+let warnedUnconfigured = false;
+
+/**
+ * Marker limiter returned when Upstash is unconfigured in a deployed
+ * environment. `applyRateLimit` treats it as fail-closed (503) so routes
+ * never run unmetered in production.
+ */
+export const UNCONFIGURED_LIMITER = Symbol.for("blah.rateLimiter.unconfigured");
+
+export type UnconfiguredLimiter = { kind: typeof UNCONFIGURED_LIMITER };
+
+function isUnconfiguredLimiter(
+  limiter: Ratelimit | UnconfiguredLimiter,
+): limiter is UnconfiguredLimiter {
+  return (
+    "kind" in limiter &&
+    (limiter as UnconfiguredLimiter).kind === UNCONFIGURED_LIMITER
+  );
+}
+
+function isDeployedEnvironment(): boolean {
+  return (
+    process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL_ENV)
+  );
+}
 
 function getRedis(): Redis | undefined {
   if (cachedRedis) return cachedRedis;
@@ -21,18 +46,40 @@ function getRedis(): Redis | undefined {
 
 /**
  * Build (or reuse) a sliding-window limiter for the given route prefix.
- * Returns undefined when Upstash isn't configured (dev/test) so callers
- * can skip rate limiting cleanly instead of crashing.
+ *
+ * When Upstash isn't configured:
+ * - in dev/test, returns undefined so callers skip rate limiting cleanly
+ * - in production/Vercel, returns a fail-closed marker so `applyRateLimit`
+ *   rejects requests with 503 instead of running unmetered
  */
 export function getLimiter(opts: {
   prefix: string;
   limit: number;
   window: `${number} ${"s" | "m" | "h"}`;
-}): Ratelimit | undefined {
+}): Ratelimit | UnconfiguredLimiter | undefined {
   const cached = cachedLimiters.get(opts.prefix);
   if (cached) return cached;
   const redis = getRedis();
-  if (!redis) return undefined;
+  if (!redis) {
+    if (isDeployedEnvironment()) {
+      if (!warnedUnconfigured) {
+        warnedUnconfigured = true;
+        logger.error(
+          { prefix: opts.prefix },
+          "Upstash rate limiter is not configured in production; failing closed",
+        );
+      }
+      return { kind: UNCONFIGURED_LIMITER };
+    }
+    if (!warnedUnconfigured) {
+      warnedUnconfigured = true;
+      logger.warn(
+        { prefix: opts.prefix },
+        "Upstash rate limiter is not configured; skipping rate limits (dev only)",
+      );
+    }
+    return undefined;
+  }
   const limiter = new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(opts.limit, opts.window),
@@ -54,9 +101,19 @@ export function getLimiter(opts: {
  * tests can drop in fakes that don't talk to Redis.
  */
 export async function applyRateLimit(
-  limiter: Ratelimit,
+  limiter: Ratelimit | UnconfiguredLimiter,
   identifier: string,
 ): Promise<NextResponse | null> {
+  if (isUnconfiguredLimiter(limiter)) {
+    return NextResponse.json(
+      formatErrorEntity({
+        message:
+          "Rate limiting is not configured for this environment. Request rejected.",
+        code: "rate_limiter_unconfigured",
+      }),
+      { status: 503 },
+    );
+  }
   let result: Awaited<ReturnType<Ratelimit["limit"]>>;
   try {
     result = await limiter.limit(identifier);
@@ -114,4 +171,22 @@ export function identifierFromRequest(req: Request): string {
   const cfIp = req.headers.get("cf-connecting-ip");
   if (cfIp) return cfIp;
   return "anonymous";
+}
+
+/**
+ * Convenience wrapper around getLimiter + applyRateLimit for routes that
+ * don't need to share a limiter instance. Returns `null` when allowed,
+ * or a 429/503 NextResponse the caller should return immediately.
+ */
+export async function enforceRateLimit(
+  opts: {
+    prefix: string;
+    limit: number;
+    window: `${number} ${"s" | "m" | "h"}`;
+  },
+  identifier: string,
+): Promise<NextResponse | null> {
+  const limiter = getLimiter(opts);
+  if (!limiter) return null;
+  return applyRateLimit(limiter, identifier);
 }

@@ -15,8 +15,11 @@ async function getHandler(
   const limitParam = Number.parseInt(url.searchParams.get("limit") ?? "", 10);
   const order = url.searchParams.get("order") === "asc" ? "asc" : "desc";
 
+  // Clamp to 500 (not 100): the canvas history client legitimately asks for 200.
   const result = await canvasDAL.listHistory(userId, id, {
-    limit: Number.isFinite(limitParam) ? limitParam : undefined,
+    limit: Number.isFinite(limitParam)
+      ? Math.min(500, Math.max(1, limitParam))
+      : undefined,
     order,
   });
   return NextResponse.json(result, { status: 200 });

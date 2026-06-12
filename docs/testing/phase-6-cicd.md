@@ -1,5 +1,7 @@
 # Phase 6: CI/CD Integration
 
+> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; file paths and code samples below no longer apply.
+
 **Priority:** P1 (High)
 **Estimated Effort:** 1-2 hours
 **Prerequisites:** Phases 1-5 (all tests written)

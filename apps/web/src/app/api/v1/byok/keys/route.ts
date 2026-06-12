@@ -3,6 +3,7 @@ import { z } from "zod";
 import { byokDAL } from "@/lib/api/dal/byok";
 import { withUserAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
+import { enforceRateLimit } from "@/lib/api/rate-limit";
 import logger from "@/lib/logger";
 import type { KeyType } from "@/lib/security/byok";
 
@@ -24,6 +25,12 @@ const removeSchema = z.object({
 });
 
 async function postHandler(req: NextRequest, { userId }: { userId: string }) {
+  const limited = await enforceRateLimit(
+    { prefix: "byok-keys", limit: 10, window: "1 h" },
+    userId,
+  );
+  if (limited) return limited;
+
   logger.info({ userId }, "POST /api/v1/byok/keys");
   const body = saveSchema.parse(await req.json());
   const result = await byokDAL.saveKey(userId, body);

@@ -1,3 +1,4 @@
+import type { ThinkingEffort } from "@blah-chat/ai";
 import type { GenerationEvent } from "@blah-chat/streaming-core";
 
 export interface GenerationPromptMessage {
@@ -39,6 +40,8 @@ export interface GenerationProviderStreamInput {
   messages: GenerationPromptMessage[];
   integrations?: GenerationRequestIntegrationSnapshot[];
   tools?: Record<string, unknown>;
+  /** Per-conversation reasoning effort; "none"/undefined = no reasoning. */
+  thinkingEffort?: ThinkingEffort;
   signal?: AbortSignal;
   byokGatewayKey?: string;
   byokOpenRouterKey?: string;
@@ -135,5 +138,7 @@ export interface PersistedRequestBundle {
   requestedModelIds: string[];
   integrations: GenerationRequestIntegrationSnapshot[];
   promptMessages: Array<{ role: string; content: string }>;
+  /** Conversation-level reasoning effort snapshot read at processing time. */
+  thinkingEffort: ThinkingEffort;
   sessions: PersistedSessionBundle[];
 }

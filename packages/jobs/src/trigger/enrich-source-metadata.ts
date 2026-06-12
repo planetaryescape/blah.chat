@@ -108,7 +108,13 @@ export async function enrichMessageSourcesMetadata(
   let enriched = 0;
 
   for (const [index, rawUrl] of payload.sourceUrls.entries()) {
-    const url = normalizeUrl(rawUrl);
+    let url: string;
+    try {
+      url = normalizeUrl(rawUrl);
+    } catch {
+      // Malformed URL from the LLM's source list: skip rather than fail the task.
+      continue;
+    }
     const urlHash = getUrlHash(url);
     let metadata: FetchedMetadata | null = null;
     let error: string | null = null;

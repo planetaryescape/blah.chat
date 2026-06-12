@@ -25,7 +25,13 @@ export function getEnqueueGenerationProcessing() {
   const env = parsePersistenceEnv(process.env);
   const trigger = createTriggerClient(env);
   const fn = async (requestId: string) => {
-    await trigger.triggerTask("process-generation", { requestId });
+    // Dedupe duplicate enqueues (double-submit, retried API calls) for the
+    // same request; recovery reruns bypass this by invoking the task directly.
+    await trigger.triggerTask(
+      "process-generation",
+      { requestId },
+      { idempotencyKey: requestId, idempotencyKeyTTL: "1h" },
+    );
   };
   globalThis.__blahGenerationV2EnqueueProcess = fn;
   return fn;
@@ -51,10 +57,18 @@ export function getGenerationV2Service() {
     undefined,
     {
       embedMessage: async (messageId: string) => {
-        await trigger.triggerTask("embed-message", { messageId });
+        await trigger.triggerTask(
+          "embed-message",
+          { messageId },
+          { idempotencyKey: messageId, idempotencyKeyTTL: "10m" },
+        );
       },
       autoTitleConversation: async (conversationId: string) => {
-        await trigger.triggerTask("generate-title", { conversationId });
+        await trigger.triggerTask(
+          "generate-title",
+          { conversationId },
+          { concurrencyKey: conversationId },
+        );
       },
       analyzeModelFit: async (input) => {
         await trigger.triggerTask("analyze-model-fit", input);

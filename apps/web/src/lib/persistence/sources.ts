@@ -6,8 +6,9 @@ import {
   type PersistenceDb,
   sourceMetadata,
 } from "@blah-chat/persistence-postgres";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import type { GenerationSource } from "@/lib/generation-v2/types";
+import logger from "@/lib/logger";
 import { ensureCurrentPersistenceUser } from "./current-user";
 import { getPersistenceDb } from "./server";
 
@@ -129,65 +130,76 @@ export async function persistMessageSources(input: {
   const unenrichedUrls: string[] = [];
 
   for (const source of input.sources) {
-    const normalizedUrl = normalizeUrl(source.url);
-    const urlHash = getUrlHash(normalizedUrl);
+    // One bad source must not abort persistence of the remaining sources.
+    try {
+      const normalizedUrl = normalizeUrl(source.url);
+      const urlHash = getUrlHash(normalizedUrl);
 
-    const existingMetadata = await input.db.query.sourceMetadata.findFirst({
-      where: eq(sourceMetadata.urlHash, urlHash),
-    });
-
-    if (existingMetadata) {
-      await input.db
-        .update(sourceMetadata)
-        .set({
+      // Atomic upsert keyed on source_metadata_by_url_hash so concurrent
+      // sessions citing the same URL cannot double-insert. A row coming back
+      // with accessCount === 1 was freshly inserted (updates increment past
+      // 1), preserving the "queue enrichment for new URLs only" behavior.
+      const [metadataRow] = await input.db
+        .insert(sourceMetadata)
+        .values({
+          urlHash,
           url: normalizedUrl,
-          title: existingMetadata.title ?? source.title,
+          title: source.title,
+          description: source.snippet,
+          enriched: false,
+          firstSeenAt: now(),
           lastAccessedAt: now(),
-          accessCount: existingMetadata.accessCount + 1,
+          accessCount: 1,
+          createdAt: now(),
           updatedAt: now(),
         })
-        .where(eq(sourceMetadata.id, existingMetadata.id));
-    } else {
-      await input.db.insert(sourceMetadata).values({
+        .onConflictDoUpdate({
+          target: sourceMetadata.urlHash,
+          set: {
+            url: normalizedUrl,
+            title: sql`coalesce(${sourceMetadata.title}, ${source.title})`,
+            lastAccessedAt: now(),
+            accessCount: sql`${sourceMetadata.accessCount} + 1`,
+            updatedAt: now(),
+          },
+        })
+        .returning();
+
+      if (metadataRow && metadataRow.accessCount === 1) {
+        unenrichedUrls.push(normalizedUrl);
+      }
+
+      const existingSource = await input.db.query.messageSources.findFirst({
+        where: and(
+          eq(messageSources.messageId, input.messageId),
+          eq(messageSources.urlHash, urlHash),
+        ),
+      });
+
+      if (existingSource) {
+        continue;
+      }
+
+      await input.db.insert(messageSources).values({
+        messageId: input.messageId,
+        conversationId: input.conversationId,
+        userId: input.userId,
+        position: source.position,
+        provider: input.provider,
+        title: source.title,
+        snippet: source.snippet,
         urlHash,
         url: normalizedUrl,
-        title: source.title,
-        description: source.snippet,
-        enriched: false,
-        firstSeenAt: now(),
-        lastAccessedAt: now(),
-        accessCount: 1,
+        isPartial: false,
         createdAt: now(),
-        updatedAt: now(),
       });
-      unenrichedUrls.push(normalizedUrl);
+      inserted += 1;
+    } catch (error) {
+      logger.warn(
+        { err: error, messageId: input.messageId, sourceUrl: source.url },
+        "Failed to persist message source",
+      );
     }
-
-    const existingSource = await input.db.query.messageSources.findFirst({
-      where: and(
-        eq(messageSources.messageId, input.messageId),
-        eq(messageSources.urlHash, urlHash),
-      ),
-    });
-
-    if (existingSource) {
-      continue;
-    }
-
-    await input.db.insert(messageSources).values({
-      messageId: input.messageId,
-      conversationId: input.conversationId,
-      userId: input.userId,
-      position: source.position,
-      provider: input.provider,
-      title: source.title,
-      snippet: source.snippet,
-      urlHash,
-      url: normalizedUrl,
-      isPartial: false,
-      createdAt: now(),
-    });
-    inserted += 1;
   }
 
   return {

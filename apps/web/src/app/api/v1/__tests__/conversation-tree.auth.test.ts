@@ -76,6 +76,10 @@ vi.mock("@/lib/persistence/storage", () => ({
 
 vi.mock("server-only", () => ({}));
 
+vi.mock("@/lib/api/dal/generationPolicy", () => ({
+  assertGenerationAllowed: vi.fn(async () => {}),
+}));
+
 async function createConversationViaRoute() {
   const { POST: createConversation } = await import("../conversations/route");
   const createResponse = await createConversation(

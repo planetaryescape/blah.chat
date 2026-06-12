@@ -48,6 +48,10 @@
     "./prompts/triage": {
       "types": "./dist/prompts/triage.d.ts",
       "import": "./dist/prompts/triage.js"
+    },
+    "./benchmarks": {
+      "types": "./dist/benchmarks.d.ts",
+      "import": "./dist/benchmarks.js"
     }
   },
   "files": [
@@ -59,7 +63,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup src/index.ts src/models.ts src/utils.ts src/gateway.ts src/registry.ts src/operational-models.ts src/reasoning/index.ts src/prompts/taskExtraction.ts src/prompts/meetingExtraction.ts src/prompts/modelTriage.ts src/prompts/triage.ts --format esm --dts --clean",
+    "build": "tsup src/index.ts src/models.ts src/benchmarks.ts src/utils.ts src/gateway.ts src/registry.ts src/operational-models.ts src/reasoning/index.ts src/prompts/taskExtraction.ts src/prompts/meetingExtraction.ts src/prompts/modelTriage.ts src/prompts/triage.ts --format esm --dts --clean",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "bun run build"
   },

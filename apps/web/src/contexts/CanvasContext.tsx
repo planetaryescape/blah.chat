@@ -1,7 +1,7 @@
 "use client";
 
+import type { DiffOperation } from "@blah-chat/shared/canvas";
 import { createContext, type ReactNode, useContext, useState } from "react";
-import type { DiffOperation } from "@/lib/canvas/diff";
 
 export interface ConflictInfo {
   description: string;

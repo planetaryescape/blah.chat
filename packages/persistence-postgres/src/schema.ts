@@ -339,11 +339,9 @@ export const messages = pgTable(
     clientIdUnique: uniqueIndex("messages_conversation_client_message_unique")
       .on(table.conversationId, table.clientMessageId)
       .where(sql`${table.clientMessageId} IS NOT NULL`),
-    byStatusUpdated: index("messages_by_status_updated").on(
-      table.status,
-      table.updatedAt,
-      table.id,
-    ),
+    byStatusUpdated: index("messages_by_status_updated")
+      .on(table.status, table.updatedAt, table.id)
+      .concurrently(),
   }),
 );
 
@@ -997,11 +995,9 @@ export const generationRequests = pgTable(
       .$defaultFn(now),
   },
   (table) => ({
-    byStatusUpdated: index("generation_requests_by_status_updated").on(
-      table.status,
-      table.updatedAt,
-      table.id,
-    ),
+    byStatusUpdated: index("generation_requests_by_status_updated")
+      .on(table.status, table.updatedAt, table.id)
+      .concurrently(),
   }),
 );
 
@@ -1062,13 +1058,14 @@ export const generationSessions = pgTable(
       .$defaultFn(now),
   },
   (table) => ({
-    byRequestUpdated: index("generation_sessions_by_request_updated").on(
-      table.requestId,
-      table.updatedAt,
-    ),
+    byRequestUpdated: index("generation_sessions_by_request_updated")
+      .on(table.requestId, table.updatedAt)
+      .concurrently(),
     byMessageStatusUpdated: index(
       "generation_sessions_by_message_status_updated",
-    ).on(table.assistantMessageId, table.status, table.updatedAt),
+    )
+      .on(table.assistantMessageId, table.status, table.updatedAt)
+      .concurrently(),
   }),
 );
 

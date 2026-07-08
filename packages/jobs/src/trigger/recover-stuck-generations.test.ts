@@ -5,7 +5,7 @@ import {
   generationRequests,
   generationSessions,
 } from "@blah-chat/persistence-postgres";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
 import { createTestPersistenceDb } from "../../../persistence-postgres/src/testing/pglite";
 import { processGenerationTask } from "./process-generation";
@@ -285,5 +285,48 @@ describe("recoverStuckGenerations", () => {
 
     expect(result.recovered).toBe(2);
     expect(enqueue).toHaveBeenCalledTimes(2);
+  });
+
+  it("rolls back reset requests that were not enqueued when enqueue fails", async () => {
+    const db = await createTestPersistenceDb();
+    const now = Date.now();
+    const enqueue = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("trigger unavailable"));
+
+    const { request: enqueued } = await seedRequest(db, {
+      status: "running",
+      ageMs: NINETY_SECONDS + 60_000,
+    });
+    const { request: failed } = await seedRequest(db, {
+      status: "cancelling",
+      ageMs: NINETY_SECONDS + 60_000,
+    });
+    const { request: notAttempted } = await seedRequest(db, {
+      status: "running",
+      ageMs: NINETY_SECONDS + 60_000,
+    });
+
+    await expect(recoverStuckGenerations({ db, now, enqueue })).rejects.toThrow(
+      "trigger unavailable",
+    );
+
+    expect(enqueue).toHaveBeenCalledTimes(2);
+    expect(enqueue).toHaveBeenNthCalledWith(1, enqueued.id);
+    expect(enqueue).toHaveBeenNthCalledWith(2, failed.id);
+
+    const rows = await db.query.generationRequests.findMany({
+      where: inArray(generationRequests.id, [
+        enqueued.id,
+        failed.id,
+        notAttempted.id,
+      ]),
+    });
+    const statusById = new Map(rows.map((row) => [row.id, row.status]));
+
+    expect(statusById.get(enqueued.id)).toBe("pending");
+    expect(statusById.get(failed.id)).toBe("cancelling");
+    expect(statusById.get(notAttempted.id)).toBe("running");
   });
 });

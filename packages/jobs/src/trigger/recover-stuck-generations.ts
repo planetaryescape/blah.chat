@@ -14,7 +14,7 @@ function getDatabaseUrl() {
 }
 
 const STUCK_THRESHOLD_MS = 90 * 1000;
-const DEFAULT_RECOVERY_BATCH_SIZE = 25;
+const DEFAULT_RECOVERY_BATCH_SIZE = 100;
 const MAX_RECOVERY_BATCH_SIZE = 100;
 
 export interface RecoverStuckGenerationsDeps {
@@ -54,7 +54,11 @@ export async function recoverStuckGenerations(
   // updatedAt on every checkpoint, so a request with any fresh session is
   // still alive even if request.updatedAt lagged behind.
   const staleRequests = await db
-    .select({ id: generationRequests.id })
+    .select({
+      id: generationRequests.id,
+      status: generationRequests.status,
+      updatedAt: generationRequests.updatedAt,
+    })
     .from(generationRequests)
     .where(
       and(
@@ -81,6 +85,9 @@ export async function recoverStuckGenerations(
   }
 
   const staleRequestIds = staleRequests.map((request) => request.id);
+  const staleRequestById = new Map(
+    staleRequests.map((request) => [request.id, request]),
+  );
   const recovered = await db
     .update(generationRequests)
     .set({ status: "pending", updatedAt: now })
@@ -104,8 +111,31 @@ export async function recoverStuckGenerations(
     )
     .returning();
 
+  const pendingEnqueue = new Set(recovered.map((row) => row.id));
   for (const row of recovered) {
-    await enqueue(row.id);
+    try {
+      await enqueue(row.id);
+      pendingEnqueue.delete(row.id);
+    } catch (error) {
+      for (const requestId of pendingEnqueue) {
+        const original = staleRequestById.get(requestId);
+        if (!original) continue;
+
+        await db
+          .update(generationRequests)
+          .set({
+            status: original.status,
+            updatedAt: original.updatedAt,
+          })
+          .where(
+            and(
+              eq(generationRequests.id, requestId),
+              eq(generationRequests.status, "pending"),
+            ),
+          );
+      }
+      throw error;
+    }
   }
 
   return { recovered: recovered.length };

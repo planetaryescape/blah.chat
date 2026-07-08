@@ -5,9 +5,10 @@ import {
   generationRequests,
   generationSessions,
 } from "@blah-chat/persistence-postgres";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
 import { createTestPersistenceDb } from "../../../persistence-postgres/src/testing/pglite";
+import { processGenerationTask } from "./process-generation";
 import { recoverStuckGenerations } from "./recover-stuck-generations";
 
 const NINETY_SECONDS = 90 * 1000;
@@ -224,5 +225,108 @@ describe("recoverStuckGenerations", () => {
     expect(result.recovered).toBe(2);
     expect(enqueue).toHaveBeenCalledWith(a.id);
     expect(enqueue).toHaveBeenCalledWith(b.id);
+  });
+
+  it("enqueues process-generation instead of processing recovered requests inline", async () => {
+    const db = await createTestPersistenceDb();
+    const now = Date.now();
+    const trigger = vi
+      .spyOn(processGenerationTask, "trigger")
+      .mockResolvedValue({ id: "run_recovered" } as Awaited<
+        ReturnType<typeof processGenerationTask.trigger>
+      >);
+
+    const { request } = await seedRequest(db, {
+      status: "running",
+      ageMs: NINETY_SECONDS + 60_000,
+    });
+
+    try {
+      const result = await recoverStuckGenerations({ db, now });
+
+      expect(result.recovered).toBe(1);
+      expect(trigger).toHaveBeenCalledWith(
+        { requestId: request.id },
+        {
+          concurrencyKey: request.id,
+          idempotencyKey: `recover-generation:${request.id}`,
+          idempotencyKeyTTL: "15m",
+        },
+      );
+    } finally {
+      trigger.mockRestore();
+    }
+  });
+
+  it("limits recovered requests to the configured batch size", async () => {
+    const db = await createTestPersistenceDb();
+    const enqueue = vi.fn().mockResolvedValue(undefined);
+    const now = Date.now();
+
+    await seedRequest(db, {
+      status: "running",
+      ageMs: NINETY_SECONDS + 60_000,
+    });
+    await seedRequest(db, {
+      status: "running",
+      ageMs: NINETY_SECONDS + 60_000,
+    });
+    await seedRequest(db, {
+      status: "running",
+      ageMs: NINETY_SECONDS + 60_000,
+    });
+
+    const result = await recoverStuckGenerations({
+      db,
+      now,
+      enqueue,
+      batchSize: 2,
+    });
+
+    expect(result.recovered).toBe(2);
+    expect(enqueue).toHaveBeenCalledTimes(2);
+  });
+
+  it("rolls back reset requests that were not enqueued when enqueue fails", async () => {
+    const db = await createTestPersistenceDb();
+    const now = Date.now();
+    const enqueue = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("trigger unavailable"));
+
+    const { request: enqueued } = await seedRequest(db, {
+      status: "running",
+      ageMs: NINETY_SECONDS + 60_000,
+    });
+    const { request: failed } = await seedRequest(db, {
+      status: "cancelling",
+      ageMs: NINETY_SECONDS + 60_000,
+    });
+    const { request: notAttempted } = await seedRequest(db, {
+      status: "running",
+      ageMs: NINETY_SECONDS + 60_000,
+    });
+
+    await expect(recoverStuckGenerations({ db, now, enqueue })).rejects.toThrow(
+      "trigger unavailable",
+    );
+
+    expect(enqueue).toHaveBeenCalledTimes(2);
+    expect(enqueue).toHaveBeenNthCalledWith(1, enqueued.id);
+    expect(enqueue).toHaveBeenNthCalledWith(2, failed.id);
+
+    const rows = await db.query.generationRequests.findMany({
+      where: inArray(generationRequests.id, [
+        enqueued.id,
+        failed.id,
+        notAttempted.id,
+      ]),
+    });
+    const statusById = new Map(rows.map((row) => [row.id, row.status]));
+
+    expect(statusById.get(enqueued.id)).toBe("pending");
+    expect(statusById.get(failed.id)).toBe("cancelling");
+    expect(statusById.get(notAttempted.id)).toBe("running");
   });
 });

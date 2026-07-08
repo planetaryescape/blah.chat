@@ -61,23 +61,10 @@ Avoid generic AI aesthetic. Distinctive, creative, surprising.
 
 **Never commit directly to main.** Feature branches + PRs only.
 
-## Issue Tracking (bd)
-
-```bash
-bd list                    # All issues
-bd ready                   # Unblocked tasks
-bd create "Title" -p 0     # New task
-bd update <id> --status in_progress
-bd update <id> --status done
-bd sync                    # Before/after git ops
-```
-
 ## Session Completion
 
 Work is NOT complete until `git push` succeeds.
 
-1. File issues for remaining work (`bd create`)
-2. Run quality gates (tests, lint, build)
-3. Update issue status
-4. `git pull --rebase && bd sync && git push`
-5. Verify `git status` shows up to date
+1. Run quality gates (tests, lint, build)
+2. `git pull --rebase && git push`
+3. Verify `git status` shows up to date

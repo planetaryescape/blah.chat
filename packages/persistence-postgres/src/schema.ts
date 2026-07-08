@@ -339,6 +339,9 @@ export const messages = pgTable(
     clientIdUnique: uniqueIndex("messages_conversation_client_message_unique")
       .on(table.conversationId, table.clientMessageId)
       .where(sql`${table.clientMessageId} IS NOT NULL`),
+    byStatusUpdated: index("messages_by_status_updated")
+      .on(table.status, table.updatedAt, table.id)
+      .concurrently(),
   }),
 );
 
@@ -968,23 +971,35 @@ export const messageEdges = pgTable(
   }),
 );
 
-export const generationRequests = pgTable("generation_requests", {
-  id: text("id").primaryKey().$defaultFn(id),
-  conversationId: text("conversation_id")
-    .notNull()
-    .references(() => conversations.id, { onDelete: "cascade" }),
-  userMessageId: text("user_message_id")
-    .notNull()
-    .references(() => messages.id, { onDelete: "cascade" }),
-  requestedModels: text("requested_models")
-    .array()
-    .notNull()
-    .default(sql`ARRAY[]::text[]`),
-  promptOverride: text("prompt_override"),
-  status: text("status").notNull().default("pending"),
-  createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(now),
-  updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(now),
-});
+export const generationRequests = pgTable(
+  "generation_requests",
+  {
+    id: text("id").primaryKey().$defaultFn(id),
+    conversationId: text("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    userMessageId: text("user_message_id")
+      .notNull()
+      .references(() => messages.id, { onDelete: "cascade" }),
+    requestedModels: text("requested_models")
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::text[]`),
+    promptOverride: text("prompt_override"),
+    status: text("status").notNull().default("pending"),
+    createdAt: bigint("created_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+    updatedAt: bigint("updated_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+  },
+  (table) => ({
+    byStatusUpdated: index("generation_requests_by_status_updated")
+      .on(table.status, table.updatedAt, table.id)
+      .concurrently(),
+  }),
+);
 
 export const generationRequestIntegrations = pgTable(
   "generation_request_integrations",
@@ -1022,20 +1037,37 @@ export const comparisonVotes = pgTable("comparison_votes", {
   votedAt: bigint("voted_at", { mode: "number" }).notNull().$defaultFn(now),
 });
 
-export const generationSessions = pgTable("generation_sessions", {
-  id: text("id").primaryKey().$defaultFn(id),
-  requestId: text("request_id")
-    .notNull()
-    .references(() => generationRequests.id, { onDelete: "cascade" }),
-  assistantMessageId: text("assistant_message_id")
-    .notNull()
-    .references(() => messages.id, { onDelete: "cascade" }),
-  modelId: text("model_id").notNull(),
-  status: text("status").notNull().default("pending"),
-  provider: text("provider"),
-  createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(now),
-  updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(now),
-});
+export const generationSessions = pgTable(
+  "generation_sessions",
+  {
+    id: text("id").primaryKey().$defaultFn(id),
+    requestId: text("request_id")
+      .notNull()
+      .references(() => generationRequests.id, { onDelete: "cascade" }),
+    assistantMessageId: text("assistant_message_id")
+      .notNull()
+      .references(() => messages.id, { onDelete: "cascade" }),
+    modelId: text("model_id").notNull(),
+    status: text("status").notNull().default("pending"),
+    provider: text("provider"),
+    createdAt: bigint("created_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+    updatedAt: bigint("updated_at", { mode: "number" })
+      .notNull()
+      .$defaultFn(now),
+  },
+  (table) => ({
+    byRequestUpdated: index("generation_sessions_by_request_updated")
+      .on(table.requestId, table.updatedAt)
+      .concurrently(),
+    byMessageStatusUpdated: index(
+      "generation_sessions_by_message_status_updated",
+    )
+      .on(table.assistantMessageId, table.status, table.updatedAt)
+      .concurrently(),
+  }),
+);
 
 export const generationCheckpoints = pgTable(
   "generation_checkpoints",

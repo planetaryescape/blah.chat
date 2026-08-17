@@ -68,7 +68,7 @@
     "prepublishOnly": "bun run build"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.1",
+    "@ai-sdk/anthropic": "^4.0.38",
     "@ai-sdk/cerebras": "^2.0.2",
     "@ai-sdk/gateway": "^3.0.2",
     "@ai-sdk/google": "^3.0.1",

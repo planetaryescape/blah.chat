@@ -55,7 +55,7 @@ conversations: defineTable({
 - **Extensible**: Can add metadata (role, joinedAt, invitedBy, sourceShareId) without bloating conversation documents
 - **No document bloat**: Conversation documents stay small (important for performance)
 - **Atomic updates**: Add/remove participants without touching conversation document
-- **Follows project standards**: blah.chat uses normalized schema throughout (see CLAUDE.md)
+- **Follows project standards**: blah.chat uses normalized schema throughout (see AGENTS.md)
 
 **Performance Impact**:
 - 40% smaller conversation documents

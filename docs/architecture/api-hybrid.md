@@ -901,7 +901,7 @@ posthog.capture("api_error", {
 **Architecture**:
 - `docs/API_ARCHITECTURE.md` (this file) - Design philosophy
 - `docs/SCHEMA_NORMALIZATION_GUIDE.md` - DB design patterns
-- `CLAUDE.md` - Project conventions + API patterns
+- `AGENTS.md` - Project conventions + API patterns
 
 **Implementation**:
 - `src/lib/api/dal/*` - Data access layer (start here)

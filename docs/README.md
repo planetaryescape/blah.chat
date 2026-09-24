@@ -2,7 +2,7 @@
 
 ## Quick Links
 - [spec.md](./spec.md) - Historical product spec; verify current architecture against code and self-hosting docs
-- [CLAUDE.md](../CLAUDE.md) - AI assistant instructions
+- [AGENTS.md](../AGENTS.md) - AI assistant instructions
 
 ---
 

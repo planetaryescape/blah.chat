@@ -1,13 +1,10 @@
-# CLAUDE.md
+# blah.chat
 
 Personal AI chat assistant: all models (OpenAI, Gemini, Claude), mid-chat switching, conversation branching, cost tracking.
 
 ## Package Manager
 
-**Bun exclusively.** Never npm/pnpm/yarn/npx.
-
-- `bun install`, `bun add`, `bunx`, `bun run`
-- If `package-lock.json` exists, delete it. Only `bun.lock`.
+Bun only (`bun install`, `bun add`, `bunx`, `bun run`); no npm/pnpm/yarn/npx. `bun.lock` is the only lockfile; delete a stray `package-lock.json`.
 
 ## Commands
 
@@ -23,47 +20,33 @@ bun run test:e2e           # Playwright E2E
 
 ## Critical Rules
 
-- **Resilient generation**: Messages MUST survive page refresh. Generation runs server-side via Trigger.dev tasks (`packages/jobs`) writing to Postgres; clients attach over SSE and reconcile — never client-only streaming. See `apps/web/src/lib/generation-v2/`.
+- **Resilient generation**: Messages must survive page refresh. Generation runs server-side via Trigger.dev tasks (`packages/jobs`) writing to Postgres; clients attach over SSE and reconcile — no client-only streaming. See `apps/web/src/lib/generation-v2/`.
 - **API envelopes**: Every response wrapped via `formatEntity`/`formatEntityList`/`formatErrorEntity` from `src/lib/utils/formatEntity.ts`.
 - **Normalized schema**: Postgres + Drizzle (`packages/persistence-postgres/src/schema.ts`). No nested documents. Junction tables for M:N. Schema changes require a generated migration (`bun run db:generate` in the package).
 - **Cost tracking**: Log tokens/cost on every LLM call.
 - **Pino logging**: Structured JSON in API routes.
 - **One component per file** unless tightly coupled helper.
-- **No browser dialogs**: Never `confirm()`/`alert()`/`prompt()`. Use shadcn AlertDialog/toast/Dialog.
+- **No browser dialogs**: no `confirm()`/`alert()`/`prompt()`. Use shadcn AlertDialog/toast/Dialog.
 
 ## Centralization Rules
 
-- **Prompts**: All LLM prompts in `packages/shared/src/prompts/` (or `@blah-chat/ai` prompt modules). Never hardcode in jobs/routes/UI.
-- **Models**: Import from `packages/ai/src/models.ts` / `apps/web/src/lib/ai/models.ts`. Never hardcode model ID strings.
+- **Prompts**: All LLM prompts in `packages/shared/src/prompts/` (or `@blah-chat/ai` prompt modules). Don't hardcode them in jobs/routes/UI.
+- **Models**: Import from `packages/ai/src/models.ts` / `apps/web/src/lib/ai/models.ts`. Don't hardcode model ID strings.
 
 ## Design Philosophy
 
 Avoid generic AI aesthetic. Distinctive, creative, surprising.
 
-- Unique fonts (NOT Inter/Roboto). Dark theme. Layered backgrounds, high-impact motion.
+- Unique fonts (not Inter/Roboto). Dark theme. Layered backgrounds, high-impact motion.
 - Inspiration: code editor themes (Rose Pine, Tokyo Night, Vesper).
-
-## Development Principles
-
-- **Don't ship features just because you can.** Every feature has maintenance cost. Question whether it's needed before building.
-- **Leave the code better than you found it.** Small improvements while you're in the area — cleaner types, better names, removed dead paths.
-- **Fix features and process before creating new features.** Existing broken/incomplete things take priority over shiny new things.
-
-## Anti-Patterns
-
-- No lazy `any` — check existing/library types first
-- No explanatory comments on self-documenting code
-- No dead code, commented-out blocks, orphaned handlers
-- No half-implemented features — complete or don't start
-- Trace data flows end-to-end: UI → API → DB → Response → UI
 
 ## Git Workflow
 
-**Never commit directly to main.** Feature branches + PRs only.
+Feature branches + PRs; don't commit directly to main.
 
 ## Session Completion
 
-Work is NOT complete until `git push` succeeds.
+Work is done when it is pushed.
 
 1. Run quality gates (tests, lint, build)
 2. `git pull --rebase && git push`

@@ -16,7 +16,7 @@
     "adm-zip": "^0.5.16",
     "commander": "^13.1.0",
     "convex": "1.39.1",
-    "drizzle-orm": "0.45.2",
+    "drizzle-orm": "0.45.3",
     "nanoid": "^5.1.6",
     "pg": "^8.20.0",
     "pino": "^9.6.0"

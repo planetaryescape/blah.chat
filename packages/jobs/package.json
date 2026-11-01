@@ -38,10 +38,10 @@
     "@blah-chat/persistence-postgres": "workspace:*",
     "@blah-chat/shared": "workspace:*",
     "@clerk/backend": "3.4.13",
-    "@trigger.dev/sdk": "4.4.6",
+    "@trigger.dev/sdk": "4.8.1",
     "ai": "^6.0.3",
     "drizzle-orm": "0.45.2",
     "ipaddr.js": "^2.2.0",
-    "zod": "^4.2.1"
+    "zod": "^4.6.7"
   }
 }

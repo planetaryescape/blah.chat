@@ -13,11 +13,11 @@
     "@aws-sdk/s3-request-presigner": "3.1053.0",
     "@blah-chat/persistence-postgres": "workspace:*",
     "@types/pg": "^8.20.0",
-    "adm-zip": "^0.5.16",
+    "adm-zip": "^0.6.1",
     "commander": "^13.1.0",
     "convex": "1.39.1",
     "drizzle-orm": "0.45.2",
-    "nanoid": "^5.1.6",
+    "nanoid": "^5.1.16",
     "pg": "^8.20.0",
     "pino": "^9.6.0"
   },

@@ -36,9 +36,9 @@
     "@neondatabase/serverless": "^1.0.2",
     "@upstash/redis": "^1.35.6",
     "drizzle-orm": "0.45.2",
-    "nanoid": "^5.1.6",
+    "nanoid": "^5.1.16",
     "pg": "^8.20.0",
-    "zod": "^4.2.1"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.3.14",

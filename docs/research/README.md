@@ -4,6 +4,7 @@ Technical investigations and implementation research.
 
 ## Contents
 
+- [Eve agent runtime](./eve-agent-runtime.md) - Runtime trial, measured failures, and adoption gates
 - [Streaming Animation](./streaming-animation.md) - ChatGPT-style text animation research
 - [Web Worker Highlighting](./web-worker-highlighting.md) - Syntax highlighting performance
 

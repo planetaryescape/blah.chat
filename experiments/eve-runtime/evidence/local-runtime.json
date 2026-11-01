@@ -1,0 +1,75 @@
+{
+  "runId": "2026-11-01T23-07-15.439Z-0d46760f",
+  "eveVersion": "1.0.0-rc.1",
+  "aiSdkVersion": "7.0.137",
+  "modelProtocol": "v3",
+  "mode": "scripted-model-real-runtime",
+  "world": "local-filesystem",
+  "sandbox": "just-bash",
+  "nodeVersion": "26.7.0",
+  "platform": "darwin-arm64",
+  "modelId": "openai:gpt-oss-20b",
+  "modelUsageIsSynthetic": true,
+  "actualModelSpendUsd": 0,
+  "passed": 7,
+  "failed": 2,
+  "cases": [
+    {
+      "name": "unauthenticated session rejected",
+      "passed": true,
+      "durationMs": 2,
+      "status": 401
+    },
+    {
+      "name": "existing pricing code executes through Eve",
+      "passed": true,
+      "durationMs": 616,
+      "expectedCostUsd": 0.0002
+    },
+    {
+      "name": "stream disconnect and fresh-client replay",
+      "passed": true,
+      "durationMs": 257,
+      "cursor": 10,
+      "replayEvents": 14,
+      "eventsAfterCursor": 0
+    },
+    {
+      "name": "sandbox filesystem persists across process crash",
+      "passed": false,
+      "durationMs": 66490,
+      "error": "TimeoutError: The operation timed out."
+    },
+    {
+      "name": "approval survives crash and duplicate delivery is deduplicated",
+      "passed": true,
+      "durationMs": 1587,
+      "pendingApprovalsBeforeCrash": 1,
+      "executionsAfterDuplicateApproval": 1
+    },
+    {
+      "name": "approval rejection does not execute write",
+      "passed": true,
+      "durationMs": 550
+    },
+    {
+      "name": "active tool cancellation reaches terminal cancelled state",
+      "passed": true,
+      "durationMs": 172,
+      "status": "cancelled"
+    },
+    {
+      "name": "crash during active tool resumes without silently repeating it",
+      "passed": false,
+      "durationMs": 65968,
+      "error": "TimeoutError: The operation timed out."
+    },
+    {
+      "name": "per-model-call usage reaches local accounting sink",
+      "passed": true,
+      "durationMs": 1,
+      "completedCalls": 11,
+      "uniqueAccountingKeys": 11
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "name": "blah-chat-eve-runtime-spike",
+  "private": true,
+  "type": "module",
+  "workspaces": [],
+  "scripts": {
+    "build": "eve build",
+    "start": "eve start --host 127.0.0.1 --port 4318",
+    "check": "tsc --noEmit",
+    "trial": "bun run scripts/trial.ts"
+  },
+  "dependencies": {
+    "ai": "7.0.137",
+    "eve": "1.0.0-rc.1",
+    "just-bash": "3.6.0",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.4",
+    "typescript": "5.9.3"
+  }
+}

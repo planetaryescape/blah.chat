@@ -1,0 +1,9 @@
+# Bound local workers; independent builds share the agent-work queue.
+
+[build]
+jobs = 4
+
+[env]
+RAYON_NUM_THREADS = "4"
+NEXTEST_TEST_THREADS = "4"
+RUST_TEST_THREADS = "4"

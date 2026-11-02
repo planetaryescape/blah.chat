@@ -1,4 +1,6 @@
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { act, render, screen, waitFor } from "@testing-library/react";
+import { type FunctionReference, getFunctionName } from "convex/server";
 import { useEffect, useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -10,6 +12,7 @@ const state = vi.hoisted(() => ({
   authenticated: true,
   user: { clerkId: "A" } as { clerkId: string } | null | undefined,
   databases: new Map<string, Map<string, Map<string, unknown>>>(),
+  metadata: { attachments: [], toolCalls: [], sources: [] },
 }));
 vi.mock("@clerk/nextjs", () => ({
   useAuth: () => ({ isLoaded: state.loaded, userId: state.userId }),
@@ -19,8 +22,14 @@ vi.mock("convex/react", () => ({
     isLoading: false,
     isAuthenticated: state.authenticated,
   }),
-  useQuery: () => state.user,
+  useQuery: (query: FunctionReference<"query">) =>
+    getFunctionName(query) === "messages:batchGetMetadata"
+      ? state.metadata
+      : state.user,
 }));
+// This fixture checks hook request-scope wiring with an already-present tree;
+// the independent message-presence subscription is covered by the cache tests.
+vi.mock("dexie-react-hooks", () => ({ useLiveQuery: () => undefined }));
 vi.mock("convex-helpers/react/cache", () => ({
   ConvexQueryCacheProvider: ({ children }: { children: React.ReactNode }) =>
     children,
@@ -95,10 +104,15 @@ vi.mock("dexie", () => ({
 }));
 
 import { CacheProvider } from "@/components/providers/cache-provider";
-import { useUserCache } from "@/lib/cache/context";
+import { UserCacheContext, useUserCache } from "@/lib/cache/context";
 import { BlahChatCache, getCache, setActiveCache } from "@/lib/cache/db";
 import { syncMessageMetadata, syncMessageTree } from "@/lib/cache/messageTree";
-import { getSiblingsForMessage } from "../useCacheSync";
+import { getSiblingsForMessage, useMetadataCacheSync } from "../useCacheSync";
+
+function MetadataProbe({ ids }: { ids: Id<"messages">[] }) {
+  useMetadataCacheSync(ids);
+  return null;
+}
 
 function Probe() {
   const cache = useUserCache();
@@ -121,6 +135,35 @@ function Probe() {
 }
 
 describe("cache identity boundary", () => {
+  it("clears an authoritative empty metadata response through the actual scoped hook", async () => {
+    const cache = new BlahChatCache("A");
+    // SAFETY: synthetic cache-only rows exercise the requested message-ID boundary.
+    await cache.messages.bulkPut([
+      { _id: "live" },
+      { _id: "outside" },
+    ] as never);
+    // SAFETY: only metadata ownership and identity fields are used by reconciliation.
+    await cache.toolCalls.bulkPut([
+      { _id: "removed-partial", messageId: "live" },
+      { _id: "outside-partial", messageId: "outside" },
+    ] as never);
+    setActiveCache(cache);
+    render(
+      <UserCacheContext.Provider value={cache}>
+        <MetadataProbe ids={["live" as Id<"messages">]} />
+      </UserCacheContext.Provider>,
+    );
+    await waitFor(async () => {
+      expect(await cache.toolCalls.toArray()).toEqual([
+        { _id: "outside-partial", messageId: "outside" },
+      ]);
+    });
+    expect((await cache.messages.toArray()).map((row) => row._id)).toEqual([
+      "live",
+      "outside",
+    ]);
+  });
+
   it("reconciles each requested live message's metadata without touching unrequested messages or another owner", async () => {
     const cache = new BlahChatCache("A");
     const foreign = new BlahChatCache("B");

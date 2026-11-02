@@ -82,7 +82,11 @@ function lexNested(content: string, references: Links): Token[] {
   const lexer = new marked.Lexer({ gfm: true });
   // Re-lex normalized container content without losing forward/backward
   // document references or injecting definitions into source-mapped text.
-  lexer.tokens.links = { ...references };
+  // Footnote definitions are substantive blocks, not just reference metadata.
+  // Pre-registering them makes Marked suppress their body in nested containers.
+  lexer.tokens.links = Object.fromEntries(
+    Object.entries(references).filter(([label]) => !label.startsWith("^")),
+  );
   return lexer.lex(content);
 }
 

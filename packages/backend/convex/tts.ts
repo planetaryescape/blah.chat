@@ -39,8 +39,8 @@ export const generateSpeech = action({
     if (!ttsEnabled) {
       throw new Error("TTS is disabled in user preferences");
     }
-    if (!args.text.trim()) {
-      throw new Error("No text provided for TTS");
+    if (!args.text.trim() || args.text.length > 2000) {
+      throw new Error("TTS requires 1-2000 characters");
     }
 
     const provider = "deepgram" as const;
@@ -57,6 +57,13 @@ export const generateSpeech = action({
 
     const voice: string = args.voice ?? ttsVoice ?? "aura-asteria-en";
     const tempo = args.speed ?? ttsSpeed ?? 1;
+    if (
+      !Number.isFinite(tempo) ||
+      tempo < 0.5 ||
+      tempo > 2 ||
+      !/^aura-[a-z0-9-]{1,60}$/.test(voice)
+    )
+      throw new Error("Invalid TTS voice or speed");
     const apiKey = process.env.DEEPGRAM_API_KEY;
     if (!apiKey) {
       throw new Error("DEEPGRAM_API_KEY is not set");

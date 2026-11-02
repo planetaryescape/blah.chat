@@ -1,9 +1,68 @@
 import { httpRouter } from "convex/server";
 import { internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";
+import { hasInternalAuthorization } from "./lib/internalAuth";
 import { logger } from "./lib/logger";
+import {
+  MAX_UPLOAD_BYTES,
+  readBoundedBody,
+  verifyUploadToken,
+} from "./lib/ownedUploads";
 
 const http = httpRouter();
+
+const uploadCors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+http.route({
+  path: "/owned-file-upload",
+  method: "OPTIONS",
+  handler: httpAction(
+    async () => new Response(null, { status: 204, headers: uploadCors }),
+  ),
+});
+http.route({
+  path: "/owned-file-upload",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    let storageId;
+    try {
+      const userId = await verifyUploadToken(
+        new URL(request.url).searchParams.get("token") ?? "",
+      );
+      if (!userId)
+        return new Response("Unauthorized", {
+          status: 401,
+          headers: uploadCors,
+        });
+      const bytes = await readBoundedBody(request, MAX_UPLOAD_BYTES);
+      if (!bytes.length)
+        return new Response("Empty file", { status: 400, headers: uploadCors });
+      const mimeType =
+        request.headers.get("content-type") || "application/octet-stream";
+      storageId = await ctx.storage.store(
+        new Blob([bytes], { type: mimeType }),
+      );
+      await ctx.runMutation(internal.files.registerUpload, {
+        userId,
+        storageId,
+        mimeType,
+        size: bytes.length,
+      });
+      return new Response(JSON.stringify({ storageId }), {
+        headers: { ...uploadCors, "Content-Type": "application/json" },
+      });
+    } catch {
+      if (storageId) await ctx.storage.delete(storageId);
+      return new Response("Upload rejected", {
+        status: 400,
+        headers: uploadCors,
+      });
+    }
+  }),
+});
 
 /**
  * Store code execution images from E2B
@@ -15,13 +74,15 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     try {
       // Verify internal call header
-      const isInternal = request.headers.get("X-Convex-Internal") === "true";
+      const isInternal = await hasInternalAuthorization(request.headers);
       if (!isInternal) {
         return new Response("Unauthorized", { status: 401 });
       }
 
       const contentType = request.headers.get("Content-Type") || "image/png";
-      const imageBuffer = await request.arrayBuffer();
+      if (contentType !== "image/png")
+        return new Response("Invalid image type", { status: 400 });
+      const imageBuffer = await readBoundedBody(request, MAX_UPLOAD_BYTES);
 
       if (!imageBuffer || imageBuffer.byteLength === 0) {
         return new Response("Empty image data", { status: 400 });
@@ -57,17 +118,45 @@ http.route({
   }),
 });
 
+const ttsCors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Authorization",
+};
+http.route({
+  path: "/tts",
+  method: "OPTIONS",
+  handler: httpAction(
+    async () => new Response(null, { status: 204, headers: ttsCors }),
+  ),
+});
+
 http.route({
   path: "/tts",
   method: "GET",
   handler: httpAction(async (ctx, request) => {
+    if (!(await ctx.auth.getUserIdentity()))
+      return new Response("Unauthorized", { status: 401, headers: ttsCors });
+    const user = await ctx.runQuery(internal.lib.helpers.getCurrentUser, {});
+    if (!user)
+      return new Response("Unauthorized", { status: 401, headers: ttsCors });
     const url = new URL(request.url);
     const text = url.searchParams.get("text");
     const voice = url.searchParams.get("voice") || "aura-asteria-en";
-    const speed = parseFloat(url.searchParams.get("speed") || "1.0");
+    const speed = Number(url.searchParams.get("speed") ?? "1.0");
 
-    if (!text) {
-      return new Response("Missing 'text' parameter", { status: 400 });
+    if (
+      !text?.trim() ||
+      text.length > 2000 ||
+      !Number.isFinite(speed) ||
+      speed < 0.5 ||
+      speed > 2 ||
+      !/^aura-[a-z0-9-]{1,60}$/.test(voice)
+    ) {
+      return new Response("Invalid text, voice or speed", {
+        status: 400,
+        headers: ttsCors,
+      });
     }
 
     // Hash params for cache key
@@ -94,6 +183,7 @@ http.route({
             Location: storageUrl,
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET",
+            "Cache-Control": "private, no-store",
           },
         });
       }
@@ -125,6 +215,7 @@ http.route({
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ text }),
+      signal: AbortSignal.timeout(30_000),
     });
 
     if (!dgResponse.ok) {
@@ -139,6 +230,13 @@ http.route({
     // ... (logic unchanged) ...
 
     const audioBuffer = await dgResponse.arrayBuffer();
+    await ctx.runMutation(internal.usage.mutations.recordTTS, {
+      userId: user._id,
+      model: "deepgram:tts",
+      characterCount: text.length,
+      cost: text.length * 0.000003,
+      feature: "chat",
+    });
 
     // Store in background (async)
     // Yes, we must await.
@@ -158,7 +256,7 @@ http.route({
     return new Response(audioBuffer, {
       headers: {
         "Content-Type": "audio/mpeg",
-        "Cache-Control": "public, max-age=31536000, immutable",
+        "Cache-Control": "private, no-store",
         "Access-Control-Allow-Origin": "*",
       },
     });

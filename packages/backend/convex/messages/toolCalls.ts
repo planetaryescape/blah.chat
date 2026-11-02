@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { internalMutation, query } from "../_generated/server";
+import { canAccessConversation } from "../conversations/branching";
+import { getCurrentUser } from "../lib/userSync";
 
 // ===== Internal Mutations =====
 
@@ -158,6 +160,14 @@ export const getToolCalls = query({
     includePartial: v.optional(v.boolean()),
   },
   handler: async (ctx, { messageId, includePartial }) => {
+    const user = await getCurrentUser(ctx);
+    const message = await ctx.db.get(messageId);
+    if (
+      !user ||
+      !message ||
+      !(await canAccessConversation(ctx, message.conversationId, user._id))
+    )
+      return [];
     return getMessageToolCalls(ctx, messageId, includePartial);
   },
 });
@@ -165,6 +175,12 @@ export const getToolCalls = query({
 export const getToolCallCountByConversation = query({
   args: { conversationId: v.id("conversations") },
   handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (
+      !user ||
+      !(await canAccessConversation(ctx, args.conversationId, user._id))
+    )
+      return { total: 0, breakdown: {} };
     const toolCalls = await ctx.db
       .query("toolCalls")
       .withIndex("by_conversation", (q: any) =>

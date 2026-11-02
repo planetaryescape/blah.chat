@@ -151,6 +151,29 @@ export const sendMessage = mutation({
   }> => {
     const user = await getCurrentUserOrCreate(ctx);
 
+    // Authorize before locks, accounting, message writes or scheduling work.
+    if (
+      args.conversationId &&
+      !(await canAccessConversation(ctx, args.conversationId, user._id))
+    ) {
+      throw new Error("Conversation not found or unauthorized");
+    }
+
+    if (args.attachments?.length) {
+      const files = await ctx.db
+        .query("files")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .collect();
+      const storageIds = new Set(files.map((file) => String(file.storageId)));
+      if (
+        args.attachments.some(
+          (attachment) => !storageIds.has(attachment.storageId),
+        )
+      ) {
+        throw new Error("Attachment not found or unauthorized");
+      }
+    }
+
     // Determine models to use - client MUST provide modelId, fallback only for edge cases
     const modelsToUse = args.models || [args.modelId || "openai:gpt-oss-20b"];
 

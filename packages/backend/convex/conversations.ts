@@ -139,16 +139,16 @@ export const getWithClerkVerification = query({
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
-
-    if (!user) return null;
+    // clerkId is retained for old callers, never used as authentication.
+    const user = await getCurrentUser(ctx);
+    if (!user || user.clerkId !== args.clerkId) return null;
 
     const conversation = await ctx.db.get(args.conversationId);
 
-    if (!conversation || conversation.userId !== user._id) {
+    if (
+      !conversation ||
+      !(await canAccessConversation(ctx, args.conversationId, user._id))
+    ) {
       return null;
     }
 

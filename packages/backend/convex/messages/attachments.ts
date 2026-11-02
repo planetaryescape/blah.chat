@@ -2,7 +2,9 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction, internalMutation, query } from "../_generated/server";
+import { canAccessConversation } from "../conversations/branching";
 import { logger } from "../lib/logger";
+import { getCurrentUser } from "../lib/userSync";
 
 // MIME types that support text extraction
 const EXTRACTABLE_MIME_TYPES = [
@@ -174,6 +176,14 @@ async function getMessageAttachments(
 export const getAttachments = query({
   args: { messageId: v.id("messages") },
   handler: async (ctx, { messageId }) => {
+    const user = await getCurrentUser(ctx);
+    const message = await ctx.db.get(messageId);
+    if (
+      !user ||
+      !message ||
+      !(await canAccessConversation(ctx, message.conversationId, user._id))
+    )
+      return [];
     return getMessageAttachments(ctx, messageId);
   },
 });

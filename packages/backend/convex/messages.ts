@@ -770,7 +770,10 @@ export const getComparisonGroup = query({
 
     if (messages.length > 0) {
       const conversation = await ctx.db.get(messages[0].conversationId);
-      if (!conversation || conversation.userId !== user._id) {
+      if (
+        !conversation ||
+        !(await hasConversationAccess(ctx, conversation._id, user._id))
+      ) {
         return [];
       }
     }
@@ -789,7 +792,10 @@ export const getOriginalResponses = query({
     if (!consolidatedMessage) return [];
 
     const conversation = await ctx.db.get(consolidatedMessage.conversationId);
-    if (!conversation || conversation.userId !== user._id) {
+    if (
+      !conversation ||
+      !(await hasConversationAccess(ctx, conversation._id, user._id))
+    ) {
       return [];
     }
 
@@ -810,7 +816,10 @@ export const getLastAssistantMessage = query({
     if (!user) return null;
 
     const conversation = await ctx.db.get(conversationId);
-    if (!conversation || conversation.userId !== user._id) {
+    if (
+      !conversation ||
+      !(await hasConversationAccess(ctx, conversation._id, user._id))
+    ) {
       return null;
     }
 
@@ -916,6 +925,17 @@ export const batchGetMetadata = query({
     const user = await getCurrentUser(ctx);
     if (!user) return { attachments: [], toolCalls: [], sources: [] };
 
+    // Reject the whole batch: mixed authorized/foreign IDs must not leak metadata.
+    for (const id of args.messageIds) {
+      const message = await ctx.db.get(id);
+      if (
+        !message ||
+        !(await hasConversationAccess(ctx, message.conversationId, user._id))
+      ) {
+        return { attachments: [], toolCalls: [], sources: [] };
+      }
+    }
+
     // Batch fetch all metadata in parallel
     const [attachments, toolCalls, sources] = await Promise.all([
       Promise.all(
@@ -974,7 +994,13 @@ export const getBranchesAtMessage = query({
   },
   handler: async (ctx, args) => {
     const message = await ctx.db.get(args.messageId);
-    if (!message) return [];
+    const user = await getCurrentUser(ctx);
+    if (
+      !message ||
+      !user ||
+      !(await hasConversationAccess(ctx, message.conversationId, user._id))
+    )
+      return [];
 
     // Get children using legacy index (works for both old and new structure)
     const legacyChildren = await ctx.db
@@ -999,7 +1025,8 @@ export const getBranchesAtMessage = query({
     // Combine and dedupe
     const childMap = new Map();
     for (const child of [...legacyChildren, ...arrayChildren]) {
-      childMap.set(child._id, child);
+      if (child.conversationId === message.conversationId)
+        childMap.set(child._id, child);
     }
 
     return Array.from(childMap.values()).sort(
@@ -1018,7 +1045,12 @@ export const getBranchInfo = query({
   },
   handler: async (ctx, args) => {
     const conversation = await ctx.db.get(args.conversationId);
-    if (!conversation) {
+    const user = await getCurrentUser(ctx);
+    if (
+      !conversation ||
+      !user ||
+      !(await hasConversationAccess(ctx, args.conversationId, user._id))
+    ) {
       return {
         totalMessages: 0,
         branchCount: 0,
@@ -1116,7 +1148,13 @@ export const getSiblings = query({
   },
   handler: async (ctx, args) => {
     const message = await ctx.db.get(args.messageId);
-    if (!message) return [];
+    const user = await getCurrentUser(ctx);
+    if (
+      !message ||
+      !user ||
+      !(await hasConversationAccess(ctx, message.conversationId, user._id))
+    )
+      return [];
 
     // Get parent ID
     const parentId = message.parentMessageIds?.[0] ?? message.parentMessageId;
@@ -1148,7 +1186,8 @@ export const getSiblings = query({
     // Combine and dedupe
     const siblingMap = new Map();
     for (const sibling of [...legacyChildren, ...arrayChildren]) {
-      siblingMap.set(sibling._id, sibling);
+      if (sibling.conversationId === message.conversationId)
+        siblingMap.set(sibling._id, sibling);
     }
 
     return Array.from(siblingMap.values()).sort(

@@ -24,9 +24,35 @@ function formatLog(
     level,
     message,
     timestamp: new Date().toISOString(),
-    ...context,
+    ...Object.fromEntries(
+      Object.entries(context ?? {}).map(([key, value]) => [
+        key,
+        sensitiveKey.test(key) ? "[REDACTED]" : redact(value),
+      ]),
+    ),
   };
   return JSON.stringify(entry);
+}
+
+// Context can include provider credentials and nested tool arguments. Never
+// mutate the caller's objects, and handle circular diagnostic objects safely.
+const sensitiveKey =
+  /authorization|cookie|password|secret|token|api.?key|deploy.?key|access.?key|credential|private.?key|headers/i;
+function redact(value: unknown, seen = new WeakSet<object>()): unknown {
+  if (typeof value === "string")
+    return value
+      .replace(/\bBearer\s+[^\s,;]+/gi, "Bearer [REDACTED]")
+      .replace(/\b(?:sk|pk|key)-[A-Za-z0-9_-]{12,}/g, "[REDACTED]");
+  if (!value || typeof value !== "object") return value;
+  if (seen.has(value)) return "[Circular]";
+  seen.add(value);
+  if (Array.isArray(value)) return value.map((item) => redact(item, seen));
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [
+      key,
+      sensitiveKey.test(key) ? "[REDACTED]" : redact(item, seen),
+    ]),
+  );
 }
 
 function debug(message: string, context?: LogContext): void {

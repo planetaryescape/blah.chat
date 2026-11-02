@@ -1,3 +1,5 @@
+"use node";
+
 /**
  * Knowledge Bank Processing
  *
@@ -23,6 +25,7 @@ import {
   OVERLAP_SIZE_CHARS,
 } from "../files/chunking";
 import { logger } from "../lib/logger";
+import { assertPublicHttpUrl, fetchPublicUrl } from "../lib/urlGuard";
 import { EMBEDDING_BATCH_SIZE } from "./constants";
 import { KNOWLEDGE_BANK_LIMITS } from "./index";
 
@@ -276,6 +279,7 @@ async function extractWebContent(
   ctx: any,
   url: string,
 ): Promise<{ content: string; title?: string }> {
+  await assertPublicHttpUrl(url);
   // Use Firecrawl API for web extraction
   const firecrawlApiKey = process.env.FIRECRAWL_API_KEY;
 
@@ -284,7 +288,7 @@ async function extractWebContent(
     logger.info("Firecrawl not configured, using simple fetch", {
       tag: "KnowledgeBank",
     });
-    const response = await fetch(url);
+    const response = await fetchPublicUrl(url);
     if (!response.ok) {
       throw new Error(`Failed to fetch URL: ${response.status}`);
     }

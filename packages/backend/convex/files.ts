@@ -1,7 +1,9 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
+import { canAccessConversation } from "./conversations/branching";
 import { logger } from "./lib/logger";
+import { ownedUploadUrl } from "./lib/ownedUploads";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 
 /**
@@ -9,8 +11,8 @@ import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
  */
 export const generateUploadUrl = mutation({
   handler: async (ctx) => {
-    const _user = await getCurrentUserOrCreate(ctx);
-    return await ctx.storage.generateUploadUrl();
+    const user = await getCurrentUserOrCreate(ctx);
+    return ownedUploadUrl(user._id);
   },
 });
 
@@ -28,7 +30,30 @@ export const saveFile = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUserOrCreate(ctx);
 
-    const fileId = await ctx.db.insert("files", {
+    if (
+      args.conversationId &&
+      !(await canAccessConversation(ctx, args.conversationId, user._id))
+    )
+      throw new Error("Conversation not found or unauthorized");
+    // Ownership is established by the signed upload HTTP endpoint, not by a
+    // caller knowing an arbitrary storage ID (including a generated image).
+    const file = await ctx.db
+      .query("files")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .filter((q) => q.eq(q.field("storageId"), args.storageId))
+      .first();
+    if (!file) throw new Error("File not found or unauthorized");
+    const metadata = await ctx.db.system.get(args.storageId);
+    if (
+      !metadata ||
+      metadata.size !== args.size ||
+      !Number.isFinite(args.size) ||
+      args.size < 0
+    )
+      throw new Error("Invalid file metadata");
+
+    const fileId = file._id;
+    await ctx.db.patch(fileId, {
       userId: user._id,
       conversationId: args.conversationId,
       storageId: args.storageId,
@@ -73,6 +98,27 @@ export const saveFile = mutation({
   },
 });
 
+// Only the verified upload endpoint may establish ownership of a new blob.
+export const registerUpload = internalMutation({
+  args: {
+    userId: v.string(),
+    storageId: v.id("_storage"),
+    mimeType: v.string(),
+    size: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const userId = ctx.db.normalizeId("users", args.userId);
+    if (!userId || !(await ctx.db.get(userId)))
+      throw new Error("User not found");
+    return ctx.db.insert("files", {
+      ...args,
+      userId,
+      name: "Uploaded file",
+      createdAt: Date.now(),
+    });
+  },
+});
+
 /**
  * Get file URL for display/download (requires ownership verification)
  */
@@ -112,8 +158,7 @@ export const getAttachmentUrls = query({
 
     // If conversationId provided, verify ownership
     if (args.conversationId) {
-      const conversation = await ctx.db.get(args.conversationId);
-      if (!conversation || conversation.userId !== user._id) {
+      if (!(await canAccessConversation(ctx, args.conversationId, user._id))) {
         return [];
       }
     }
@@ -126,6 +171,17 @@ export const getAttachmentUrls = query({
 
     // Convert to string set for comparison (storageId in files table is Id<"_storage">)
     const userStorageIds = new Set(userFiles.map((f) => String(f.storageId)));
+
+    if (args.conversationId) {
+      const attachments = await ctx.db
+        .query("attachments")
+        .withIndex("by_conversation", (q) =>
+          q.eq("conversationId", args.conversationId!),
+        )
+        .collect();
+      for (const attachment of attachments)
+        userStorageIds.add(String(attachment.storageId));
+    }
 
     // Only return URLs for files the user owns
     const validStorageIds = args.storageIds.filter((id) =>
@@ -149,13 +205,14 @@ export const listByConversation = query({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return [];
+    if (!(await canAccessConversation(ctx, args.conversationId, user._id)))
+      return [];
 
     const files = await ctx.db
       .query("files")
       .withIndex("by_conversation", (q) =>
         q.eq("conversationId", args.conversationId),
       )
-      .filter((q) => q.eq(q.field("userId"), user._id))
       .collect();
 
     // Get URLs for all files

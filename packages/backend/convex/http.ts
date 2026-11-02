@@ -189,12 +189,16 @@ const ttsHandler = httpAction(async (ctx, request) => {
       else if (code === "TTS_AUTH") status = 401;
       else if (code === "TTS_BYOK_KEY") status = 403;
       else if (code === "TTS_BUDGET") status = 429;
+      else if (code === "TTS_BUSY") status = 409;
       else if (code === "TTS_CONFIGURATION") status = 503;
     }
     // Do not reflect private text, provider responses, credentials, or storage URLs.
     return new Response(
       "Speech request rejected. Check TTS preferences, credentials and usage budget.",
-      { status, headers: ttsCors },
+      {
+        status,
+        headers: status === 409 ? { ...ttsCors, "Retry-After": "1" } : ttsCors,
+      },
     );
   }
 });

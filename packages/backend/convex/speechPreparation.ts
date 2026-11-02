@@ -10,11 +10,18 @@ import { v } from "convex/values";
 import { z } from "zod";
 import { api, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
-import { action } from "./_generated/server";
+import {
+  action,
+  internalMutation,
+  internalQuery,
+  type MutationCtx,
+  mutation,
+} from "./_generated/server";
 import { SPEECH_PREPARATION_PROMPT } from "./lib/prompts/operational/speechPreparation";
 import { applyCodeOutline } from "./lib/speech/assistance";
 import { prepareDeterministic, validateNarration } from "./lib/speech/prepare";
 import type { PreparedNarration } from "./lib/speech/types";
+import { getCurrentUser } from "./lib/userSync";
 
 const failureUsage = z.object({
   usage: z.object({
@@ -27,8 +34,128 @@ const failureUsage = z.object({
   }),
 });
 
+const REQUEST_TTL_MS = 10 * 60_000;
+const requestIdSchema = z.string().uuid();
+
+async function cleanupSessions(ctx: MutationCtx) {
+  const expired = await ctx.db
+    .query("speechPreparationSessions")
+    .withIndex("by_expiry", (q) => q.lte("expiresAt", Date.now()))
+    .take(100);
+  for (const row of expired) await ctx.db.delete(row._id);
+}
+
+export const cleanupExpired = internalMutation({
+  args: {},
+  handler: cleanupSessions,
+});
+
+async function insertSession(
+  ctx: MutationCtx,
+  userId: Doc<"users">["_id"],
+  requestId: string,
+  cancelled: boolean,
+  sourceHash?: string,
+) {
+  // Keep both queued work and cancellation tombstones finite per authenticated owner.
+  if (
+    (
+      await ctx.db
+        .query("speechPreparationSessions")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .take(100)
+    ).length >= 100
+  )
+    throw new Error("Speech preparation request limit reached");
+  await ctx.db.insert("speechPreparationSessions", {
+    userId,
+    requestId,
+    cancelled,
+    sourceHash,
+    expiresAt: Date.now() + REQUEST_TTL_MS,
+  });
+  await ctx.scheduler.runAfter(
+    REQUEST_TTL_MS,
+    internal.speechPreparation.cleanupExpired,
+    {},
+  );
+}
+
+export const cancel = mutation({
+  args: { requestId: v.string() },
+  handler: async (ctx, args) => {
+    requestIdSchema.parse(args.requestId);
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Unauthorized");
+    await cleanupSessions(ctx);
+    const existing = await ctx.db
+      .query("speechPreparationSessions")
+      .withIndex("by_user_request", (q) =>
+        q.eq("userId", user._id).eq("requestId", args.requestId),
+      )
+      .unique();
+    if (existing) await ctx.db.patch(existing._id, { cancelled: true });
+    else await insertSession(ctx, user._id, args.requestId, true);
+    return null;
+  },
+});
+
+export const beginSession = internalMutation({
+  args: {
+    userId: v.id("users"),
+    requestId: v.string(),
+    sourceHash: v.string(),
+  },
+  handler: async (ctx, args) => {
+    requestIdSchema.parse(args.requestId);
+    // Read before cleanup: an expired-but-retained request is never restarted either.
+    const existing = await ctx.db
+      .query("speechPreparationSessions")
+      .withIndex("by_user_request", (q) =>
+        q.eq("userId", args.userId).eq("requestId", args.requestId),
+      )
+      .unique();
+    if (existing) return false;
+    await cleanupSessions(ctx);
+    await insertSession(
+      ctx,
+      args.userId,
+      args.requestId,
+      false,
+      args.sourceHash,
+    );
+    return true;
+  },
+});
+
+export const sessionActive = internalQuery({
+  args: {
+    userId: v.id("users"),
+    requestId: v.string(),
+    sourceHash: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const session = await ctx.db
+      .query("speechPreparationSessions")
+      .withIndex("by_user_request", (q) =>
+        q.eq("userId", args.userId).eq("requestId", args.requestId),
+      )
+      .unique();
+    return (
+      !!session &&
+      !session.cancelled &&
+      session.sourceHash === args.sourceHash &&
+      session.expiresAt > Date.now()
+    );
+  },
+});
+
 export const prepare = action({
-  args: { text: v.string(), messageId: v.optional(v.id("messages")) },
+  args: {
+    text: v.string(),
+    messageId: v.optional(v.id("messages")),
+    requestId: v.optional(v.string()),
+  },
   handler: async (ctx, args): Promise<PreparedNarration> => {
     const deadline = Date.now() + 30_000;
     if (!(await ctx.auth.getUserIdentity())) throw new Error("Unauthorized");
@@ -55,6 +182,32 @@ export const prepare = action({
       source = message.content;
     }
     const { narration, codeBlocks } = await prepareDeterministic(source);
+    const sessionArgs =
+      args.requestId !== undefined
+        ? {
+            userId: user._id,
+            requestId: requestIdSchema.parse(args.requestId),
+            sourceHash: narration.sourceHash,
+          }
+        : undefined;
+    if (
+      sessionArgs &&
+      !(await ctx.runMutation(
+        internal.speechPreparation.beginSession,
+        sessionArgs,
+      ))
+    ) {
+      narration.warnings.push(
+        "Preparation request cancelled, expired or already started; deterministic technical detail retained.",
+      );
+      return narration;
+    }
+    const active = async (): Promise<boolean> =>
+      !sessionArgs ||
+      (await ctx.runQuery(
+        internal.speechPreparation.sessionActive,
+        sessionArgs,
+      ));
     if (!codeBlocks.length) return narration;
     const byok = await ctx.runQuery(
       internal.byok.credentials.getConfigByAuth,
@@ -98,6 +251,7 @@ export const prepare = action({
         );
         break;
       }
+      if (Date.now() >= deadline || !(await active())) break;
       calls++;
       let usage: UsageTokenInfo | undefined;
       try {
@@ -144,6 +298,8 @@ export const prepare = action({
           feature: "chat",
         });
       }
+      // Cancellation cannot undo an in-flight provider call or its recorded cost.
+      if (!(await active())) break;
     }
     return validateNarration(narration);
   },

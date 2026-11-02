@@ -23,6 +23,7 @@ export function TTSPlayerBar({ className }: { className?: string }) {
     state,
     pause,
     resume,
+    retry,
     stop: _stop,
     seekBy,
     seekTo,
@@ -177,6 +178,11 @@ export function TTSPlayerBar({ className }: { className?: string }) {
             <p role="status" className="mb-3 text-xs text-muted-foreground">
               {state.warning}
             </p>
+          )}
+          {state.canRetry && (
+            <Button onClick={retry} className="mb-3" variant="outline">
+              Retry narration
+            </Button>
           )}
           {!isPlaying && !isLoading && state.canResume && (
             <p role="status" className="mb-3 text-xs text-muted-foreground">

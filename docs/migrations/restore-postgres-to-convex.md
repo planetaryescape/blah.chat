@@ -195,6 +195,12 @@ conversation/message model labels. It returns counts grouped by the previous
 default. It does not buy credits or make unavailable providers work. Do not run
 it as routine maintenance after users have made new model choices.
 
+Preserve the imported spending policy. An explicitly enabled monthly hard limit
+blocks paid chat scheduling once the initiating user's recorded monthly cost
+reaches the configured positive budget. Without persisted settings, enforcement
+defaults off. This checks recorded usage; it does not reserve unknown costs for
+already-running requests. Budget reads are restricted to the authenticated owner.
+
 ## Expected conversion limits
 
 - External object-storage keys are not Convex `_storage` IDs. File-backed knowledge

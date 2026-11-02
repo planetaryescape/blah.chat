@@ -133,6 +133,7 @@ import type * as lib_generationLock from "../lib/generationLock.js";
 import type * as lib_helpers from "../lib/helpers.js";
 import type * as lib_internalAuth from "../lib/internalAuth.js";
 import type * as lib_logger from "../lib/logger.js";
+import type * as lib_monthlyBudget from "../lib/monthlyBudget.js";
 import type * as lib_ownedUploads from "../lib/ownedUploads.js";
 import type * as lib_pdf_convertToPdf from "../lib/pdf/convertToPdf.js";
 import type * as lib_prompts_base from "../lib/prompts/base.js";
@@ -442,6 +443,7 @@ declare const fullApi: ApiFromModules<{
   "lib/helpers": typeof lib_helpers;
   "lib/internalAuth": typeof lib_internalAuth;
   "lib/logger": typeof lib_logger;
+  "lib/monthlyBudget": typeof lib_monthlyBudget;
   "lib/ownedUploads": typeof lib_ownedUploads;
   "lib/pdf/convertToPdf": typeof lib_pdf_convertToPdf;
   "lib/prompts/base": typeof lib_prompts_base;

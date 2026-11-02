@@ -1,4 +1,4 @@
-import { MODEL_CONFIG } from "@blah-chat/ai/models";
+import { DEFAULT_MODEL_ID, MODEL_CONFIG } from "@blah-chat/ai/models";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -257,7 +257,7 @@ export const sendMessage = mutation({
     }
 
     // Determine models to use - client MUST provide modelId, fallback only for edge cases
-    const modelsToUse = args.models || [args.modelId || "openai:gpt-oss-20b"];
+    const modelsToUse = args.models || [args.modelId || DEFAULT_MODEL_ID];
 
     await enforceModelPolicy(ctx, user, modelsToUse);
 
@@ -577,7 +577,7 @@ export const regenerate = mutation({
       message.model ||
       conversation.model ||
       userDefaultModel ||
-      "openai:gpt-oss-20b";
+      DEFAULT_MODEL_ID;
     await enforceModelPolicy(ctx, user, [modelId]);
 
     // P7 Tree Architecture: Create sibling message instead of replacing in-place
@@ -710,7 +710,7 @@ export const editMessage = mutation({
       args.modelId ||
       conversation.model ||
       userDefaultModel ||
-      "openai:gpt-oss-20b";
+      DEFAULT_MODEL_ID;
     await enforceModelPolicy(ctx, user, [modelId]);
 
     // P7 Tree Architecture: Create sibling message with edited content
@@ -1063,7 +1063,7 @@ export const retryMessage = mutation({
       aiMessage.model ||
       conversation.model ||
       userDefaultModel ||
-      "openai:gpt-oss-20b";
+      DEFAULT_MODEL_ID;
     await enforceModelPolicy(ctx, user, [modelId]);
 
     // Delete failed AI message + all following messages
@@ -1447,7 +1447,7 @@ export const mergeBranches = mutation({
       args.modelId ||
       conversation.model ||
       userDefaultModel ||
-      "openai:gpt-oss-20b";
+      DEFAULT_MODEL_ID;
     if (args.generateResponse !== false)
       await enforceModelPolicy(ctx, user, [modelId]);
 

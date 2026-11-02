@@ -107,9 +107,39 @@ async function fixture(spend = 10, hardLimit = true, budget = 10) {
   const { key } = await client.mutation(api.cliAuth.create, {});
   return { t, client, key, ...ids };
 }
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+});
 
 describe("configured monthly spend hard limit", () => {
+  it.each([
+    "NaN",
+    "Infinity",
+    "-1",
+    "10usd",
+    "",
+    " ",
+  ])("fails closed for malformed monthly budget %j without scheduling", async (value) => {
+    const { t, client, assistantId } = await fixture(0);
+    vi.stubEnv("DEFAULT_MONTHLY_BUDGET", value);
+    await expect(
+      client.mutation(api.chat.regenerate, { messageId: assistantId }),
+    ).rejects.toThrow("Monthly budget must be a finite non-negative number");
+    expect(
+      await t.run((ctx) =>
+        ctx.db.system.query("_scheduled_functions").collect(),
+      ),
+    ).toHaveLength(0);
+  });
+
+  it("rejects an invalid enforcement override rather than disabling the limit", async () => {
+    const { client, assistantId } = await fixture();
+    vi.stubEnv("BUDGET_HARD_LIMIT_ENABLED", "TRUE");
+    await expect(
+      client.mutation(api.chat.regenerate, { messageId: assistantId }),
+    ).rejects.toThrow("BUDGET_HARD_LIMIT_ENABLED must be true or false");
+  });
   it.each([
     10, 11,
   ])("denies every paid entry point at spend %s with no writes or schedules", async (spend) => {
@@ -267,6 +297,11 @@ describe("configured monthly spend hard limit", () => {
       "rejected",
       "rejected",
     ]);
+    for (const result of results) {
+      expect(result.status === "rejected" && String(result.reason)).toContain(
+        "Monthly budget exceeded",
+      );
+    }
     expect(await t.run((ctx) => ctx.db.query("messages").collect())).toEqual(
       before,
     );
@@ -294,5 +329,28 @@ describe("configured monthly spend hard limit", () => {
     expect(
       await client.query(api.usage.checkBudget.checkBudget, { userId }),
     ).toMatchObject({ allowed: false, totalSpend: 10 });
+  });
+
+  it("admits only one competing send below the limit in the same conversation", async () => {
+    const { t, client, conversationId } = await fixture(0);
+    const results = await Promise.allSettled(
+      [1, 2].map(() =>
+        client.mutation(api.chat.sendMessage, {
+          conversationId,
+          content: "competing below-budget send",
+          modelId: model,
+        }),
+      ),
+    );
+    expect(
+      results.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    const rejected = results.find((result) => result.status === "rejected");
+    expect(
+      rejected?.status === "rejected" && String(rejected.reason),
+    ).toContain("Please wait for the current response to complete");
+    expect(
+      await t.run((ctx) => ctx.db.query("generationLocks").collect()),
+    ).toHaveLength(1);
   });
 });

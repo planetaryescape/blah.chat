@@ -181,21 +181,40 @@ export const getWithEnvOverrides = internalQuery({
     // Merge: env vars > database > defaults
     const settings = dbSettings || defaults;
 
+    // Reject malformed overrides rather than turning a configured hard limit off.
+    const budgetOverride = process.env.DEFAULT_MONTHLY_BUDGET;
+    const defaultMonthlyBudget =
+      budgetOverride === undefined
+        ? settings.defaultMonthlyBudget
+        : budgetOverride.trim() === ""
+          ? Number.NaN
+          : Number(budgetOverride);
+    if (!Number.isFinite(defaultMonthlyBudget) || defaultMonthlyBudget < 0) {
+      throw new Error("Monthly budget must be a finite non-negative number");
+    }
+    const hardLimitOverride = process.env.BUDGET_HARD_LIMIT_ENABLED;
+    if (
+      hardLimitOverride !== undefined &&
+      hardLimitOverride !== "true" &&
+      hardLimitOverride !== "false"
+    ) {
+      throw new Error("BUDGET_HARD_LIMIT_ENABLED must be true or false");
+    }
+
     return {
       ...settings,
       // Environment variable overrides (for self-hosted instances)
       defaultDailyMessageLimit: process.env.DEFAULT_DAILY_MESSAGE_LIMIT
         ? Number.parseInt(process.env.DEFAULT_DAILY_MESSAGE_LIMIT, 10)
         : settings.defaultDailyMessageLimit,
-      defaultMonthlyBudget: process.env.DEFAULT_MONTHLY_BUDGET
-        ? Number.parseFloat(process.env.DEFAULT_MONTHLY_BUDGET)
-        : settings.defaultMonthlyBudget,
+      defaultMonthlyBudget,
       defaultBudgetAlertThreshold: process.env.BUDGET_ALERT_THRESHOLD
         ? Number.parseFloat(process.env.BUDGET_ALERT_THRESHOLD)
         : settings.defaultBudgetAlertThreshold,
-      budgetHardLimitEnabled: process.env.BUDGET_HARD_LIMIT_ENABLED
-        ? process.env.BUDGET_HARD_LIMIT_ENABLED === "true"
-        : settings.budgetHardLimitEnabled,
+      budgetHardLimitEnabled:
+        hardLimitOverride !== undefined
+          ? hardLimitOverride === "true"
+          : settings.budgetHardLimitEnabled,
       alertEmail: process.env.ALERT_EMAIL || settings.alertEmail,
       maxActiveIntegrations: process.env.MAX_ACTIVE_INTEGRATIONS
         ? Number.parseInt(process.env.MAX_ACTIVE_INTEGRATIONS, 10)

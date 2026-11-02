@@ -13,6 +13,13 @@ describe("shared model catalog seed", () => {
     expect(result.modelsInserted).toBe(Object.keys(MODEL_CONFIG).length - 1);
     expect(models.some((model) => model.modelId === "auto")).toBe(false);
     expect(
+      models.find((model) => model.modelId === "openai:gpt-oss-120b"),
+    ).toMatchObject({
+      gateway: "groq",
+      actualModelId: "openai/gpt-oss-120b",
+      status: "active",
+    });
+    expect(
       models.find((model) => model.modelId === "openrouter:claude-opus-4.8"),
     ).toMatchObject({
       gateway: "openrouter",
@@ -47,7 +54,7 @@ describe("shared model catalog seed", () => {
     const config = await t.run(async (ctx) =>
       ctx.db.query("autoRouterConfig").first(),
     );
-    expect(config?.routerModelId).toBe("openrouter:gpt-5.4-nano");
+    expect(config?.routerModelId).toBe("openai:gpt-oss-120b");
   });
 
   it("synchronizes known entries without duplicating models or removing custom models", async () => {

@@ -79,7 +79,9 @@ export const seedModels = internalMutation({
       if (
         config.gateway &&
         config.gateway !== "vercel" &&
-        config.gateway !== "openrouter"
+        config.gateway !== "openrouter" &&
+        config.gateway !== "groq" &&
+        config.gateway !== "cerebras"
       ) {
         throw new Error(
           `Unsupported catalog gateway for ${config.id}: ${config.gateway}`,

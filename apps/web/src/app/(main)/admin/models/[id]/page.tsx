@@ -90,7 +90,7 @@ const CAPABILITIES = [
 
 const SPEED_TIERS = ["ultra-fast", "fast", "medium", "slow"] as const;
 
-const GATEWAYS = ["vercel", "openrouter"] as const;
+const GATEWAYS = ["vercel", "openrouter", "groq", "cerebras"] as const;
 
 type ModelFormData = {
   modelId: string;

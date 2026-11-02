@@ -50,7 +50,12 @@ const speedTierValidator = v.union(
   v.literal("slow"),
 );
 
-const gatewayValidator = v.union(v.literal("vercel"), v.literal("openrouter"));
+const gatewayValidator = v.union(
+  v.literal("vercel"),
+  v.literal("openrouter"),
+  v.literal("groq"),
+  v.literal("cerebras"),
+);
 
 // Security: Validate model IDs to prevent injection attacks
 // Only allows alphanumeric, hyphens, underscores, colons, periods, and forward slashes

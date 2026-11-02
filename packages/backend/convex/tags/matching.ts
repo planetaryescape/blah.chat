@@ -7,9 +7,9 @@
  * 3. Semantic similarity (embedding cosine ≥0.85 for synonyms)
  */
 
-import { openai } from "@ai-sdk/openai";
 import {
   calculateEmbeddingCost,
+  EMBEDDING_MODEL,
   EMBEDDING_PRICING,
 } from "@blah-chat/ai/operational-models";
 import { levenshteinDistance, normalizeTagSlug } from "@blah-chat/shared/utils";
@@ -20,8 +20,6 @@ import type { ActionCtx } from "../_generated/server";
 import { logger } from "../lib/logger";
 import { estimateTokens } from "../tokens/counting";
 import { cosineSimilarity } from "./embeddings";
-
-const EMBEDDING_MODEL = openai.embedding("text-embedding-3-small");
 
 // Thresholds
 const FUZZY_MAX_DISTANCE = 2; // Max edit distance for fuzzy match

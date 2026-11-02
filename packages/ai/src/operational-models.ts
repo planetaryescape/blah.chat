@@ -8,16 +8,15 @@
  */
 
 import type { EmbeddingModel } from "ai";
-import { AUTO_MODEL, MODEL_CONFIG, type ModelConfig } from "./models";
+import { DEFAULT_MODEL_ID, MODEL_CONFIG, type ModelConfig } from "./models";
 import { vercel } from "./providers/gateway";
 
 // ============================================================================
 // DEFAULT MODEL (used for new conversations when no model is specified)
 // ============================================================================
 
-export const DEFAULT_MODEL_ID = "auto";
-export const DEFAULT_MODEL =
-  DEFAULT_MODEL_ID === "auto" ? AUTO_MODEL : MODEL_CONFIG[DEFAULT_MODEL_ID];
+export { DEFAULT_MODEL_ID } from "./models";
+export const DEFAULT_MODEL = MODEL_CONFIG[DEFAULT_MODEL_ID];
 
 // ============================================================================
 // OPERATIONAL TASK MODELS
@@ -28,105 +27,105 @@ export const DEFAULT_MODEL =
  * Fast, cost-effective model for generating short titles.
  */
 export const TITLE_GENERATION_MODEL: ModelConfig =
-  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
+  MODEL_CONFIG["openai:gpt-oss-120b"];
 
 /** Cheap classification and tiebreak model for auto routing. */
 export const ROUTER_TIEBREAK_MODEL: ModelConfig =
-  MODEL_CONFIG["openrouter:gpt-5.4-nano"];
+  MODEL_CONFIG["openai:gpt-oss-120b"];
 
 /**
  * Memory extraction from conversations.
  * Needs good reasoning to identify important facts, preferences, etc.
  */
 export const MEMORY_EXTRACTION_MODEL: ModelConfig =
-  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
+  MODEL_CONFIG["openai:gpt-oss-120b"];
 
 /**
  * Memory rephrasing and consolidation.
  * Used when combining or cleaning up memories.
  */
 export const MEMORY_PROCESSING_MODEL: ModelConfig =
-  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
+  MODEL_CONFIG["openai:gpt-oss-120b"];
 
 /**
  * Tag extraction from notes.
  * Identifies relevant tags from content.
  */
 export const TAG_EXTRACTION_MODEL: ModelConfig =
-  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
+  MODEL_CONFIG["openai:gpt-oss-120b"];
 
 /**
  * Text summarization (selection summary feature).
  * Needs good comprehension for high-quality summaries.
  */
 export const SUMMARIZATION_MODEL: ModelConfig =
-  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
+  MODEL_CONFIG["openai:gpt-oss-120b"];
 
 /**
  * Message embedding summarization (for vector search).
  * Creates concise summaries of messages for embedding.
  */
 export const EMBEDDING_SUMMARIZATION_MODEL: ModelConfig =
-  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
+  MODEL_CONFIG["openai:gpt-oss-120b"];
 
 /**
  * Memory reranking for search results.
  * Reorders memory candidates by relevance to query.
  */
 export const MEMORY_RERANK_MODEL: ModelConfig =
-  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
+  MODEL_CONFIG["openai:gpt-oss-120b"];
 
 /**
  * Feedback triage and categorization.
  * Analyzes user feedback for priority, sentiment, and actionability.
  */
 export const FEEDBACK_TRIAGE_MODEL: ModelConfig =
-  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
+  MODEL_CONFIG["openai:gpt-oss-120b"];
 
 /**
  * Task extraction from transcripts.
  * Extracts actionable tasks with deadlines from meeting transcripts.
  */
 export const TASK_EXTRACTION_MODEL: ModelConfig =
-  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
+  MODEL_CONFIG["openai:gpt-oss-120b"];
 
 /**
  * Deadline parsing from natural language.
  * Converts deadline expressions like "next Friday" to timestamps.
  */
 export const DEADLINE_PARSING_MODEL: ModelConfig =
-  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
+  MODEL_CONFIG["openai:gpt-oss-120b"];
 
 /**
  * Meeting extraction (combined tasks + notes).
  * Extracts both actionable tasks and meeting notes from transcripts.
  */
 export const MEETING_EXTRACTION_MODEL: ModelConfig =
-  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
+  MODEL_CONFIG["openai:gpt-oss-120b"];
 
 /**
  * Document extraction (OCR/text extraction from files).
- * Uses Gemini Flash Lite for native PDF/document support.
+ * Uses Gemini 3 Flash for native PDF/document support.
  * Extracts text from PDFs, images, DOCX, etc. page-by-page.
  */
 export const DOCUMENT_EXTRACTION_MODEL: ModelConfig =
-  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
+  MODEL_CONFIG["google:gemini-3-flash"];
 
 /**
  * Design system generation for presentations.
- * Uses GLM 5 for creative, distinctive visual design generation.
+ * Uses the direct text model for design specifications without paid-gateway dependency.
  * Higher temperature (0.9) for creative output.
  */
 export const DESIGN_SYSTEM_GENERATION_MODEL: ModelConfig =
-  MODEL_CONFIG["openrouter:glm-5"];
+  MODEL_CONFIG[DEFAULT_MODEL_ID];
 
 /**
  * Template analysis for brand extraction.
- * Uses Gemini Flash Lite for multimodal analysis of templates (PDF, PPTX, images).
+ * Uses Gemini 3 Flash for multimodal analysis of templates (PDF, PPTX, images).
  * Extracts colors, fonts, layout patterns from organization templates.
  */
 export const TEMPLATE_ANALYSIS_MODEL: ModelConfig =
-  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
+  MODEL_CONFIG["google:gemini-3-flash"];
 
 // ============================================================================
 // EMBEDDING MODEL

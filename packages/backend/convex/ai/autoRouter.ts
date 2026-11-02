@@ -7,11 +7,30 @@
  * The classifier uses embedding similarity + hard rules to select the optimal model.
  */
 
+import { DEFAULT_MODEL_ID } from "@blah-chat/ai/models";
 import type { RouterResult } from "@blah-chat/auto-router";
 import { v } from "convex/values";
 import { api, internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import { logger } from "../lib/logger";
+
+function directTextFallback(reasoning: string): RouterResult {
+  return {
+    selectedModelId: DEFAULT_MODEL_ID,
+    classification: {
+      primaryCategory: "conversation",
+      complexity: "simple",
+      requiresVision: false,
+      requiresLongContext: false,
+      requiresReasoning: false,
+      confidence: 0,
+      isHighStakes: false,
+      recommendedAction: "change",
+    },
+    reasoning,
+    candidatesConsidered: 1,
+  };
+}
 
 /**
  * Main routing action - forwards to classifier router.
@@ -34,6 +53,13 @@ export const routeMessage = internalAction({
     excludedModels: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args): Promise<RouterResult> => {
+    // Direct text inference remains usable without paid embedding/classifier services.
+    if (process.env.GROQ_API_KEY || process.env.CEREBRAS_API_KEY) {
+      return directTextFallback(
+        "Using the available direct GPT-OSS text model; semantic routing is temporarily unavailable.",
+      );
+    }
+
     try {
       // Read classifier-specific config from DB
       const routerConfig = (await (ctx.runQuery as any)(
@@ -77,21 +103,9 @@ export const routeMessage = internalAction({
         error: String(error),
       });
 
-      return {
-        selectedModelId: "openai:gpt-5-mini",
-        classification: {
-          primaryCategory: "conversation",
-          complexity: "simple",
-          requiresVision: false,
-          requiresLongContext: false,
-          requiresReasoning: false,
-          confidence: 0,
-          isHighStakes: false,
-          recommendedAction: "change",
-        },
-        reasoning: "Routing failed, using default model",
-        candidatesConsidered: 0,
-      };
+      return directTextFallback(
+        "Routing failed, using the direct text default model",
+      );
     }
   },
 });

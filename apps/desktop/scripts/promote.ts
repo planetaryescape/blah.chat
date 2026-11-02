@@ -49,10 +49,7 @@ export function requireProtectedMainSource(source: {
   return source.sourceSha;
 }
 
-export function requireProductionBranchPolicy(
-  environment: unknown,
-  rules?: unknown,
-): void {
+export function requireProductionBranchPolicy(environment: unknown): void {
   if (
     !environment ||
     typeof environment !== "object" ||
@@ -71,24 +68,8 @@ export function requireProductionBranchPolicy(
     policy.custom_branch_policies === false
   )
     return;
-  if (
-    "protected_branches" in policy &&
-    policy.protected_branches === false &&
-    "custom_branch_policies" in policy &&
-    policy.custom_branch_policies === true &&
-    rules &&
-    typeof rules === "object" &&
-    "total_count" in rules &&
-    rules.total_count === 1 &&
-    "branch_policies" in rules &&
-    Array.isArray(rules.branch_policies) &&
-    rules.branch_policies.length === 1 &&
-    rules.branch_policies[0]?.name === "main" &&
-    rules.branch_policies[0]?.type === "branch"
-  )
-    return;
   throw new Error(
-    "Production environment must restrict deployments to protected branches or exactly branch main",
+    "Production environment must restrict deployments to protected branches; custom branch policies are unsupported by this workflow token",
   );
 }
 
@@ -96,21 +77,7 @@ export async function verifyProductionBranchPolicy(
   read: (path: string) => Promise<unknown>,
 ): Promise<void> {
   const environment = await read("/environments/production");
-  let rules: unknown;
-  if (
-    environment &&
-    typeof environment === "object" &&
-    "deployment_branch_policy" in environment &&
-    environment.deployment_branch_policy &&
-    typeof environment.deployment_branch_policy === "object" &&
-    "custom_branch_policies" in environment.deployment_branch_policy &&
-    environment.deployment_branch_policy.custom_branch_policies === true
-  ) {
-    rules = await read(
-      "/environments/production/deployment-branch-policies?per_page=100",
-    );
-  }
-  requireProductionBranchPolicy(environment, rules);
+  requireProductionBranchPolicy(environment);
 }
 
 /** Read every page before admission; never accept a successful partial result. */

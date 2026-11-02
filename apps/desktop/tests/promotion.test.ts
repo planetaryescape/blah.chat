@@ -250,33 +250,33 @@ test("promotion requires protected main and uses the checked-out source SHA", ()
   }
 });
 
-test("unavailable environment policy and branch rule reads fail closed", async () => {
+test("unavailable environment policy reads fail closed", async () => {
   await expect(
     verifyProductionBranchPolicy(async () => {
       throw new Error("GitHub promotion preflight failed (403)");
     }),
   ).rejects.toThrow("403");
+});
+
+test("custom branch policy is rejected without requesting the unsupported listing API", async () => {
   const paths: string[] = [];
   await expect(
     verifyProductionBranchPolicy(async (path) => {
       paths.push(path);
-      if (paths.length === 1)
+      if (path === "/environments/production")
         return {
           deployment_branch_policy: {
             protected_branches: false,
             custom_branch_policies: true,
           },
         };
-      throw new Error("GitHub promotion preflight failed (404)");
+      throw new Error("Unsupported branch-policy listing was requested");
     }),
-  ).rejects.toThrow("404");
-  expect(paths).toEqual([
-    "/environments/production",
-    "/environments/production/deployment-branch-policies?per_page=100",
-  ]);
+  ).rejects.toThrow("protected branches");
+  expect(paths).toEqual(["/environments/production"]);
 });
 
-test("production policy must be server-side protected branches or exactly main", () => {
+test("production policy supports only server-side protected branches", () => {
   expect(() =>
     requireProductionBranchPolicy({
       deployment_branch_policy: {
@@ -285,21 +285,21 @@ test("production policy must be server-side protected branches or exactly main",
       },
     }),
   ).not.toThrow();
-  const custom = {
-    deployment_branch_policy: {
-      protected_branches: false,
-      custom_branch_policies: true,
-    },
-  };
-  expect(() =>
-    requireProductionBranchPolicy(custom, {
-      total_count: 1,
-      branch_policies: [{ name: "main", type: "branch" }],
-    }),
-  ).not.toThrow();
   for (const environment of [
     { protection_rules: [], deployment_branch_policy: null },
     {},
+    {
+      deployment_branch_policy: {
+        protected_branches: false,
+        custom_branch_policies: true,
+      },
+    },
+    {
+      deployment_branch_policy: {
+        protected_branches: true,
+        custom_branch_policies: true,
+      },
+    },
     {
       deployment_branch_policy: {
         protected_branches: false,
@@ -308,21 +308,6 @@ test("production policy must be server-side protected branches or exactly main",
     },
   ]) {
     expect(() => requireProductionBranchPolicy(environment)).toThrow();
-  }
-  for (const rules of [
-    undefined,
-    { branch_policies: [] },
-    { branch_policies: [{ name: "*", type: "branch" }] },
-    { branch_policies: [{ name: "main", type: "tag" }] },
-    { total_count: 2, branch_policies: [{ name: "main", type: "branch" }] },
-    {
-      branch_policies: [
-        { name: "main", type: "branch" },
-        { name: "feature", type: "branch" },
-      ],
-    },
-  ]) {
-    expect(() => requireProductionBranchPolicy(custom, rules)).toThrow();
   }
 });
 

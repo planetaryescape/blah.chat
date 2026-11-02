@@ -17,6 +17,7 @@ type Workflow = {
       environment?: string;
       env?: Record<string, string>;
       steps: Array<{
+        name?: string;
         run?: string;
         uses?: string;
         with?: { ref?: string };
@@ -33,6 +34,84 @@ async function workflow(file: string): Promise<Workflow> {
     await readFile(new URL(file, root), "utf8"),
   ) as Workflow;
 }
+
+const vercelCredentials = [
+  "VERCEL_TOKEN",
+  "VERCEL_ORG_ID",
+  "VERCEL_PROJECT_ID",
+] as const;
+const cleanSourceCommand =
+  "bun apps/desktop/scripts/promote.ts --verify-stage-source";
+const uploadCommand =
+  'URL=$(vercel deploy --prod --skip-domain --yes --meta "sourceCommit=$PROMOTION_SOURCE_SHA")';
+
+function expectPromotionCredentialPlacement(
+  job: Workflow["jobs"][string],
+): void {
+  for (const key of vercelCredentials) {
+    expect(job.env ?? {}).not.toHaveProperty(key);
+    for (const step of job.steps.slice(0, -1)) {
+      expect(step.env ?? {}).not.toHaveProperty(key);
+    }
+    expect(job.steps.at(-1)?.env?.[key]).toBe(`\${{ secrets.${key} }}`);
+  }
+}
+
+function expectCleanSourceBeforeUpload(script: string): void {
+  const commands = script.split("\n").map((line) => line.trim());
+  const checkIndex = commands.indexOf(cleanSourceCommand);
+  const uploadIndex = commands.indexOf(uploadCommand);
+  expect(checkIndex).toBeGreaterThanOrEqual(0);
+  expect(uploadIndex).toBeGreaterThan(checkIndex);
+}
+
+test("credential placement assertions catch every credential in job and earlier step environments", () => {
+  const valid: Workflow["jobs"][string] = {
+    if: "manual",
+    steps: [
+      { run: "checkout" },
+      { run: "setup" },
+      {
+        run: "bun apps/desktop/scripts/promote.ts",
+        env: {
+          VERCEL_TOKEN: `\${{ secrets.VERCEL_TOKEN }}`,
+          VERCEL_ORG_ID: `\${{ secrets.VERCEL_ORG_ID }}`,
+          VERCEL_PROJECT_ID: `\${{ secrets.VERCEL_PROJECT_ID }}`,
+        },
+      },
+    ],
+  };
+  expectPromotionCredentialPlacement(valid);
+  for (const key of vercelCredentials) {
+    expect(() =>
+      expectPromotionCredentialPlacement({
+        ...valid,
+        env: { [key]: "misplaced" },
+      }),
+    ).toThrow();
+    for (const index of [0, 1]) {
+      const steps = valid.steps.map((step, i) =>
+        i === index ? { ...step, env: { [key]: "misplaced" } } : step,
+      );
+      expect(() =>
+        expectPromotionCredentialPlacement({ ...valid, steps }),
+      ).toThrow();
+    }
+  }
+});
+
+test("clean-source ordering assertions reject commented, removed, altered or late commands", () => {
+  expectCleanSourceBeforeUpload(`${cleanSourceCommand}\n${uploadCommand}`);
+  for (const script of [
+    `# ${cleanSourceCommand}\n${uploadCommand}`,
+    uploadCommand,
+    `bun apps/desktop/scripts/promote.ts --verify-stage-source-disabled\n${uploadCommand}`,
+    `echo ${cleanSourceCommand}\n${uploadCommand}`,
+    `${uploadCommand}\n${cleanSourceCommand}`,
+  ]) {
+    expect(() => expectCleanSourceBeforeUpload(script)).toThrow();
+  }
+});
 
 test("desktop bundle points to a committed square PNG and versions remain aligned", async () => {
   const config = await json("apps/desktop/src-tauri/tauri.conf.json");
@@ -111,17 +190,7 @@ test("rollback and promotion serialize, and health-only staging cannot promote",
   expect(promotion.env?.PROMOTION_SOURCE_SHA).toBe(
     `\${{ needs.promotion-preflight.outputs.sha }}`,
   );
-  expect(promotion.env?.VERCEL_TOKEN).toBeUndefined();
-  expect(promotion.steps.at(-1)?.env?.VERCEL_TOKEN).toBe(
-    `\${{ secrets.VERCEL_TOKEN }}`,
-  );
-  expect(
-    promotion.steps
-      .slice(0, -1)
-      .every(
-        (step: { env?: { VERCEL_TOKEN?: string } }) => !step.env?.VERCEL_TOKEN,
-      ),
-  ).toBe(true);
+  expectPromotionCredentialPlacement(promotion);
   expect(promotion.steps[0].run).toBe(
     'test "$ACKNOWLEDGE_USER_JOURNEYS" = "true"',
   );
@@ -140,14 +209,26 @@ test("rollback and promotion serialize, and health-only staging cannot promote",
   expect(staging.env?.PROMOTION_SOURCE_SHA).toBe(
     `\${{ needs.promotion-preflight.outputs.sha }}`,
   );
+  for (const key of vercelCredentials)
+    expect(staging.env ?? {}).not.toHaveProperty(key);
+  const stagingSecretRoles = new Set([
+    "Stage production without moving domains",
+    "Verify Convex readiness",
+  ]);
+  for (const step of staging.steps) {
+    for (const key of vercelCredentials) {
+      if (stagingSecretRoles.has(step.name ?? "")) {
+        expect(step.env?.[key]).toBe(`\${{ secrets.${key} }}`);
+      } else {
+        expect(step.env ?? {}).not.toHaveProperty(key);
+      }
+    }
+  }
   const upload =
     staging.steps.find((step) => step.run?.includes("URL=$(vercel deploy"))
       ?.run ?? "";
   expect(upload).toContain(
     'vercel deploy --prod --skip-domain --yes --meta "sourceCommit=$PROMOTION_SOURCE_SHA"',
   );
-  expect(upload.indexOf("--verify-stage-source")).toBeGreaterThanOrEqual(0);
-  expect(upload.indexOf("--verify-stage-source")).toBeLessThan(
-    upload.indexOf("URL=$(vercel deploy"),
-  );
+  expectCleanSourceBeforeUpload(upload);
 });

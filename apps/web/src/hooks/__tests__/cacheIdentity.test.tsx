@@ -65,6 +65,14 @@ vi.mock("dexie", () => ({
                       ),
                   }),
                   anyOf: (values: unknown[]) => ({
+                    toArray: async () =>
+                      [...records.values()].filter(
+                        // SAFETY: the map contains only synthetic object fixtures.
+                        (row) =>
+                          values.includes(
+                            (row as Record<string, unknown>)[key],
+                          ),
+                      ),
                     delete: async () => {
                       for (const [id, row] of records) {
                         // SAFETY: the map contains only synthetic object fixtures.
@@ -113,6 +121,114 @@ function Probe() {
 }
 
 describe("cache identity boundary", () => {
+  it("reconciles each requested live message's metadata without touching unrequested messages or another owner", async () => {
+    const cache = new BlahChatCache("A");
+    const foreign = new BlahChatCache("B");
+    // SAFETY: minimal cache fixtures exercise message IDs, not server validation.
+    await cache.messages.bulkPut([
+      { _id: "live", conversationId: "c" },
+      { _id: "empty", conversationId: "c" },
+      { _id: "outside", conversationId: "other" },
+    ] as never);
+    const rows = [
+      { _id: "removed-partial", messageId: "live", content: "old" },
+      { _id: "retained", messageId: "live", content: "old" },
+      { _id: "empty-row", messageId: "empty" },
+      { _id: "outside-row", messageId: "outside", content: "private outside" },
+    ];
+    // SAFETY: metadata fixtures intentionally omit fields unrelated to reconciliation.
+    await cache.attachments.bulkPut(rows as never);
+    // SAFETY: same deliberately minimal metadata fixture.
+    await cache.toolCalls.bulkPut(rows as never);
+    // SAFETY: same deliberately minimal metadata fixture.
+    await cache.sources.bulkPut(rows as never);
+    // SAFETY: identical local IDs in B must remain isolated from A's reconciliation.
+    await foreign.toolCalls.bulkPut(rows as never);
+    await syncMessageMetadata(
+      cache,
+      {
+        attachments: [{ _id: "replacement", messageId: "live" }],
+        toolCalls: [
+          { _id: "retained", messageId: "live", content: "complete" },
+          {
+            _id: "outside-row",
+            messageId: "outside",
+            content: "unrequested response",
+          },
+        ],
+        sources: [],
+        // SAFETY: synthetic IDs stay in this owner-scoped cache fixture.
+      } as never,
+      () => true,
+      ["live", "empty"] as never,
+    );
+    expect(await cache.attachments.toArray()).toEqual([
+      rows[3],
+      { _id: "replacement", messageId: "live" },
+    ]);
+    expect(await cache.toolCalls.toArray()).toEqual([
+      { _id: "retained", messageId: "live", content: "complete" },
+      rows[3],
+    ]);
+    expect(await cache.sources.toArray()).toEqual([rows[3]]);
+    expect(await foreign.toolCalls.toArray()).toEqual(rows);
+    expect((await cache.messages.toArray()).map((row) => row._id)).toEqual([
+      "live",
+      "empty",
+      "outside",
+    ]);
+  });
+
+  it("distinguishes unfetched data and absent scope from an authoritative empty table", async () => {
+    const cache = new BlahChatCache("A");
+    // SAFETY: minimal synthetic owner-scoped fixtures.
+    await cache.messages.put({ _id: "live" } as never);
+    // SAFETY: metadata fixture omits unrelated schema fields.
+    await cache.toolCalls.put({ _id: "partial", messageId: "live" } as never);
+    // SAFETY: metadata fixture omits unrelated schema fields.
+    await cache.attachments.put({
+      _id: "attachment",
+      messageId: "live",
+    } as never);
+    // SAFETY: synthetic requested message ID never leaves the cache.
+    const scope = ["live"] as never;
+    await syncMessageMetadata(cache, undefined, () => true, scope);
+    await syncMessageMetadata(cache, { toolCalls: [] });
+    await syncMessageMetadata(cache, { toolCalls: [] }, () => true, []);
+    expect(await cache.toolCalls.toArray()).toHaveLength(1);
+    await syncMessageMetadata(cache, { toolCalls: [] }, () => true, scope);
+    expect(await cache.toolCalls.toArray()).toEqual([]);
+    expect(await cache.attachments.toArray()).toHaveLength(1);
+    await syncMessageMetadata(
+      cache,
+      { attachments: [], toolCalls: [], sources: [] },
+      () => true,
+      scope,
+    );
+    expect(await cache.attachments.toArray()).toEqual([]);
+  });
+
+  it("does not delete previously cached metadata when subscription liveness changes during the reads", async () => {
+    const cache = new BlahChatCache("A");
+    // SAFETY: synthetic cache records omit unrelated server fields.
+    await cache.messages.put({ _id: "live" } as never);
+    // SAFETY: this test exercises only metadata identity and messageId indexing.
+    await cache.toolCalls.put({ _id: "partial", messageId: "live" } as never);
+    let active = true;
+    // SAFETY: synthetic message IDs are confined to the cache fixture.
+    const pending = syncMessageMetadata(
+      cache,
+      { toolCalls: [] },
+      () => active,
+      ["live"] as never,
+    );
+    active = false;
+    await pending;
+    expect(await cache.toolCalls.toArray()).toEqual([
+      { _id: "partial", messageId: "live" },
+    ]);
+  });
+
   it("rejects late orphan metadata but retries metadata for messages that arrive later", async () => {
     const cache = new BlahChatCache("A");
     // SAFETY: minimal metadata fixtures only exercise cache messageId ownership.

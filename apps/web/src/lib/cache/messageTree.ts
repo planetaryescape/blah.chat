@@ -7,17 +7,32 @@ interface MessageMetadata {
   sources?: Doc<"sources">[];
 }
 
+function deletedMetadataIds(
+  existing: { _id: string }[],
+  incoming: { _id: string }[] | undefined,
+): string[] {
+  // An omitted table was not fetched; [] is an authoritative empty result.
+  if (incoming === undefined) return [];
+  const incomingIds = new Set(incoming.map((row) => row._id));
+  return existing
+    .filter((row) => !incomingIds.has(row._id))
+    .map((row) => row._id);
+}
+
 export async function syncMessageMetadata(
   cache: BlahChatCache,
-  metadata: MessageMetadata,
+  metadata: MessageMetadata | undefined,
   isCurrent: () => boolean = () => true,
+  requestedMessageIds?: readonly Id<"messages">[],
 ): Promise<void> {
+  const scope = requestedMessageIds && [...new Set(requestedMessageIds)];
+  if (!metadata || scope?.length === 0) return;
   await cache.transaction(
     "rw",
     [cache.messages, cache.attachments, cache.toolCalls, cache.sources],
     async () => {
       if (!isCurrent()) return;
-      const messageIds = [
+      const messageIds = scope ?? [
         ...new Set(
           [
             ...(metadata.attachments ?? []),
@@ -40,6 +55,30 @@ export async function syncMessageMetadata(
       const sources = metadata.sources?.filter((row) =>
         existingIds.has(row.messageId),
       );
+
+      // Only the request's explicit scope authorizes deletion. Response rows
+      // cannot identify messages whose metadata has become entirely empty.
+      const [cachedAttachments, cachedToolCalls, cachedSources] =
+        await Promise.all([
+          scope && metadata.attachments !== undefined
+            ? cache.attachments.where("messageId").anyOf(scope).toArray()
+            : [],
+          scope && metadata.toolCalls !== undefined
+            ? cache.toolCalls.where("messageId").anyOf(scope).toArray()
+            : [],
+          scope && metadata.sources !== undefined
+            ? cache.sources.where("messageId").anyOf(scope).toArray()
+            : [],
+        ]);
+      // Finish all asynchronous reads before allowing any deletion/upsert.
+      if (!isCurrent()) return;
+      const attachmentIds = deletedMetadataIds(cachedAttachments, attachments);
+      const toolCallIds = deletedMetadataIds(cachedToolCalls, toolCalls);
+      const sourceIds = deletedMetadataIds(cachedSources, sources);
+      if (attachmentIds.length)
+        await cache.attachments.bulkDelete(attachmentIds);
+      if (toolCallIds.length) await cache.toolCalls.bulkDelete(toolCallIds);
+      if (sourceIds.length) await cache.sources.bulkDelete(sourceIds);
       if (attachments?.length) await cache.attachments.bulkPut(attachments);
       if (toolCalls?.length) await cache.toolCalls.bulkPut(toolCalls);
       if (sources?.length) await cache.sources.bulkPut(sources);

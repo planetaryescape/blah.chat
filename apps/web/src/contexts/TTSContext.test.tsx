@@ -12,6 +12,7 @@ import {
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TTSButton } from "@/components/chat/TTSButton";
+import { TTSPlayerBar } from "@/components/chat/TTSPlayerBar";
 import { TTSProvider, useTTSPlayer } from "./TTSContext";
 
 interface TestAuth {
@@ -531,6 +532,100 @@ describe("session cancellation", () => {
 });
 
 describe("failure and controls", () => {
+  it("hides section zero while loading, then exposes an accessible gesture-bound Resume", async () => {
+    const response = deferred<Response>();
+    mocks.fetch.mockReturnValue(response.promise);
+    MockAudio.playImplementation = async () => {
+      throw new DOMException("Gesture required", "NotAllowedError");
+    };
+    function Begin() {
+      const { playFromText } = useTTSPlayer();
+      return (
+        <button
+          type="button"
+          onClick={() => void playFromText({ text: "Source" })}
+        >
+          Begin
+        </button>
+      );
+    }
+    render(
+      <TTSProvider>
+        <Begin />
+        <TTSPlayerBar />
+      </TTSProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Begin" }));
+    await flush();
+    expect(screen.queryByText(/Section 0/)).toBeNull();
+    expect(screen.queryByText(/Section \d+ of/)).toBeNull();
+    response.resolve(new Response("audio"));
+    await flush();
+    expect(screen.getByText(/Section 1 of 3/)).toBeTruthy();
+    const resume = screen.getByRole("button", { name: "Resume narration" });
+    expect(
+      screen.getByText("Paused. Choose Resume to play this section."),
+    ).toBeTruthy();
+    expect(resume).not.toBeDisabled();
+    MockAudio.playImplementation = async () => {};
+    fireEvent.click(resume);
+    expect(MockAudio.instances[0].play).toHaveBeenCalledTimes(2);
+    await flush();
+  });
+  it("retains autoplay-denied audio for an immediate explicit Resume gesture", async () => {
+    MockAudio.playImplementation = async () => {
+      throw new DOMException("Gesture required", "NotAllowedError");
+    };
+    const { result } = setup();
+    speak(result);
+    await flush();
+    const audio = MockAudio.instances[0];
+    expect(result.current.state.isPlaying).toBe(false);
+    expect(result.current.state.canResume).toBe(true);
+    expect(result.current.state.isLoading).toBe(false);
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+    expect(audio.removeAttribute).not.toHaveBeenCalled();
+    expect(mocks.error).not.toHaveBeenCalled();
+    MockAudio.playImplementation = async () => {};
+    act(() => {
+      void result.current.resume();
+      expect(audio.play).toHaveBeenCalledTimes(2);
+    });
+    await flush();
+    expect(result.current.state.isPlaying).toBe(true);
+    expect(mocks.fetch).toHaveBeenCalledTimes(1);
+  });
+  it("advances gap progress, freezes on pause, and clears all progress work on Stop", async () => {
+    const { result } = setup();
+    speak(result);
+    await flush();
+    act(() => MockAudio.instances[0].onended?.());
+    await flush();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100);
+    });
+    expect(result.current.state.currentTime).toBeCloseTo(2.1, 6);
+    act(() => result.current.pause());
+    const paused = result.current.state.currentTime;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(result.current.state.currentTime).toBe(paused);
+    act(() => {
+      void result.current.resume();
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100);
+    });
+    expect(result.current.state.currentTime).toBeCloseTo(2.2, 6);
+    act(() => result.current.stop());
+    expect(vi.getTimerCount()).toBe(0);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(mocks.fetch).toHaveBeenCalledTimes(1);
+    expect(result.current.state.currentTime).toBe(0);
+  });
   it("an older play rejection cannot stop a newer explicit resume", async () => {
     const oldPlay = deferred<void>();
     MockAudio.playImplementation = vi

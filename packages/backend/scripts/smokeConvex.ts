@@ -166,9 +166,11 @@ try {
     conversationId: stoppingId,
     content:
       "Write a detailed list of 500 numbered practical software testing techniques.",
-    modelId: DEFAULT_MODEL_ID,
+    models: [DEFAULT_MODEL_ID, second.id],
   });
   await client.mutation(stop, { conversationId: stoppingId });
+  // Give scheduled startups a chance to run: stopped responses must not revive.
+  await Bun.sleep(1500);
   const stopped = await connect().query(list, { conversationId: stoppingId });
   if (
     stopped.some(
@@ -177,7 +179,7 @@ try {
     )
   )
     throw new Error("Stop left an active generation");
-  checks.push("stop");
+  checks.push("stop all comparison responses without resurrection");
   console.log(
     JSON.stringify({
       passed: checks,

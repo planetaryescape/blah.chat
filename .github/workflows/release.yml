@@ -41,7 +41,7 @@ jobs:
 
       - name: Deploy compatible Convex functions
         working-directory: packages/backend
-        run: bun run deploy -- --yes
+        run: bun run deploy
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
 

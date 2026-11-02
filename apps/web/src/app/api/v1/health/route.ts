@@ -8,7 +8,11 @@ export async function GET() {
   let ready = false;
   if (url) {
     try {
-      const client = new ConvexHttpClient(url);
+      const client = new ConvexHttpClient(url, {
+        logger: false,
+        fetch: (input, init) =>
+          fetch(input, { ...init, signal: AbortSignal.timeout(5000) }),
+      });
       const health = await client.query(
         makeFunctionReference<
           "query",

@@ -1,6 +1,8 @@
 /**
  * @vitest-environment node
  */
+
+import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockRequest } from "@/lib/test/api-helpers";
 
@@ -31,6 +33,28 @@ vi.mock("@/lib/api/middleware/errors", async () => {
 describe("/api/v1/cli/rpc", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("returns a private 400 envelope for malformed JSON after API-key authentication", async () => {
+    queryMock.mockResolvedValueOnce({
+      userId: "user_123",
+      email: "test@example.com",
+      name: "Test User",
+    });
+    const { POST } = await import("../cli/rpc/route");
+    const request = new NextRequest("https://example.com/api/v1/cli/rpc", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": "blah_valid",
+      },
+      body: "{",
+    });
+    const response = await POST(request, { params: Promise.resolve({}) });
+    expect(response.status).toBe(400);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect((await response.json()).status).toBe("error");
+    expect(mutationMock).not.toHaveBeenCalled();
   });
 
   it("returns 401 when API key is missing", async () => {

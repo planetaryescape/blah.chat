@@ -123,6 +123,7 @@ import type * as incognito from "../incognito.js";
 import type * as jobs_actions from "../jobs/actions.js";
 import type * as jobs_crud from "../jobs/crud.js";
 import type * as knowledgeBank_constants from "../knowledgeBank/constants.js";
+import type * as knowledgeBank_htmlText from "../knowledgeBank/htmlText.js";
 import type * as knowledgeBank_index from "../knowledgeBank/index.js";
 import type * as knowledgeBank_process from "../knowledgeBank/process.js";
 import type * as knowledgeBank_search from "../knowledgeBank/search.js";
@@ -159,6 +160,7 @@ import type * as lib_prompts_templates_builtIn from "../lib/prompts/templates/bu
 import type * as lib_test_factories from "../lib/test/factories.js";
 import type * as lib_toolNames from "../lib/toolNames.js";
 import type * as lib_transcriptionOwnership from "../lib/transcriptionOwnership.js";
+import type * as lib_transcriptionResponse from "../lib/transcriptionResponse.js";
 import type * as lib_tree from "../lib/tree.js";
 import type * as lib_urlGuard from "../lib/urlGuard.js";
 import type * as lib_userSync from "../lib/userSync.js";
@@ -437,6 +439,7 @@ declare const fullApi: ApiFromModules<{
   "jobs/actions": typeof jobs_actions;
   "jobs/crud": typeof jobs_crud;
   "knowledgeBank/constants": typeof knowledgeBank_constants;
+  "knowledgeBank/htmlText": typeof knowledgeBank_htmlText;
   "knowledgeBank/index": typeof knowledgeBank_index;
   "knowledgeBank/process": typeof knowledgeBank_process;
   "knowledgeBank/search": typeof knowledgeBank_search;
@@ -473,6 +476,7 @@ declare const fullApi: ApiFromModules<{
   "lib/test/factories": typeof lib_test_factories;
   "lib/toolNames": typeof lib_toolNames;
   "lib/transcriptionOwnership": typeof lib_transcriptionOwnership;
+  "lib/transcriptionResponse": typeof lib_transcriptionResponse;
   "lib/tree": typeof lib_tree;
   "lib/urlGuard": typeof lib_urlGuard;
   "lib/userSync": typeof lib_userSync;

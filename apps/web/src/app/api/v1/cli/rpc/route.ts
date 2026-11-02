@@ -5,6 +5,7 @@ import { z } from "zod";
 import { getConvexClient } from "@/lib/api/convex";
 import { withApiKeyAuth } from "@/lib/api/middleware/apiKeyAuth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
+import { parseRequestJson } from "@/lib/api/utils";
 import logger from "@/lib/logger";
 import { formatEntity } from "@/lib/utils/formatEntity";
 
@@ -59,7 +60,7 @@ async function handler(
   },
 ) {
   const startTime = Date.now();
-  const body = bodySchema.parse(await req.json());
+  const body = bodySchema.parse(parseRequestJson(await req.text()));
   const params = body.params ?? {};
   const convex = getConvexClient();
 

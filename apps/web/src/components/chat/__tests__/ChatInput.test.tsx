@@ -9,6 +9,10 @@ vi.mock("convex/react", () => ({
   useAction: vi.fn(() => vi.fn()),
 }));
 
+vi.mock("../IntegrationSelector", () => ({
+  IntegrationSelector: () => null,
+}));
+
 // Mock the send message hook
 const mockSendMessage = vi.fn();
 vi.mock("@/lib/hooks/mutations", () => ({

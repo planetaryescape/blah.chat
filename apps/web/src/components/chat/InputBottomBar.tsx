@@ -1,5 +1,6 @@
 "use client";
 
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { Info, X } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +11,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ComparisonTrigger } from "./ComparisonTrigger";
-import { IntegrationsIndicator } from "./IntegrationsIndicator";
+import { IntegrationSelector } from "./IntegrationSelector";
 import { KeyboardHints } from "./KeyboardHints";
 import { QuickModelSwitcher } from "./QuickModelSwitcher";
 import {
@@ -19,6 +20,8 @@ import {
 } from "./ThinkingEffortSelector";
 
 interface InputBottomBarProps {
+  conversationId: Id<"conversations">;
+  onIntegrationsSavingChange: (saving: boolean) => void;
   // Comparison mode
   isComparisonMode: boolean;
   selectedModels: string[];
@@ -50,6 +53,8 @@ interface InputBottomBarProps {
  * Layout: [Model + Thinking] ←spacer→ [Compare + Keyboard + Info]
  */
 export function InputBottomBar({
+  conversationId,
+  onIntegrationsSavingChange,
   isComparisonMode,
   selectedModels,
   onExitComparison,
@@ -130,7 +135,10 @@ export function InputBottomBar({
 
         <KeyboardHints isEmpty={isEmpty} hasContent={hasContent} />
 
-        <IntegrationsIndicator />
+        <IntegrationSelector
+          conversationId={conversationId}
+          onSavingChange={onIntegrationsSavingChange}
+        />
 
         <div className="hidden sm:block">
           <AIInfoTooltip />

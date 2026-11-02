@@ -72,6 +72,7 @@ import type * as cliAuth from "../cliAuth.js";
 import type * as composio_connections from "../composio/connections.js";
 import type * as composio_constants from "../composio/constants.js";
 import type * as composio_oauth from "../composio/oauth.js";
+import type * as composio_selection from "../composio/selection.js";
 import type * as composio_tools from "../composio/tools.js";
 import type * as constants from "../constants.js";
 import type * as conversations from "../conversations.js";
@@ -382,6 +383,7 @@ declare const fullApi: ApiFromModules<{
   "composio/connections": typeof composio_connections;
   "composio/constants": typeof composio_constants;
   "composio/oauth": typeof composio_oauth;
+  "composio/selection": typeof composio_selection;
   "composio/tools": typeof composio_tools;
   constants: typeof constants;
   conversations: typeof conversations;

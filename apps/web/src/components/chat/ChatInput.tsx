@@ -130,6 +130,7 @@ export const ChatInput = memo(function ChatInput({
 }: ChatInputProps) {
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [integrationsSaving, setIntegrationsSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingStream, setRecordingStream] = useState<MediaStream | null>(
@@ -360,7 +361,13 @@ export const ChatInput = memo(function ChatInput({
   const handleSubmit = async (e: React.FormEvent | React.KeyboardEvent) => {
     e.preventDefault();
     if (isGenerating) return;
-    if ((!input.trim() && !quote) || isSending || uploading) return;
+    if (
+      (!input.trim() && !quote) ||
+      isSending ||
+      uploading ||
+      integrationsSaving
+    )
+      return;
 
     setIsSending(true);
 
@@ -763,7 +770,10 @@ export const ChatInput = memo(function ChatInput({
   // Determine what to show on right side
   const hasContent = input.trim().length > 0 || quote;
   const canSend =
-    (hasContent || isRecording || isGenerating) && !isSending && !uploading;
+    (hasContent || isRecording || isGenerating) &&
+    !isSending &&
+    !uploading &&
+    !integrationsSaving;
   const showMic =
     !hasContent && !isGenerating && hasSpeechRecognition && !isRecording;
   const showExpandButton = input.length > 100;
@@ -1092,6 +1102,8 @@ export const ChatInput = memo(function ChatInput({
         </div>
 
         <InputBottomBar
+          conversationId={conversationId}
+          onIntegrationsSavingChange={setIntegrationsSaving}
           isComparisonMode={isComparisonMode}
           selectedModels={selectedModels}
           onExitComparison={onExitComparison}

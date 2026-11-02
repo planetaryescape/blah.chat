@@ -565,7 +565,15 @@ export function buildPlans(
             throw new Error("unsupported_embedding_entity");
           plan.targetSource = {
             table: entity,
-            key: text(row[`${table.split("_")[0]}_id`]),
+            key: text(
+              row[
+                table === "message_embeddings"
+                  ? "message_id"
+                  : table === "note_embeddings"
+                    ? "note_key"
+                    : "task_key"
+              ],
+            ),
           };
           plan.data = { embedding: vector(row.embedding) };
           plan.reason = "embedding_attached_without_regeneration";

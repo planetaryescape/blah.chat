@@ -1,6 +1,7 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { type NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getAuthenticatedConvexClient } from "@/lib/api/convex";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
@@ -9,7 +10,7 @@ import logger from "@/lib/logger";
 import { formatEntity } from "@/lib/utils/formatEntity";
 
 async function postHandler(
-  _req: NextRequest,
+  req: NextRequest,
   {
     params,
     userId,
@@ -28,10 +29,15 @@ async function postHandler(
   );
 
   const convex = getAuthenticatedConvexClient(sessionToken);
+  const text = await req.text();
+  const body = z
+    .object({ modelId: z.string().min(1).optional() })
+    .parse(text.trim() ? JSON.parse(text) : {});
 
   // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
   const newMessageId = await convex.mutation(api.chat.regenerate, {
     messageId: id as Id<"messages">,
+    modelId: body.modelId,
   });
 
   const duration = performance.now() - startTime;

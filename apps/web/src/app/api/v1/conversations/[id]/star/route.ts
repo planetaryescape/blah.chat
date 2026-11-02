@@ -33,6 +33,10 @@ async function postHandler(
   await convex.mutation(api.conversations.toggleStar, {
     conversationId: id as Id<"conversations">,
   });
+  const conversation = await convex.query(api.conversations.get, {
+    conversationId: id as Id<"conversations">,
+  });
+  if (!conversation) throw new Error("Conversation not found");
 
   const duration = performance.now() - startTime;
   trackAPIPerformance({
@@ -48,7 +52,7 @@ async function postHandler(
   );
 
   return NextResponse.json(
-    formatEntity({ conversationId: id }, "conversation"),
+    formatEntity(conversation, "conversation", conversation._id),
     { status: 200 },
   );
 }

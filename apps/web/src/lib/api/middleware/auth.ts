@@ -65,8 +65,14 @@ export function withAuth(handler: AuthenticatedHandler) {
       }
     })();
 
-    if (authResult instanceof Response) return authResult;
-    return await handler(req, { ...context, ...authResult });
+    const response =
+      authResult instanceof Response
+        ? authResult
+        : await handler(req, { ...context, ...authResult });
+    // Browser caches are shared by successive accounts on the same device.
+    response.headers.set("Cache-Control", "private, no-store");
+    response.headers.append("Vary", "Authorization, Cookie");
+    return response;
   };
 }
 

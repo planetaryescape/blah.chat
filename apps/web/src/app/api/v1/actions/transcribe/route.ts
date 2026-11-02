@@ -1,4 +1,3 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { fetchMutation } from "convex/nextjs";
 import type { NextRequest } from "next/server";
 import { createTranscribeJob, transcribeInputSchema } from "@/lib/api/dal/jobs";
@@ -7,7 +6,10 @@ import { withErrorHandling } from "@/lib/api/middleware/errors";
 import logger from "@/lib/logger";
 import { formatEntity } from "@/lib/utils/formatEntity";
 
-async function handler(req: NextRequest, { userId }: { userId: string }) {
+async function handler(
+  req: NextRequest,
+  { userId, sessionToken }: { userId: string; sessionToken: string },
+) {
   const startTime = Date.now();
   logger.info({ userId }, "POST /api/v1/actions/transcribe");
 
@@ -16,7 +18,7 @@ async function handler(req: NextRequest, { userId }: { userId: string }) {
 
   const jobId = await createTranscribeJob(
     fetchMutation,
-    userId as Id<"users">,
+    sessionToken,
     validated,
   );
 

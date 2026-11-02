@@ -5,7 +5,7 @@ import { conversationsDAL } from "@/lib/api/dal/conversations";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { trackAPIPerformance } from "@/lib/api/monitoring";
-import { getQueryParam, parseBody } from "@/lib/api/utils";
+import { getQueryParam, parseBody, parseListLimit } from "@/lib/api/utils";
 import logger from "@/lib/logger";
 import { formatEntity } from "@/lib/utils/formatEntity";
 
@@ -46,7 +46,7 @@ async function getHandler(
   const startTime = performance.now();
   logger.info({ userId }, "GET /api/v1/conversations");
 
-  const limit = Number.parseInt(getQueryParam(req, "limit") || "50", 10);
+  const limit = parseListLimit(getQueryParam(req, "limit"));
   const archived = getQueryParam(req, "archived") === "true";
   const projectId = getQueryParam(req, "projectId");
 
@@ -69,8 +69,7 @@ async function getHandler(
     userId,
   });
 
-  // Add cache headers (30s cache for conversation lists)
-  const cacheControl = getCacheControl(CachePresets.LIST);
+  const cacheControl = getCacheControl(CachePresets.NO_CACHE);
 
   return NextResponse.json(
     formatEntity(

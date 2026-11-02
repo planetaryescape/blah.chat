@@ -43,7 +43,7 @@ async function getHandler(
   });
   logger.info({ userId, conversationId: id, duration }, "Conversation fetched");
 
-  const cacheControl = getCacheControl(CachePresets.ITEM);
+  const cacheControl = getCacheControl(CachePresets.NO_CACHE);
   return NextResponse.json(result, {
     headers: { "Cache-Control": cacheControl },
   });
@@ -96,12 +96,12 @@ async function deleteHandler(
     "DELETE /api/v1/conversations/:id",
   );
 
-  await conversationsDAL.delete(userId, id, sessionToken);
+  const result = await conversationsDAL.delete(userId, id, sessionToken);
 
   const duration = Date.now() - startTime;
   logger.info({ userId, conversationId: id, duration }, "Conversation deleted");
 
-  return new NextResponse(null, { status: 204 });
+  return NextResponse.json(result);
 }
 
 export const GET = withErrorHandling(withAuth(getHandler));

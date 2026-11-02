@@ -28,15 +28,22 @@ export interface SSEConnection {
  */
 export function createSSEResponse(): SSEConnection {
   const encoder = new TextEncoder();
-  const stream = new TransformStream();
-  const writer = stream.writable.getWriter();
+  let controller: ReadableStreamDefaultController<Uint8Array>;
+  const stream = new ReadableStream<Uint8Array>({
+    start(value) {
+      controller = value;
+    },
+    cancel() {
+      closed = true;
+    },
+  });
   let closed = false;
 
   return {
-    response: new Response(stream.readable, {
+    response: new Response(stream, {
       headers: {
         "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache, no-transform",
+        "Cache-Control": "private, no-store, no-transform",
         Connection: "keep-alive",
         "X-Accel-Buffering": "no", // Disable nginx buffering
       },
@@ -47,7 +54,7 @@ export function createSSEResponse(): SSEConnection {
 
       try {
         const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-        await writer.write(encoder.encode(payload));
+        controller.enqueue(encoder.encode(payload));
       } catch (_error) {
         // Client disconnected
         closed = true;
@@ -61,7 +68,7 @@ export function createSSEResponse(): SSEConnection {
       const payload = `event: error\ndata: ${JSON.stringify({ error: errorMessage })}\n\n`;
 
       try {
-        await writer.write(encoder.encode(payload));
+        controller.enqueue(encoder.encode(payload));
       } catch (_err) {
         closed = true;
       }
@@ -72,7 +79,7 @@ export function createSSEResponse(): SSEConnection {
 
       closed = true;
       try {
-        await writer.close();
+        controller.close();
       } catch (_error) {
         // Already closed
       }
@@ -139,7 +146,7 @@ export function createPollingLoop(
   return setInterval(async () => {
     try {
       const data = await pollFn();
-      await send(eventName, data);
+      if (data !== null) await send(eventName, data);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Poll failed";

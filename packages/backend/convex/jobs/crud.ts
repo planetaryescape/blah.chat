@@ -1,6 +1,55 @@
 import { v } from "convex/values";
+import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
-import { internalMutation, query } from "../_generated/server";
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from "../_generated/server";
+import { requireOwnedAudio } from "../lib/transcriptionOwnership";
+import { getCurrentUserOrCreate } from "../lib/userSync";
+
+// Atomically establish the owner, validate the upload and schedule durable work.
+export const createTranscription = mutation({
+  args: {
+    storageId: v.id("_storage"),
+    model: v.optional(
+      v.union(v.literal("whisper-1"), v.literal("whisper-large-v3")),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const file = await requireOwnedAudio(ctx, user._id, args.storageId);
+    const recent = await ctx.db
+      .query("jobs")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("type"), "transcribe"),
+          q.gt(q.field("createdAt"), Date.now() - 60 * 60 * 1000),
+        ),
+      )
+      .take(30);
+    if (recent.length >= 30) throw new Error("Rate limit exceeded");
+    const now = Date.now();
+    const jobId = await ctx.db.insert("jobs", {
+      userId: user._id,
+      type: "transcribe",
+      status: "pending",
+      input: args,
+      createdAt: now,
+      expiresAt: now + 24 * 60 * 60 * 1000,
+      retryCount: 0,
+    });
+    await ctx.scheduler.runAfter(0, internal.jobs.actions.executeTranscribe, {
+      jobId,
+      storageId: args.storageId,
+      mimeType: file.mimeType,
+    });
+    return jobId;
+  },
+});
 
 // Job type definitions
 export const jobTypes = v.union(
@@ -17,6 +66,11 @@ export const jobStatus = v.union(
   v.literal("failed"),
   v.literal("cancelled"),
 );
+
+export const getInternal = internalQuery({
+  args: { jobId: v.id("jobs") },
+  handler: (ctx, { jobId }) => ctx.db.get(jobId),
+});
 
 /**
  * Create new job (internal - called by action wrappers)
@@ -115,7 +169,7 @@ export const getById = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .unique();
 
-    if (job.userId !== user?._id) throw new Error("Forbidden");
+    if (job.userId !== user?._id) return null;
 
     return job;
   },

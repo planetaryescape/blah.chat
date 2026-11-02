@@ -12,7 +12,7 @@ import { formatEntity, formatErrorEntity } from "@/lib/utils/formatEntity";
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const ref = searchParams.get("ref");
-  const version = searchParams.get("version") || "web";
+  const version = (searchParams.get("version") || "web").toLowerCase();
 
   if (!ref) {
     return NextResponse.json(formatErrorEntity("Missing 'ref' parameter"), {
@@ -23,8 +23,13 @@ export async function GET(request: NextRequest) {
   try {
     // Check shared Convex cache first
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-    const cached = await fetchQuery(api.bible.getCachedVerse, { osis: ref });
-    if (cached) {
+    const cached =
+      version === "web"
+        ? await fetchQuery(api.bible.getCachedVerse, { osis: ref }).catch(
+            () => null,
+          )
+        : null;
+    if (cached && cached.version.toLowerCase() === version) {
       return NextResponse.json(
         formatEntity(
           {
@@ -40,7 +45,7 @@ export async function GET(request: NextRequest) {
 
     // Cache miss - fetch from bible-api.com
     const query = osisToQuery(ref);
-    const apiUrl = `https://bible-api.com/${encodeURIComponent(query)}?translation=${version}`;
+    const apiUrl = `https://bible-api.com/${encodeURIComponent(query)}?translation=${encodeURIComponent(version)}`;
 
     const res = await fetch(apiUrl, {
       next: { revalidate: 86400 },
@@ -69,18 +74,20 @@ export async function GET(request: NextRequest) {
     // Clean up text
     const text = data.text.trim().replace(/\s+/g, " ");
     const reference = data.reference || osisToDisplay(ref);
-    const versionUpper = data.translation_id?.toUpperCase() || "WEB";
+    const versionUpper =
+      data.translation_id?.toUpperCase() || version.toUpperCase();
 
     // Save to shared cache (fire-and-forget)
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-    fetchMutation(api.bible.setCachedVerse, {
-      osis: ref,
-      reference,
-      text,
-      version: versionUpper,
-    }).catch(() => {
-      // Ignore cache write failures
-    });
+    if (version === "web")
+      fetchMutation(api.bible.setCachedVerse, {
+        osis: ref,
+        reference,
+        text,
+        version: versionUpper,
+      }).catch(() => {
+        // Ignore cache write failures
+      });
 
     return NextResponse.json(
       formatEntity(

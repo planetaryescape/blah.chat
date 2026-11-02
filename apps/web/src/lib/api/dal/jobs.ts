@@ -102,22 +102,19 @@ export async function createExtractMemoriesJob(
  */
 export async function createTranscribeJob(
   convexMutation: FetchMutation,
-  userId: Id<"users">,
+  sessionToken: string,
   input: z.infer<typeof transcribeInputSchema>,
 ) {
   const validated = transcribeInputSchema.parse(input);
 
-  const jobId = (await convexMutation(internal.jobs.crud.create as any, {
-    userId,
-    type: "transcribe" as const,
-    input: validated,
-  })) as Id<"jobs">;
-
-  await convexMutation(internal.jobs.actions.executeTranscribe as any, {
-    jobId,
-    storageId: validated.storageId as Id<"_storage">,
-    model: validated.model,
-  });
+  const jobId = await convexMutation(
+    api.jobs.crud.createTranscription,
+    {
+      storageId: validated.storageId as Id<"_storage">,
+      model: validated.model,
+    },
+    { token: sessionToken },
+  );
 
   return jobId;
 }
@@ -152,9 +149,17 @@ export async function createEmbedFileJob(
 /**
  * Get job by ID (verify ownership)
  */
-export async function getJobById(convexQuery: FetchQuery, jobId: Id<"jobs">) {
+export async function getJobById(
+  convexQuery: FetchQuery,
+  jobId: Id<"jobs">,
+  sessionToken: string,
+) {
   // @ts-ignore - Type depth exceeded with Convex query
-  return convexQuery(api.jobs.crud.getById, { id: jobId });
+  return convexQuery(
+    api.jobs.crud.getById,
+    { id: jobId },
+    { token: sessionToken },
+  );
 }
 
 /**

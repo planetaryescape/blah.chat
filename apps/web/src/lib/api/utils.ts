@@ -2,6 +2,13 @@ import type { NextRequest } from "next/server";
 import type { z } from "zod";
 import type { PaginatedResponse } from "./types";
 
+export function parseListLimit(value: string | null | undefined): number {
+  const parsed = value == null || value === "" ? 50 : Number(value);
+  return Number.isFinite(parsed)
+    ? Math.min(100, Math.max(1, Math.trunc(parsed)))
+    : 50;
+}
+
 export async function parseBody<T>(
   req: NextRequest,
   schema: z.ZodSchema<T>,

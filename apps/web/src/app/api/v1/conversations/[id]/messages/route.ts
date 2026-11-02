@@ -59,7 +59,7 @@ async function getHandler(
   });
   logger.info({ userId, conversationId, duration }, "Messages listed");
 
-  const cacheControl = getCacheControl(CachePresets.LIST);
+  const cacheControl = getCacheControl(CachePresets.NO_CACHE);
   return NextResponse.json(result, {
     headers: { "Cache-Control": cacheControl },
   });

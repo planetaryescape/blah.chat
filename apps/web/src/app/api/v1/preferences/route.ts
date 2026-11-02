@@ -10,7 +10,9 @@ import logger from "@/lib/logger";
 
 const updateSchema = z.object({
   key: z.string(),
-  value: z.any(),
+  value: z.json().refine((value) => JSON.stringify(value).length <= 16_000, {
+    message: "Preference value must be at most 16000 characters",
+  }),
 });
 
 async function getHandler(
@@ -37,7 +39,7 @@ async function getHandler(
   });
   logger.info({ userId, key: key || "all", duration }, "Preferences retrieved");
 
-  const cacheControl = getCacheControl(CachePresets.STATIC);
+  const cacheControl = getCacheControl(CachePresets.NO_CACHE);
   return NextResponse.json(result, {
     headers: { "Cache-Control": cacheControl },
   });

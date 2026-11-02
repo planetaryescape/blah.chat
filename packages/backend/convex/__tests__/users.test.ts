@@ -197,7 +197,7 @@ describe("convex/users", () => {
       expect(user).toBeNull();
     });
 
-    it("throws error for non-existent user", async () => {
+    it("acknowledges an already-deleted user idempotently", async () => {
       const t = convexTest(schema);
 
       // @ts-ignore - Type instantiation too deep with 94+ Convex modules
@@ -206,7 +206,7 @@ describe("convex/users", () => {
           clerkId: "non-existent",
           internalSecret,
         }),
-      ).rejects.toThrow("User not found");
+      ).resolves.toBeNull();
     });
   });
 

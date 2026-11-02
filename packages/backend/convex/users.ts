@@ -41,6 +41,12 @@ export const createUser = mutation({
       .first();
 
     if (existing) {
+      await ctx.db.patch(existing._id, {
+        email: args.email,
+        name: args.name,
+        imageUrl: args.imageUrl,
+        updatedAt: Date.now(),
+      });
       return existing._id;
     }
 
@@ -101,10 +107,8 @@ export const deleteUser = mutation({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .first();
 
-    if (!user) {
-      throw new Error("User not found");
-    }
-
+    if (!user) return null;
+    await cascadeDeleteUserData(ctx, user._id);
     await ctx.db.delete(user._id);
     return user._id;
   },

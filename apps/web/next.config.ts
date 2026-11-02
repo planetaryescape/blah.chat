@@ -7,6 +7,9 @@ const withBundleAnalyzer = bundleAnalyzer({
 });
 
 const nextConfig: NextConfig = {
+  experimental: {
+    cpus: 4,
+  },
   // Disabled due to TanStack Table v8 compatibility issues (GitHub #5567, #5903)
   // Re-enable when TanStack Table v8.21+ adds official React Compiler support
   reactCompiler: false,

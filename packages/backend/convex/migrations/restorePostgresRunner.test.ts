@@ -113,15 +113,24 @@ describe("restore admin runner", () => {
         Array.from({ length: 41 }, () => ({ plan, fingerprint: "fixture" })),
       ).map((batch) => batch.length),
     ).toEqual([40, 1]);
-    const large = { ...plan, data: { content: "界".repeat(60_000) } };
+    const large = { ...plan, data: { content: "界".repeat(120_000) } };
     const result = batches(
       [large, large].map((plan) => ({ plan, fingerprint: "fixture" })),
     );
     expect(result).toHaveLength(2);
     expect(
       result.every(
-        (batch) => Buffer.byteLength(JSON.stringify(batch)) <= 350_000,
+        (batch) => Buffer.byteLength(JSON.stringify(batch)) <= 650_000,
       ),
     ).toBe(true);
+    const retainedToolOutput = {
+      ...plan,
+      data: { result: "x".repeat(575_000) },
+    };
+    const single = batches([
+      { plan: retainedToolOutput, fingerprint: "fixture" },
+    ]);
+    expect(single).toHaveLength(1);
+    expect(Buffer.byteLength(JSON.stringify(single[0]))).toBeLessThan(650_000);
   });
 });

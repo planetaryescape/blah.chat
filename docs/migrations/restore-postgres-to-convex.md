@@ -96,7 +96,7 @@ agent-work run -- bun run scripts/migrations/restore-postgres.ts \
 The hostname confirmation must match `RESTORE_CONVEX_URL`. All remote functions are
 `internalMutation`/`internalQuery`; ordinary authenticated clients cannot invoke
 them. Arguments travel in HTTPS request bodies with admin authentication, not in
-process arguments. Calls are sequential and bounded to 40 rows / 350,000 UTF-8
+process arguments. Calls are sequential and bounded to 40 rows / 650,000 UTF-8
 bytes. Failed atomic batches are retried individually; transport failures stop
 the run rather than classifying unexecuted records as invalid.
 

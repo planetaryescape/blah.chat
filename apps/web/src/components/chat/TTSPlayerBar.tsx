@@ -168,6 +168,22 @@ export function TTSPlayerBar({ className }: { className?: string }) {
 
         {/* Main Controls Area */}
         <div className="p-4">
+          {state.isPreparing && (
+            <p role="status" className="mb-3 text-xs text-muted-foreground">
+              Preparing narration…
+            </p>
+          )}
+          {state.warning && (
+            <p role="status" className="mb-3 text-xs text-muted-foreground">
+              {state.warning}
+            </p>
+          )}
+          {state.totalChunks > 0 && (
+            <p className="mb-2 text-xs text-muted-foreground">
+              Section {state.currentChunk} of {state.totalChunks} · estimated
+              duration
+            </p>
+          )}
           {/* Progress Bar */}
           <div className="mb-4 flex items-center gap-3">
             <span className="w-9 text-right text-xs tabular-nums text-muted-foreground">
@@ -220,7 +236,7 @@ export function TTSPlayerBar({ className }: { className?: string }) {
                 size="icon"
                 className="h-12 w-12 rounded-full shadow-lg shadow-primary/20 transition-transform active:scale-95"
                 onClick={handlePlayPause}
-                disabled={isLoading}
+                disabled={isLoading || !state.canResume}
                 title={isPlaying ? "Pause (Space)" : "Play (Space)"}
               >
                 {isLoading ? (

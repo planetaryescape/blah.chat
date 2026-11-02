@@ -18,7 +18,7 @@ interface TTSButtonProps {
 }
 
 export function TTSButton({ text, messageId, className }: TTSButtonProps) {
-  const { state, playFromText, pause, resume, seekTo } = useTTSPlayer();
+  const { state, playFromText, pause, resume } = useTTSPlayer();
   const { byok, getTTSErrorMessage } = useApiKeyValidation();
 
   const isCurrent = state.sourceMessageId === messageId;
@@ -32,16 +32,12 @@ export function TTSButton({ text, messageId, className }: TTSButtonProps) {
     if (!text.trim()) return;
 
     // Toggle play/pause when clicking the same message
-    if (isCurrent && !state.isLoading) {
+    if (isCurrent && !state.isLoading && state.canResume) {
       if (isPlaying) {
         pause();
         return;
       }
 
-      // If we reached the end, restart from the beginning
-      if (state.duration && state.currentTime >= state.duration - 0.25) {
-        seekTo(0);
-      }
       await resume();
       return;
     }
@@ -54,7 +50,7 @@ export function TTSButton({ text, messageId, className }: TTSButtonProps) {
       variant="ghost"
       size="sm"
       onClick={handlePlay}
-      disabled={isLoading || !text.trim() || isByokDeepgramMissing}
+      disabled={!text.trim() || isByokDeepgramMissing}
       className={cn(
         "h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground",
         className,

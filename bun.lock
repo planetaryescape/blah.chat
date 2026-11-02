@@ -354,7 +354,7 @@
     },
     "packages/api-client": {
       "name": "@blah-chat/api-client",
-      "version": "0.7.2",
+      "version": "0.8.0",
       "dependencies": {
         "eventsource-parser": "^3.0.6",
         "openapi-fetch": "^0.15.0",

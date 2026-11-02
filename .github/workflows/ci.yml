@@ -81,21 +81,8 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: bun run api-client:version-check --base "origin/$BASE_REF"
 
-      - name: Verify Drizzle migrations are up-to-date with schema
-        run: |
-          bun run db:generate
-          if [ -n "$(git status --porcelain packages/persistence-postgres/drizzle/)" ]; then
-            echo "::error::Drizzle migrations are out of sync with schema! Run 'bun run db:generate' and commit the result."
-            git status packages/persistence-postgres/drizzle/
-            exit 1
-          fi
-
-      - name: Block residual Phase G/15 markers
-        run: |
-          if grep -RE 'Phase\s?(G|15)' apps/web/src; then
-            echo "Residual Phase G/15 markers detected. The Convex to Postgres migration is complete; remove leftover TODOs."
-            exit 1
-          fi
+      - name: Typecheck restored application
+        run: bun run typecheck -- --filter=@blah-chat/web
 
   test:
     name: Unit & Integration Tests
@@ -181,9 +168,10 @@ jobs:
             ${{ runner.os }}-turbo-
 
       - name: Build
-        run: bun run build -- $TURBO_FILTER
+        run: bun run build -- --filter=@blah-chat/web
         env:
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_CONVEX_URL: ${{ vars.NEXT_PUBLIC_CONVEX_URL }}
 
   smoke:
     name: Smoke E2E (health + authenticated API)

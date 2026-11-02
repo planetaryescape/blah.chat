@@ -26,7 +26,12 @@ class BlahChatCache extends Dexie {
   userPreferences!: Table<CachedPreferences>;
 
   constructor() {
-    super("blahchat-cache");
+    // Deployment IDs are not portable. Keep the previous Postgres/deleted-Convex
+    // cache intact, but never replay its queued writes into a new deployment.
+    const deployment = process.env.NEXT_PUBLIC_CONVEX_URL
+      ? new URL(process.env.NEXT_PUBLIC_CONVEX_URL).hostname
+      : "unconfigured";
+    super(`blahchat-cache-convex-${deployment}`);
 
     // v1: Initial schema
     this.version(1).stores({

@@ -1,14 +1,14 @@
 import "server-only";
 import { api } from "@blah-chat/backend/convex/_generated/api";
-import { getConvexClient } from "@/lib/api/convex";
+import { getAuthenticatedConvexClient } from "@/lib/api/convex";
 import { formatEntity } from "@/lib/utils/formatEntity";
 
 export const usersDAL = {
   /**
    * Get current user by Clerk ID (auto-creates if needed)
    */
-  getCurrentOrCreate: async (clerkId: string) => {
-    const convex = getConvexClient();
+  getCurrentOrCreate: async (clerkId: string, sessionToken: string) => {
+    const convex = getAuthenticatedConvexClient(sessionToken);
 
     const user = await convex.query(api.users.getUserByClerkId, { clerkId });
 

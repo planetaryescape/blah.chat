@@ -18,14 +18,23 @@ import {
 // NOTE: This must match the DEFAULT_MODEL_ID in src/lib/ai/operational-models.ts
 const _DEFAULT_MODEL_FOR_NEW_USERS = "openai:gpt-oss-120b";
 
+function requireWebhookSecret(secret: string | undefined) {
+  const expected = process.env.INTERNAL_API_SECRET;
+  if (!expected || !secret || secret !== expected) {
+    throw new Error("Unauthorized webhook");
+  }
+}
+
 export const createUser = mutation({
   args: {
+    internalSecret: v.optional(v.string()),
     clerkId: v.string(),
     email: v.string(),
     name: v.string(),
     imageUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    requireWebhookSecret(args.internalSecret);
     const existing = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -52,12 +61,14 @@ export const createUser = mutation({
 
 export const updateUser = mutation({
   args: {
+    internalSecret: v.optional(v.string()),
     clerkId: v.string(),
     email: v.optional(v.string()),
     name: v.optional(v.string()),
     imageUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    requireWebhookSecret(args.internalSecret);
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -80,9 +91,11 @@ export const updateUser = mutation({
 
 export const deleteUser = mutation({
   args: {
+    internalSecret: v.optional(v.string()),
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
+    requireWebhookSecret(args.internalSecret);
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -336,6 +349,10 @@ export const setDefaultModel = mutation({
 export const getUserByClerkId = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || identity.subject !== args.clerkId) {
+      throw new Error("Unauthorized");
+    }
     return await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -343,7 +360,7 @@ export const getUserByClerkId = query({
   },
 });
 
-export const listAllUsers = query({
+export const listAllUsers = internalQuery({
   args: {},
   handler: async (ctx) => {
     // Only for migration - can be removed after backfill

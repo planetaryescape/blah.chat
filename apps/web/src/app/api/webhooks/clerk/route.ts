@@ -8,9 +8,10 @@ import logger from "@/lib/logger";
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
+  const internalSecret = process.env.INTERNAL_API_SECRET;
 
-  if (!WEBHOOK_SECRET) {
-    logger.error("Missing CLERK_WEBHOOK_SECRET environment variable");
+  if (!WEBHOOK_SECRET || !internalSecret) {
+    logger.error("Missing Clerk webhook configuration");
     return new Response("Internal Server Error", { status: 500 });
   }
 
@@ -67,6 +68,7 @@ export async function POST(req: Request) {
       }
 
       await convex.mutation(api.users.createUser, {
+        internalSecret,
         clerkId: id,
         email: primaryEmail.email_address,
         name: `${first_name || ""} ${last_name || ""}`.trim() || "Anonymous",
@@ -86,6 +88,7 @@ export async function POST(req: Request) {
       );
 
       await convex.mutation(api.users.updateUser, {
+        internalSecret,
         clerkId: id,
         ...(primaryEmail && { email: primaryEmail.email_address }),
         name: `${first_name || ""} ${last_name || ""}`.trim() || "Anonymous",
@@ -102,6 +105,7 @@ export async function POST(req: Request) {
       }
 
       await convex.mutation(api.users.deleteUser, {
+        internalSecret,
         clerkId: id,
       });
 

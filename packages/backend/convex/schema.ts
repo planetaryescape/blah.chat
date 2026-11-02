@@ -1155,6 +1155,27 @@ export default defineSchema({
     lastAccessedAt: v.number(),
   }).index("by_hash", ["hash"]),
 
+  speechPreparationSessions: defineTable({
+    userId: v.id("users"),
+    requestId: v.string(),
+    sourceHash: v.optional(v.string()),
+    cancelled: v.boolean(),
+    expiresAt: v.number(),
+  })
+    .index("by_user_request", ["userId", "requestId"])
+    .index("by_expiry", ["expiresAt"])
+    .index("by_user", ["userId"]),
+
+  ttsSynthesisClaims: defineTable({
+    userId: v.id("users"),
+    hash: v.string(),
+    claimToken: v.string(),
+    expiresAt: v.number(),
+  })
+    .index("by_user_hash", ["userId", "hash"])
+    .index("by_expiry", ["expiresAt"])
+    .index("by_user", ["userId"]),
+
   // User Feedback
   feedback: defineTable({
     userId: v.id("users"),

@@ -55,6 +55,17 @@ using the normal reviewed deployment process. This helper never deploys code.
 Start with an empty application target. Keep the app quiescent until both passes
 and the audit finish; pass 1 intentionally lacks optional tree references.
 
+Pause scheduled recovery, extraction, and retention jobs before deploying the
+importer. From `packages/backend`, target the new deployment explicitly:
+
+```sh
+bunx convex env set CUTOVER_PAUSE_CRONS true --deployment bhekani-khumalo:blah-chat:production
+```
+
+Deploy with the reviewed destination deploy key. The cron configuration exports
+no jobs while this flag is `true`; changing the flag requires another deployment
+before the scheduled-job configuration takes effect.
+
 Inject these variables securely into the runner environment, never into arguments
 or a committed file:
 
@@ -132,6 +143,31 @@ Exit codes: `0` means dry-run success or complete import without blocked records
 `2` means the audit is incomplete or some rows remain blocked; `1` means the run
 stopped. Detailed raw server errors are deliberately not printed. Use the private
 report and deployment diagnostics, not payload logging, to investigate.
+
+After auditing, clear the pause and redeploy the same reviewed code:
+
+```sh
+bunx convex env set CUTOVER_PAUSE_CRONS false --deployment bhekani-khumalo:blah-chat:production
+agent-work run -- bun run deploy
+```
+
+Keep production traffic on the old artifact until the restored backend passes
+live generation checks and the staged Vercel artifact reports Convex readiness.
+
+### Repair new-chat defaults during the provider outage
+
+Only after checking the imported data, an operator can replace unavailable
+new-chat model preferences with the verified direct-provider default:
+
+```sh
+bunx convex run migrations/cutoverDefaults:useAvailableTextDefault \
+  '{"acknowledgeProviderOutage":true}' --deployment bhekani-khumalo:blah-chat:production
+```
+
+This internal mutation preserves direct Groq/Cerebras choices and all historical
+conversation/message model labels. It returns counts grouped by the previous
+default. It does not buy credits or make unavailable providers work. Do not run
+it as routine maintenance after users have made new model choices.
 
 ## Expected conversion limits
 

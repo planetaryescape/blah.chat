@@ -43,6 +43,182 @@ afterEach(() => {
 });
 
 describe("faithful structural narration", () => {
+  it("preserves reference coverage and source order across 400 list/quote/wrapping combinations", async () => {
+    let checked = 0;
+    for (const marker of ["-", "+", "*", "1.", "12)"]) {
+      const indent = " ".repeat(marker.length + 1);
+      const image = "![diagram][image]";
+      const variants = [
+        [image],
+        [image, `${indent}Do not omit this continuation.`],
+        [image, `${indent}[Read the guide][guide]`],
+        [image, "", `${indent}[Read the guide][guide]`],
+        [`[x] ${image}`, `${indent}Checked continuation.`],
+        [
+          image,
+          `${indent}- [Read the guide][guide]`,
+          `${indent}  Nested continuation.`,
+        ],
+        [image, `${indent}\tTabbed continuation.`],
+        [image, "", `${indent}> Quoted [guide]`],
+        [
+          image,
+          "",
+          `${indent}\`\`\`js`,
+          `${indent}if (ready) {`,
+          `${indent}  return false;`,
+          `${indent}}`,
+          `${indent}\`\`\``,
+        ],
+        [
+          image,
+          "",
+          `${indent}| Name | Actual |`,
+          `${indent}|---|---|`,
+          `${indent}| A | -3.050 |`,
+        ],
+      ];
+      for (const newline of ["\n", "\r\n"])
+        for (const forward of [true, false])
+          for (const quoted of [true, false])
+            for (const variant of variants) {
+              const lines = [`${marker} ${variant[0]}`, ...variant.slice(1)];
+              const body = quoted ? lines.map((line) => `> ${line}`) : lines;
+              const definitions = [
+                "[image]: https://example.org/image.png",
+                "[guide]: https://example.org/guide",
+              ];
+              const source = (
+                forward
+                  ? [...body, "", "Final sentence.", "", ...definitions]
+                  : [...definitions, "", ...body, "", "Final sentence."]
+              ).join(newline);
+              const { narration } = await prepareDeterministic(source);
+              const spoken = narration.segments
+                .map((segment) => segment.text)
+                .join("\n");
+              expect(spoken).toContain(
+                "Image: diagram. Visual content unavailable.",
+              );
+              expect(spoken).not.toContain("![diagram][image]");
+              expect(spoken).not.toContain("https://example.org");
+              expect(narration.coverage).toBe("partial");
+              expect(narration.warnings.join(" ")).toContain(
+                "Image pixels unavailable",
+              );
+              expect(narration.segments.at(-1)?.text).toBe("Final sentence.");
+              expect(narration.segments.at(-1)?.sourceStart).toBe(
+                source.indexOf("Final sentence."),
+              );
+              expect(
+                narration.segments.map((segment) => segment.sourceStart),
+              ).toEqual(
+                narration.segments
+                  .map((segment) => segment.sourceStart)
+                  .sort((a, b) => a - b),
+              );
+              checked++;
+            }
+    }
+    expect(checked).toBe(400);
+  });
+  it("keeps missing references literal without hiding a resolved unavailable image", async () => {
+    const source =
+      "- ![known diagram][image]\n  ![unresolved diagram][missing]\n  [Unresolved guide][missing]\n\n> ![unresolved quote][missing]\n\n[image]: https://example.org/image.png";
+    const { narration } = await prepareDeterministic(source);
+    const spoken = narration.segments.map((segment) => segment.text).join("\n");
+    expect(spoken).toContain(
+      "Image: known diagram. Visual content unavailable.",
+    );
+    expect(spoken).toContain("![unresolved diagram][missing]");
+    expect(spoken).toContain("[Unresolved guide][missing]");
+    expect(spoken).toContain("![unresolved quote][missing]");
+    expect(spoken.match(/Visual content unavailable\./g) ?? []).toHaveLength(1);
+    expect(narration.coverage).toBe("partial");
+    expect(narration.warnings.join(" ")).toContain("Image pixels unavailable");
+  });
+  it("resolves collapsed and shortcut references across quotes and list levels", async () => {
+    const source =
+      "[Diagram]: https://example.org/image.png\n[Guide]: https://example.org/guide\n\n> - ![Diagram][]\n>   - ![diagram]\n>     [Guide][] and [GUIDE]\n\nFinal.";
+    const { narration } = await prepareDeterministic(source);
+    const spoken = narration.segments.map((segment) => segment.text).join("\n");
+    expect(spoken).toContain("Image: Diagram. Visual content unavailable.");
+    expect(spoken).toContain("Image: diagram. Visual content unavailable.");
+    expect(spoken).toContain("Guide and GUIDE");
+    expect(spoken).not.toContain("![");
+    expect(spoken).not.toContain("[Guide]");
+    expect(narration.coverage).toBe("partial");
+    expect(narration.segments.at(-1)?.text).toBe("Final.");
+    expect(narration.segments.at(-1)?.sourceStart).toBe(
+      source.indexOf("Final."),
+    );
+  });
+  it.each([
+    "\n",
+    "\r\n",
+  ])("resolves external reference images and links in nested lists and quotes (%j)", async (newline) => {
+    const definitions = [
+      "[image]: https://example.org/image.png",
+      "[guide]: https://example.org/guide",
+    ];
+    const content = [
+      "- ![diagram][image]",
+      "  [Read the guide][guide]",
+      "  - ![nested diagram][image]",
+      "",
+      "> ![quoted diagram][image]",
+      "> [Quoted guide][guide]",
+      "> - ![quoted nested diagram][image]",
+      "",
+      "Final sentence.",
+    ];
+    for (const forward of [true, false]) {
+      const source = (
+        forward
+          ? [...content, "", ...definitions]
+          : [...definitions, "", ...content]
+      ).join(newline);
+      const { narration } = await prepareDeterministic(source);
+      const spoken = narration.segments
+        .map((segment) => segment.text)
+        .join("\n");
+      for (const alternative of [
+        "Image: diagram.",
+        "Image: nested diagram.",
+        "Image: quoted diagram.",
+        "Image: quoted nested diagram.",
+        "Read the guide",
+        "Quoted guide",
+        "Final sentence.",
+      ])
+        expect(spoken).toContain(alternative);
+      expect(spoken).not.toContain("![");
+      expect(spoken).not.toContain("][guide]");
+      expect(spoken).not.toContain("https://example.org");
+      expect(narration.coverage).toBe("partial");
+      expect(narration.warnings.join(" ")).toContain(
+        "Image pixels unavailable",
+      );
+      expect(spoken.match(/Visual content unavailable\./g) ?? []).toHaveLength(
+        4,
+      );
+      for (const segment of narration.segments.filter(
+        (entry) => entry.kind === "figure",
+      )) {
+        expect(source.slice(segment.sourceStart, segment.sourceEnd)).toContain(
+          "![",
+        );
+        expect(
+          source.slice(segment.sourceStart, segment.sourceEnd),
+        ).not.toContain("[image]:");
+      }
+      expect(narration.segments.map((segment) => segment.sourceStart)).toEqual(
+        narration.segments
+          .map((segment) => segment.sourceStart)
+          .sort((a, b) => a - b),
+      );
+    }
+  });
   it.each([
     "\n",
     "\r\n",

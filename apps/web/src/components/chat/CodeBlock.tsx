@@ -36,31 +36,9 @@ export function CodeBlock({ code, language, inline }: CodeBlockProps) {
   const codeRef = useRef(code);
   const languageRef = useRef(language);
 
-  if (inline) {
-    return (
-      <code
-        className={cn(
-          "px-1.5 py-0.5 rounded text-sm font-mono",
-          // Light mode
-          "bg-muted/80 text-foreground",
-          "border border-border/20",
-          // Dark mode - bespoke slate/violet aesthetic
-          "dark:bg-gradient-to-br dark:from-[oklch(28%_0.03_260)] dark:to-[oklch(25%_0.02_260)]",
-          "dark:text-[oklch(88%_0.02_260)]",
-          "dark:border-[oklch(35%_0.04_260)]",
-          "dark:shadow-[inset_0_1px_0_oklch(40%_0.02_260_/_0.15),_0_1px_2px_oklch(0%_0_0_/_0.2)]",
-          // Hover states
-          "hover:bg-muted dark:hover:from-[oklch(30%_0.03_260)] dark:hover:to-[oklch(27%_0.02_260)]",
-          "transition-colors",
-        )}
-      >
-        {code}
-      </code>
-    );
-  }
-
   // Defer syntax highlighting to avoid blocking during streaming
   useEffect(() => {
+    if (inline) return;
     // Skip re-highlighting if code hasn't changed
     if (
       codeRef.current === code &&
@@ -88,7 +66,27 @@ export function CodeBlock({ code, language, inline }: CodeBlockProps) {
       const timeout = setTimeout(runHighlight, 1);
       return () => clearTimeout(timeout);
     }
-  }, [code, language, highlightResult]);
+  }, [code, language, highlightResult, inline]);
+
+  if (inline) {
+    return (
+      <code
+        className={cn(
+          "px-1.5 py-0.5 rounded text-sm font-mono",
+          "bg-muted/80 text-foreground",
+          "border border-border/20",
+          "dark:bg-gradient-to-br dark:from-[oklch(28%_0.03_260)] dark:to-[oklch(25%_0.02_260)]",
+          "dark:text-[oklch(88%_0.02_260)]",
+          "dark:border-[oklch(35%_0.04_260)]",
+          "dark:shadow-[inset_0_1px_0_oklch(40%_0.02_260_/_0.15),_0_1px_2px_oklch(0%_0_0_/_0.2)]",
+          "hover:bg-muted dark:hover:from-[oklch(30%_0.03_260)] dark:hover:to-[oklch(27%_0.02_260)]",
+          "transition-colors",
+        )}
+      >
+        {code}
+      </code>
+    );
+  }
 
   // Use highlighted HTML or safe escaped fallback while loading
   const html = highlightResult?.html || createInitialFallback(code);

@@ -40,9 +40,10 @@ vi.mock("@/lib/cache", () => {
   return { cache, getCache: () => cache };
 });
 
-vi.mock("@/lib/cache/context", async () => {
+vi.mock("@/lib/cache/context", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/cache/context")>();
   const { getCache } = await import("@/lib/cache");
-  return { useUserCache: getCache };
+  return { ...actual, useUserCache: getCache };
 });
 
 // Mock Radix UI Tooltip - requires TooltipProvider context

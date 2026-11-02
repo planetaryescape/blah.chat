@@ -62,6 +62,17 @@ vi.mock("dexie", () => ({
                           (row as Record<string, unknown>)[key] === value,
                       ),
                   }),
+                  anyOf: (values: unknown[]) => ({
+                    delete: async () => {
+                      for (const [id, row] of records) {
+                        // SAFETY: the map contains only synthetic object fixtures.
+                        if (
+                          values.includes((row as Record<string, unknown>)[key])
+                        )
+                          records.delete(id);
+                      }
+                    },
+                  }),
                 }),
                 toArray: async () => [...records.values()],
               },
@@ -109,7 +120,7 @@ describe("cache identity boundary", () => {
     setActiveCache(null);
   });
 
-  it("keeps regenerated inactive siblings and unloaded history while removing actual tree orphans", async () => {
+  it("keeps regenerated inactive siblings and unloaded history while cascading only actual tree orphans", async () => {
     const cache = new BlahChatCache("A");
     const conversationId =
       "conversation-A" as import("@blah-chat/backend/convex/_generated/dataModel").Id<"conversations">;
@@ -134,6 +145,18 @@ describe("cache identity boundary", () => {
       ...rows,
       { _id: "deleted", conversationId },
     ] as never);
+    // SAFETY: minimal synthetic metadata exercises only its messageId index.
+    const metadata = [
+      { _id: "orphan", messageId: "deleted" },
+      { _id: "retained", messageId: "old-version" },
+      { _id: "other-conversation", messageId: "other" },
+    ];
+    // SAFETY: intentionally minimal metadata omits unrelated server fields.
+    await Promise.all([
+      cache.attachments.bulkPut(metadata as never),
+      cache.toolCalls.bulkPut(metadata as never),
+      cache.sources.bulkPut(metadata as never),
+    ]);
     await syncMessageTree(cache, conversationId, rows as never);
     expect((await cache.messages.toArray()).map((row) => row._id)).toEqual([
       "root",
@@ -142,6 +165,55 @@ describe("cache identity boundary", () => {
     ]);
     const messages = await cache.messages.toArray();
     expect(getSiblingsForMessage(messages, messages[2])).toHaveLength(2);
+    for (const table of [cache.attachments, cache.toolCalls, cache.sources]) {
+      expect((await table.toArray()).map((row) => row._id)).toEqual([
+        "retained",
+        "other-conversation",
+      ]);
+    }
+  });
+
+  it("writes no unchanged history and only the streamed row, even without a timestamp change", async () => {
+    const cache = new BlahChatCache("A");
+    // SAFETY: synthetic IDs never leave this in-memory cache test.
+    const conversationId =
+      "conversation-A" as import("@blah-chat/backend/convex/_generated/dataModel").Id<"conversations">;
+    const rows = Array.from({ length: 1000 }, (_, i) => ({
+      _id: `message-${i}`,
+      conversationId,
+      content: "history",
+      updatedAt: 1,
+    }));
+    // SAFETY: minimal message fixtures exercise comparison, not server validation.
+    await cache.messages.bulkPut(rows as never);
+    const writes = vi.spyOn(cache.messages, "bulkPut");
+    // SAFETY: the same synthetic rows omit unrelated server fields.
+    await syncMessageTree(cache, conversationId, rows as never);
+    expect(writes).not.toHaveBeenCalled();
+    const streamed = {
+      ...rows[999],
+      content: "partial response",
+      isActiveBranch: true,
+    };
+    // SAFETY: streaming fixture changes only the cache fields under test.
+    await syncMessageTree(cache, conversationId, [
+      ...rows.slice(0, 999),
+      streamed,
+    ] as never);
+    expect(writes).toHaveBeenCalledExactlyOnceWith([streamed]);
+  });
+
+  it("partitions endpoints by protocol and port, not only hostname", () => {
+    const names = [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "https://localhost:3000",
+    ].map((url) => {
+      vi.stubEnv("NEXT_PUBLIC_CONVEX_URL", url);
+      return new BlahChatCache("A").name;
+    });
+    vi.unstubAllEnvs();
+    expect(new Set(names).size).toBe(3);
   });
 
   it("isolates every persisted table, including delayed prior-account writes", async () => {
@@ -206,6 +278,13 @@ describe("cache identity boundary", () => {
     expect(screen.queryByTestId("identity")).toBeNull();
     expect(screen.queryByText(/A secret note/)).toBeNull();
     state.user = undefined;
+    view.rerender(
+      <CacheProvider>
+        <Probe />
+      </CacheProvider>,
+    );
+    expect(screen.queryByTestId("identity")).toBeNull();
+    state.user = null;
     view.rerender(
       <CacheProvider>
         <Probe />

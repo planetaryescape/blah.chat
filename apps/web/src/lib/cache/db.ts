@@ -29,7 +29,7 @@ export class BlahChatCache extends Dexie {
     // Deployment IDs are not portable. Keep the previous Postgres/deleted-Convex
     // cache intact, but never replay its queued writes into a new deployment.
     const deployment = process.env.NEXT_PUBLIC_CONVEX_URL
-      ? new URL(process.env.NEXT_PUBLIC_CONVEX_URL).hostname
+      ? encodeURIComponent(new URL(process.env.NEXT_PUBLIC_CONVEX_URL).origin)
       : "unconfigured";
     // Never open the legacy deployment-only database: it has no trusted owner.
     super(
@@ -120,6 +120,11 @@ export interface PendingMutation {
 
 // SSR guard: IndexedDB not available on server
 let activeCache: BlahChatCache | null = null;
+
+// Identity transitions are expected, not exceptional, for asynchronous work.
+export function getActiveCache(): BlahChatCache | null {
+  return typeof window === "undefined" ? null : activeCache;
+}
 
 export function getCache(): BlahChatCache {
   if (typeof window === "undefined") {

@@ -6,7 +6,11 @@ let mutationConfig: null | {
   mutationFn?: (args: unknown) => Promise<unknown>;
   onMutate?: (variables: unknown) => unknown;
   onSuccess?: (data: unknown, variables: unknown) => void;
-  onError?: (error: Error, variables: unknown, context: unknown) => void;
+  onError?: (
+    error: Error,
+    variables: unknown,
+    context: unknown,
+  ) => Promise<void>;
 } = null;
 
 // Store mock functions for assertions
@@ -50,7 +54,7 @@ vi.mock("@/lib/api/client", () => {
 
 vi.mock("@/lib/offline/messageQueue", () => ({
   messageQueue: {
-    enqueue: vi.fn(),
+    enqueue: vi.fn(async () => true),
     getCount: vi.fn(() => 0),
     processQueue: vi.fn(),
   },
@@ -79,6 +83,7 @@ vi.mock("@/lib/query/keys", () => ({
 // Import AFTER mocks
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { toast } from "sonner";
+import { BlahChatCache, setActiveCache } from "@/lib/cache/db";
 import { messageQueue } from "@/lib/offline/messageQueue";
 import { useSendMessage } from "../useSendMessage";
 
@@ -92,6 +97,7 @@ describe("useSendMessage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mutationConfig = null;
+    setActiveCache(new BlahChatCache("test-owner"));
     Object.defineProperty(navigator, "onLine", {
       value: true,
       writable: true,
@@ -200,7 +206,7 @@ describe("useSendMessage", () => {
     expect(mockMessageQueue.enqueue).not.toHaveBeenCalled();
   });
 
-  it("enqueues message when offline", () => {
+  it("enqueues message when offline", async () => {
     Object.defineProperty(navigator, "onLine", {
       value: false,
       configurable: true,
@@ -214,17 +220,50 @@ describe("useSendMessage", () => {
       modelId: "openai:gpt-4o",
     };
 
-    mutationConfig?.onError?.(new Error("Failed"), args, undefined);
+    const context = await mutationConfig?.onMutate?.(args);
+    await mutationConfig?.onError?.(new Error("Failed"), args, context);
 
-    expect(mockMessageQueue.enqueue).toHaveBeenCalledWith({
-      conversationId,
-      content: "Offline message",
-      modelId: "openai:gpt-4o",
-      models: undefined,
-      attachments: undefined,
-    });
+    expect(mockMessageQueue.enqueue).toHaveBeenCalledWith(
+      {
+        conversationId,
+        content: "Offline message",
+        modelId: "openai:gpt-4o",
+        models: undefined,
+        attachments: undefined,
+      },
+      expect.any(BlahChatCache),
+    );
     expect(mockToast.info).toHaveBeenCalledWith(
       "You're offline. Message queued and will send when reconnected.",
     );
+  });
+
+  it.each([
+    "cancelled",
+    "incomplete",
+  ] as const)("does not toast success when processing is %s", async (status) => {
+    mockMessageQueue.getCount.mockResolvedValue(1);
+    mockMessageQueue.processQueue.mockResolvedValue(status);
+    renderHook(() => useSendMessage());
+    window.dispatchEvent(new Event("online"));
+    await vi.waitFor(() =>
+      expect(mockMessageQueue.processQueue).toHaveBeenCalled(),
+    );
+    expect(mockToast.success).not.toHaveBeenCalled();
+  });
+
+  it("handles operational queue errors without an unhandled rejection", async () => {
+    mockMessageQueue.getCount.mockResolvedValue(1);
+    mockMessageQueue.processQueue.mockRejectedValue(
+      new Error("storage failed"),
+    );
+    renderHook(() => useSendMessage());
+    window.dispatchEvent(new Event("online"));
+    await vi.waitFor(() =>
+      expect(mockToast.error).toHaveBeenCalledWith(
+        "Failed to process queued messages",
+      ),
+    );
+    expect(mockToast.success).not.toHaveBeenCalled();
   });
 });

@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { analytics } from "@/lib/analytics";
 import { useApiClient } from "@/lib/api/client";
+import { getActiveCache } from "@/lib/cache/db";
 import { messageQueue } from "@/lib/offline/messageQueue";
 import { queryKeys } from "@/lib/query/keys";
 import type { OptimisticMessage } from "@/types/optimistic";
@@ -37,33 +38,46 @@ export function useSendMessage(
 
   // Auto-process offline queue when connection restored
   useEffect(() => {
+    const cache = getActiveCache();
+    let active = true;
     const handleOnline = async () => {
+      if (!active || !cache || getActiveCache() !== cache) return;
       const queueCount = await messageQueue.getCount();
-      if (queueCount === 0) return;
+      if (!active || getActiveCache() !== cache || queueCount === 0) return;
 
       toast.info(
         `Processing ${queueCount} queued message${queueCount > 1 ? "s" : ""}...`,
       );
 
-      await messageQueue.processQueue(async (msg) => {
-        // Send queued message
-        await apiClient.post(
-          `/api/v1/conversations/${msg.conversationId}/messages`,
-          {
-            conversationId: msg.conversationId,
-            content: msg.content,
-            modelId: msg.modelId,
-            models: msg.models,
-            attachments: msg.attachments,
-          },
-        );
-      });
+      try {
+        const result = await messageQueue.processQueue(async (msg) => {
+          // Send queued message
+          await apiClient.post(
+            `/api/v1/conversations/${msg.conversationId}/messages`,
+            {
+              conversationId: msg.conversationId,
+              content: msg.content,
+              modelId: msg.modelId,
+              models: msg.models,
+              attachments: msg.attachments,
+            },
+          );
+        }, cache);
 
-      toast.success("All queued messages sent");
+        if (active && getActiveCache() === cache && result === "complete") {
+          toast.success("All queued messages sent");
+        }
+      } catch {
+        if (active && getActiveCache() === cache)
+          toast.error("Failed to process queued messages");
+      }
     };
 
     window.addEventListener("online", handleOnline);
-    return () => window.removeEventListener("online", handleOnline);
+    return () => {
+      active = false;
+      window.removeEventListener("online", handleOnline);
+    };
   }, [apiClient]);
 
   return useMutation({
@@ -105,6 +119,7 @@ export function useSendMessage(
 
       return {
         optimisticIds: [optimisticUserMsg._id],
+        cache: getActiveCache(),
       };
     },
 
@@ -124,23 +139,31 @@ export function useSendMessage(
       });
     },
 
-    onError: (error, variables, _context) => {
+    onError: async (error, variables, context) => {
       const msg =
         error instanceof Error ? error.message : "Failed to send message";
 
       // Check if offline - queue for retry
       if (!navigator.onLine) {
-        messageQueue.enqueue({
-          conversationId: variables.conversationId,
-          content: variables.content,
-          modelId: variables.modelId,
-          models: variables.models,
-          attachments: variables.attachments,
-        });
+        try {
+          const queued = await messageQueue.enqueue(
+            {
+              conversationId: variables.conversationId,
+              content: variables.content,
+              modelId: variables.modelId,
+              models: variables.models,
+              attachments: variables.attachments,
+            },
+            context?.cache ?? null,
+          );
 
-        toast.info(
-          "You're offline. Message queued and will send when reconnected.",
-        );
+          if (queued)
+            toast.info(
+              "You're offline. Message queued and will send when reconnected.",
+            );
+        } catch {
+          toast.error("Failed to queue offline message");
+        }
       } else {
         // Online but failed - show error
         toast.error(msg);

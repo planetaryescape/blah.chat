@@ -1,6 +1,6 @@
 import { DEFAULT_MODEL_ID, MODEL_CONFIG } from "@blah-chat/ai/models";
 import * as ai from "ai";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { convexTest } from "../../__tests__/testSetup";
 import { api, internal } from "../_generated/api";
 import { serializeConversationHistory } from "../generation/history";
@@ -17,6 +17,12 @@ vi.mock("ai", async (importOriginal) => ({
   ...(await importOriginal<typeof import("ai")>()),
   streamText: vi.fn(),
 }));
+
+beforeAll(async () => {
+  // Load the provider graph as fixture setup, not inside a cancellation assertion's
+  // five-second deadline. Keep the real generation entry point and SDK boundary.
+  await import("../generation");
+});
 
 const models = Object.entries(MODEL_CONFIG)
   .filter(

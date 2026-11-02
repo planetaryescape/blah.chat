@@ -88,10 +88,19 @@ live deployment was changed.
 The coordinator's read-only observation on 2026-11-02 found environment
 `Production` with `protection_rules: []` and `deployment_branch_policy: null`.
 This is **not configured** for safe branch-restricted production secret access.
-Preflight now requires a server-side deployment branch policy permitting only
-protected branches, or an explicit allowlist containing exactly branch `main`
-(not tags or wildcard patterns). An unavailable policy API also blocks promotion.
-The read-only checks use `GITHUB_TOKEN`; no environment settings are changed.
+Preflight supports **only** the server-side protected-branches policy:
+`deployment_branch_policy.protected_branches === true` and
+`deployment_branch_policy.custom_branch_policies === false`. An unavailable
+environment API also blocks promotion. The read-only checks use `GITHUB_TOKEN`;
+no environment settings are changed.
+
+The former exact-main custom-policy mode is retired. Listing custom deployment
+branch policies requires Administration read access unavailable to this workflow's
+`GITHUB_TOKEN` permissions. The workflow does not request that endpoint, add a PAT
+or GitHub App credential, or expand permissions. A custom-policy environment,
+even one intended to allow only main, is rejected with a protected-branches
+configuration requirement. Protected default branch `main` remains independently
+required by the dispatch and source checks.
 
 Vercel secrets are step-scoped and passed to promotion only after preflight
 succeeds. These workflow guards alone do **not** prevent a malicious branch

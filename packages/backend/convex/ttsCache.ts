@@ -1,6 +1,11 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
-import { internalMutation, internalQuery } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
+import {
+  internalMutation,
+  internalQuery,
+  type MutationCtx,
+} from "./_generated/server";
 import { MAX_AUDIO_BYTES } from "./lib/speech/synthesis";
 
 // Provider deadline is 30s; leave another minute for usage/cache writes and cleanup.
@@ -64,14 +69,59 @@ export const releaseSynthesis = internalMutation({
 });
 
 export const getCache = internalQuery({
-  args: { hash: v.string() },
+  args: { hash: v.string(), userId: v.id("users") },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const cached = await ctx.db
       .query("ttsCache")
       .withIndex("by_hash", (q) => q.eq("hash", args.hash))
       .first();
+    if (cached?.userId && cached.userId !== args.userId)
+      throw new ConvexError("Speech cache ownership mismatch");
+    return cached;
   },
 });
+
+/** Only the authenticated TTS action supplies its already owner-derived hash. */
+export const associateOwner = internalMutation({
+  args: { hash: v.string(), userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    const user = await ctx.db.get(args.userId);
+    if (!identity || !user || user.clerkId !== identity.subject)
+      throw new ConvexError("Unauthorized speech cache association");
+    const cached = await ctx.db
+      .query("ttsCache")
+      .withIndex("by_hash", (q) => q.eq("hash", args.hash))
+      .first();
+    if (!cached) return false;
+    if (cached.userId && cached.userId !== user._id)
+      throw new ConvexError("Speech cache ownership mismatch");
+    if (!cached.userId) await ctx.db.patch(cached._id, { userId: user._id });
+    return true;
+  },
+});
+
+/** Cascade integration: collect rows/blobs before deleting owned cache records. */
+export async function listOwnedAudioCache(
+  ctx: Pick<MutationCtx, "db">,
+  userId: Id<"users">,
+): Promise<Doc<"ttsCache">[]> {
+  return ctx.db
+    .query("ttsCache")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+}
+
+/** Protect surviving foreign or unowned legacy references before blob deletion. */
+export async function isAudioCacheBlobReferenced(
+  ctx: Pick<MutationCtx, "db">,
+  storageId: Id<"_storage">,
+): Promise<boolean> {
+  return !!(await ctx.db
+    .query("ttsCache")
+    .filter((q) => q.eq(q.field("storageId"), storageId))
+    .first());
+}
 
 export const saveCache = internalMutation({
   args: {
@@ -102,7 +152,10 @@ export const saveCache = internalMutation({
       )
         throw new Error("Speech synthesis claim expired");
     }
-    const { claimToken: _claimToken, userId: _userId, ...cache } = args;
+    const { claimToken: _claimToken, ...cache } = args;
+    // Fence in-flight synthesis against account deletion in this transaction.
+    if (args.userId && !(await ctx.db.get(args.userId)))
+      throw new ConvexError("Speech cache owner no longer exists");
     // Check if exists to avoid dupes (though hash index should help)
     const existing = await ctx.db
       .query("ttsCache")
@@ -110,6 +163,9 @@ export const saveCache = internalMutation({
       .first();
 
     if (existing) {
+      // Legacy writes may remain unowned, but may never overwrite an owned row.
+      if (existing.userId && existing.userId !== args.userId)
+        throw new ConvexError("Speech cache ownership mismatch");
       const metadata = await ctx.db.system.get(existing.storageId);
       if (!metadata || metadata.size === 0 || metadata.size > MAX_AUDIO_BYTES) {
         // Repair the row atomically; keep the newly synthesized usable blob.
@@ -122,12 +178,15 @@ export const saveCache = internalMutation({
           await ctx.storage.delete(existing.storageId);
         return existing._id;
       }
+      if (!existing.userId && args.userId)
+        await ctx.db.patch(existing._id, { userId: args.userId });
       if (args.storageId !== existing.storageId)
         await ctx.storage.delete(args.storageId);
       return existing._id;
     }
 
     return await ctx.db.insert("ttsCache", {
+      userId: args.userId,
       hash: args.hash,
       storageId: args.storageId,
       text: args.text,

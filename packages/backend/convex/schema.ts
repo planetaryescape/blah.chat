@@ -1145,6 +1145,7 @@ export default defineSchema({
     .index("by_user_date", ["userId", "date"]),
 
   ttsCache: defineTable({
+    userId: v.optional(v.id("users")), // Legacy rows acquire ownership on verified replay.
     hash: v.string(), // sha256 of text+voice+speed
     storageId: v.id("_storage"),
     text: v.string(),
@@ -1153,7 +1154,9 @@ export default defineSchema({
     format: v.string(), // mp3, etc
     createdAt: v.number(),
     lastAccessedAt: v.number(),
-  }).index("by_hash", ["hash"]),
+  })
+    .index("by_hash", ["hash"])
+    .index("by_user", ["userId"]),
 
   speechPreparationSessions: defineTable({
     userId: v.id("users"),

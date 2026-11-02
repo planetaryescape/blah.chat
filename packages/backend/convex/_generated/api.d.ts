@@ -126,6 +126,7 @@ import type * as knowledgeBank_search from "../knowledgeBank/search.js";
 import type * as knowledgeBank_tool from "../knowledgeBank/tool.js";
 import type * as lib_analytics from "../lib/analytics.js";
 import type * as lib_budgetTracker from "../lib/budgetTracker.js";
+import type * as lib_comparisonAccess from "../lib/comparisonAccess.js";
 import type * as lib_encryption from "../lib/encryption.js";
 import type * as lib_errorTracking from "../lib/errorTracking.js";
 import type * as lib_generationLock from "../lib/generationLock.js";
@@ -434,6 +435,7 @@ declare const fullApi: ApiFromModules<{
   "knowledgeBank/tool": typeof knowledgeBank_tool;
   "lib/analytics": typeof lib_analytics;
   "lib/budgetTracker": typeof lib_budgetTracker;
+  "lib/comparisonAccess": typeof lib_comparisonAccess;
   "lib/encryption": typeof lib_encryption;
   "lib/errorTracking": typeof lib_errorTracking;
   "lib/generationLock": typeof lib_generationLock;

@@ -34,13 +34,24 @@ estimate until all sections have loaded. Speed changes apply in the browser.
 Configure `DEEPGRAM_API_KEY` on the Convex deployment for application-managed
 speech. Deepgram receives the prepared text through its `/v1/speak` API.
 Preparation uses the shared operational model configuration only when model
-assistance is needed. Provider usage is billed and recorded; audio is not free
-because this feature is enabled.
+assistance is needed. Usage is recorded at published rates; actual charges depend
+on the provider account's credits and plan. Enabling this feature does not itself
+provide free audio.
 
 Audio usage records estimate the published pay-as-you-go rates: $0.015 per 1,000
 input characters for Aura-1 and $0.030 for Aura-2, verified against
 [Deepgram pricing](https://deepgram.com/pricing) on 2026-11-02. Discounted provider
 plans can differ. Replaying cached audio does not add another synthesis charge.
+
+The usage budget measures the user's recorded cost, including BYOK usage; it is
+not an application-subsidy limit. Optional outlines recheck recorded spend before
+each call. Synthesis compares its estimate against remaining recorded budget.
+Neither check reserves spend across concurrent requests: this is not an atomic
+billing cap. Concurrent cache misses can still incur duplicate provider charges.
+
+Stop cancels local playback and rejects late preparation results. The current
+Convex preparation action is not server-cancellable: already-started optional
+work can finish and be recorded after Stop. Stop does not reverse incurred cost.
 
 BYOK does not authorize a silent fallback to application-owned credentials.
 BYOK preparation currently stays deterministic and reports the unavailable
@@ -81,7 +92,7 @@ slices. These mappings are not word-level audio timestamps.
 | Missing provider credentials | Check the active application's or reader's Deepgram configuration. |
 | Preparation warning | Read the warning; an unavailable image or unsupported structure is not full equivalent coverage. |
 | Audio stops with an error | Retry the message after resolving the provider or network error; content was not intentionally skipped. |
-| Browser blocks audio | Start playback through the speaker button and check browser audio permissions. |
+| Browser blocks audio | Choose Resume in the player; the loaded section is retained for this explicit gesture. |
 
 This implementation does not fetch arbitrary image URLs, supply a device-voice
 fallback, or claim word-level source alignment. Source mappings are segment-level.

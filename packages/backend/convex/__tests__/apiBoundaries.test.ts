@@ -193,10 +193,25 @@ describe("Clerk lifecycle", () => {
         expiresAt: Date.now() + 1000,
         retryCount: 0,
       });
-      return ctx.db.insert(
+      const foreignConversation = await ctx.db.insert(
         "conversations",
         createTestConversationData(foreign),
       );
+      const connectionId = await ctx.db.insert("composioConnections", {
+        userId: owner,
+        composioConnectionId: "synthetic-owned-integration",
+        integrationId: "github",
+        integrationName: "GitHub",
+        status: "active",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+      await ctx.db.insert("conversationIntegrations", {
+        userId: owner,
+        conversationId: foreignConversation,
+        connectionId,
+      });
+      return foreignConversation;
     });
     await t.mutation(api.users.deleteUser, {
       internalSecret: secret,
@@ -204,6 +219,9 @@ describe("Clerk lifecycle", () => {
     });
     expect(await t.run((ctx) => ctx.db.get(owner))).toBeNull();
     expect(await t.run((ctx) => ctx.db.query("jobs").collect())).toEqual([]);
+    expect(
+      await t.run((ctx) => ctx.db.query("conversationIntegrations").collect()),
+    ).toEqual([]);
     expect(await t.run((ctx) => ctx.db.get(conversation))).not.toBeNull();
     expect(await t.run((ctx) => ctx.db.get(foreign))).not.toBeNull();
     expect(

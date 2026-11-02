@@ -49,6 +49,7 @@ import type * as ai_tools_updateDocument from "../ai/tools/updateDocument.js";
 import type * as ai_tools_urlReader from "../ai/tools/urlReader.js";
 import type * as ai_tools_weather from "../ai/tools/weather.js";
 import type * as ai_tools_youtubeVideo from "../ai/tools/youtubeVideo.js";
+import type * as apiRateLimits from "../apiRateLimits.js";
 import type * as bible from "../bible.js";
 import type * as bookmarks from "../bookmarks.js";
 import type * as byod_credentials from "../byod/credentials.js";
@@ -116,6 +117,7 @@ import type * as generation_index from "../generation/index.js";
 import type * as generation_sources from "../generation/sources.js";
 import type * as generation_tools from "../generation/tools.js";
 import type * as http from "../http.js";
+import type * as imageGeneration from "../imageGeneration.js";
 import type * as import_ from "../import.js";
 import type * as incognito from "../incognito.js";
 import type * as jobs_actions from "../jobs/actions.js";
@@ -156,6 +158,7 @@ import type * as lib_prompts_systemBuilder from "../lib/prompts/systemBuilder.js
 import type * as lib_prompts_templates_builtIn from "../lib/prompts/templates/builtIn.js";
 import type * as lib_test_factories from "../lib/test/factories.js";
 import type * as lib_toolNames from "../lib/toolNames.js";
+import type * as lib_transcriptionOwnership from "../lib/transcriptionOwnership.js";
 import type * as lib_tree from "../lib/tree.js";
 import type * as lib_urlGuard from "../lib/urlGuard.js";
 import type * as lib_userSync from "../lib/userSync.js";
@@ -360,6 +363,7 @@ declare const fullApi: ApiFromModules<{
   "ai/tools/urlReader": typeof ai_tools_urlReader;
   "ai/tools/weather": typeof ai_tools_weather;
   "ai/tools/youtubeVideo": typeof ai_tools_youtubeVideo;
+  apiRateLimits: typeof apiRateLimits;
   bible: typeof bible;
   bookmarks: typeof bookmarks;
   "byod/credentials": typeof byod_credentials;
@@ -427,6 +431,7 @@ declare const fullApi: ApiFromModules<{
   "generation/sources": typeof generation_sources;
   "generation/tools": typeof generation_tools;
   http: typeof http;
+  imageGeneration: typeof imageGeneration;
   import: typeof import_;
   incognito: typeof incognito;
   "jobs/actions": typeof jobs_actions;
@@ -467,6 +472,7 @@ declare const fullApi: ApiFromModules<{
   "lib/prompts/templates/builtIn": typeof lib_prompts_templates_builtIn;
   "lib/test/factories": typeof lib_test_factories;
   "lib/toolNames": typeof lib_toolNames;
+  "lib/transcriptionOwnership": typeof lib_transcriptionOwnership;
   "lib/tree": typeof lib_tree;
   "lib/urlGuard": typeof lib_urlGuard;
   "lib/userSync": typeof lib_userSync;

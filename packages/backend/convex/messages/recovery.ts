@@ -75,7 +75,15 @@ export const recoverStuckMessages = internalMutation({
     const stuckPending = await ctx.db
       .query("messages")
       .withIndex("by_status", (q) => q.eq("status", "pending"))
-      .filter((q) => q.lt(q.field("createdAt"), cutoffTime))
+      .filter((q) =>
+        q.or(
+          q.lt(q.field("generationStartedAt"), cutoffTime),
+          q.and(
+            q.eq(q.field("generationStartedAt"), undefined),
+            q.lt(q.field("createdAt"), cutoffTime),
+          ),
+        ),
+      )
       .collect();
 
     const allStuck = [...stuckGenerating, ...stuckPending];
@@ -152,7 +160,7 @@ export const recoverMessage = internalMutation({
     }
 
     const now = Date.now();
-    const age = now - message.createdAt;
+    const age = now - (message.generationStartedAt ?? message.createdAt);
 
     if (age < STUCK_THRESHOLD_MS) {
       return {

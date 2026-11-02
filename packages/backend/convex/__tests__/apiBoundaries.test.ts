@@ -138,9 +138,12 @@ describe("API transcription boundary", () => {
   it("checks ownership again at execution and records provider usage with a faithful fake", async () => {
     const { t, storageId, owner, foreign } = await fixture();
     const provider = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ text: "synthetic transcript" }), {
-        headers: { "Content-Type": "application/json" },
-      }),
+      new Response(
+        JSON.stringify({ text: "synthetic transcript", duration: 60 }),
+        {
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
     );
     vi.stubGlobal("fetch", provider);
     await expect(

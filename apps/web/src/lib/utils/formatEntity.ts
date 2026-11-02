@@ -13,6 +13,7 @@ export function formatEntity<T>(
   data: T,
   entity: string,
   id?: string,
+  options?: { preserveFields?: (keyof T)[] },
 ): ApiResponse<T> {
   const hasTimestamps = data && typeof data === "object";
 
@@ -21,6 +22,10 @@ export function formatEntity<T>(
     data && typeof data === "object"
       ? (compact(data as Record<string, unknown>) as T)
       : data;
+  if (compactedData && data && typeof compactedData === "object") {
+    for (const field of options?.preserveFields ?? [])
+      compactedData[field] = data[field];
+  }
 
   return {
     status: "success",

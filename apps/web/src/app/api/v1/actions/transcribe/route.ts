@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { createTranscribeJob, transcribeInputSchema } from "@/lib/api/dal/jobs";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
+import { parseRequestJson } from "@/lib/api/utils";
 import logger from "@/lib/logger";
 import { formatEntity } from "@/lib/utils/formatEntity";
 
@@ -13,7 +14,7 @@ async function handler(
   const startTime = Date.now();
   logger.info({ userId }, "POST /api/v1/actions/transcribe");
 
-  const body = await req.json();
+  const body = parseRequestJson(await req.text());
   const validated = transcribeInputSchema.parse(body);
 
   const jobId = await createTranscribeJob(

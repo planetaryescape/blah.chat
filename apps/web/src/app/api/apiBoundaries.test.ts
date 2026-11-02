@@ -33,6 +33,7 @@ vi.mock("convex/nextjs", () => ({
 import { isCliCallback } from "@/lib/api/cliCallback";
 import { getAuthenticatedConvexClient } from "@/lib/api/convex";
 import { withAuth } from "@/lib/api/middleware/auth";
+import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { createSSEResponse } from "@/lib/api/sse/utils";
 import { parseListLimit } from "@/lib/api/utils";
 import { GET as job } from "./v1/actions/jobs/[id]/route";
@@ -68,6 +69,36 @@ beforeEach(() => {
 });
 
 describe("v1 boundary compatibility", () => {
+  it("preserves SSE no-transform alongside authenticated no-store", async () => {
+    const handler = withAuth(
+      async () =>
+        new Response("stream", {
+          headers: { "Cache-Control": "no-cache, no-transform" },
+        }),
+    );
+    expect((await handler(req(), context)).headers.get("Cache-Control")).toBe(
+      "private, no-store, no-transform",
+    );
+  });
+  it("distinguishes authentication, authorization and server SyntaxErrors", async () => {
+    for (const [error, status] of [
+      [new Error("Not authenticated"), 401],
+      [new Error("Forbidden"), 403],
+      [new SyntaxError("server bug"), 500],
+    ] as const) {
+      const handler = withErrorHandling(async () => {
+        throw error;
+      });
+      expect((await handler(req(), context)).status).toBe(status);
+    }
+  });
+  it("bounds SSE buffering and disconnects slow readers without blocking the initial snapshot", async () => {
+    const connection = createSSEResponse(64);
+    await connection.send("snapshot", { text: "first" });
+    await connection.send("update", { text: "second" });
+    expect(connection.isClosed()).toBe(true);
+    await expect(connection.response.text()).rejects.toThrow(/too slow/);
+  });
   it("passes the Convex token to transcription creation, poll and search", async () => {
     expect(
       (await transcribe(req({ storageId: "storage" }), context)).status,
@@ -142,6 +173,7 @@ describe("v1 boundary compatibility", () => {
         ? await regenerate(req(), context)
         : await search(req({ query: "synthetic search" }), context);
     expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("3600");
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
     const envelope = await response.json();
     expect(envelope.status).toBe("error");

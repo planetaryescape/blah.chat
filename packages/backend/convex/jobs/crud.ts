@@ -13,14 +13,16 @@ import { getCurrentUserOrCreate } from "../lib/userSync";
 // Atomically establish the owner, validate the upload and schedule durable work.
 export const createTranscription = mutation({
   args: {
-    storageId: v.id("_storage"),
+    storageId: v.string(),
     model: v.optional(
       v.union(v.literal("whisper-1"), v.literal("whisper-large-v3")),
     ),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUserOrCreate(ctx);
-    const file = await requireOwnedAudio(ctx, user._id, args.storageId);
+    const storageId = ctx.db.system.normalizeId("_storage", args.storageId);
+    if (!storageId) throw new Error("Audio file not found");
+    const file = await requireOwnedAudio(ctx, user._id, storageId);
     const recent = await ctx.db
       .query("jobs")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
@@ -44,7 +46,8 @@ export const createTranscription = mutation({
     });
     await ctx.scheduler.runAfter(0, internal.jobs.actions.executeTranscribe, {
       jobId,
-      storageId: args.storageId,
+      storageId,
+      model: args.model,
       mimeType: file.mimeType,
     });
     return jobId;
@@ -155,12 +158,14 @@ export const updateStatus = internalMutation({
  * Get job by ID (public - for polling)
  */
 export const getById = query({
-  args: { id: v.id("jobs") },
+  args: { id: v.string() },
   handler: async (ctx, { id }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthorized");
 
-    const job = await ctx.db.get(id);
+    const jobId = ctx.db.normalizeId("jobs", id);
+    if (!jobId) return null;
+    const job = await ctx.db.get(jobId);
     if (!job) return null;
 
     // Verify ownership

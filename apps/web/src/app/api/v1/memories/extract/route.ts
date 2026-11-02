@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createExtractMemoriesJob } from "@/lib/api/dal/jobs";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
+import { parseRequestJson } from "@/lib/api/utils";
 import logger from "@/lib/logger";
 import {
   createHeartbeat,
@@ -28,7 +29,7 @@ async function handler(
   { userId }: { userId: string },
 ): Promise<Response> {
   const startTime = Date.now();
-  const body = await req.json();
+  const body = parseRequestJson(await req.text());
   const validated = extractMemoriesSchema.parse(body);
 
   logger.info(

@@ -7,6 +7,7 @@ import { getAuthenticatedConvexClient } from "@/lib/api/convex";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { consumeApiRateLimit } from "@/lib/api/rateLimits";
+import { parseRequestJson } from "@/lib/api/utils";
 import logger from "@/lib/logger";
 import { formatEntityList } from "@/lib/utils/formatEntity";
 
@@ -24,7 +25,7 @@ async function handler(
   { userId, sessionToken }: { userId: string; sessionToken: string },
 ) {
   const startTime = Date.now();
-  const body = await req.json();
+  const body = parseRequestJson(await req.text());
   const validated = searchSchema.parse(body);
   await consumeApiRateLimit(
     getAuthenticatedConvexClient(sessionToken),

@@ -28,7 +28,13 @@ export function withErrorHandling(
             message: error.message,
             code: error.code,
           }),
-          { status: error.statusCode },
+          {
+            status: error.statusCode,
+            headers:
+              error.code === "RATE_LIMIT_EXCEEDED"
+                ? { "Retry-After": "3600" }
+                : undefined,
+          },
         );
       }
 
@@ -68,9 +74,16 @@ export function withErrorHandling(
         }
 
         if (
+          message.includes("not authenticated") ||
+          message.includes("unauthorized")
+        ) {
+          return errorResponse(formatErrorEntity("Authentication required"), {
+            status: 401,
+          });
+        }
+        if (
           message.includes("unauthorized") ||
           message.includes("forbidden") ||
-          message.includes("not authenticated") ||
           message.includes("permission")
         ) {
           logger.warn({ error: message, url: req.url }, "Unauthorized");
@@ -78,13 +91,6 @@ export function withErrorHandling(
             status: 403,
           });
         }
-      }
-
-      if (error instanceof SyntaxError) {
-        return errorResponse(formatErrorEntity("Invalid JSON body"), {
-          status: 400,
-          headers: { "Cache-Control": "private, no-store" },
-        });
       }
 
       // Unhandled error

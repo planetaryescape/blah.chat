@@ -1,6 +1,17 @@
 import type { NextRequest } from "next/server";
 import type { z } from "zod";
+import { BadRequestError } from "./errors";
 import type { PaginatedResponse } from "./types";
+
+export function parseRequestJson(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    if (error instanceof SyntaxError)
+      throw new BadRequestError("Invalid JSON body");
+    throw error;
+  }
+}
 
 export function parseListLimit(value: string | null | undefined): number {
   const parsed = value == null || value === "" ? 50 : Number(value);
@@ -13,7 +24,7 @@ export async function parseBody<T>(
   req: NextRequest,
   schema: z.ZodSchema<T>,
 ): Promise<T> {
-  const body = await req.json();
+  const body = parseRequestJson(await req.text());
   return schema.parse(body);
 }
 

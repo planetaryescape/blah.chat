@@ -787,6 +787,8 @@ export const updatePartial = internalMutation({
 
 export const completeMessage = internalMutation({
   args: {
+    usageType: v.optional(v.union(v.literal("text"), v.literal("image"))),
+    billingUserId: v.optional(v.id("users")),
     messageId: v.id("messages"),
     content: v.string(),
     reasoning: v.optional(v.string()),
@@ -808,6 +810,24 @@ export const completeMessage = internalMutation({
 
     // Respect terminal states - update metrics but don't change status
     if (message.status === "stopped" || message.status === "error") {
+      const billingUserId = args.billingUserId ?? message.userId;
+      if (
+        args.usageType === "image" &&
+        message.model &&
+        billingUserId &&
+        args.cost > 0
+      ) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.usage.mutations.recordImageGeneration,
+          {
+            userId: billingUserId,
+            conversationId: message.conversationId,
+            model: message.model,
+            cost: args.cost,
+          },
+        );
+      }
       await ctx.db.patch(args.messageId, {
         inputTokens: args.inputTokens,
         outputTokens: args.outputTokens,
@@ -840,17 +860,26 @@ export const completeMessage = internalMutation({
     if (message.model && message.userId && args.cost > 0) {
       await ctx.scheduler.runAfter(
         0,
-        internal.usage.mutations.recordTextGeneration,
-        {
-          userId: message.userId,
-          conversationId: message.conversationId,
-          model: message.model,
-          inputTokens: args.inputTokens,
-          outputTokens: args.outputTokens,
-          reasoningTokens: args.reasoningTokens,
-          cost: args.cost,
-          feature: "chat",
-        },
+        args.usageType === "image"
+          ? internal.usage.mutations.recordImageGeneration
+          : internal.usage.mutations.recordTextGeneration,
+        args.usageType === "image"
+          ? {
+              userId: args.billingUserId ?? message.userId,
+              conversationId: message.conversationId,
+              model: message.model,
+              cost: args.cost,
+            }
+          : {
+              userId: args.billingUserId ?? message.userId,
+              conversationId: message.conversationId,
+              model: message.model,
+              inputTokens: args.inputTokens,
+              outputTokens: args.outputTokens,
+              reasoningTokens: args.reasoningTokens,
+              cost: args.cost,
+              feature: "chat",
+            },
       );
 
       await ctx.scheduler.runAfter(

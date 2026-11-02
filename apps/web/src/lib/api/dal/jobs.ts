@@ -110,7 +110,7 @@ export async function createTranscribeJob(
   const jobId = await convexMutation(
     api.jobs.crud.createTranscription,
     {
-      storageId: validated.storageId as Id<"_storage">,
+      storageId: validated.storageId,
       model: validated.model,
     },
     { token: sessionToken },
@@ -151,7 +151,7 @@ export async function createEmbedFileJob(
  */
 export async function getJobById(
   convexQuery: FetchQuery,
-  jobId: Id<"jobs">,
+  jobId: string,
   sessionToken: string,
 ) {
   // @ts-ignore - Type depth exceeded with Convex query

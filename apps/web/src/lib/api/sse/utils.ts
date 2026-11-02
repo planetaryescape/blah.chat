@@ -2,7 +2,7 @@
  * Server-Sent Events (SSE) utilities
  *
  * Provides helpers for creating SSE responses with:
- * - TransformStream-based streaming
+ * - Bounded ReadableStream buffering
  * - Heartbeat keep-alive (prevents carrier disconnection)
  * - Proper event formatting
  * - Cleanup on disconnect
@@ -26,18 +26,34 @@ export interface SSEConnection {
  * await send("update", { data: [...] });
  * ```
  */
-export function createSSEResponse(): SSEConnection {
+export function createSSEResponse(
+  maxBufferedBytes = 32 * 1024 * 1024,
+): SSEConnection {
   const encoder = new TextEncoder();
-  let controller: ReadableStreamDefaultController<Uint8Array>;
-  const stream = new ReadableStream<Uint8Array>({
-    start(value) {
-      controller = value;
-    },
-    cancel() {
-      closed = true;
-    },
-  });
   let closed = false;
+  let controller: ReadableStreamDefaultController<Uint8Array>;
+  const stream = new ReadableStream<Uint8Array>(
+    {
+      start(value) {
+        controller = value;
+      },
+      cancel() {
+        closed = true;
+      },
+    },
+    { highWaterMark: maxBufferedBytes, size: (chunk) => chunk.byteLength },
+  );
+  const enqueue = (payload: string) => {
+    const bytes = encoder.encode(payload);
+    if (bytes.byteLength > (controller.desiredSize ?? 0)) {
+      closed = true;
+      controller.error(
+        new Error("SSE client is too slow; reconnect for a fresh snapshot"),
+      );
+      return;
+    }
+    controller.enqueue(bytes);
+  };
 
   return {
     response: new Response(stream, {
@@ -54,7 +70,7 @@ export function createSSEResponse(): SSEConnection {
 
       try {
         const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-        controller.enqueue(encoder.encode(payload));
+        enqueue(payload);
       } catch (_error) {
         // Client disconnected
         closed = true;
@@ -68,7 +84,7 @@ export function createSSEResponse(): SSEConnection {
       const payload = `event: error\ndata: ${JSON.stringify({ error: errorMessage })}\n\n`;
 
       try {
-        controller.enqueue(encoder.encode(payload));
+        enqueue(payload);
       } catch (_err) {
         closed = true;
       }

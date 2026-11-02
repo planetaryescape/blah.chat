@@ -24,7 +24,7 @@
     "@blah-chat/api-client": "workspace:*",
     "@blah-chat/chat-ui-core": "workspace:*",
     "@blah-chat/shared": "^0.2.0",
-    "@clerk/clerk-expo": "^2.9.0",
+    "@clerk/clerk-expo": "2.20.2",
     "@expo-google-fonts/manrope": "^0.4.2",
     "@expo-google-fonts/syne": "^0.4.2",
     "@expo/metro-runtime": "~6.1.2",
@@ -101,7 +101,7 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "babel-plugin-react-compiler": "^1.0.0",
     "babel-preset-expo": "~54.0.9",
-    "sharp": "^0.34.5",
+    "sharp": "0.35.5",
     "tailwindcss": "^3.4.0",
     "typescript": "~5.9.2"
   }

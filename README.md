@@ -146,7 +146,7 @@ You will need to configure the following API keys in `.env.local`:
 
 **Core Services**
 
-- **Vercel AI Gateway** (`AI_GATEWAY_API_KEY`): Required for all AI model inference.
+- **AI providers**: Set `GROQ_API_KEY` or `CEREBRAS_API_KEY` for the default GPT-OSS text model. Other catalog models use Vercel AI Gateway (`AI_GATEWAY_API_KEY`) or their configured provider.
 - **Clerk** (`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `CLERK_ISSUER_DOMAIN`): For user authentication and Convex integration.
 - **Convex** (`NEXT_PUBLIC_CONVEX_URL`, `CONVEX_DEPLOYMENT`): Backend database and functions (configured automatically via `bunx convex dev`).
 
@@ -160,13 +160,16 @@ You will need to configure the following API keys in `.env.local`:
 
 ### 2. Convex Environment Variables
 
-The backup backend (Convex) requires these variables to be configured in the [Convex Dashboard](https://dashboard.convex.dev):
+Configure the application backend in the [Convex Dashboard](https://dashboard.convex.dev):
 
 - **`AI_GATEWAY_API_KEY`**: Vercel AI Gateway key for model access within Convex actions.
+- **`GROQ_API_KEY`** or **`CEREBRAS_API_KEY`**: Direct access for the default GPT-OSS text model; configure at least one if Gateway is unavailable.
 - **`CLERK_ISSUER_DOMAIN`**: Your Clerk Frontend API URL (e.g., `your-app.clerk.accounts.dev`).
 - **`POSTHOG_API_KEY`**: API key for server-side analytics tracking.
 
 > **Tip**: You can also set these via the CLI: `bunx convex env set AI_GATEWAY_API_KEY your_key_here`
+
+For production data restoration, follow the [Postgres-to-Convex runbook](docs/migrations/restore-postgres-to-convex.md). It covers the private snapshot, import audit, paused background jobs, and provider-outage default repair. Keep Postgres available for rollback.
 
 ### 3. Clerk Webhook Setup
 

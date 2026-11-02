@@ -115,6 +115,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
     const inputRef = useRef<TextInputType>(null);
 
     const prefs = usePreferences();
+    const sendOnEnter = prefs?.sendOnEnter ?? true;
     const sttEnabled = prefs?.sttEnabled ?? true;
 
     const { isUploading, uploadAsset } =
@@ -632,6 +633,18 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
                   placeholder={placeholder}
                   placeholderTextColor={palette.starlightDim}
                   multiline
+                  submitBehavior={sendOnEnter ? "submit" : "newline"}
+                  returnKeyType={sendOnEnter ? "send" : "default"}
+                  onSubmitEditing={() => {
+                    if (sendOnEnter && !isBusy && !isRecording) {
+                      void sendPayload(value).catch(() => {
+                        toast({
+                          preset: "error",
+                          title: "Unable to send message",
+                        });
+                      });
+                    }
+                  }}
                   style={{
                     flex: 1,
                     height: inputHeight,

@@ -21,6 +21,7 @@ import {
   getToolLabel,
   type ToolCallState,
 } from "@/lib/utils/toolCalls";
+import { formatToolResult, parseToolValue } from "@/lib/utils/toolJson";
 import { MarkdownContent } from "./MarkdownContent";
 
 interface ToolCallItemProps {
@@ -37,23 +38,15 @@ const STATE_COLORS: Record<ToolCallState, string> = {
 export function ToolCallItem({ toolCall, isLast }: ToolCallItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const state = getCallState(toolCall);
+  const state = getCallState({
+    result: toolCall.result,
+    timestamp: toolCall.timestamp,
+  });
   const isExecuting = state === "executing";
   const dotColor = STATE_COLORS[state];
 
-  let parsedResult: any = null;
-  if (toolCall.result) {
-    try {
-      parsedResult = JSON.parse(toolCall.result);
-    } catch {}
-  }
-
-  let parsedArgs: any = null;
-  if (toolCall.args) {
-    try {
-      parsedArgs = JSON.parse(toolCall.args);
-    } catch {}
-  }
+  const parsedResult = parseToolValue(toolCall.result);
+  const parsedArgs = parseToolValue(toolCall.args);
 
   const Icon = getToolIcon(toolCall.toolName);
   const label = getToolLabel(toolCall.toolName, isExecuting, parsedResult);
@@ -79,12 +72,7 @@ export function ToolCallItem({ toolCall, isLast }: ToolCallItemProps) {
     transform: [{ scale: pulseScale.value }],
   }));
 
-  const resultContent =
-    toolCall.result && !parsedResult
-      ? toolCall.result
-      : parsedResult
-        ? JSON.stringify(parsedResult, null, 2)
-        : null;
+  const resultContent = formatToolResult(toolCall.result);
 
   return (
     <View style={{ flexDirection: "row", gap: spacing.sm }}>

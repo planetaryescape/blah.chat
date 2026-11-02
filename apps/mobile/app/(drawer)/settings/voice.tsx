@@ -1,20 +1,36 @@
+import { toast } from "burnt";
 import { useRouter } from "expo-router";
-import { ArrowLeft } from "lucide-react-native";
-import { useCallback } from "react";
+import { ArrowLeft, Check } from "lucide-react-native";
+import { useCallback, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SettingsRow } from "@/components/settings/SettingsRow";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { haptic } from "@/lib/haptics";
+import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { usePreferences } from "@/lib/hooks/usePreferences";
 import { useUpdatePreference } from "@/lib/hooks/useUpdatePreference";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
+import { TTS_VOICE_OPTIONS } from "@/lib/tts";
 
 export default function VoiceSettingsScreen() {
   const router = useRouter();
   const prefs = usePreferences();
   const updatePref = useUpdatePreference();
+  const [isVoicePickerOpen, setIsVoicePickerOpen] = useState(false);
+  const { run: selectVoice, isPending: isUpdatingVoice } = useAsyncAction(
+    async (voice: string) => {
+      await updatePref("ttsVoice", voice);
+      setIsVoicePickerOpen(false);
+      haptic.success();
+    },
+    {
+      onError: () => {
+        toast({ preset: "error", title: "Failed to change voice" });
+      },
+    },
+  );
 
   const handleToggle = useCallback(
     (key: string) => (value: boolean) => {
@@ -101,11 +117,49 @@ export default function VoiceSettingsScreen() {
               <SettingsRow
                 variant="value"
                 label="Voice"
-                value={prefs.ttsVoice.replace("aura-", "").replace("-en", "")}
+                value={
+                  TTS_VOICE_OPTIONS.find(
+                    (voice) => voice.value === prefs.ttsVoice,
+                  )?.label ?? prefs.ttsVoice
+                }
                 onPress={() => {
-                  // TODO: Voice picker bottom sheet
+                  haptic.light();
+                  setIsVoicePickerOpen((open) => !open);
                 }}
               />
+              {isVoicePickerOpen &&
+                TTS_VOICE_OPTIONS.map((voice) => (
+                  <TouchableOpacity
+                    key={voice.value}
+                    disabled={isUpdatingVoice}
+                    accessibilityRole="radio"
+                    accessibilityState={{
+                      selected: voice.value === prefs.ttsVoice,
+                      disabled: isUpdatingVoice,
+                    }}
+                    onPress={() => {
+                      void selectVoice(voice.value);
+                    }}
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      paddingHorizontal: spacing.md,
+                      paddingVertical: spacing.sm,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: typography.body,
+                        color: palette.starlight,
+                      }}
+                    >
+                      {voice.label}
+                    </Text>
+                    {voice.value === prefs.ttsVoice && (
+                      <Check size={16} color={palette.roseQuartz} />
+                    )}
+                  </TouchableOpacity>
+                ))}
               <View
                 style={{
                   height: 1,

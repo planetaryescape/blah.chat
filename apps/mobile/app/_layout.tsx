@@ -37,6 +37,7 @@ import { persister, queryClient } from "@/lib/cache/queryClient";
 import { tokenCache } from "@/lib/clerk";
 import { getRuntimeConfig } from "@/lib/runtimeConfig";
 import { palette } from "@/lib/theme/designSystem";
+import { getMobileTransportError } from "@/lib/transport/mode";
 
 // Keep splash screen visible while loading fonts
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -377,12 +378,13 @@ function ClerkLoadingGate({ children }: { children: ReactNode }) {
 export default function RootLayout() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const runtimeConfig = useMemo(() => getRuntimeConfig(), []);
+  const transportError = getMobileTransportError();
   const convex = useMemo(
     () =>
-      runtimeConfig.convexUrl
+      runtimeConfig.convexUrl && !transportError
         ? new ConvexReactClient(runtimeConfig.convexUrl)
         : null,
-    [runtimeConfig.convexUrl],
+    [runtimeConfig.convexUrl, transportError],
   );
 
   console.log("[mobile][layout] RootLayout rendering", {
@@ -437,7 +439,15 @@ export default function RootLayout() {
 
   let content: ReactNode;
 
-  if (!runtimeConfig.clerkPublishableKey) {
+  if (transportError) {
+    content = (
+      <ConfigurationError
+        title="Unsupported Mobile Transport"
+        message={transportError}
+        logMessage={transportError}
+      />
+    );
+  } else if (!runtimeConfig.clerkPublishableKey) {
     console.error(
       "[mobile][layout] Missing clerkPublishableKey - showing config error",
     );

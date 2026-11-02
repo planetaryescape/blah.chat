@@ -1,4 +1,4 @@
-import { useAction, useQuery } from "convex/react";
+import { useAction, useQueries } from "convex/react";
 import { useEffect, useMemo, useRef } from "react";
 import { api } from "@/lib/convex";
 import {
@@ -18,13 +18,21 @@ type StarterSuggestionsResponse = {
 let mountCounter = 0;
 
 export function useStarterSuggestions() {
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const data = useQuery((api as any).chatSuggestions.getForCurrentUser) as
+  // useQueries returns query errors as values instead of throwing to the drawer.
+  const queries = useMemo(
+    () => ({
+      suggestions: { query: api.chatSuggestions.getForCurrentUser, args: {} },
+    }),
+    [],
+  );
+  const result = useQueries(queries).suggestions;
+  // SAFETY: the named Convex query returns this server-owned shape or an Error;
+  // useQueries deliberately exposes an untyped multi-query result map.
+  const data = (result instanceof Error ? undefined : result) as
     | StarterSuggestionsResponse
     | undefined;
 
-  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
-  const refresh = useAction((api as any).chatSuggestions.refreshForCurrentUser);
+  const refresh = useAction(api.chatSuggestions.refreshForCurrentUser);
   const refreshKeyRef = useRef<string | null>(null);
 
   // Stable cycle index per hook mount
@@ -63,6 +71,6 @@ export function useStarterSuggestions() {
     visibleSuggestions,
     generatedAt: data?.generatedAt,
     source: data?.source ?? "fallback",
-    isLoading: data === undefined,
+    isLoading: result === undefined,
   };
 }

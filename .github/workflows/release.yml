@@ -4,6 +4,16 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      promote_deployment:
+        description: "Exact staged deployment URL verified with sign-in and generation (blank stages a new build only)"
+        required: false
+        type: string
+      acknowledge_user_journeys:
+        description: "I verified sign-in, send, refresh and persisted responses on this exact deployment"
+        required: true
+        type: boolean
+        default: false
 
 concurrency:
   group: production-deploy
@@ -15,7 +25,7 @@ permissions:
 jobs:
   deploy-production:
     name: Deploy Convex and stage Vercel
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'v')
+    if: (github.event_name == 'workflow_dispatch' && inputs.promote_deployment == '') || (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v'))
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -62,7 +72,31 @@ jobs:
           vercel curl /api/v1/health --deployment "$DEPLOYMENT_URL" > health.json
           bun -e 'const h=await Bun.file("health.json").json(); if(h.data?.backend!=="convex" || h.data?.status!=="ok") process.exit(1)'
 
-      - name: Promote the tested production artifact
+      - name: Report staged artifact for manual journey verification
         env:
           DEPLOYMENT_URL: ${{ steps.stage.outputs.url }}
+        run: |
+          echo "Staged deployment: $DEPLOYMENT_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "Verify sign-in, send, refresh and persisted responses, then dispatch this workflow with that exact URL to promote." >> "$GITHUB_STEP_SUMMARY"
+
+  promote-production:
+    name: Manually promote a journey-verified artifact
+    if: github.event_name == 'workflow_dispatch' && inputs.promote_deployment != ''
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      DEPLOYMENT_URL: ${{ inputs.promote_deployment }}
+      ACKNOWLEDGE_USER_JOURNEYS: ${{ inputs.acknowledge_user_journeys }}
+    steps:
+      - name: Require explicit user-journey verification
+        run: test "$ACKNOWLEDGE_USER_JOURNEYS" = "true"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.5
+      - name: Install Vercel CLI
+        run: bun add --global vercel@56.4.0
+      - name: Promote the explicitly verified artifact without rebuilding
         run: vercel promote "$DEPLOYMENT_URL" --yes

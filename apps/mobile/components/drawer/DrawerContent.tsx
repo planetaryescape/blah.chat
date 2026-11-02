@@ -156,7 +156,7 @@ function FooterItem({
 export function DrawerContent() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const segments = useSegments();
+  const segments: readonly string[] = useSegments();
   const { user } = useUser();
   const projects = useProjects();
 

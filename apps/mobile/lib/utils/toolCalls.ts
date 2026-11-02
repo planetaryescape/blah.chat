@@ -21,23 +21,27 @@ import {
   Trash2,
   Youtube,
 } from "lucide-react-native";
+import { parseToolValue } from "./toolJson";
 
 export type ToolCallState = "executing" | "complete" | "error";
 
 export function getCallState(call: {
-  result?: string;
+  result?: unknown;
   timestamp?: number;
-  [key: string]: any;
 }): ToolCallState {
-  if (!call.result) {
+  if (call.result === undefined || call.result === null) {
     const elapsed = Date.now() - (call.timestamp ?? Date.now());
     if (elapsed > 30000) return "error";
     return "executing";
   }
-  try {
-    const parsed = JSON.parse(call.result);
-    if (parsed.error || parsed.success === false) return "error";
-  } catch {}
+  const parsed = parseToolValue(call.result);
+  if (
+    parsed &&
+    typeof parsed === "object" &&
+    (("error" in parsed && parsed.error) ||
+      ("success" in parsed && parsed.success === false))
+  )
+    return "error";
   return "complete";
 }
 

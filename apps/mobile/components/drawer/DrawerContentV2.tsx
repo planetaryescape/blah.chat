@@ -302,7 +302,7 @@ function FooterItem({
 export function DrawerContentV2({ navigation }: DrawerContentComponentProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const segments = useSegments();
+  const segments: readonly string[] = useSegments();
   const drawerStatus = useDrawerStatus();
   const { user } = useUser();
 

@@ -10,6 +10,8 @@ rendition before requesting audio. Your original message stays unchanged.
   separate playback boundaries and pauses.
 - Typed pronunciation reads decimal digits individually (`3.050` becomes
   "3 point zero five zero") and preserves signs, percentages, and version parts.
+  Dollar-delimited mathematical spans stay unchanged instead of acquiring
+  invented currency units; mathematical pronunciation remains partial.
 - Lists retain their order. Tables have a technical detail path rather than
   being replaced by a summary.
 - Code keeps a technical detail path. An optional model-selected outline quotes
@@ -34,6 +36,11 @@ speech. Deepgram receives the prepared text through its `/v1/speak` API.
 Preparation uses the shared operational model configuration only when model
 assistance is needed. Provider usage is billed and recorded; audio is not free
 because this feature is enabled.
+
+Audio usage records estimate the published pay-as-you-go rates: $0.015 per 1,000
+input characters for Aura-1 and $0.030 for Aura-2, verified against
+[Deepgram pricing](https://deepgram.com/pricing) on 2026-11-02. Discounted provider
+plans can differ. Replaying cached audio does not add another synthesis charge.
 
 BYOK does not authorize a silent fallback to application-owned credentials.
 BYOK preparation currently stays deterministic and reports the unavailable

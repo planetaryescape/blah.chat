@@ -426,7 +426,7 @@ export const list = query({
 
     return await ctx.db
       .query("messages")
-      .withIndex("by_conversation", (q) =>
+      .withIndex("by_conversation_created", (q) =>
         q.eq("conversationId", args.conversationId),
       )
       .order("asc")
@@ -458,7 +458,7 @@ export const listWithUsers = query({
 
     const messages = await ctx.db
       .query("messages")
-      .withIndex("by_conversation", (q) =>
+      .withIndex("by_conversation_created", (q) =>
         q.eq("conversationId", args.conversationId),
       )
       .order("asc")
@@ -536,9 +536,10 @@ export const listActivePathPaginated = query({
 
     return await ctx.db
       .query("messages")
-      .withIndex("by_conversation_active", (q) =>
-        q.eq("conversationId", args.conversationId).eq("isActiveBranch", true),
+      .withIndex("by_conversation_created", (q) =>
+        q.eq("conversationId", args.conversationId),
       )
+      .filter((q) => q.eq(q.field("isActiveBranch"), true))
       .paginate({
         ...args.paginationOpts,
         cursor: args.paginationOpts.cursor ?? null,
@@ -554,7 +555,7 @@ export const listInternal = internalQuery({
   handler: async (ctx, args) => {
     const messages = await ctx.db
       .query("messages")
-      .withIndex("by_conversation", (q) =>
+      .withIndex("by_conversation_created", (q) =>
         q.eq("conversationId", args.conversationId),
       )
       .order("desc") // Get most recent first
@@ -950,7 +951,7 @@ export const getLastAssistantMessage = query({
 
     return await ctx.db
       .query("messages")
-      .withIndex("by_conversation", (q) =>
+      .withIndex("by_conversation_created", (q) =>
         q.eq("conversationId", conversationId),
       )
       .filter((q) => q.eq(q.field("role"), "assistant"))

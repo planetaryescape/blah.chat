@@ -4,6 +4,12 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "env": ["NEXT_PUBLIC_*"],
+      "passThroughEnv": [
+        "CLERK_SECRET_KEY",
+        "CLERK_JWT_ISSUER_DOMAIN",
+        "RAYON_NUM_THREADS"
+      ],
       "outputs": [".next/**", "!.next/cache/**", "dist/**", ".expo/**"]
     },
     "dev": {

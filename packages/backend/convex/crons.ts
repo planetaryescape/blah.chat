@@ -83,4 +83,6 @@ crons.interval(
   internal.lib.generationLock.cleanupStaleLocks as any,
 );
 
-export default crons;
+// Initial imports must be quiescent: recovery/extraction/retention jobs must not
+// alter partially restored records. Clear the flag and redeploy after auditing.
+export default process.env.CUTOVER_PAUSE_CRONS === "true" ? cronJobs() : crons;

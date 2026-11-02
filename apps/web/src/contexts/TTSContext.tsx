@@ -102,12 +102,12 @@ export function TTSProvider({
     // account switch. Cancellation is best effort and never leaks a rejection.
     try {
       const client = new ConvexHttpClient(
-        process.env.NEXT_PUBLIC_CONVEX_URL || "",
+        process.env.NEXT_PUBLIC_CONVEX_URL ?? "",
       );
       client.setAuth(pending.token);
       void client
         .mutation(cancelNarration, { requestId: pending.requestId })
-        .catch(() => {});
+        .catch(() => undefined);
     } catch {
       // Offline/misconfigured clients still stop locally; server deadlines bound work.
     }
@@ -328,7 +328,9 @@ export function TTSProvider({
           if (!audioToken)
             throw new Error("Speech requires an authenticated session.");
           const request = new AbortController();
-          const deadline = setTimeout(() => request.abort(), 45_000);
+          const deadline = setTimeout(() => {
+            request.abort();
+          }, 45_000);
           const abort = () => {
             clearTimeout(deadline);
             request.abort();

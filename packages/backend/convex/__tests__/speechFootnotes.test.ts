@@ -6,7 +6,8 @@ describe("substantive footnote preservation", () => {
     const source = "Safe.[^1]\n\n[^1]: Not.";
     const { narration } = await prepareDeterministic(source);
     expect(narration.segments.at(-1)?.text).toBe("Footnote 1. Not.");
-    const note = narration.segments.at(-1)!;
+    const note = narration.segments.at(-1);
+    if (!note) throw new Error("Expected the substantive footnote segment");
     expect(source.slice(note.sourceStart, note.sourceEnd)).toBe("[^1]: Not.");
     expect(narration.coverage).toBe("complete");
   });

@@ -75,7 +75,7 @@ async function getNoteShareMetadata(
   try {
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
     const note = await fetchQuery(api.notes.getByShareId, { shareId });
-    if (!note || !note.isPublic) return null;
+    if (!note?.isPublic) return null;
 
     // Get full note content for description
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules

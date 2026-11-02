@@ -27,7 +27,7 @@ describe("shared model catalog seed", () => {
       contextWindow: 1000000,
       inputCost: 5,
       outputCost: 25,
-      status: "active",
+      status: "deprecated",
     });
     expect(
       models.find(
@@ -48,8 +48,21 @@ describe("shared model catalog seed", () => {
       activeModels.some((model) => model.modelId === "openai:gpt-5.1"),
     ).toBe(false);
     expect(
-      activeModels.some((model) => model.modelId === "openrouter:gpt-5.5"),
+      activeModels.some((model) => model.modelId === "openrouter:gpt-6.1-sol"),
     ).toBe(true);
+    expect(
+      activeModels.some((model) => model.modelId === "openrouter:gpt-5.5"),
+    ).toBe(false);
+    expect(
+      models.find((model) => model.modelId === "openrouter:gpt-6.1-sol"),
+    ).toMatchObject({
+      actualModelId: "openai/gpt-6.1-sol",
+      inputCost: 2,
+      outputCost: 10,
+      pricingTiers: [
+        { minInputTokens: 272000, input: 4, output: 15, cached: 0.2 },
+      ],
+    });
 
     const config = await t.run(async (ctx) =>
       ctx.db.query("autoRouterConfig").first(),

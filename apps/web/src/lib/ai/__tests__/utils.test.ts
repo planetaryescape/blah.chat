@@ -111,8 +111,10 @@ describe("calculateCost", () => {
       cachedTokens: 500_000,
     });
 
-    // Cached tokens should add to cost (if pricing.cached is defined)
-    expect(costWithCache).toBeGreaterThanOrEqual(costWithoutCache);
+    // SDK inputTokens already includes cache hits: charge those at the cached
+    // rate instead of adding a second charge on top of full-price input.
+    expect(costWithCache).toBeCloseTo(0.9625);
+    expect(costWithCache).toBeLessThan(costWithoutCache);
   });
 
   it("supports cachedInputTokens alias", () => {
@@ -153,6 +155,38 @@ describe("calculateCost", () => {
       outputTokens: 0,
     });
     expect(cost).toBe(0);
+  });
+
+  it("applies long-context rates to the entire request, including cached input and output", () => {
+    const model = "openrouter:gpt-6.1-sol";
+    expect(
+      calculateCost(model, { inputTokens: 271999, outputTokens: 1000 }),
+    ).toBeCloseTo(0.553998);
+    expect(
+      calculateCost(model, { inputTokens: 272000, outputTokens: 1000 }),
+    ).toBeCloseTo(1.103);
+    expect(
+      calculateCost(model, {
+        inputTokens: 300000,
+        outputTokens: 1000,
+        cachedInputTokens: 200000,
+      }),
+    ).toBeCloseTo(0.455);
+  });
+
+  it("keeps Haiku's lower price only below its published context threshold", () => {
+    expect(
+      calculateCost("openrouter:claude-haiku-5.5", {
+        inputTokens: 99999,
+        outputTokens: 1000,
+      }),
+    ).toBeCloseTo(0.0104999);
+    expect(
+      calculateCost("openrouter:claude-haiku-5.5", {
+        inputTokens: 100000,
+        outputTokens: 1000,
+      }),
+    ).toBeCloseTo(0.0525);
   });
 
   it("scales linearly with token count", () => {

@@ -98,6 +98,7 @@ export const seedModels = internalMutation({
         outputCost: config.pricing.output,
         cachedInputCost: config.pricing.cached,
         reasoningCost: config.pricing.reasoning,
+        pricingTiers: config.pricing.tiers,
         capabilities: config.capabilities,
         reasoningConfig: config.reasoning
           ? JSON.stringify(config.reasoning)

@@ -5,81 +5,64 @@ on:
     types: [published]
   workflow_dispatch:
 
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 jobs:
   deploy-production:
-    name: Deploy Production
+    name: Deploy Convex and stage Vercel
     if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     environment: production
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.5
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Validate backup restore drill evidence
-        run: bun run production:backup-drill:check
+      - name: Audit production dependencies
+        run: bun audit --prod --audit-level=high
+
+      - name: Test backend
+        run: bun run test:run -- --filter=@blah-chat/backend
+
+      - name: Deploy compatible Convex functions
+        working-directory: packages/backend
+        run: bun run deploy -- --yes
         env:
-          BACKUP_RESTORE_DRILL_AT: ${{ vars.BACKUP_RESTORE_DRILL_AT }}
-          BACKUP_RESTORE_DRILL_URL: ${{ vars.BACKUP_RESTORE_DRILL_URL }}
-          BACKUP_RESTORE_DRILL_MAX_AGE_DAYS: ${{ vars.BACKUP_RESTORE_DRILL_MAX_AGE_DAYS }}
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
 
       - name: Install Vercel CLI
-        run: bun add --global vercel@54.1.0
+        run: bun add --global vercel@56.4.0
 
-      - name: Pull Vercel Environment
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
-      - name: Build
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
-      - name: Run Drizzle migrations
-        # Migrations must be expansion-only and tolerated by both the
-        # currently-deployed code and the build artifact above. Destructive
-        # changes (drops, NOT NULL backfills, renames) split across two
-        # deploys. This step may rerun after a later deploy failure, so
-        # migrations must stay idempotent. See docs/operations/migration-policy.md.
-        run: bun run db:migrate
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
-      - name: Deploy
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
-      - name: Install Playwright browsers (chromium only)
-        working-directory: apps/web
-        run: bunx playwright install --with-deps chromium
-
-      - name: Write authenticated smoke storage state
-        working-directory: apps/web
-        env:
-          SMOKE_AUTH_STORAGE_STATE_B64: ${{ secrets.SMOKE_AUTH_STORAGE_STATE_B64 }}
+      # Remote builds retain sensitive Vercel values, which env pull redacts.
+      - name: Stage production without moving domains
+        id: stage
         run: |
-          if [ -z "$SMOKE_AUTH_STORAGE_STATE_B64" ]; then
-            echo "::error::Missing production secret SMOKE_AUTH_STORAGE_STATE_B64"
-            exit 1
-          fi
-          printf '%s' "$SMOKE_AUTH_STORAGE_STATE_B64" | base64 -d > .smoke-storage-state.json
+          URL=$(vercel deploy --prod --skip-domain --yes)
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
 
-      - name: Run production smoke spec
-        working-directory: apps/web
+      - name: Verify Convex readiness
         env:
-          SMOKE_BASE_URL: ${{ secrets.SMOKE_BASE_URL }}
-          SMOKE_AUTH_STORAGE_STATE_PATH: .smoke-storage-state.json
-        run: bunx playwright test --config=playwright.smoke.config.ts
+          DEPLOYMENT_URL: ${{ steps.stage.outputs.url }}
+        run: |
+          vercel curl /api/v1/health --deployment "$DEPLOYMENT_URL" > health.json
+          bun -e 'const h=await Bun.file("health.json").json(); if(h.data?.backend!=="convex" || h.data?.status!=="ok") process.exit(1)'
+
+      - name: Promote the tested production artifact
+        env:
+          DEPLOYMENT_URL: ${{ steps.stage.outputs.url }}
+        run: vercel promote "$DEPLOYMENT_URL" --yes

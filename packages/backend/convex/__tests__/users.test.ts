@@ -1,8 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { convexTest } from "../../__tests__/testSetup";
 import { api } from "../_generated/api";
 import { createMockIdentity, createTestUserData } from "../lib/test/factories";
 import schema from "../schema";
+
+const internalSecret = "test-only-webhook-secret";
+beforeEach(() => vi.stubEnv("INTERNAL_API_SECRET", internalSecret));
+afterEach(() => vi.unstubAllEnvs());
 
 describe("convex/users", () => {
   describe("getCurrentUser query", () => {
@@ -58,6 +62,7 @@ describe("convex/users", () => {
 
       // @ts-ignore - Type instantiation too deep with 94+ Convex modules
       const userId = await t.mutation(api.users.createUser, {
+        internalSecret,
         clerkId,
         email: "new@example.com",
         name: "New User",
@@ -91,6 +96,7 @@ describe("convex/users", () => {
 
       // @ts-ignore - Type instantiation too deep with 94+ Convex modules
       const userId = await t.mutation(api.users.createUser, {
+        internalSecret,
         clerkId,
         email: "different@example.com",
         name: "Different Name",
@@ -105,6 +111,7 @@ describe("convex/users", () => {
 
       // @ts-ignore - Type instantiation too deep with 94+ Convex modules
       const userId = await t.mutation(api.users.createUser, {
+        internalSecret,
         clerkId,
         email: "avatar@example.com",
         name: "Avatar User",
@@ -137,6 +144,7 @@ describe("convex/users", () => {
 
       // @ts-ignore - Type instantiation too deep with 94+ Convex modules
       await t.mutation(api.users.updateUser, {
+        internalSecret,
         clerkId,
         email: "new@example.com",
         name: "New Name",
@@ -159,6 +167,7 @@ describe("convex/users", () => {
       // @ts-ignore - Type instantiation too deep with 94+ Convex modules
       await expect(
         t.mutation(api.users.updateUser, {
+          internalSecret,
           clerkId: "non-existent",
           email: "test@example.com",
         }),
@@ -176,7 +185,7 @@ describe("convex/users", () => {
       });
 
       // @ts-ignore - Type instantiation too deep with 94+ Convex modules
-      await t.mutation(api.users.deleteUser, { clerkId });
+      await t.mutation(api.users.deleteUser, { clerkId, internalSecret });
 
       const user = await t.run(async (ctx) => {
         return await ctx.db
@@ -193,7 +202,10 @@ describe("convex/users", () => {
 
       // @ts-ignore - Type instantiation too deep with 94+ Convex modules
       await expect(
-        t.mutation(api.users.deleteUser, { clerkId: "non-existent" }),
+        t.mutation(api.users.deleteUser, {
+          clerkId: "non-existent",
+          internalSecret,
+        }),
       ).rejects.toThrow("User not found");
     });
   });
@@ -214,7 +226,9 @@ describe("convex/users", () => {
       });
 
       // @ts-ignore - Type instantiation too deep with 94+ Convex modules
-      const user = await t.query(api.users.getUserByClerkId, { clerkId });
+      const user = await t
+        .withIdentity({ subject: clerkId })
+        .query(api.users.getUserByClerkId, { clerkId });
 
       expect(user?.email).toBe("lookup@example.com");
     });
@@ -223,11 +237,68 @@ describe("convex/users", () => {
       const t = convexTest(schema);
 
       // @ts-ignore - Type instantiation too deep with 94+ Convex modules
-      const user = await t.query(api.users.getUserByClerkId, {
-        clerkId: "non-existent",
-      });
+      const user = await t
+        .withIdentity({ subject: "non-existent" })
+        .query(api.users.getUserByClerkId, {
+          clerkId: "non-existent",
+        });
 
       expect(user).toBeNull();
+    });
+
+    it("does not disclose another account by its Clerk ID", async () => {
+      const t = convexTest(schema);
+      await t.run((ctx) =>
+        ctx.db.insert("users", createTestUserData({ clerkId: "victim" })),
+      );
+      await expect(
+        t.query(api.users.getUserByClerkId, { clerkId: "victim" }),
+      ).rejects.toThrow("Unauthorized");
+      await expect(
+        t
+          .withIdentity({ subject: "attacker" })
+          .query(api.users.getUserByClerkId, { clerkId: "victim" }),
+      ).rejects.toThrow("Unauthorized");
+    });
+  });
+
+  describe("webhook authorization", () => {
+    it("rejects forged account creation and fails closed without configuration", async () => {
+      const t = convexTest(schema);
+      const user = {
+        clerkId: "forged",
+        email: "forged@example.com",
+        name: "Forged",
+      };
+      await expect(t.mutation(api.users.createUser, user)).rejects.toThrow(
+        "Unauthorized webhook",
+      );
+      await expect(
+        t.mutation(api.users.createUser, { ...user, internalSecret: "wrong" }),
+      ).rejects.toThrow("Unauthorized webhook");
+      vi.stubEnv("INTERNAL_API_SECRET", "");
+      await expect(
+        t.mutation(api.users.createUser, { ...user, internalSecret }),
+      ).rejects.toThrow("Unauthorized webhook");
+      expect(await t.run((ctx) => ctx.db.query("users").collect())).toEqual([]);
+    });
+
+    it("does not allow a signed-in user to forge an account update or deletion", async () => {
+      const t = convexTest(schema);
+      const id = await t.run((ctx) =>
+        ctx.db.insert("users", createTestUserData({ clerkId: "victim" })),
+      );
+      const attacker = t.withIdentity({ subject: "attacker" });
+      await expect(
+        attacker.mutation(api.users.updateUser, {
+          clerkId: "victim",
+          name: "Changed",
+        }),
+      ).rejects.toThrow("Unauthorized webhook");
+      await expect(
+        attacker.mutation(api.users.deleteUser, { clerkId: "victim" }),
+      ).rejects.toThrow("Unauthorized webhook");
+      expect(await t.run((ctx) => ctx.db.get(id))).not.toBeNull();
     });
   });
 

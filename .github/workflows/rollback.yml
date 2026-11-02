@@ -3,54 +3,36 @@ name: Rollback
 on:
   workflow_dispatch:
     inputs:
-      tag:
-        description: "Git tag to rollback to (e.g., v0.1.0)"
+      deployment:
+        description: "Previously verified Vercel production deployment URL or ID"
         required: true
         type: string
-      skip_migration_warning:
-        description: "Acknowledge that database migrations are NOT rolled back automatically"
+      acknowledge_database:
+        description: "Database changes are not reversed; verify backend compatibility first"
         required: true
         type: boolean
         default: false
 
+permissions:
+  contents: read
+
 jobs:
   rollback-vercel:
-    name: Rollback Vercel Production
     runs-on: ubuntu-latest
     environment: production
-
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      DEPLOYMENT: ${{ inputs.deployment }}
+      ACKNOWLEDGE_DATABASE: ${{ inputs.acknowledge_database }}
     steps:
-      - name: Warn about database migrations
-        if: ${{ !inputs.skip_migration_warning }}
-        run: |
-          echo "::error::Database migrations are NOT automatically reversed during rollback."
-          echo "::error::If the release added new columns/tables, the old app code must be compatible with the new schema."
-          echo "::error::If rollback requires schema changes, apply them manually via 'bun run db:push' or a new migration."
-          echo "::error::Set 'skip_migration_warning' to true to acknowledge and proceed."
-          exit 1
-
-      - name: Checkout code at tag
-        uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
         with:
-          ref: ${{ inputs.tag }}
-
+          bun-version: 1.3.5
+      - name: Require backend compatibility acknowledgement
+        run: test "$ACKNOWLEDGE_DATABASE" = "true"
       - name: Install Vercel CLI
-        run: npm install -g vercel
-
-      - name: Pull Vercel Environment
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
-      - name: Build
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
-      - name: Deploy
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: bun add --global vercel@56.4.0
+      - name: Restore the existing artifact without rebuilding or migrating data
+        run: vercel rollback "$DEPLOYMENT" --yes

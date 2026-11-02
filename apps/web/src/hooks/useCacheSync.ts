@@ -343,11 +343,12 @@ export function useMetadataCacheSync(messageIds: Id<"messages">[]) {
       cache,
       metadata,
       () => active && getActiveCache() === cache,
+      stableIds,
     ).catch(console.error);
     return () => {
       active = false;
     };
-  }, [cache, metadata, messagePresence]);
+  }, [cache, metadata, messagePresence, stableIds]);
 }
 
 interface ConversationCacheSyncOptions {

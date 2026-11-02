@@ -75,6 +75,7 @@ How-to references.
 - [System Prompts](./guides/system-prompts.md) - Prompt engineering
 - [Logging](./guides/logging.md) - Pino logging setup
 - [Key Features](./guides/key-features.md) - Feature overview
+- [Restore Postgres into Convex](./migrations/restore-postgres-to-convex.md) - Private, admin-only two-pass import
 
 ---
 

@@ -6,9 +6,15 @@ import {
   modelProfilesTable,
   modelsTable,
 } from "./schema/models";
+import {
+  postgresRestoreRows,
+  postgresRestoreRuns,
+} from "./schema/postgresRestore";
 import { routingExamplesTable, routingFeedbackTable } from "./schema/routing";
 
 export default defineSchema({
+  postgresRestoreRows,
+  postgresRestoreRuns,
   // AI Model Management (DB-backed configuration)
   models: modelsTable,
   modelHistory: modelHistoryTable,

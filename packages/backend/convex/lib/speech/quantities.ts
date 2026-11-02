@@ -76,11 +76,24 @@ function readPlainQuantities(text: string): string {
 export function readQuantities(text: string): string {
   let cursor = 0;
   let spoken = "";
-  for (const match of text.matchAll(/\$\$[\s\S]+?\$\$|\$[^$\n]+?\$/g)) {
+  const delimiters = /\$\$[\s\S]+?\$\$|\$[^$\n]+?\$/g;
+  while (true) {
+    const match = delimiters.exec(text);
+    if (!match) break;
     const end = match.index + match[0].length;
+    const content = match[0].slice(1, -1).trim().replace(/^[+-]/, "");
+    const mathematical =
+      /[+*/^=\\{}-]/.test(content) || /^[\w.]+$/.test(content);
     // A dollar directly before another price is a currency opener, not a math closer.
-    if (!match[0].startsWith("$$") && /^[+-]?\d/.test(text.slice(end)))
+    if (
+      !match[0].startsWith("$$") &&
+      /^[+-]?\d/.test(text.slice(end)) &&
+      !mathematical
+    ) {
+      // Reconsider this delimiter as an opener; it may begin actual math after a price.
+      delimiters.lastIndex = end - 1;
       continue;
+    }
     spoken += readPlainQuantities(text.slice(cursor, match.index)) + match[0];
     cursor = end;
   }

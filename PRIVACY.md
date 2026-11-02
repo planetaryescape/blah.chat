@@ -176,8 +176,12 @@ Each has their own privacy policy. These are optional - disable if not needed.
 bunx convex export --output backup.json
 ```
 
-**Delete all data**:
-Delete your Convex project = all data permanently deleted.
+**Delete data from every store**:
+Deleting a Convex project removes that deployment's data, not copies elsewhere.
+If you migrated from Postgres, separately handle the retained Postgres database,
+private migration snapshots, file-backed knowledge sources, and legacy TTS caches.
+These are retained for rollback; account deletion in Convex does not erase them.
+Also apply your retention policy to exports, backups, and provider-held data.
 
 ---
 
@@ -212,8 +216,8 @@ Each is GDPR-compliant, but **you** are responsible for contracts (DPAs).
 ### User Rights
 
 Users of your instance can request:
-- **Access**: Export their data (`bunx convex export`)
-- **Deletion**: Delete user account (deletes all associated data)
+- **Access**: Use the authenticated `/api/export` endpoint for the requesting user's conversations. A deployment-wide `bunx convex export` is an operator backup, never a user access-request response. Handle other user-owned records through a scoped operator process; do not send an unfiltered backup.
+- **Deletion**: Delete the user's account and live owned records, then separately process retained Postgres data, migration snapshots, exports, and backups under the instance's retention policy.
 - **Portability**: Export in JSON format (machine-readable)
 - **Rectification**: Edit profile, preferences
 

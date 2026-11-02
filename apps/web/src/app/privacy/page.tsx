@@ -40,16 +40,17 @@ export default function PrivacyPage() {
                 can export or delete anytime.
               </li>
               <li>
-                <strong>BYOK</strong>: Your API keys go directly to providers.
-                We never store them.
+                <strong>BYOK</strong>: We encrypt and store your API keys on the
+                server, then decrypt them to authenticate requests to providers.
               </li>
               <li>
                 <strong>BYOD</strong>: Your data stays in your Convex database.
                 We only store operational data.
               </li>
               <li>
-                <strong>Self-hosted</strong>: You control everything. Nothing
-                leaves your infrastructure.
+                <strong>Self-hosted</strong>: You control the deployment.
+                Configured authentication and AI providers still receive data
+                needed to deliver their services.
               </li>
             </ul>
           </div>
@@ -73,10 +74,15 @@ export default function PrivacyPage() {
 
           <h3>What We Don't Collect</h3>
           <ul>
-            <li>Your API keys (BYOK mode - sent directly to providers)</li>
             <li>Browsing history or tracking cookies</li>
             <li>Data from your personal Convex database (BYOD mode)</li>
           </ul>
+
+          <p>
+            BYOK API keys are encrypted and stored server-side in Convex. The
+            backend decrypts them when authenticating requests to your selected
+            provider.
+          </p>
 
           <h2>How We Use Your Data</h2>
           <ul>

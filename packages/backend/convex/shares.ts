@@ -318,7 +318,8 @@ export const getByConversation = query({
       return null;
     }
 
-    return share;
+    const { password, ...publicFields } = share;
+    return { ...publicFields, requiresPassword: !!password };
   },
 });
 
@@ -333,7 +334,10 @@ export const list = query({
       .order("desc")
       .collect();
 
-    return shares;
+    return shares.map(({ password, ...publicFields }) => ({
+      ...publicFields,
+      requiresPassword: !!password,
+    }));
   },
 });
 

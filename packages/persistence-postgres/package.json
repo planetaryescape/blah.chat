@@ -35,7 +35,7 @@
     "@aws-sdk/s3-request-presigner": "3.1053.0",
     "@neondatabase/serverless": "^1.0.2",
     "@upstash/redis": "^1.35.6",
-    "drizzle-orm": "0.45.2",
+    "drizzle-orm": "0.45.3",
     "nanoid": "^5.1.6",
     "pg": "^8.20.0",
     "zod": "^4.2.1"
@@ -45,7 +45,7 @@
     "@types/node": "^25.0.10",
     "@types/pg": "^8.20.0",
     "@vitest/coverage-v8": "4.1.7",
-    "drizzle-kit": "0.31.10",
+    "drizzle-kit": "0.31.11",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
     "vitest": "4.1.7"

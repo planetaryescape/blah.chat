@@ -1,4 +1,5 @@
 import { marked, type Token, type Tokens } from "marked";
+import { readQuantities } from "./quantities";
 import type { PreparedNarration, SpeechSegment } from "./types";
 
 export const SPEECH_LIMITS = {
@@ -143,7 +144,7 @@ export async function prepareDeterministic(
     pauseAfterMs = 250,
     headingLevel?: number,
   ) => {
-    for (const [index, chunk] of splitSpeech(value).entries()) {
+    for (const [index, chunk] of splitSpeech(readQuantities(value)).entries()) {
       const segment: SpeechSegment = {
         ...mapping,
         id: `${mapping.blockId}:${narration.segments.length}:${index}`,
@@ -384,7 +385,7 @@ export async function prepareDeterministic(
           );
         if (
           /\\[a-zA-Z]+|\\[()[\]]|\$[^$\n]+\$|\([^\n)]*[+*/=][^\n)]*\)|\b\w+\s*[+*/^=]\s*\w+/.test(
-            token.raw,
+            value,
           )
         ) {
           narration.coverage = "partial";

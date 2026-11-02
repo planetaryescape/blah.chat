@@ -10,6 +10,7 @@ import {
   splitSpeech,
   validateNarration,
 } from "../lib/speech/prepare";
+import { readQuantities } from "../lib/speech/quantities";
 import {
   audioCacheHash,
   MAX_AUDIO_BYTES,
@@ -42,6 +43,24 @@ afterEach(() => {
 });
 
 describe("faithful structural narration", () => {
+  it("pronounces precision, signs, units and version components without guessing dates or math delimiters", () => {
+    expect(
+      readQuantities("-1.20 and 3.050; -0.5%; $3.050; $-1.20; v1.2.3; Q1."),
+    ).toBe(
+      "minus 1 point two zero and 3 point zero five zero; minus 0 point five percent; 3 point zero five zero dollars; minus 1 point two zero dollars; v one dot two dot three; Q one.",
+    );
+    expect(
+      readQuantities(
+        "Keep 01/02/2023, 2025-2026, user_id, 1e-5 and $3.050$ unchanged.",
+      ),
+    ).toBe("Keep 01/02/2023, 2025-2026, user_id, 1e-5 and $3.050$ unchanged.");
+    expect(readQuantities("ordinary prose and 100 ms")).toBe(
+      "ordinary prose and 100 ms",
+    );
+    expect(readQuantities("The final value is -1.20.")).toBe(
+      "The final value is minus 1 point two zero.",
+    );
+  });
   it("maps CRLF, Unicode and significant tabs back to original UTF-16 offsets", async () => {
     const source =
       "# 😀 Heading\r\n\r\n```py\r\n\treturn False\r\n```\r\n\r\nFinal.";
@@ -75,7 +94,7 @@ describe("faithful structural narration", () => {
       narration.segments.find((s) => s.kind === "heading")?.headingLevel,
     ).toBe(2);
     expect(narration.segments.map((s) => s.text).join(" ")).toContain(
-      "Row 1, A; column 2, Actual: -3.050",
+      "Row 1, A; column 2, Actual: minus 3 point zero five zero",
     );
     expect(narration.segments.map((s) => s.text).join(" ")).toContain(
       "return false",
@@ -92,7 +111,7 @@ describe("faithful structural narration", () => {
     const { narration } = await prepareDeterministic(source);
     expect(narration.segments.map((s) => s.text)).toEqual([
       "TL;DR",
-      "Do not remove -0.5%, $3.050, or v1.2.3.",
+      "Do not remove minus 0 point five percent, 3 point zero five zero dollars, or v one dot two dot three.",
       "Next",
       "Distinctive final sentence.",
     ]);
@@ -100,10 +119,16 @@ describe("faithful structural narration", () => {
     expect(narration.segments[2].headingLevel).toBe(2);
     expect(narration.segments[0].pauseAfterMs).toBeGreaterThan(0);
     expect(narration.coverage).toBe("complete");
-    for (const segment of narration.segments)
+    for (const segment of narration.segments.filter(
+      (s) => s.kind === "heading",
+    ))
       expect(source.slice(segment.sourceStart, segment.sourceEnd)).toContain(
         segment.text,
       );
+    const quantities = narration.segments[1];
+    expect(
+      source.slice(quantities.sourceStart, quantities.sourceEnd),
+    ).toContain("Do not remove -0.5%, $3.050, or v1.2.3.");
     expect((await prepareDeterministic(source)).narration).toEqual(narration);
   });
   it("reads every table value with complete row/column context and blank not zero", async () => {
@@ -111,12 +136,16 @@ describe("faithful structural narration", () => {
       "| Account | Actual USD | Forecast USD |\n|---|---|---|\n| A | -3.050 | |\n| B | 0 | 12.00 |\n\nNever an estimate.",
     );
     const text = narration.segments.map((s) => s.text).join("\n");
-    expect(text).toContain("Row 1, A; column 2, Actual USD: -3.050");
+    expect(text).toContain(
+      "Row 1, A; column 2, Actual USD: minus 3 point zero five zero",
+    );
     expect(text).toContain(
       "Row 1, A; column 3, Forecast USD: blank (no value)",
     );
     expect(text).toContain("Row 2, B; column 2, Actual USD: 0");
-    expect(text).toContain("Row 2, B; column 3, Forecast USD: 12.00");
+    expect(text).toContain(
+      "Row 2, B; column 3, Forecast USD: 12 point zero zero",
+    );
     expect(text.endsWith("Never an estimate.")).toBe(true);
   });
   it("retains code identifiers, operators, literals, indentation, negation and return to body", async () => {
@@ -139,7 +168,7 @@ describe("faithful structural narration", () => {
     for (const value of [
       "Header",
       "First",
-      "Nested negative -3",
+      "Nested negative minus 3",
       "Second",
       "Final.",
     ])
@@ -158,12 +187,20 @@ describe("faithful structural narration", () => {
     );
     const text = narration.segments.map((s) => s.text).join(" ");
     expect(text).toContain("Meaningful label");
-    expect(text).toContain("Loss is -3.050");
+    expect(text).toContain("Loss is minus 3 point zero five zero");
     expect(text).toContain("Visual content unavailable");
     expect(text).toContain("ignore previous instructions");
     expect(text).not.toContain("<script>");
     expect(narration.coverage).toBe("partial");
     expect(fetch).not.toHaveBeenCalled();
+  });
+  it("does not classify link destinations as mathematical notation", async () => {
+    const { narration } = await prepareDeterministic(
+      "[Read the guide](https://example.org/guide/read).",
+    );
+    expect(narration.coverage).toBe("complete");
+    expect(narration.segments.map((s) => s.text)).toEqual(["Read the guide."]);
+    expect(narration.warnings).toEqual([]);
   });
   it("splits losslessly and surrogate-safely; rejects source/block/output limits, never truncates", async () => {
     const value = `${"a".repeat(1799)}😀${"x ".repeat(4000)}`;

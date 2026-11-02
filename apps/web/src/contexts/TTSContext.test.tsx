@@ -191,7 +191,7 @@ describe("prepared private narration", () => {
     expect(JSON.parse(init.body)).toEqual({
       text: "Prepared heading",
       voice: "voice-a",
-      speed: 1.25,
+      speed: 1,
     });
     expect(result.current.state.activeSegment).toEqual(segment("heading", 450));
     expect(result.current.state.sourceHash).toBe("revision");
@@ -234,6 +234,7 @@ describe("prepared private narration", () => {
     speak(result);
     await flush();
     expect(result.current.state.warning).toContain("Partial narration");
+    expect(result.current.state.warning).toContain("Missing image");
     expect(mocks.warning).toHaveBeenCalled();
   });
 
@@ -658,7 +659,7 @@ describe("failure and controls", () => {
     expect(audio.play).toHaveBeenCalledTimes(2);
     await endAudio(0, 450);
     expect(MockAudio.instances[1].playbackRate).toBe(2);
-    expect(JSON.parse(mocks.fetch.mock.calls[1][1].body).speed).toBe(1.25);
+    expect(JSON.parse(mocks.fetch.mock.calls[1][1].body).speed).toBe(1);
   });
 
   it("source mapping survives one block with multiple detail segments", async () => {

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { query } from "../_generated/server";
+import { getMonthlySpend } from "../lib/monthlyBudget";
 import { getCurrentUser } from "../lib/userSync";
 
 export const checkBudget = query({
@@ -29,18 +30,7 @@ export const checkBudget = query({
       };
     }
 
-    // Get current month records
-    const now = new Date();
-    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-
-    const records = await ctx.db
-      .query("usageRecords")
-      .withIndex("by_user_date", (q) =>
-        q.eq("userId", args.userId).gte("date", monthStart),
-      )
-      .collect();
-
-    const totalSpend = records.reduce((sum, r) => sum + r.cost, 0);
+    const totalSpend = await getMonthlySpend(ctx, user._id);
     const percentUsed = totalSpend / monthlyBudget;
 
     return {

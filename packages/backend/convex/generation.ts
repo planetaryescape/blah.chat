@@ -34,6 +34,8 @@ import {
   classifyStreamingError,
   detectCreditsError,
   estimateWastedCost,
+  getProviderStatusCode,
+  getUserFriendlyMessage,
 } from "./lib/errorTracking";
 import { logger } from "./lib/logger";
 import type { MemoryExtractionLevel } from "./lib/prompts/operational/memoryExtraction";
@@ -815,6 +817,9 @@ export const generateResponse = internalAction({
       const result = streamText({
         ...options,
         abortSignal: abortController.signal,
+        // fullStream below owns error handling. The SDK's default handler logs
+        // raw request/response objects, which can contain private conversation data.
+        onError: () => {},
       });
       let lastUpdate = Date.now();
       let lastReasoningUpdate = Date.now();
@@ -840,6 +845,16 @@ export const generateResponse = internalAction({
             break;
           }
           lastStopCheck = now;
+        }
+
+        // AI SDK streams provider failures as values; it does not necessarily
+        // throw. Ignoring these replaces the cause with NoOutputGenerated when
+        // usage is read after the stream ends.
+        if (chunk.type === "error") {
+          abortController.abort();
+          throw chunk.error instanceof Error
+            ? chunk.error
+            : new Error("The AI provider returned a streaming error.");
         }
 
         // Handle tool invocations for loading state
@@ -1606,25 +1621,13 @@ export const generateResponse = internalAction({
         });
       }
 
-      // Extract and log full responseBody from gateway errors for debugging
+      // Keep metadata, not raw response bodies/headers or request prompts.
       const causeObj = (error as any)?.cause || {};
-      if (causeObj.responseBody) {
-        try {
-          const parsedBody = JSON.parse(causeObj.responseBody);
-          logger.error("Full gateway error", {
-            tag: "Generation",
-            statusCode: causeObj.statusCode || (error as any).statusCode,
-            model: args.modelId,
-            errorMessage: parsedBody?.error?.message,
-            fullResponse: parsedBody,
-          });
-        } catch {
-          logger.error("Raw gateway responseBody", {
-            tag: "Generation",
-            responseBody: causeObj.responseBody,
-          });
-        }
-      }
+      logger.error("Provider failure", {
+        tag: "Generation",
+        statusCode: getProviderStatusCode(error),
+        model: modelId,
+      });
 
       // Classify error type for AI-specific tracking
       const errorType =
@@ -1819,10 +1822,17 @@ export const generateResponse = internalAction({
       if (error instanceof Error) {
         const errorStr = error.message || "";
         const errorName = error.name || "";
-        const causeStr = JSON.stringify((error as any).cause || {});
+        const causeStr =
+          typeof causeObj.responseBody === "string"
+            ? causeObj.responseBody
+            : String(causeObj.message ?? "");
 
         // Model switch not allowed (Gemini thought signature requirement)
-        if (errorStr.includes("MODEL_SWITCH_NOT_ALLOWED")) {
+        if (
+          ["auth_error", "credits_exhausted", "rate_limit"].includes(errorType)
+        ) {
+          userMessage = getUserFriendlyMessage(errorType);
+        } else if (errorStr.includes("MODEL_SWITCH_NOT_ALLOWED")) {
           userMessage =
             "Gemini 3 Pro Image cannot be used mid-conversation because it requires special message formatting from the start. Please start a new chat to use this model.";
         }
@@ -1912,9 +1922,14 @@ export const generateResponse = internalAction({
         ) {
           // Try to extract a readable message from the gateway error
           const causeObj = (error as any).cause || {};
-          const innerMessage = causeObj.responseBody
-            ? JSON.parse(causeObj.responseBody)?.error?.message
-            : null;
+          let innerMessage: string | undefined;
+          try {
+            const parsed = JSON.parse(causeObj.responseBody ?? "{}");
+            if (typeof parsed?.error?.message === "string")
+              innerMessage = parsed.error.message;
+          } catch {
+            // Non-JSON gateway responses still need a durable error and lock release.
+          }
           if (innerMessage && innerMessage.length < 200) {
             userMessage = innerMessage;
           } else {

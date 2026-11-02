@@ -18,6 +18,10 @@ describe("restored model catalog", () => {
   beforeEach(() => {
     vi.stubEnv("GROQ_API_KEY", "test-groq-key");
     vi.stubEnv("CEREBRAS_API_KEY", "test-cerebras-key");
+    vi.stubEnv(
+      "OPENROUTER_API_KEY",
+      "test-openrouter-key-not-used-for-network",
+    );
   });
   afterEach(() => vi.unstubAllEnvs());
 

@@ -89,29 +89,47 @@ export async function captureException(
   }
 }
 
-/**
- * Detect "out of credits" errors from API providers
- * Checks both status codes and error message keywords
- */
-export function detectCreditsError(error: any): boolean {
-  const errorStr = String(error.message || error).toLowerCase();
+/** Read HTTP status from SDK errors or wrapped causes without serializing them. */
+export function getProviderStatusCode(error: unknown): number | undefined {
+  const seen = new Set<unknown>();
+  let current = error;
+  while (current && typeof current === "object" && !seen.has(current)) {
+    seen.add(current);
+    const statusCode = "statusCode" in current ? current.statusCode : undefined;
+    const status =
+      statusCode ?? ("status" in current ? current.status : undefined);
+    if (typeof status === "number") return status;
+    current = "cause" in current ? current.cause : undefined;
+  }
+  return undefined;
+}
 
-  // Check status codes
-  const hasPaymentStatusCode =
-    error.status === 402 || // Payment Required
-    error.status === 429; // Too Many Requests (rate limit)
+/** Recognize payment/quota failures, not ordinary rate-limit responses. */
+export function detectCreditsError(error: unknown): boolean {
+  const errorStr = String(
+    error instanceof Error ? error.message : error,
+  ).toLowerCase();
+  const status = getProviderStatusCode(error);
+  // Authentication failures and ordinary throttling are not exhausted credits.
+  if (status === 401 || status === 403) return false;
+  if (
+    status === 429 &&
+    !/insufficient[_ ](?:quota|credits|funds)|out of credits|credit balance|exceeded your current quota/.test(
+      errorStr,
+    )
+  )
+    return false;
 
   // Check error message keywords
   const hasCreditKeywords =
     errorStr.includes("credit") ||
     errorStr.includes("quota") ||
-    errorStr.includes("limit exceeded") ||
-    errorStr.includes("insufficient") ||
+    errorStr.includes("insufficient funds") ||
     errorStr.includes("balance") ||
-    errorStr.includes("exceeded your");
+    errorStr.includes("billing limit");
 
   // Combine both signals
-  return hasPaymentStatusCode || hasCreditKeywords;
+  return status === 402 || hasCreditKeywords;
 }
 
 /**
@@ -119,6 +137,12 @@ export function detectCreditsError(error: any): boolean {
  */
 export function classifyStreamingError(error: Error): string {
   const message = error.message.toLowerCase();
+  const status = getProviderStatusCode(error);
+  if (status === 401 || status === 403) return "auth_error";
+  if (detectCreditsError(error)) return "credits_exhausted";
+  if (status === 429) return "rate_limit";
+  if (status === 404) return "model_not_found";
+  if (status !== undefined && status >= 500) return "gateway_error";
 
   if (message.includes("timeout") || message.includes("timed out")) {
     return "network_timeout";
@@ -135,7 +159,11 @@ export function classifyStreamingError(error: Error): string {
   if (message.includes("context") || message.includes("maximum")) {
     return "context_exceeded";
   }
-  if (message.includes("authentication") || message.includes("unauthorized")) {
+  if (
+    message.includes("authentication") ||
+    message.includes("unauthorized") ||
+    message.includes("api key")
+  ) {
     return "auth_error";
   }
   if (message.includes("gateway") || message.includes("upstream")) {
@@ -220,7 +248,9 @@ export function getUserFriendlyMessage(errorType: string): string {
     context_exceeded:
       "Your conversation is too long for this model. Try starting a new conversation or using a model with a larger context window.",
     auth_error:
-      "Authentication failed. Please check your API key configuration.",
+      "The AI provider's API key is missing or invalid. Check your API key settings if using your own key, or contact support. You can also select a different model.",
+    credits_exhausted:
+      "The AI provider has insufficient credits. Check provider billing if using your own key, or contact support. You can also select a different model.",
     gateway_error:
       "We're experiencing issues connecting to the AI service. Please try again.",
     model_not_found:

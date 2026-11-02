@@ -11,14 +11,14 @@ pre-commit:
       stage_fixed: true
     typecheck:
       glob: "*.{ts,tsx}"
-      run: bun run typecheck
+      run: "if command -v agent-work >/dev/null 2>&1; then agent-work run -- bun run typecheck -- --filter=@blah-chat/web --concurrency=4; else bun run typecheck -- --filter=@blah-chat/web --concurrency=4; fi"
     byod-schema-sync:
       glob: "{apps/web/src/lib/byod,packages/backend/convex/schema,packages/shared/src/byod}/**/*.ts"
       run: bun run byod:sync
       stage_fixed: true
 
-# Pre-push: Run full build to ensure it doesn't break
+# Validate the deployable web app, not native/mobile release artifacts.
 pre-push:
   commands:
     build:
-      run: bun run build
+      run: "if command -v agent-work >/dev/null 2>&1; then agent-work run -- bun run build -- --filter=@blah-chat/web --concurrency=4; else bun run build -- --filter=@blah-chat/web --concurrency=4; fi"

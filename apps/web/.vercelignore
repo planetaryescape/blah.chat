@@ -10,8 +10,7 @@ e2e
 *.md
 !README.md
 
-# Build artifacts from other packages
-../../packages/backend/convex/_generated
+# Generated Convex API modules are source dependencies of the web app.
 
 # IDE/Editor
 .vscode

@@ -1,0 +1,15 @@
+.git
+.env
+.env.*
+**/.env
+**/.env.*
+**/node_modules
+**/.next
+**/.turbo
+**/target
+**/.build
+**/coverage
+**/test-results
+**/playwright-report
+**/.smoke-storage-state.json
+**/*.log

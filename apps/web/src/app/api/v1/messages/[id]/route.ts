@@ -11,13 +11,18 @@ async function getHandler(
   {
     params,
     userId,
-  }: { params: Promise<Record<string, string | string[]>>; userId: string },
+    sessionToken,
+  }: {
+    params: Promise<Record<string, string | string[]>>;
+    userId: string;
+    sessionToken: string;
+  },
 ) {
   const { id } = (await params) as { id: string };
   const startTime = performance.now();
   logger.debug({ userId, messageId: id }, "GET /api/v1/messages/:id");
 
-  const result = await messagesDAL.get(userId, id);
+  const result = await messagesDAL.get(userId, id, sessionToken);
 
   const duration = performance.now() - startTime;
   trackAPIPerformance({
@@ -39,13 +44,18 @@ async function deleteHandler(
   {
     params,
     userId,
-  }: { params: Promise<Record<string, string | string[]>>; userId: string },
+    sessionToken,
+  }: {
+    params: Promise<Record<string, string | string[]>>;
+    userId: string;
+    sessionToken: string;
+  },
 ) {
   const { id } = (await params) as { id: string };
   const startTime = Date.now();
   logger.info({ userId, messageId: id }, "DELETE /api/v1/messages/:id");
 
-  await messagesDAL.delete(userId, id);
+  await messagesDAL.delete(userId, id, sessionToken);
 
   const duration = Date.now() - startTime;
   logger.info({ userId, messageId: id, duration }, "Message deleted");

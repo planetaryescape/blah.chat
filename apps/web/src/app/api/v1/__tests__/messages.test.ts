@@ -106,7 +106,11 @@ describe("/api/v1/conversations/[id]/messages", () => {
       const req = createMockRequest("/api/v1/conversations/conv-456/messages");
       await GET(req, { params: Promise.resolve({ id: "conv-456" }) });
 
-      expect(messagesDAL.list).toHaveBeenCalledWith("test-user-id", "conv-456");
+      expect(messagesDAL.list).toHaveBeenCalledWith(
+        "test-user-id",
+        "conv-456",
+        "test-session-token",
+      );
     });
 
     it("includes cache headers", async () => {

@@ -1,9 +1,6 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import {
-  getAuthenticatedConvexClient,
-  getConvexClient,
-} from "@/lib/api/convex";
+import { getAuthenticatedConvexClient } from "@/lib/api/convex";
 import { formatEntity } from "@/lib/utils/formatEntity";
 import "server-only";
 import { z } from "zod";
@@ -39,12 +36,9 @@ export const messagesDAL = {
     sessionToken: string, // JWT for authenticated Convex calls
   ) => {
     const validated = sendMessageSchema.parse(data);
-    const convex = getConvexClient();
+    const convex = getAuthenticatedConvexClient(sessionToken);
 
-    // Use authenticated client for mutations that need ctx.auth
-    const authConvex = getAuthenticatedConvexClient(sessionToken);
-
-    // Verify user owns conversation (uses clerkId for server-side verification)
+    // The authenticated backend derives identity; clerkId is only a match check.
     const conversation = (await (convex.query as any)(
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
       api.conversations.getWithClerkVerification,
@@ -62,7 +56,7 @@ export const messagesDAL = {
     // and schedules generation action (fire-and-forget)
     // Uses authenticated client since sendMessage needs ctx.auth
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-    const result = await authConvex.mutation(api.chat.sendMessage, {
+    const result = await convex.mutation(api.chat.sendMessage, {
       conversationId: conversationId as Id<"conversations">,
       content: validated.content,
       modelId: validated.modelId,
@@ -91,12 +85,12 @@ export const messagesDAL = {
   /**
    * Get message by ID (for polling, with ownership verification)
    */
-  get: async (userId: string, messageId: string) => {
-    const convex = getConvexClient();
+  get: async (_userId: string, messageId: string, sessionToken: string) => {
+    const convex = getAuthenticatedConvexClient(sessionToken);
 
     const message = (await (convex.query as any)(
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      api.messages.get,
+      api.messages.getForCurrentUser,
       {
         messageId: messageId as Id<"messages">,
       },
@@ -106,28 +100,18 @@ export const messagesDAL = {
       throw new Error("Message not found");
     }
 
-    // Verify ownership via conversation (uses clerkId for server-side verification)
-    const conversation = (await (convex.query as any)(
-      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      api.conversations.getWithClerkVerification,
-      {
-        conversationId: message.conversationId,
-        clerkId: userId,
-      },
-    )) as any;
-
-    if (!conversation) {
-      throw new Error("Access denied");
-    }
-
     return formatEntity(message, "message", message._id);
   },
 
   /**
    * List messages for conversation (with ownership verification)
    */
-  list: async (userId: string, conversationId: string) => {
-    const convex = getConvexClient();
+  list: async (
+    userId: string,
+    conversationId: string,
+    sessionToken: string,
+  ) => {
+    const convex = getAuthenticatedConvexClient(sessionToken);
 
     // Verify ownership (uses clerkId for server-side verification)
     const conversation = (await (convex.query as any)(
@@ -168,11 +152,16 @@ export const messagesDAL = {
   /**
    * Regenerate assistant response
    */
-  regenerate: async (userId: string, messageId: string, _modelId?: string) => {
-    const convex = getConvexClient();
+  regenerate: async (
+    userId: string,
+    messageId: string,
+    sessionToken: string,
+    _modelId?: string,
+  ) => {
+    const convex = getAuthenticatedConvexClient(sessionToken);
 
     // Verify ownership
-    const message = await messagesDAL.get(userId, messageId);
+    const message = await messagesDAL.get(userId, messageId, sessionToken);
 
     // Regenerate via Convex (triggers new generation)
     // Returns Id<"messages"> directly
@@ -199,11 +188,11 @@ export const messagesDAL = {
   /**
    * Delete message (soft delete)
    */
-  delete: async (userId: string, messageId: string) => {
-    const convex = getConvexClient();
+  delete: async (userId: string, messageId: string, sessionToken: string) => {
+    const convex = getAuthenticatedConvexClient(sessionToken);
 
     // Verify ownership
-    await messagesDAL.get(userId, messageId);
+    await messagesDAL.get(userId, messageId, sessionToken);
 
     await convex.mutation(api.chat.deleteMessage, {
       messageId: messageId as Id<"messages">,

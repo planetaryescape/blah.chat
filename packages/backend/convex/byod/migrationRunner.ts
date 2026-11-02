@@ -4,14 +4,14 @@ import { BYOD_SCHEMA_VERSION } from "@blah-chat/shared/byod";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
-import { action } from "../_generated/server";
+import { action, internalAction } from "../_generated/server";
 import { decryptCredential } from "../lib/encryption";
 import { getMigrationsAfter, type MigrationContext } from "./migrations";
 
 /**
  * Run pending migrations for a single user
  */
-export const runMigrationsForUser = action({
+export const runMigrationsForUser = internalAction({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
     // Get user's BYOD config
@@ -135,6 +135,8 @@ export const runMigrationsForUser = action({
 export const runMigrationsForAll = action({
   args: {},
   handler: async (ctx) => {
+    const user = await ctx.runQuery(internal.lib.helpers.getCurrentUser, {});
+    if (!user?.isAdmin) throw new Error("Unauthorized: admin required");
     // Get all connected BYOD configs that need migration
     const configs = (await (ctx.runQuery as any)(
       // @ts-ignore - TypeScript recursion limit with 85+ Convex modules

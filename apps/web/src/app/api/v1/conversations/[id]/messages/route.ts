@@ -32,7 +32,12 @@ async function getHandler(
   {
     params,
     userId,
-  }: { params: Promise<Record<string, string | string[]>>; userId: string },
+    sessionToken,
+  }: {
+    params: Promise<Record<string, string | string[]>>;
+    userId: string;
+    sessionToken: string;
+  },
 ) {
   const { id: conversationId } = (await params) as { id: string };
   const startTime = performance.now();
@@ -42,7 +47,7 @@ async function getHandler(
   );
 
   // Note: messagesDAL.list doesn't support pagination (returns all messages)
-  const result = await messagesDAL.list(userId, conversationId);
+  const result = await messagesDAL.list(userId, conversationId, sessionToken);
 
   const duration = performance.now() - startTime;
   trackAPIPerformance({

@@ -61,6 +61,22 @@ async function hasConversationAccess(
 
 // ===== Core CRUD =====
 
+// Public counterpart to the internal generation read, for authenticated polling.
+export const getForCurrentUser = query({
+  args: { messageId: v.id("messages") },
+  handler: async (ctx, { messageId }) => {
+    const user = await getCurrentUser(ctx);
+    const message = await ctx.db.get(messageId);
+    if (
+      !user ||
+      !message ||
+      !(await hasConversationAccess(ctx, message.conversationId, user._id))
+    )
+      return null;
+    return message;
+  },
+});
+
 export const get = internalQuery({
   args: {
     messageId: v.id("messages"),

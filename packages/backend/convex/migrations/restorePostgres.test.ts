@@ -92,6 +92,29 @@ const item = (plan: RestorePlan) => ({
 });
 
 describe("Postgres restore planner", () => {
+  it.each([
+    ["message_embeddings", "message_id", "messages"],
+    ["note_embeddings", "note_key", "notes"],
+    ["task_embeddings", "task_key", "tasks"],
+  ])("uses the source reference column for %s", (table, reference, target) => {
+    const plans = buildPlans(
+      fixture({
+        [table]: [
+          {
+            id: "embedding-fixture",
+            [reference]: "entity-fixture",
+            embedding: Array(1536).fill(0.1),
+          },
+        ],
+      }),
+    );
+    expect(plans.find((plan) => plan.sourceTable === table)).toMatchObject({
+      action: "patch",
+      targetTable: target,
+      targetSource: { table: target, key: "entity-fixture" },
+      reason: "embedding_attached_without_regeneration",
+    });
+  });
   it("keeps merge-parent order without a legacy scalar and rejects cycles through secondary parents", () => {
     const edges = [
       {

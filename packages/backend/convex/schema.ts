@@ -15,6 +15,13 @@ import { routingExamplesTable, routingFeedbackTable } from "./schema/routing";
 export default defineSchema({
   postgresRestoreRows,
   postgresRestoreRuns,
+  rateLimitEvents: defineTable({
+    userId: v.id("users"),
+    operation: v.union(v.literal("regenerate"), v.literal("hybrid-search")),
+    createdAt: v.number(),
+  })
+    .index("by_user_operation_createdAt", ["userId", "operation", "createdAt"])
+    .index("by_user", ["userId"]),
   // AI Model Management (DB-backed configuration)
   models: modelsTable,
   modelHistory: modelHistoryTable,

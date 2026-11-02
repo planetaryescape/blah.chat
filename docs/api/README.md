@@ -100,6 +100,10 @@ and message polling cannot reuse another session's HTTP cache.
 - Conversation list and list SSE accept limits from 1 to 100 (default 50).
 - SSE snapshots and updates contain formatted conversation/message entities.
 - Regeneration accepts an optional JSON body with `modelId`; an omitted body is valid.
+- Regeneration and hybrid search each allow 60 attempts per user per rolling hour.
+  Exhausted quotas return an error envelope with HTTP 429 before generation/search
+  runs. A valid request for a missing or foreign resource still consumes an attempt;
+  malformed JSON or invalid request bodies do not.
 - Preference values must be JSON and at most 16,000 serialized characters.
 - Transcription accepts only a recorded, owned upload or restored attachment, up to
   24 MiB. Creation and scheduling are atomic. Poll the returned job URL with the

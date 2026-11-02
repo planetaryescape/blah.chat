@@ -174,6 +174,7 @@ export async function cascadeDeleteUserData(
   }
 
   const extraTables = [
+    "rateLimitEvents",
     "jobs",
     "activityEvents",
     "chatSuggestionsCache",

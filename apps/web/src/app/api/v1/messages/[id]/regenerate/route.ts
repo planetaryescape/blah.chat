@@ -6,6 +6,7 @@ import { getAuthenticatedConvexClient } from "@/lib/api/convex";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { trackAPIPerformance } from "@/lib/api/monitoring";
+import { consumeApiRateLimit } from "@/lib/api/rateLimits";
 import logger from "@/lib/logger";
 import { formatEntity } from "@/lib/utils/formatEntity";
 
@@ -33,6 +34,7 @@ async function postHandler(
   const body = z
     .object({ modelId: z.string().min(1).optional() })
     .parse(text.trim() ? JSON.parse(text) : {});
+  await consumeApiRateLimit(convex, "regenerate");
 
   // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
   const newMessageId = await convex.mutation(api.chat.regenerate, {

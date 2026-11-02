@@ -17,8 +17,9 @@ import type {
 export const BENCHMARK_DATA: Record<string, BenchmarkScores> = {
   // OpenAI
   "openai:gpt-5": { intelligence: 94, coding: 85, reasoning: 88 },
-  "openai:gpt-5-mini": { intelligence: 75, coding: 68, reasoning: 70 },
-  "openai:gpt-5-nano": { intelligence: 65, coding: 60, reasoning: 62 },
+  "openai:gpt-5.4-pro": { intelligence: 99, coding: 92, reasoning: 99 },
+  "openai:gpt-5-mini": { intelligence: 82, coding: 74, reasoning: 79 },
+  "openai:gpt-5-nano": { intelligence: 70, coding: 64, reasoning: 66 },
 
   // Anthropic
   "anthropic:claude-opus-4.5": { intelligence: 95, coding: 81, reasoning: 90 },

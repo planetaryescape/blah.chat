@@ -27,6 +27,7 @@ const providerValidator = v.union(
   v.literal("mistral"),
   v.literal("alibaba"),
   v.literal("zhipu"),
+  v.literal("nvidia"),
 );
 
 /**

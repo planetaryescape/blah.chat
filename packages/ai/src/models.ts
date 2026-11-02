@@ -43,7 +43,8 @@ export interface ModelConfig {
     | "meta"
     | "mistral"
     | "alibaba"
-    | "zhipu";
+    | "zhipu"
+    | "nvidia";
   name: string;
   description?: string;
   contextWindow: number;
@@ -83,6 +84,8 @@ export interface ModelConfig {
   isPro?: boolean;
   /** Hide from model picker - for internal app ops only */
   isInternalOnly?: boolean;
+  /** Superseded model - hidden from pickers but still resolvable for history/cost */
+  isDeprecated?: boolean;
 }
 
 export const MODEL_CONFIG: Record<string, ModelConfig> = {
@@ -97,43 +100,62 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     provider: "openai",
     name: "GPT-5",
     description:
-      "Flagship GPT-5 with advanced reasoning and multimodal capabilities",
-    contextWindow: 200000,
-    pricing: { input: 2.5, output: 10.0, cached: 0.25 },
+      "Chat-optimized GPT-5.3 model used in ChatGPT for everyday conversations and general use.",
+    contextWindow: 128000,
+    pricing: { input: 1.75, output: 14.0, cached: 0.175 },
+    capabilities: ["vision", "function-calling"],
+    actualModelId: "gpt-5.3-chat-latest",
+    knowledgeCutoff: "August 31, 2025",
+    userFriendlyDescription:
+      "Routes to GPT-5.3 Chat. Best OpenAI chat model for natural conversation, help, and general-purpose work.",
+    bestFor: "General chat, conversational UX, everyday assistance",
+  },
+  "openai:gpt-5.4-pro": {
+    id: "openai:gpt-5.4-pro",
+    isPro: true,
+    provider: "openai",
+    name: "GPT-5.4 Pro",
+    description:
+      "Highest-capability GPT-5.4 variant for the hardest reasoning and professional tasks.",
+    contextWindow: 1047576,
+    pricing: { input: 30.0, output: 180.0 },
     capabilities: ["thinking", "vision", "function-calling"],
     reasoning: {
       type: "openai-reasoning-effort",
-      effortMapping: { low: "low", medium: "medium", high: "high" },
+      effortMapping: { low: "medium", medium: "high", high: "xhigh" },
       summaryLevel: "detailed",
       useResponsesAPI: true,
     },
-    knowledgeCutoff: "April 2025",
+    knowledgeCutoff: "August 31, 2025",
     userFriendlyDescription:
-      "Most powerful GPT-5. Handles the most complex tasks with advanced reasoning, vision, and deep thinking.",
-    bestFor: "Complex reasoning, research, advanced multimodal tasks",
+      "Most capable GPT-5.4 variant. Use when quality matters more than speed or cost.",
+    bestFor: "Hardest reasoning, expert analysis, premium high-stakes work",
   },
   "openai:gpt-5-mini": {
     id: "openai:gpt-5-mini",
+    isDeprecated: true,
     provider: "openai",
     name: "GPT-5 Mini",
-    description: "Compact GPT-5 variant balancing cost and performance",
-    contextWindow: 200000,
-    pricing: { input: 0.15, output: 0.6, cached: 0.015 },
-    capabilities: ["vision", "function-calling"],
-    knowledgeCutoff: "April 2025",
+    description:
+      "Fast, efficient GPT-5 model balancing reasoning quality and cost.",
+    contextWindow: 400000,
+    pricing: { input: 0.25, output: 2.0, cached: 0.025 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    knowledgeCutoff: "May 31, 2024",
     userFriendlyDescription:
       "Fast and affordable. Great balance of performance and cost for everyday tasks.",
     bestFor: "General purpose, high-volume applications, cost-conscious use",
   },
   "openai:gpt-5-nano": {
     id: "openai:gpt-5-nano",
+    isDeprecated: true,
     provider: "openai",
     name: "GPT-5 Nano",
     description: "Smallest, fastest GPT-5 variant for simple queries",
-    contextWindow: 200000,
-    pricing: { input: 0.04, output: 0.16, cached: 0.004 },
-    capabilities: ["function-calling"],
-    knowledgeCutoff: "April 2025",
+    contextWindow: 400000,
+    pricing: { input: 0.05, output: 0.4, cached: 0.005 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    knowledgeCutoff: "May 31, 2024",
     userFriendlyDescription:
       "Lightning-fast and ultra-cheap. Perfect for simple questions and high-volume applications.",
     bestFor: "Simple queries, maximum speed, ultra-low cost",
@@ -142,6 +164,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   // GPT-5.1 Family (November 2025)
   "openai:gpt-5.1": {
     id: "openai:gpt-5.1",
+    isDeprecated: true,
     provider: "openai",
     name: "GPT-5.1",
     description:
@@ -162,6 +185,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
   "openai:gpt-5.1-codex": {
     id: "openai:gpt-5.1-codex",
+    isDeprecated: true,
     provider: "openai",
     name: "GPT-5.1 Codex",
     description: "GPT-5.1 optimized for agentic coding tasks",
@@ -181,6 +205,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
   "openai:gpt-5.1-instant": {
     id: "openai:gpt-5.1-instant",
+    isDeprecated: true,
     provider: "openai",
     name: "GPT-5.1 Instant",
     description:
@@ -197,6 +222,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   // GPT-5.2 Family (December 2025)
   "openai:gpt-5.2": {
     id: "openai:gpt-5.2",
+    isDeprecated: true,
     provider: "openai",
     name: "GPT-5.2",
     description:
@@ -217,6 +243,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
   "openai:gpt-5.2-chat": {
     id: "openai:gpt-5.2-chat",
+    isDeprecated: true,
     provider: "openai",
     name: "GPT-5.2 Chat",
     description: "The model powering ChatGPT. Best general-purpose model.",
@@ -260,6 +287,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   // Anthropic
   "anthropic:claude-opus-4.5": {
     id: "anthropic:claude-opus-4.5",
+    isPro: true,
+    isDeprecated: true,
     provider: "anthropic",
     name: "Claude 4.5 Opus",
     description: "Most capable Claude for complex tasks",
@@ -283,6 +312,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
   "anthropic:claude-sonnet-4.5": {
     id: "anthropic:claude-sonnet-4.5",
+    isPro: true,
+    isDeprecated: true,
     provider: "anthropic",
     name: "Claude 4.5 Sonnet",
     description: "Balanced performance and speed",
@@ -322,6 +353,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   // Google
   "google:gemini-2.5-flash": {
     id: "google:gemini-2.5-flash",
+    isDeprecated: true,
     provider: "google",
     name: "Gemini 2.5 Flash",
     description:
@@ -350,6 +382,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
   "google:gemini-2.5-pro": {
     id: "google:gemini-2.5-pro",
+    isDeprecated: true,
     provider: "google",
     name: "Gemini 2.5 Pro",
     description:
@@ -403,6 +436,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
   "google:gemini-2.0-flash": {
     id: "google:gemini-2.0-flash",
+    isDeprecated: true,
     provider: "google",
     name: "Gemini 2.0 Flash",
     description: "Stable multimodal - fast, cost-effective, no thinking",
@@ -420,6 +454,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
   "google:gemini-2.0-flash-lite": {
     id: "google:gemini-2.0-flash-lite",
+    isDeprecated: true,
     provider: "google",
     name: "Gemini 2.0 Flash Lite",
     description: "Ultra-cost-optimized - fastest, cheapest, no thinking",
@@ -466,6 +501,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
 
   "google:gemini-3-pro-image-preview": {
     id: "google:gemini-3-pro-image-preview",
+    isPro: true,
     name: "Gemini 3 Pro Image (Nano Banana Pro)",
     provider: "google",
     contextWindow: 65536, // 65K tokens
@@ -494,6 +530,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
 
   "google:gemini-2.5-flash-image": {
     id: "google:gemini-2.5-flash-image",
+    isDeprecated: true,
     provider: "google",
     name: "Gemini 2.5 Flash Image",
     description: "Cost-effective image generation with hybrid reasoning",
@@ -513,6 +550,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   // xAI - Note: Vercel AI Gateway uses "xai/model-name" format
   "xai:grok-4-fast": {
     id: "xai:grok-4-fast",
+    isDeprecated: true,
     provider: "xai",
     name: "Grok 4 Fast",
     description: "Faster Grok 4 variant (non-reasoning)",
@@ -586,6 +624,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
   "perplexity:sonar-pro": {
     id: "perplexity:sonar-pro",
+    isPro: true,
     provider: "perplexity",
     name: "Sonar Pro",
     description: "Advanced search with grounding",
@@ -683,6 +722,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   // Alibaba Qwen Models (via Vercel AI Gateway)
   "alibaba:qwen3-max": {
     id: "alibaba:qwen3-max",
+    isDeprecated: true,
     provider: "alibaba",
     name: "Qwen 3 Max",
     description:
@@ -743,6 +783,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   // MiniMax Models (via Vercel AI Gateway)
   "minimax:minimax-m2": {
     id: "minimax:minimax-m2",
+    isDeprecated: true,
     provider: "minimax",
     name: "MiniMax M2",
     description:
@@ -785,6 +826,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   // Z.ai GLM Models (via Vercel AI Gateway)
   "zai:glm-4.6": {
     id: "zai:glm-4.6",
+    isDeprecated: true,
     provider: "zai",
     name: "GLM 4.6",
     description:
@@ -842,6 +884,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   // DeepSeek Models
   "deepseek:deepseek-r1": {
     id: "deepseek:deepseek-r1",
+    isDeprecated: true,
     provider: "deepseek",
     name: "DeepSeek R1",
     description: "671B MoE reasoning model. Extended thinking.",
@@ -896,9 +939,391 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     bestFor: "Pure reasoning, complex analysis, thought-intensive tasks",
   },
 
-  // Free Models via OpenRouter
+  // Current OpenRouter catalog, retained alongside legacy IDs for history.
+  "openrouter:glm-5": {
+    id: "openrouter:glm-5",
+    provider: "zai",
+    name: "GLM 5",
+    description:
+      "Z.ai flagship for complex systems design and long-horizon agent workflows.",
+    contextWindow: 80000,
+    pricing: { input: 0.72, output: 2.3 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "z-ai/glm-5",
+    gateway: "openrouter",
+  },
+  "openrouter:minimax-m2.7": {
+    id: "openrouter:minimax-m2.7",
+    provider: "minimax",
+    name: "MiniMax M2.7",
+    description:
+      "MiniMax model for autonomous productivity and multi-agent collaboration.",
+    contextWindow: 204800,
+    pricing: { input: 0.3, output: 1.2 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "minimax/minimax-m2.7",
+    gateway: "openrouter",
+  },
+  "openrouter:claude-opus-4.7": {
+    id: "openrouter:claude-opus-4.7",
+    isPro: true,
+    provider: "anthropic",
+    name: "Claude Opus 4.7",
+    description:
+      "Anthropic Opus for long-running asynchronous agents and frontier coding.",
+    contextWindow: 1000000,
+    pricing: { input: 5.0, output: 25.0, cached: 0.5 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "anthropic/claude-opus-4.7",
+    gateway: "openrouter",
+  },
+  "openrouter:claude-sonnet-4.6": {
+    id: "openrouter:claude-sonnet-4.6",
+    isPro: true,
+    provider: "anthropic",
+    name: "Claude Sonnet 4.6",
+    description:
+      "Sonnet-class model with frontier coding and agentic performance.",
+    contextWindow: 1000000,
+    pricing: { input: 3.0, output: 15.0, cached: 0.3 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "anthropic/claude-sonnet-4.6",
+    gateway: "openrouter",
+  },
+  "openrouter:claude-haiku-4.5": {
+    id: "openrouter:claude-haiku-4.5",
+    provider: "anthropic",
+    name: "Claude Haiku 4.5",
+    description:
+      "Anthropic's fastest, cheapest tier with near-frontier intelligence.",
+    contextWindow: 200000,
+    pricing: { input: 1.0, output: 5.0, cached: 0.1 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "anthropic/claude-haiku-4.5",
+    gateway: "openrouter",
+  },
+  "openrouter:gpt-5.5": {
+    id: "openrouter:gpt-5.5",
+    isPro: true,
+    provider: "openai",
+    name: "GPT-5.5",
+    description:
+      "OpenAI frontier model with stronger reasoning, reliability, and 1M context.",
+    contextWindow: 1050000,
+    pricing: { input: 5.0, output: 30.0, cached: 0.5 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "openai/gpt-5.5",
+    gateway: "openrouter",
+    knowledgeCutoff: "December 2025",
+  },
+  "openrouter:gpt-5.4-mini": {
+    id: "openrouter:gpt-5.4-mini",
+    provider: "openai",
+    name: "GPT-5.4 Mini",
+    description:
+      "Efficient GPT-5.4 variant tuned for high-throughput reasoning workloads.",
+    contextWindow: 400000,
+    pricing: { input: 0.75, output: 4.5, cached: 0.075 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "openai/gpt-5.4-mini",
+    gateway: "openrouter",
+    knowledgeCutoff: "August 2025",
+  },
+  "openrouter:gpt-5.4-nano": {
+    id: "openrouter:gpt-5.4-nano",
+    provider: "openai",
+    name: "GPT-5.4 Nano",
+    description:
+      "Lightweight, low-latency GPT-5.4 for speed-critical, high-volume tasks.",
+    contextWindow: 400000,
+    pricing: { input: 0.2, output: 1.25, cached: 0.02 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "openai/gpt-5.4-nano",
+    gateway: "openrouter",
+    knowledgeCutoff: "August 2025",
+  },
+  "openrouter:gemini-3.1-flash-lite": {
+    id: "openrouter:gemini-3.1-flash-lite",
+    provider: "google",
+    name: "Gemini 3.1 Flash Lite",
+    description: "Google's high-efficiency multimodal model with 1M context.",
+    contextWindow: 1048576,
+    pricing: { input: 0.25, output: 1.5, cached: 0.025 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "google/gemini-3.1-flash-lite",
+    gateway: "openrouter",
+  },
+  "openrouter:grok-4.20": {
+    id: "openrouter:grok-4.20",
+    provider: "xai",
+    name: "Grok 4.20",
+    description: "xAI reasoning model with low hallucinations and 2M context.",
+    contextWindow: 2000000,
+    pricing: { input: 1.25, output: 2.5, cached: 0.2 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "x-ai/grok-4.20",
+    gateway: "openrouter",
+    knowledgeCutoff: "September 2025",
+  },
+  "openrouter:deepseek-v4-pro": {
+    id: "openrouter:deepseek-v4-pro",
+    provider: "deepseek",
+    name: "DeepSeek V4 Pro",
+    description:
+      "1.6T-param MoE with 49B active, 1M context, reasoning and tools.",
+    contextWindow: 1048576,
+    pricing: { input: 0.435, output: 0.87, cached: 0.004 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "deepseek/deepseek-v4-pro",
+    gateway: "openrouter",
+  },
+  "openrouter:deepseek-v4-flash": {
+    id: "openrouter:deepseek-v4-flash",
+    provider: "deepseek",
+    name: "DeepSeek V4 Flash",
+    description: "Efficiency-tier V4 MoE with 1M context, reasoning and tools.",
+    contextWindow: 1048576,
+    pricing: { input: 0.112, output: 0.224, cached: 0.022 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "deepseek/deepseek-v4-flash",
+    gateway: "openrouter",
+  },
+  "openrouter:qwen3.6-flash": {
+    id: "openrouter:qwen3.6-flash",
+    provider: "alibaba",
+    name: "Qwen 3.6 Flash",
+    description:
+      "Fast Qwen 3.6 with 1M context, image and video input, reasoning and tools.",
+    contextWindow: 1000000,
+    pricing: { input: 0.188, output: 1.125 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "qwen/qwen3.6-flash",
+    gateway: "openrouter",
+  },
+  "openrouter:qwen3.6-max-preview": {
+    id: "openrouter:qwen3.6-max-preview",
+    provider: "alibaba",
+    name: "Qwen 3.6 Max (Preview)",
+    description: "Alibaba frontier Qwen MoE for reasoning and coding tasks.",
+    contextWindow: 262144,
+    pricing: { input: 1.04, output: 6.24 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "qwen/qwen3.6-max-preview",
+    gateway: "openrouter",
+    isExperimental: true,
+  },
+  "openrouter:kimi-k2.6": {
+    id: "openrouter:kimi-k2.6",
+    provider: "kimi",
+    name: "Kimi K2.6",
+    description:
+      "Moonshot multimodal Kimi for long-horizon coding and UI generation.",
+    contextWindow: 262144,
+    pricing: { input: 0.73, output: 3.49, cached: 0.25 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "moonshotai/kimi-k2.6",
+    gateway: "openrouter",
+  },
+  "openrouter:kimi-k2-thinking": {
+    id: "openrouter:kimi-k2-thinking",
+    provider: "kimi",
+    name: "Kimi K2 Thinking",
+    description:
+      "Open reasoning variant of K2 tuned for agentic long-horizon planning.",
+    contextWindow: 262144,
+    pricing: { input: 0.6, output: 2.5 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "moonshotai/kimi-k2-thinking",
+    gateway: "openrouter",
+  },
+  "openrouter:llama-4-maverick": {
+    id: "openrouter:llama-4-maverick",
+    provider: "meta",
+    name: "Llama 4 Maverick",
+    description:
+      "Meta's 17B-active MoE with 128 experts, multimodal with 1M context.",
+    contextWindow: 1048576,
+    pricing: { input: 0.15, output: 0.6 },
+    capabilities: ["vision"],
+    actualModelId: "meta-llama/llama-4-maverick",
+    gateway: "openrouter",
+    knowledgeCutoff: "August 2024",
+  },
+  "openrouter:llama-4-scout": {
+    id: "openrouter:llama-4-scout",
+    provider: "meta",
+    name: "Llama 4 Scout",
+    description:
+      "Meta's 17B-active MoE with 16 experts and a 10M-token context window.",
+    contextWindow: 10000000,
+    pricing: { input: 0.08, output: 0.3 },
+    capabilities: ["vision", "function-calling"],
+    actualModelId: "meta-llama/llama-4-scout",
+    gateway: "openrouter",
+    knowledgeCutoff: "August 2024",
+  },
+  "openrouter:mistral-large-2512": {
+    id: "openrouter:mistral-large-2512",
+    provider: "mistral",
+    name: "Mistral Large 3 (2512)",
+    description: "Mistral model with sparse MoE, vision and tool use.",
+    contextWindow: 262144,
+    pricing: { input: 0.5, output: 1.5, cached: 0.05 },
+    capabilities: ["vision", "function-calling"],
+    actualModelId: "mistralai/mistral-large-2512",
+    gateway: "openrouter",
+  },
+  "openrouter:ministral-8b": {
+    id: "openrouter:ministral-8b",
+    provider: "mistral",
+    name: "Ministral 3 8B",
+    description: "Tiny, efficient Mistral with vision and tools.",
+    contextWindow: 262144,
+    pricing: { input: 0.15, output: 0.15, cached: 0.015 },
+    capabilities: ["vision", "function-calling"],
+    actualModelId: "mistralai/ministral-8b-2512",
+    gateway: "openrouter",
+  },
+  "openrouter:glm-5.1": {
+    id: "openrouter:glm-5.1",
+    provider: "zai",
+    name: "GLM 5.1",
+    description:
+      "Z.ai flagship update with coding and long-horizon task gains.",
+    contextWindow: 202752,
+    pricing: { input: 0.98, output: 3.08, cached: 0.182 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "z-ai/glm-5.1",
+    gateway: "openrouter",
+  },
+  "openrouter:glm-4.7-flash": {
+    id: "openrouter:glm-4.7-flash",
+    provider: "zai",
+    name: "GLM 4.7 Flash",
+    description: "30B-class model optimized for agentic coding at low cost.",
+    contextWindow: 202752,
+    pricing: { input: 0.06, output: 0.4, cached: 0.01 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "z-ai/glm-4.7-flash",
+    gateway: "openrouter",
+  },
+  "openrouter:nemotron-3-super-120b": {
+    id: "openrouter:nemotron-3-super-120b",
+    provider: "nvidia",
+    name: "Nemotron 3 Super 120B",
+    description:
+      "NVIDIA's 120B hybrid MoE with reasoning, tools and 1M context.",
+    contextWindow: 1000000,
+    pricing: { input: 0.1, output: 0.5 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "nvidia/nemotron-3-super-120b-a12b",
+    gateway: "openrouter",
+  },
+  "openrouter:claude-fable-5": {
+    id: "openrouter:claude-fable-5",
+    provider: "anthropic",
+    name: "Claude Fable 5",
+    description: "Anthropic flagship for demanding agentic and knowledge work.",
+    contextWindow: 1000000,
+    pricing: { input: 10.0, output: 50.0, cached: 1.0 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "anthropic/claude-fable-5",
+    gateway: "openrouter",
+    isPro: true,
+  },
+  "openrouter:claude-opus-4.8": {
+    id: "openrouter:claude-opus-4.8",
+    isPro: true,
+    provider: "anthropic",
+    name: "Claude Opus 4.8",
+    description:
+      "Anthropic Opus for long-horizon agentic execution and coding.",
+    contextWindow: 1000000,
+    pricing: { input: 5.0, output: 25.0, cached: 0.5 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "anthropic/claude-opus-4.8",
+    gateway: "openrouter",
+  },
+  "openrouter:gpt-5.5-pro": {
+    id: "openrouter:gpt-5.5-pro",
+    provider: "openai",
+    name: "GPT-5.5 Pro",
+    description:
+      "OpenAI model optimized for deep reasoning on complex, high-stakes workloads.",
+    contextWindow: 1050000,
+    pricing: { input: 30.0, output: 180.0 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "openai/gpt-5.5-pro",
+    gateway: "openrouter",
+    isPro: true,
+    knowledgeCutoff: "December 2025",
+  },
+  "openrouter:gemini-3.5-flash": {
+    id: "openrouter:gemini-3.5-flash",
+    provider: "google",
+    name: "Gemini 3.5 Flash",
+    description:
+      "Google's high-efficiency multimodal model with near-Pro coding and reasoning.",
+    contextWindow: 1048576,
+    pricing: { input: 1.5, output: 9.0, cached: 0.15 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "google/gemini-3.5-flash",
+    gateway: "openrouter",
+  },
+  "openrouter:grok-4.3": {
+    id: "openrouter:grok-4.3",
+    provider: "xai",
+    name: "Grok 4.3",
+    description:
+      "xAI reasoning model for agentic workflows, instruction-following and tools.",
+    contextWindow: 1000000,
+    pricing: { input: 1.25, output: 2.5, cached: 0.2 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "x-ai/grok-4.3",
+    gateway: "openrouter",
+    knowledgeCutoff: "September 2025",
+  },
+  "openrouter:qwen3.7-max": {
+    id: "openrouter:qwen3.7-max",
+    provider: "alibaba",
+    name: "Qwen 3.7 Max",
+    description:
+      "Alibaba Qwen 3.7 flagship for agent-centric reasoning and tools with 1M context.",
+    contextWindow: 1000000,
+    pricing: { input: 1.25, output: 3.75, cached: 0.25 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "qwen/qwen3.7-max",
+    gateway: "openrouter",
+  },
+  "openrouter:minimax-m3": {
+    id: "openrouter:minimax-m3",
+    provider: "minimax",
+    name: "MiniMax M3",
+    description:
+      "MiniMax multimodal foundation model with text, image, video input and 1M context.",
+    contextWindow: 1048576,
+    pricing: { input: 0.3, output: 1.2, cached: 0.06 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    actualModelId: "minimax/minimax-m3",
+    gateway: "openrouter",
+  },
+  "openrouter:nemotron-3-ultra-550b": {
+    id: "openrouter:nemotron-3-ultra-550b",
+    provider: "nvidia",
+    name: "Nemotron 3 Ultra 550B",
+    description:
+      "NVIDIA open frontier-reasoning flagship with 55B active of 550B total and 1M context.",
+    contextWindow: 1000000,
+    pricing: { input: 0.5, output: 2.5, cached: 0.15 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "nvidia/nemotron-3-ultra-550b-a55b",
+    gateway: "openrouter",
+  },
+
+  // Legacy free models via OpenRouter
   "openrouter:deepseek-r1-0528": {
     id: "openrouter:deepseek-r1-0528",
+    isDeprecated: true,
     provider: "deepseek",
     name: "DeepSeek R1 0528",
     description: "671B MoE reasoning model via OpenRouter (May 2025 release).",
@@ -919,6 +1344,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
   "openrouter:devstral-2512": {
     id: "openrouter:devstral-2512",
+    isDeprecated: true,
     provider: "mistral",
     name: "Devstral 2512",
     description: "123B agentic coding model by Mistral AI.",
@@ -933,6 +1359,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
   "openrouter:glm-4.5-air": {
     id: "openrouter:glm-4.5-air",
+    isDeprecated: true,
     provider: "zai",
     name: "GLM-4.5 Air",
     description: "Lightweight MoE for agent-centric applications.",
@@ -961,6 +1388,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
   "openrouter:kimi-k2": {
     id: "openrouter:kimi-k2",
+    isDeprecated: true,
     provider: "kimi",
     name: "Kimi K2",
     description: "1T param MoE with 32B active, strong coding/reasoning.",
@@ -1005,6 +1433,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
   "openrouter:gemini-2.0-flash-exp": {
     id: "openrouter:gemini-2.0-flash-exp",
+    isDeprecated: true,
     provider: "google",
     name: "Gemini 2.0 Flash Exp",
     description: "Experimental Gemini with 1M context and fast TTFT.",
@@ -1070,6 +1499,7 @@ export function getProviderDisplayName(provider: Provider): string {
     mistral: "Mistral",
     alibaba: "Alibaba",
     zhipu: "Zhipu",
+    nvidia: "NVIDIA",
   };
 
   return displayNames[provider] ?? provider;
@@ -1100,6 +1530,9 @@ export function getModelTier(model: ModelConfig): ModelTier {
 export function getMobileModels(): ModelConfig[] {
   return Object.values(MODEL_CONFIG).filter(
     (model) =>
-      model.id !== "auto" && !model.isInternalOnly && !model.isExperimental,
+      model.id !== "auto" &&
+      !model.isInternalOnly &&
+      !model.isExperimental &&
+      !model.isDeprecated,
   );
 }

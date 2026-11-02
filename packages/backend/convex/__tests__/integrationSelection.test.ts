@@ -62,6 +62,68 @@ async function fixture() {
 }
 
 describe("per-chat integration allowlist", () => {
+  it("removes allowlist rows on disconnect while retaining unrelated selections", async () => {
+    const {
+      t,
+      owner,
+      userId,
+      other,
+      conversationId,
+      anotherConversation,
+      connectionId,
+      foreignConnection,
+    } = await fixture();
+    await owner.mutation(api.composio.selection.toggle, {
+      conversationId,
+      connectionId,
+    });
+    await owner.mutation(api.composio.selection.toggle, {
+      conversationId: anotherConversation,
+      connectionId,
+    });
+    const retainedId = await t.run((ctx) =>
+      ctx.db.insert("conversationIntegrations", {
+        conversationId,
+        userId: other,
+        connectionId: foreignConnection,
+      }),
+    );
+    await owner.mutation(api.composio.connections.disconnectIntegration, {
+      integrationId: "github",
+    });
+    const remaining = await t.run((ctx) =>
+      ctx.db.query("conversationIntegrations").collect(),
+    );
+    expect(remaining.map((row) => row._id)).toEqual([retainedId]);
+    expect(await t.run((ctx) => ctx.db.get(connectionId))).toBeNull();
+    expect(
+      await t.query(
+        internal.composio.selection.getSelectedConnectionsInternal,
+        { userId, conversationId },
+      ),
+    ).toEqual([]);
+  });
+
+  it("permits selection after the generation lock's existing sixty-second timeout", async () => {
+    const { t, owner, userId, conversationId, connectionId } = await fixture();
+    await t.run((ctx) =>
+      ctx.db.insert("generationLocks", {
+        userId,
+        conversationId,
+        pendingCount: 1,
+        lockedAt: Date.now() - 60_001,
+      }),
+    );
+    await owner.mutation(api.composio.selection.toggle, {
+      conversationId,
+      connectionId,
+    });
+    expect(
+      await owner.query(api.composio.selection.getSelectedIds, {
+        conversationId,
+      }),
+    ).toEqual([connectionId]);
+  });
   it("deletes selections with their conversation without deleting the connection", async () => {
     const { t, owner, conversationId, connectionId } = await fixture();
     await owner.mutation(api.composio.selection.toggle, {

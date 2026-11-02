@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import {
   internalQuery,
@@ -75,13 +76,11 @@ export const toggle = mutation({
     ) {
       throw new Error("Connection not found or unauthorized");
     }
-    const lock = await ctx.db
-      .query("generationLocks")
-      .withIndex("by_conversation", (q) =>
-        q.eq("conversationId", args.conversationId),
-      )
-      .first();
-    if (lock)
+    if (
+      await ctx.runQuery(internal.lib.generationLock.isLocked, {
+        conversationId: args.conversationId,
+      })
+    )
       throw new Error(
         "Wait for the current response before changing integrations",
       );

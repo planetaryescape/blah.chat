@@ -22,6 +22,7 @@ export function IntegrationSelector({
   onSavingChange: (saving: boolean) => void;
 }) {
   const connections = useQuery(api.composio.connections.getActiveConnections);
+  const conversation = useQuery(api.conversations.get, { conversationId });
   const selectedIds = useQuery(api.composio.selection.getSelectedIds, {
     conversationId,
   });
@@ -43,6 +44,15 @@ export function IntegrationSelector({
       onSavingChange(false);
     }
   }
+
+  if (conversation?.isIncognito) {
+    return (
+      <span className="px-2 text-xs text-muted-foreground">
+        Integrations unavailable in incognito
+      </span>
+    );
+  }
+  if (conversation === null) return null;
 
   return (
     <Popover>
@@ -76,7 +86,9 @@ export function IntegrationSelector({
             variant="ghost"
             className="w-full justify-start gap-2"
             aria-pressed={selectedIds?.includes(connection._id) ?? false}
-            disabled={saving || selectedIds === undefined}
+            disabled={
+              saving || selectedIds === undefined || conversation === undefined
+            }
             onClick={() => void handleToggle(connection._id)}
           >
             <Check

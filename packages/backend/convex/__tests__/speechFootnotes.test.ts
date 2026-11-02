@@ -19,4 +19,24 @@ describe("substantive footnote preservation", () => {
     expect(text).toContain("Not guaranteed.");
     expect(text).not.toContain("https://example.org/guide");
   });
+  it.each([
+    "> Safe.[^1]\n>\n> [^1]: Not.",
+    "- Safe.[^1]\n\n  [^1]: Not.",
+    "> - Safe.[^1]\n>\n>   [^1]: Not.",
+    "- > Safe.[^1]\n  >\n  > [^1]: Not.",
+  ])("retains the qualification once inside nested containers: %s", async (source) => {
+    for (const input of [source, source.replaceAll("\n", "\r\n")]) {
+      const { narration } = await prepareDeterministic(input);
+      const notes = narration.segments.filter(
+        (s) => s.text === "Footnote 1. Not.",
+      );
+      expect(notes).toHaveLength(1);
+      expect(input.slice(notes[0].sourceStart, notes[0].sourceEnd)).toContain(
+        "[^1]: Not.",
+      );
+      expect(narration.segments.map((s) => s.sourceStart)).toEqual(
+        narration.segments.map((s) => s.sourceStart).sort((a, b) => a - b),
+      );
+    }
+  });
 });

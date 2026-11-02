@@ -2,6 +2,7 @@ import { MODEL_CONFIG } from "@blah-chat/ai/models";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { convexTest } from "../../__tests__/testSetup";
 import { api, internal } from "../_generated/api";
+import { getMonthlySpend } from "../lib/monthlyBudget";
 import {
   createMockIdentity,
   createTestConversationData,
@@ -76,6 +77,55 @@ async function fixture() {
 }
 
 describe("round-two API boundaries", () => {
+  it.each([
+    "pending",
+    "stopped",
+    "error",
+  ] as const)("accounts legacy %s image messages using the admitted billing identity", async (status) => {
+    vi.useFakeTimers();
+    const { t, owner, collaborator, messageId } = await fixture();
+    await t.run((ctx) =>
+      ctx.db.patch(messageId, { userId: undefined, status }),
+    );
+    await t.mutation(internal.messages.completeMessage, {
+      messageId,
+      content: "",
+      inputTokens: 1,
+      outputTokens: 1,
+      cost: 0.25,
+      usageType: "image",
+      billingUserId: collaborator,
+    });
+    const scheduled = await t.run((ctx) =>
+      ctx.db.system.query("_scheduled_functions").collect(),
+    );
+    const accounting = scheduled.filter(
+      (job) =>
+        job.name.includes("recordImageGeneration") ||
+        job.name.includes("recordTextGeneration"),
+    );
+    expect(accounting).toHaveLength(1);
+    expect(accounting[0].name).toContain("recordImageGeneration");
+    expect(accounting[0].args[0]).toMatchObject({
+      userId: collaborator,
+      cost: 0.25,
+    });
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    const records = await t.run((ctx) =>
+      ctx.db.query("usageRecords").collect(),
+    );
+    expect(records).toHaveLength(1);
+    expect(records[0]).toMatchObject({
+      userId: collaborator,
+      operationType: "image",
+      cost: 0.25,
+    });
+    expect(await t.run((ctx) => getMonthlySpend(ctx, collaborator))).toBe(0.25);
+    expect(await t.run((ctx) => getMonthlySpend(ctx, owner))).toBe(0);
+    expect((await t.run((ctx) => ctx.db.get(messageId)))?.status).toBe(
+      status === "pending" ? "complete" : status,
+    );
+  });
   it("deletes owned routing feedback while preserving foreign records and shared blobs", async () => {
     const {
       t,

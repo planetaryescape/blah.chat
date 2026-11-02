@@ -803,6 +803,7 @@ export const completeMessage = internalMutation({
     const message = await ctx.db.get(args.messageId);
     if (!message) throw new Error("Message not found");
 
+    const billingUserId = args.billingUserId ?? message.userId;
     const content =
       message.role === "assistant"
         ? sanitizeAssistantDisplayContent(args.content)
@@ -810,7 +811,6 @@ export const completeMessage = internalMutation({
 
     // Respect terminal states - update metrics but don't change status
     if (message.status === "stopped" || message.status === "error") {
-      const billingUserId = args.billingUserId ?? message.userId;
       if (
         args.usageType === "image" &&
         message.model &&
@@ -857,7 +857,7 @@ export const completeMessage = internalMutation({
       updatedAt: Date.now(),
     });
 
-    if (message.model && message.userId && args.cost > 0) {
+    if (message.model && billingUserId && args.cost > 0) {
       await ctx.scheduler.runAfter(
         0,
         args.usageType === "image"
@@ -865,13 +865,13 @@ export const completeMessage = internalMutation({
           : internal.usage.mutations.recordTextGeneration,
         args.usageType === "image"
           ? {
-              userId: args.billingUserId ?? message.userId,
+              userId: billingUserId,
               conversationId: message.conversationId,
               model: message.model,
               cost: args.cost,
             }
           : {
-              userId: args.billingUserId ?? message.userId,
+              userId: billingUserId,
               conversationId: message.conversationId,
               model: message.model,
               inputTokens: args.inputTokens,

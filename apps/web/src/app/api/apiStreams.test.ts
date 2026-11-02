@@ -61,15 +61,18 @@ describe("SSE identity and wire contracts", () => {
     const update = await mocks.poll.mock.calls[0][0]();
     expect(update.conversations[0].data.title).toBe("owned");
   });
-  it("formats message snapshots and updates after ownership verification", async () => {
+  it.each([
+    "owned",
+    "",
+  ])("formats message content %j in snapshots and updates after ownership verification", async (content) => {
     mocks.query
       .mockResolvedValueOnce({ _id: "conversation" })
-      .mockResolvedValue([{ _id: "message", content: "" }]);
+      .mockResolvedValue([{ _id: "message", content }]);
     await messages(new NextRequest("https://example.test"), context);
     expect(mocks.send.mock.calls[0][1].messages[0].sys.id).toBe("message");
-    expect(mocks.send.mock.calls[0][1].messages[0].data.content).toBe("");
+    expect(mocks.send.mock.calls[0][1].messages[0].data.content).toBe(content);
     expect((await mocks.poll.mock.calls[0][0]()).messages[0].data.content).toBe(
-      "",
+      content,
     );
   });
   it("never emits successful null preferences before or after sync disappears", async () => {

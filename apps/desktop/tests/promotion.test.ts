@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   collectCheckRuns,
@@ -104,9 +105,7 @@ for (const patch of [
 }
 
 function stageFixture() {
-  const directory = mkdtempSync(
-    "/private/var/folders/3p/n76j7jp14ljcvr1bhf7qmlh00000gn/T/opencode/pr577-cli-stage-",
-  );
+  const directory = mkdtempSync(join(tmpdir(), "blah-chat-cli-stage-"));
   const git = (args: string[]) =>
     execFileSync("git", args, {
       cwd: directory,

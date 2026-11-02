@@ -2,6 +2,7 @@
 
 import { getGatewayOptions } from "@blah-chat/ai/gateway";
 import { MODEL_CONFIG } from "@blah-chat/ai/models";
+import { DEFAULT_MODEL_ID } from "@blah-chat/ai/operational-models";
 import { buildReasoningOptions } from "@blah-chat/ai/reasoning";
 import { getModel } from "@blah-chat/ai/registry";
 import {
@@ -61,20 +62,6 @@ const MAX_TOOL_STEPS = 15;
  */
 const _MAX_AUTO_RETRY_ATTEMPTS = 3;
 const GLOBAL_STRICT_JSON_SCHEMA_OVERRIDE_ALLOWLIST = new Set<string>();
-
-function resolveOperationalFallbackModelId(): string {
-  const firstConfiguredModel = Object.keys(MODEL_CONFIG).find(
-    (modelId) => modelId !== "auto",
-  );
-
-  if (!firstConfiguredModel) {
-    throw new Error(
-      "No configured model available for manual routing fallback",
-    );
-  }
-
-  return firstConfiguredModel;
-}
 
 function removeGlobalStrictJsonSchemaOverrides(
   providerOptions: Record<string, unknown> | undefined,
@@ -196,7 +183,7 @@ export const generateResponse = internalAction({
           api.users.getUserPreferenceByUserId,
           { userId: args.userId, key: "defaultModel" },
         )) as string | null;
-        const fallbackModelId = resolveOperationalFallbackModelId();
+        const fallbackModelId = DEFAULT_MODEL_ID;
         const resolvedModelId =
           defaultModel &&
           defaultModel !== "auto" &&

@@ -7,7 +7,14 @@
  * hard rules -> embedding similarity -> route label -> model bin.
  */
 
-import { createOpenAI } from "@ai-sdk/openai";
+import { DEFAULT_MODEL_ID } from "@blah-chat/ai/models";
+import {
+  calculateEmbeddingCost,
+  EMBEDDING_MODEL,
+  ROUTER_TIEBREAK_MODEL,
+} from "@blah-chat/ai/operational-models";
+import { getModel } from "@blah-chat/ai/registry";
+import { calculateCost } from "@blah-chat/ai/utils";
 import {
   type ClassifierConfig,
   type ClassifierRouterResult,
@@ -24,30 +31,10 @@ import { embed, generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
 import { logger } from "../lib/logger";
-
-function getEmbeddingModel() {
-  const openai = createOpenAI({
-    apiKey: process.env.AI_GATEWAY_API_KEY,
-    baseURL:
-      "https://gateway.ai.cloudflare.com/v1/planetaryescape/blah-chat-dev-gateway/openai",
-  });
-  return openai.textEmbeddingModel("text-embedding-3-small");
-}
-
-function getFallbackLlmModel() {
-  const openai = createOpenAI({
-    apiKey: process.env.AI_GATEWAY_API_KEY,
-    baseURL:
-      "https://gateway.ai.cloudflare.com/v1/planetaryescape/blah-chat-dev-gateway/openai",
-  });
-  return openai("gpt-oss-120b");
-}
-
-const EMBEDDING_PRICING = { input: 0.02, output: 0 }; // text-embedding-3-small per 1M tokens
-const LLM_PRICING = { input: 0.05, output: 0.1 }; // gpt-oss-120b
 
 /**
  * Simplified LLM fallback: given candidate labels, pick the best one.
@@ -56,14 +43,14 @@ async function llmFallbackClassify(
   message: string,
   candidateLabels: RouteLabel[],
   ctx: ActionCtx,
-  userId: string,
+  userId: Id<"users">,
 ): Promise<{ routeLabel: RouteLabel; confidence: number }> {
   const labelDescriptions = candidateLabels.map((l) => `- ${l}`).join("\n");
 
   const response = await generateObject({
-    model: getFallbackLlmModel(),
+    model: getModel(ROUTER_TIEBREAK_MODEL.id),
     schema: z.object({
-      routeLabel: z.enum(candidateLabels as unknown as [string, ...string[]]),
+      routeLabel: z.enum(candidateLabels),
       confidence: z.number().min(0).max(1),
     }),
     temperature: 0.1,
@@ -71,15 +58,13 @@ async function llmFallbackClassify(
   });
 
   if (response.usage) {
-    const cost =
-      ((response.usage.inputTokens ?? 0) * LLM_PRICING.input) / 1_000_000 +
-      ((response.usage.outputTokens ?? 0) * LLM_PRICING.output) / 1_000_000;
-    await (ctx.runMutation as any)(
+    const cost = calculateCost(ROUTER_TIEBREAK_MODEL.id, response.usage);
+    await ctx.runMutation(
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
       internal.usage.mutations.recordTextGeneration,
       {
         userId,
-        model: "openai:gpt-oss-120b",
+        model: ROUTER_TIEBREAK_MODEL.id,
         inputTokens: response.usage.inputTokens ?? 0,
         outputTokens: response.usage.outputTokens ?? 0,
         cost,
@@ -89,7 +74,7 @@ async function llmFallbackClassify(
   }
 
   return {
-    routeLabel: response.object.routeLabel as RouteLabel,
+    routeLabel: response.object.routeLabel,
     confidence: response.object.confidence,
   };
 }
@@ -185,7 +170,7 @@ export const routeMessageV2 = internalAction({
       // 1. Embed the user message
       const embeddingStart = Date.now();
       const { embedding } = await embed({
-        model: getEmbeddingModel(),
+        model: EMBEDDING_MODEL,
         value: args.userMessage.slice(0, 8000), // Truncate for embedding
       });
       const embeddingLatencyMs = Date.now() - embeddingStart;
@@ -198,10 +183,9 @@ export const routeMessageV2 = internalAction({
           userId: args.userId as string,
           model: "openai:text-embedding-3-small",
           inputTokens: Math.ceil(args.userMessage.slice(0, 8000).length / 4),
-          cost:
-            (Math.ceil(args.userMessage.slice(0, 8000).length / 4) *
-              EMBEDDING_PRICING.input) /
-            1_000_000,
+          cost: calculateEmbeddingCost(
+            Math.ceil(args.userMessage.slice(0, 8000).length / 4),
+          ),
         },
       );
 
@@ -235,7 +219,7 @@ export const routeMessageV2 = internalAction({
             args.userMessage,
             [...ROUTE_LABELS],
             ctx,
-            args.userId as string,
+            args.userId,
           );
           classifierResult = {
             routeLabel: llmResult.routeLabel,
@@ -265,7 +249,7 @@ export const routeMessageV2 = internalAction({
           args.userMessage,
           classifierResult.candidateLabels,
           ctx,
-          args.userId as string,
+          args.userId,
         );
         classifierResult = {
           ...classifierResult,
@@ -346,7 +330,7 @@ export const routeMessageV2 = internalAction({
       });
 
       return {
-        selectedModelId: "openai:gpt-5-mini",
+        selectedModelId: DEFAULT_MODEL_ID,
         classification: {
           primaryCategory: "conversation",
           complexity: "simple",

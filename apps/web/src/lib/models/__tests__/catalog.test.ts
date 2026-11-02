@@ -1,9 +1,50 @@
-import { getMobileModels, MODEL_CONFIG } from "@blah-chat/ai/models";
-import { getModel } from "@blah-chat/ai/registry";
-import { describe, expect, it } from "vitest";
+import {
+  DEFAULT_MODEL_ID,
+  getMobileModels,
+  MODEL_CONFIG,
+} from "@blah-chat/ai/models";
+import {
+  DESIGN_SYSTEM_GENERATION_MODEL,
+  DOCUMENT_EXTRACTION_MODEL,
+  MEMORY_EXTRACTION_MODEL,
+  ROUTER_TIEBREAK_MODEL,
+  TITLE_GENERATION_MODEL,
+} from "@blah-chat/ai/operational-models";
+import { getModel, getModelWithGateway } from "@blah-chat/ai/registry";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getStaticModel, getStaticModels } from "../repository";
 
 describe("restored model catalog", () => {
+  beforeEach(() => {
+    vi.stubEnv("GROQ_API_KEY", "test-groq-key");
+    vi.stubEnv("CEREBRAS_API_KEY", "test-cerebras-key");
+  });
+  afterEach(() => vi.unstubAllEnvs());
+
+  it.each([
+    [TITLE_GENERATION_MODEL, "openai/gpt-oss-120b", "groq"],
+    [MEMORY_EXTRACTION_MODEL, "openai/gpt-oss-120b", "groq"],
+    [DOCUMENT_EXTRACTION_MODEL, "google/gemini-3-flash", "vercel"],
+    [DESIGN_SYSTEM_GENERATION_MODEL, "openai/gpt-oss-120b", "groq"],
+    [ROUTER_TIEBREAK_MODEL, "openai/gpt-oss-120b", "groq"],
+  ] as const)("preserves direct text and optional multimodal routes (case %#)", (model, gatewayModelId, gateway) => {
+    expect(model.gateway ?? "vercel").toBe(gateway);
+    expect(model.isDeprecated).not.toBe(true);
+    expect(getModel(model.id).modelId).toBe(gatewayModelId);
+  });
+
+  it("uses the verified direct model for new chats and Cerebras when Groq is not configured", () => {
+    expect(DEFAULT_MODEL_ID).toBe("openai:gpt-oss-120b");
+    vi.stubEnv("GROQ_API_KEY", "");
+    expect(getModel(DEFAULT_MODEL_ID).modelId).toBe("gpt-oss-120b");
+    expect(getModelWithGateway(DEFAULT_MODEL_ID, "groq").modelId).toBe(
+      "openai/gpt-oss-120b",
+    );
+    expect(getModelWithGateway(DEFAULT_MODEL_ID, "cerebras").modelId).toBe(
+      "gpt-oss-120b",
+    );
+  });
+
   it.each([
     ["openrouter:claude-opus-4.8", "anthropic/claude-opus-4.8"],
     ["openrouter:gpt-5.5", "openai/gpt-5.5"],

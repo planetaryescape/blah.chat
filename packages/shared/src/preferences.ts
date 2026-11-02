@@ -4,6 +4,8 @@
  * Centralized defaults and category mappings for the flattened user preferences system.
  */
 
+import { DEFAULT_MODEL_ID } from "@blah-chat/ai/models";
+
 export const PREFERENCE_DEFAULTS = {
   // Appearance
   theme: "dark" as const,
@@ -12,7 +14,7 @@ export const PREFERENCE_DEFAULTS = {
   chatWidth: "standard" as const,
 
   // Models
-  defaultModel: "auto",
+  defaultModel: DEFAULT_MODEL_ID,
   favoriteModels: [] as string[],
   recentModels: [] as string[],
   newChatModelSelection: "recent" as const,

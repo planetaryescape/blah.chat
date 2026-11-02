@@ -24,6 +24,9 @@ export const AUTO_MODEL = {
 /** Check if a model ID is the auto router */
 export const isAutoModel = (modelId: string): boolean => modelId === "auto";
 
+/** Directly hosted default; does not require AI Gateway credits. */
+export const DEFAULT_MODEL_ID = "openai:gpt-oss-120b";
+
 export interface ModelConfig {
   id: string;
   /** Model creator/vendor (OpenAI, Anthropic, etc.) - used for grouping and icons */
@@ -257,6 +260,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
   "openai:gpt-oss-20b": {
     id: "openai:gpt-oss-20b",
+    gateway: "groq",
+    actualModelId: "openai/gpt-oss-20b",
     provider: "openai",
     name: "GPT-OSS 20B",
     description:
@@ -271,6 +276,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
   "openai:gpt-oss-120b": {
     id: "openai:gpt-oss-120b",
+    gateway: "groq",
+    actualModelId: "openai/gpt-oss-120b",
     provider: "openai",
     name: "GPT-OSS 120B",
     description:

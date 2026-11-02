@@ -52,6 +52,7 @@
     "prepublishOnly": "bun run build"
   },
   "dependencies": {
+    "@blah-chat/ai": "workspace:*",
     "date-fns": "^4.1.0",
     "diff": "^8.0.2"
   },

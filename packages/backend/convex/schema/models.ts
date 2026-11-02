@@ -54,7 +54,12 @@ const speedTierValidator = v.union(
 /**
  * Gateway/SDK for routing requests
  */
-const gatewayValidator = v.union(v.literal("vercel"), v.literal("openrouter"));
+const gatewayValidator = v.union(
+  v.literal("vercel"),
+  v.literal("openrouter"),
+  v.literal("groq"),
+  v.literal("cerebras"),
+);
 
 /**
  * Model status for lifecycle management

@@ -83,7 +83,7 @@
     "marked": "^17.0.1",
     "match-sorter": "^8.2.0",
     "mermaid": "11.15.0",
-    "monaco-editor": "^0.55.1",
+    "monaco-editor": "^0.56.0",
     "motion": "^12.23.26",
     "nanoid": "^5.1.11",
     "next": "16.2.6",

@@ -1,4 +1,11 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import {
+  act,
+  render,
+  renderHook,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { Suspense, startTransition, useLayoutEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BlahChatCache, setActiveCache } from "@/lib/cache/db";
 import { useSendMessage } from "@/lib/hooks/mutations/useSendMessage";
@@ -13,6 +20,12 @@ const auth = vi.hoisted(() => ({
 }));
 vi.mock("@clerk/nextjs", () => ({
   useAuth: () => ({ ...auth, getToken: () => auth.getToken() }),
+  useSession: () => ({
+    isLoaded: auth.isLoaded,
+    session: auth.userId
+      ? { id: auth.sessionId, getToken: auth.getToken }
+      : null,
+  }),
 }));
 vi.mock("@tanstack/react-query", () => ({
   useMutation: () => ({}),
@@ -54,6 +67,58 @@ afterEach(() => {
 });
 
 describe("session-bound API client", () => {
+  it.each([
+    "same-session",
+    "other-session",
+  ])("does not publish auth from a suspended %s render", async (change) => {
+    let committed: ReturnType<typeof useApiClient> | undefined;
+    let suspended = false;
+    const never = new Promise<void>(() => {});
+    function Probe({ suspend }: { suspend: boolean }) {
+      const client = useApiClient();
+      useLayoutEffect(() => {
+        committed = client;
+      }, [client]);
+      if (suspend) {
+        suspended = true;
+        throw never;
+      }
+      return <div>Committed A screen</div>;
+    }
+    const view = render(
+      <Suspense fallback={<div>Pending</div>}>
+        <Probe suspend={false} />
+      </Suspense>,
+    );
+    const original = committed;
+    auth.getToken = vi.fn(
+      async (): Promise<string | null> => "uncommitted-token",
+    );
+    if (change === "other-session") {
+      auth.userId = "B";
+      auth.sessionId = "session-B";
+    }
+    await act(async () =>
+      startTransition(() =>
+        view.rerender(
+          <Suspense fallback={<div>Pending</div>}>
+            <Probe suspend />
+          </Suspense>,
+        ),
+      ),
+    );
+    expect(suspended).toBe(true);
+    expect(screen.getByText("Committed A screen")).toBeInTheDocument();
+    expect(committed).toBe(original);
+    await expect(original?.get("/synthetic")).resolves.toEqual({ ok: true });
+    expect(fetch).toHaveBeenCalledWith(
+      "/synthetic",
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: "Bearer token-A" }),
+      }),
+    );
+  });
+
   it("stays stable across rerenders and uses the latest same-session token getter", async () => {
     const hook = renderHook(() => useApiClient());
     const original = hook.result.current;

@@ -1,7 +1,10 @@
-import { useAuth } from "@clerk/nextjs";
-import { useEffect, useMemo, useRef } from "react";
+import { useAuth, useSession } from "@clerk/nextjs";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { getDesktopClientHeaders } from "@/lib/platform/desktopShell";
 import type { ApiResponse } from "./types";
+
+const useCommitEffect =
+  typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export class ApiClientError extends Error {
   constructor(
@@ -47,31 +50,40 @@ async function fetchWithAuth<T>(
 }
 
 export function useApiClient() {
-  const auth = useAuth();
-  const { isLoaded, userId, sessionId } = auth;
-  const authRef = useRef(auth);
-  authRef.current = auth;
-  const mounted = useRef(true);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
+  const { isLoaded, userId, sessionId } = useAuth();
+  const { isLoaded: sessionLoaded, session } = useSession();
+  const committed = useRef<{
+    isLoaded: boolean;
+    userId: typeof userId;
+    sessionId: typeof sessionId;
+    session: typeof session;
+  } | null>(null);
+  useCommitEffect(() => {
+    committed.current = {
+      isLoaded: isLoaded && sessionLoaded,
+      userId,
+      sessionId,
+      session,
     };
-  }, []);
+    return () => {
+      committed.current = null;
+    };
+  }, [isLoaded, sessionLoaded, userId, sessionId, session]);
 
   return useMemo(() => {
-    // A client belongs to one session, even while token acquisition is pending.
-    // Same-session rerenders can refresh getToken without replacing the client.
+    // Publish auth only on commit; suspended renders cannot change a live client.
+    // Bind token acquisition to that session resource, not Clerk's global getter.
     const ownsSession = () =>
-      mounted.current &&
       isLoaded &&
       !!userId &&
-      authRef.current.isLoaded &&
-      authRef.current.userId === userId &&
-      authRef.current.sessionId === sessionId;
+      !!committed.current?.isLoaded &&
+      committed.current.userId === userId &&
+      committed.current.sessionId === sessionId &&
+      committed.current.session?.id === sessionId;
     const getToken = async () => {
-      if (!ownsSession()) return null;
-      const token = await authRef.current.getToken();
+      const current = committed.current;
+      if (!ownsSession() || !current?.session) return null;
+      const token = await current.session.getToken();
       return ownsSession() ? token : null;
     };
     return {

@@ -29,11 +29,7 @@ export function CacheProvider({ children }: { children: React.ReactNode }) {
         {children}
       </IdentityCache>
     );
-  if (
-    !isAuthenticated ||
-    user === undefined ||
-    (user && user.clerkId !== userId)
-  ) {
+  if (!isAuthenticated || !user || user.clerkId !== userId) {
     return null;
   }
 

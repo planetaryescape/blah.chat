@@ -1,5 +1,6 @@
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { getCache } from "@/lib/cache";
+import { type BlahChatCache, getActiveCache } from "@/lib/cache/db";
 
 export interface QueuedMessage {
   id: string;
@@ -23,8 +24,9 @@ export class MessageQueue {
 
   async enqueue(
     message: Omit<QueuedMessage, "id" | "timestamp" | "retries">,
-  ): Promise<void> {
-    const cache = getCache();
+    cache: BlahChatCache | null = getActiveCache(),
+  ): Promise<boolean> {
+    if (!cache || getActiveCache() !== cache) return false;
     const queuedMessage: QueuedMessage = {
       ...message,
       id: crypto.randomUUID(),
@@ -41,31 +43,39 @@ export class MessageQueue {
     });
 
     this.dispatchQueueUpdate();
+    return getActiveCache() === cache;
   }
 
   async processQueue(
     sendFn: (msg: QueuedMessage) => Promise<void>,
-  ): Promise<void> {
-    const cache = getCache();
-    const queue = await this.getQueue();
+    cache: BlahChatCache | null = getActiveCache(),
+  ): Promise<"complete" | "cancelled" | "incomplete"> {
+    if (!cache || getActiveCache() !== cache) return "cancelled";
+    const pending = await cache.pendingMutations
+      .where("type")
+      .equals("sendMessage")
+      .toArray();
+    // SAFETY: owner-scoped sendMessage rows are produced by enqueue above.
+    const queue = pending.map((mutation) => mutation.payload as QueuedMessage);
+    let incomplete = false;
 
     for (const msg of queue) {
       // Never replay an old account's pending writes after an identity change.
-      if (getCache() !== cache) return;
+      if (getActiveCache() !== cache) return "cancelled";
       try {
         await sendFn(msg);
-        if (getCache() !== cache) return;
-        await this.remove(msg.id);
+        if (getActiveCache() !== cache) return "cancelled";
+        await this.remove(cache, msg.id);
       } catch (_error) {
-        if (getCache() !== cache) return;
+        if (getActiveCache() !== cache) return "cancelled";
+        incomplete = true;
         if (msg.retries >= this.MAX_RETRIES) {
-          await this.remove(msg.id);
+          await this.remove(cache, msg.id);
           console.error(
             `[MessageQueue] Permanently failed after ${this.MAX_RETRIES} retries:`,
-            msg.content.slice(0, 50),
           );
         } else {
-          await this.incrementRetry(msg.id);
+          await this.incrementRetry(cache, msg.id);
 
           // Exponential backoff: 2s → 4s → 8s
           const backoffMs = 2000 * 2 ** msg.retries;
@@ -73,6 +83,8 @@ export class MessageQueue {
         }
       }
     }
+    if (getActiveCache() !== cache) return "cancelled";
+    return incomplete ? "incomplete" : "complete";
   }
 
   async getQueue(): Promise<QueuedMessage[]> {
@@ -111,9 +123,8 @@ export class MessageQueue {
     this.dispatchQueueUpdate();
   }
 
-  private async remove(id: string): Promise<void> {
+  private async remove(cache: BlahChatCache, id: string): Promise<void> {
     try {
-      const cache = getCache();
       await cache.pendingMutations.delete(id);
     } catch (error) {
       console.error("[MessageQueue] Failed to remove:", error);
@@ -121,9 +132,11 @@ export class MessageQueue {
     this.dispatchQueueUpdate();
   }
 
-  private async incrementRetry(id: string): Promise<void> {
+  private async incrementRetry(
+    cache: BlahChatCache,
+    id: string,
+  ): Promise<void> {
     try {
-      const cache = getCache();
       const mutation = await cache.pendingMutations.get(id);
       if (mutation) {
         const payload = mutation.payload as QueuedMessage;

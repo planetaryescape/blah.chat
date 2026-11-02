@@ -1,9 +1,10 @@
 # Maintain the restored web cache
 
-Use `useUserCache()` inside cache consumers. `CacheProvider` mounts those
-consumers only after Clerk and Convex agree on the authenticated user. A missing
-Convex user, including `null`, blocks rendering rather than opening that user's
-previous cache.
+Use `useUserCache()` inside cache consumers. For authenticated rendering,
+`CacheProvider` requires Clerk and Convex to agree on the user. A missing Convex
+user, including `null`, blocks rendering rather than opening that user's previous
+cache. Signed-out rendering uses a fresh, isolated empty cache, not an
+authenticated user's persistent cache. Unresolved authentication blocks rendering.
 
 ## Identity and deployment changes
 
@@ -27,6 +28,11 @@ The sync compares complete cached rows, writes only changed rows, and deletes
 orphan messages and their attachments, tool calls, and sources in one transaction.
 Do not rely on `updatedAt` alone: partial content and branch flags can change
 without a timestamp change.
+
+Metadata writes check message existence inside the same four-table transaction
+used by tree deletion, so a late metadata response cannot resurrect deleted rows.
+The metadata hook observes message presence and retries if the tree arrives after
+metadata; legitimate new-message metadata is not discarded permanently.
 
 ## Verify changes
 

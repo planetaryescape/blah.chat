@@ -20,7 +20,8 @@ if (!url || !key || !subject)
 
 function connect() {
   const client = new ConvexHttpClient(url!);
-  // This is the same explicitly internal API used by the Convex CLI's --identity.
+  // SAFETY: Convex 1.48 implements this internal API for CLI --identity; the
+  // installed source was checked. It is deliberately hidden from public types.
   const admin = client as ConvexHttpClient & {
     setAdminAuth(
       key: string,

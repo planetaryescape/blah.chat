@@ -1,4 +1,5 @@
 import { useAuth } from "@clerk/nextjs";
+import { useEffect, useMemo, useRef } from "react";
 import { getDesktopClientHeaders } from "@/lib/platform/desktopShell";
 import type { ApiResponse } from "./types";
 
@@ -17,9 +18,11 @@ async function fetchWithAuth<T>(
   url: string,
   options: RequestInit,
   getToken: () => Promise<string | null>,
+  isCurrent: () => boolean,
 ): Promise<T> {
   const token = await getToken();
-  if (!token) throw new ApiClientError(401, "UNAUTHORIZED", "Auth required");
+  if (!token || !isCurrent())
+    throw new ApiClientError(401, "UNAUTHORIZED", "Auth required");
 
   const response = await fetch(url, {
     ...options,
@@ -44,23 +47,52 @@ async function fetchWithAuth<T>(
 }
 
 export function useApiClient() {
-  const { getToken } = useAuth();
+  const auth = useAuth();
+  const { isLoaded, userId, sessionId } = auth;
+  const authRef = useRef(auth);
+  authRef.current = auth;
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
-  return {
-    get: <T>(url: string) => fetchWithAuth<T>(url, { method: "GET" }, getToken),
-    post: <T>(url: string, body?: unknown) =>
-      fetchWithAuth<T>(
-        url,
-        { method: "POST", body: JSON.stringify(body) },
-        getToken,
-      ),
-    patch: <T>(url: string, body?: unknown) =>
-      fetchWithAuth<T>(
-        url,
-        { method: "PATCH", body: JSON.stringify(body) },
-        getToken,
-      ),
-    delete: <T>(url: string) =>
-      fetchWithAuth<T>(url, { method: "DELETE" }, getToken),
-  };
+  return useMemo(() => {
+    // A client belongs to one session, even while token acquisition is pending.
+    // Same-session rerenders can refresh getToken without replacing the client.
+    const ownsSession = () =>
+      mounted.current &&
+      isLoaded &&
+      !!userId &&
+      authRef.current.isLoaded &&
+      authRef.current.userId === userId &&
+      authRef.current.sessionId === sessionId;
+    const getToken = async () => {
+      if (!ownsSession()) return null;
+      const token = await authRef.current.getToken();
+      return ownsSession() ? token : null;
+    };
+    return {
+      get: <T>(url: string) =>
+        fetchWithAuth<T>(url, { method: "GET" }, getToken, ownsSession),
+      post: <T>(url: string, body?: unknown) =>
+        fetchWithAuth<T>(
+          url,
+          { method: "POST", body: JSON.stringify(body) },
+          getToken,
+          ownsSession,
+        ),
+      patch: <T>(url: string, body?: unknown) =>
+        fetchWithAuth<T>(
+          url,
+          { method: "PATCH", body: JSON.stringify(body) },
+          getToken,
+          ownsSession,
+        ),
+      delete: <T>(url: string) =>
+        fetchWithAuth<T>(url, { method: "DELETE" }, getToken, ownsSession),
+    };
+  }, [isLoaded, userId, sessionId]);
 }

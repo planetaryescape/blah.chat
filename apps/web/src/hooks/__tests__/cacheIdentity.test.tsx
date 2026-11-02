@@ -51,6 +51,8 @@ vi.mock("dexie", () => ({
                 bulkPut: async (rows: { _id: string }[]) => {
                   for (const row of rows) records.set(row._id, row);
                 },
+                bulkGet: async (ids: string[]) =>
+                  ids.map((id) => records.get(id)),
                 bulkDelete: async (ids: string[]) => {
                   for (const id of ids) records.delete(id);
                 },
@@ -87,7 +89,7 @@ vi.mock("dexie", () => ({
 import { CacheProvider } from "@/components/providers/cache-provider";
 import { useUserCache } from "@/lib/cache/context";
 import { BlahChatCache, getCache, setActiveCache } from "@/lib/cache/db";
-import { syncMessageTree } from "@/lib/cache/messageTree";
+import { syncMessageMetadata, syncMessageTree } from "@/lib/cache/messageTree";
 import { getSiblingsForMessage } from "../useCacheSync";
 
 function Probe() {
@@ -111,6 +113,42 @@ function Probe() {
 }
 
 describe("cache identity boundary", () => {
+  it("rejects late orphan metadata but retries metadata for messages that arrive later", async () => {
+    const cache = new BlahChatCache("A");
+    // SAFETY: minimal metadata fixtures only exercise cache messageId ownership.
+    const metadata = {
+      attachments: [{ _id: "attachment", messageId: "message" }],
+      toolCalls: [{ _id: "tool", messageId: "message" }],
+      sources: [{ _id: "source", messageId: "message" }],
+    } as never;
+    await syncMessageMetadata(cache, metadata);
+    expect(await cache.attachments.toArray()).toEqual([]);
+    // SAFETY: synthetic message identity, no server schema validation is needed.
+    await cache.messages.put({
+      _id: "message",
+      conversationId: "conversation",
+    } as never);
+    await syncMessageMetadata(cache, metadata);
+    for (const table of [cache.attachments, cache.toolCalls, cache.sources])
+      expect(await table.toArray()).toHaveLength(1);
+    // SAFETY: fixture conversation IDs never leave the cache.
+    await syncMessageTree(cache, "conversation" as never, []);
+    await syncMessageMetadata(cache, metadata);
+    for (const table of [cache.attachments, cache.toolCalls, cache.sources])
+      expect(await table.toArray()).toEqual([]);
+  });
+
+  it("does not write metadata for a superseded subscription callback", async () => {
+    const cache = new BlahChatCache("A");
+    // SAFETY: synthetic cache fixture omits unrelated fields.
+    await cache.messages.put({ _id: "message" } as never);
+    await syncMessageMetadata(
+      cache,
+      { attachments: [{ _id: "late", messageId: "message" }] } as never,
+      () => false,
+    );
+    expect(await cache.attachments.toArray()).toEqual([]);
+  });
   beforeEach(() => {
     state.databases.clear();
     state.loaded = true;

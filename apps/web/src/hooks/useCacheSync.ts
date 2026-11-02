@@ -7,8 +7,8 @@ import { useAction, usePaginatedQuery, useQuery } from "convex/react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useMemo, useRef } from "react";
 import { useUserCache } from "@/lib/cache/context";
-import type { BlahChatCache } from "@/lib/cache/db";
-import { syncMessageTree } from "@/lib/cache/messageTree";
+import { type BlahChatCache, getActiveCache } from "@/lib/cache/db";
+import { syncMessageMetadata, syncMessageTree } from "@/lib/cache/messageTree";
 
 interface MessageCacheSyncOptions {
   conversationId: Id<"conversations"> | undefined;
@@ -329,23 +329,25 @@ export function useMetadataCacheSync(messageIds: Id<"messages">[]) {
     stableIds.length > 0 ? { messageIds: stableIds } : "skip",
   );
 
+  // The metadata query may resolve before the independent tree query. Retry
+  // once those messages exist; a stable key avoids writes on every token patch.
+  const messagePresence = useLiveQuery(async () => {
+    const messages = await cache.messages.bulkGet(stableIds);
+    return JSON.stringify(messages.map((message) => message?._id ?? null));
+  }, [cache, stableIds]);
+
   useEffect(() => {
     if (!metadata) return;
-
-    const syncOps: Promise<unknown>[] = [];
-    if (metadata.attachments?.length) {
-      syncOps.push(cache.attachments.bulkPut(metadata.attachments));
-    }
-    if (metadata.toolCalls?.length) {
-      syncOps.push(cache.toolCalls.bulkPut(metadata.toolCalls));
-    }
-    if (metadata.sources?.length) {
-      syncOps.push(cache.sources.bulkPut(metadata.sources));
-    }
-    if (syncOps.length > 0) {
-      Promise.all(syncOps).catch(console.error);
-    }
-  }, [cache, metadata]);
+    let active = true;
+    syncMessageMetadata(
+      cache,
+      metadata,
+      () => active && getActiveCache() === cache,
+    ).catch(console.error);
+    return () => {
+      active = false;
+    };
+  }, [cache, metadata, messagePresence]);
 }
 
 interface ConversationCacheSyncOptions {

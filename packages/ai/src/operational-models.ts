@@ -28,101 +28,105 @@ export const DEFAULT_MODEL =
  * Fast, cost-effective model for generating short titles.
  */
 export const TITLE_GENERATION_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
+  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
+
+/** Cheap classification and tiebreak model for auto routing. */
+export const ROUTER_TIEBREAK_MODEL: ModelConfig =
+  MODEL_CONFIG["openrouter:gpt-5.4-nano"];
 
 /**
  * Memory extraction from conversations.
  * Needs good reasoning to identify important facts, preferences, etc.
  */
 export const MEMORY_EXTRACTION_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
+  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
 
 /**
  * Memory rephrasing and consolidation.
  * Used when combining or cleaning up memories.
  */
 export const MEMORY_PROCESSING_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
+  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
 
 /**
  * Tag extraction from notes.
  * Identifies relevant tags from content.
  */
 export const TAG_EXTRACTION_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
+  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
 
 /**
  * Text summarization (selection summary feature).
  * Needs good comprehension for high-quality summaries.
  */
 export const SUMMARIZATION_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
+  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
 
 /**
  * Message embedding summarization (for vector search).
  * Creates concise summaries of messages for embedding.
  */
 export const EMBEDDING_SUMMARIZATION_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
+  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
 
 /**
  * Memory reranking for search results.
  * Reorders memory candidates by relevance to query.
  */
 export const MEMORY_RERANK_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
+  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
 
 /**
  * Feedback triage and categorization.
  * Analyzes user feedback for priority, sentiment, and actionability.
  */
 export const FEEDBACK_TRIAGE_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
+  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
 
 /**
  * Task extraction from transcripts.
  * Extracts actionable tasks with deadlines from meeting transcripts.
  */
 export const TASK_EXTRACTION_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
+  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
 
 /**
  * Deadline parsing from natural language.
  * Converts deadline expressions like "next Friday" to timestamps.
  */
 export const DEADLINE_PARSING_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
+  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
 
 /**
  * Meeting extraction (combined tasks + notes).
  * Extracts both actionable tasks and meeting notes from transcripts.
  */
 export const MEETING_EXTRACTION_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
+  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
 
 /**
  * Document extraction (OCR/text extraction from files).
- * Uses Gemini 2.0 Flash for native PDF/document support.
+ * Uses Gemini Flash Lite for native PDF/document support.
  * Extracts text from PDFs, images, DOCX, etc. page-by-page.
  */
 export const DOCUMENT_EXTRACTION_MODEL: ModelConfig =
-  MODEL_CONFIG["google:gemini-2.0-flash"];
+  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
 
 /**
  * Design system generation for presentations.
- * Uses GLM-4.6 for creative, distinctive visual design generation.
+ * Uses GLM 5 for creative, distinctive visual design generation.
  * Higher temperature (0.9) for creative output.
  */
 export const DESIGN_SYSTEM_GENERATION_MODEL: ModelConfig =
-  MODEL_CONFIG["zai:glm-4.6"];
+  MODEL_CONFIG["openrouter:glm-5"];
 
 /**
  * Template analysis for brand extraction.
- * Uses Gemini 3 Flash for multimodal analysis of templates (PDF, PPTX, images).
+ * Uses Gemini Flash Lite for multimodal analysis of templates (PDF, PPTX, images).
  * Extracts colors, fonts, layout patterns from organization templates.
  */
 export const TEMPLATE_ANALYSIS_MODEL: ModelConfig =
-  MODEL_CONFIG["google:gemini-3-flash"];
+  MODEL_CONFIG["openrouter:gemini-3.1-flash-lite"];
 
 // ============================================================================
 // EMBEDDING MODEL

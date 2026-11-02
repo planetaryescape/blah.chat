@@ -53,6 +53,7 @@ export function dbToModelConfig(dbModel: DbModel): ModelConfig {
     speedTier: dbModel.speedTier as ModelConfig["speedTier"],
     isPro: dbModel.isPro,
     isInternalOnly: dbModel.isInternalOnly,
+    isDeprecated: dbModel.status === "deprecated",
   };
 }
 
@@ -98,7 +99,7 @@ export function modelConfigToDb(
     speedTier: config.speedTier as DbModel["speedTier"],
     isPro: config.isPro,
     isInternalOnly: config.isInternalOnly,
-    status: "active",
+    status: config.isDeprecated ? "deprecated" : "active",
   };
 }
 

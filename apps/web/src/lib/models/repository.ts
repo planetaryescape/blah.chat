@@ -205,8 +205,7 @@ function filterStaticModels(options?: {
     // Filter internal-only models
     if (!options?.includeInternalOnly && config.isInternalOnly) continue;
 
-    // Note: static config doesn't have deprecated status,
-    // so includeDeprecated has no effect on static models
+    if (!options?.includeDeprecated && config.isDeprecated) continue;
 
     result[id] = config;
   }

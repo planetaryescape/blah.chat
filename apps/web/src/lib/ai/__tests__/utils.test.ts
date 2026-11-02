@@ -73,14 +73,13 @@ describe("getModelsByProvider", () => {
 describe("calculateCost", () => {
   it("calculates basic input/output cost", () => {
     // Using a known model with specific pricing
-    // gpt-5 pricing: input $2.5/M, output $10/M
+    // The stable GPT-5 ID now routes to GPT-5.3 Chat: $1.75/M in, $14/M out.
     const cost = calculateCost("openai:gpt-5", {
       inputTokens: 1_000_000,
       outputTokens: 1_000_000,
     });
 
-    // Expected: 2.5 + 10 = 12.5
-    expect(cost).toBeCloseTo(12.5);
+    expect(cost).toBeCloseTo(15.75);
   });
 
   it("returns 0 for unknown model", () => {

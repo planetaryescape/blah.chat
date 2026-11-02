@@ -40,6 +40,7 @@ const providerValidator = v.union(
   v.literal("mistral"),
   v.literal("alibaba"),
   v.literal("zhipu"),
+  v.literal("nvidia"),
 );
 
 const statusValidator = v.union(
@@ -352,7 +353,8 @@ export const listModels = internalQuery({
                 | "meta"
                 | "mistral"
                 | "alibaba"
-                | "zhipu",
+                | "zhipu"
+                | "nvidia",
             )
             .eq("status", args.status as "active" | "deprecated" | "beta"),
         )
@@ -378,7 +380,8 @@ export const listModels = internalQuery({
               | "meta"
               | "mistral"
               | "alibaba"
-              | "zhipu",
+              | "zhipu"
+              | "nvidia",
           ),
         )
         .collect();

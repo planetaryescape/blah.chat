@@ -4,6 +4,8 @@ import { prepareDeterministic } from "../lib/speech/prepare";
 describe("table subtraction coverage", () => {
   it.each([
     "a - b",
+    "a-b",
+    "12-5",
     "12 - 5",
     "3.050 - 2.0",
   ])("discloses subtraction in headers and cells without losing source: %s", async (expression) => {

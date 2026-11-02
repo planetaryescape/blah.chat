@@ -7,11 +7,12 @@
  * Uses Web Crypto API (works in Convex runtime, no "use node" needed)
  */
 
-import { MODEL_CONFIG } from "@blah-chat/ai/models";
+import { DEFAULT_MODEL_ID, MODEL_CONFIG } from "@blah-chat/ai/models";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import type { Doc } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { internalQuery, mutation, query } from "./_generated/server";
+import { enforceModelPolicy, validatePromptContent } from "./chat";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers (local, not exported)
@@ -365,7 +366,11 @@ export const sendMessage = mutation({
     content: v.string(),
     modelId: v.optional(v.string()),
   },
-  handler: async (ctx, { apiKey, conversationId, content, modelId }) => {
+  handler: async (
+    ctx,
+    { apiKey, conversationId, content, modelId },
+  ): Promise<{ userMessageId: Id<"messages"> }> => {
+    validatePromptContent(content);
     const user = await validateAndGetUserForMutation(ctx, apiKey);
     if (!user) throw new Error("Invalid or revoked API key");
 
@@ -374,25 +379,43 @@ export const sendMessage = mutation({
     if (!conversation || conversation.userId !== user._id) {
       throw new Error("Conversation not found");
     }
+    const effectiveModel = modelId || conversation.model || DEFAULT_MODEL_ID;
+    await enforceModelPolicy(ctx, user, [effectiveModel]);
+    const parents: Id<"messages">[] = await ctx.runQuery(
+      internal.messages.getGenerationParent,
+      { conversationId },
+    );
 
     const now = Date.now();
 
     // Create user message
     const messageId = await ctx.db.insert("messages", {
       conversationId,
+      userId: user._id,
       role: "user",
       content,
+      parentMessageIds: parents,
+      isActiveBranch: true,
       status: "complete",
       createdAt: now,
       updatedAt: now,
     });
 
-    const effectiveModel = modelId || conversation.model || "openai:gpt-5-mini";
+    const pendingMessageId = await ctx.runMutation(internal.messages.create, {
+      conversationId,
+      userId: user._id,
+      role: "assistant",
+      status: "pending",
+      model: effectiveModel,
+      parentMessageIds: [messageId],
+      isActiveBranch: true,
+    });
 
-    // Update conversation (count +1 for user, assistant added in action)
+    // Both messages exist before scheduling, including a durable cancel target.
     await ctx.db.patch(conversationId, {
       lastMessageAt: now,
-      messageCount: (conversation.messageCount || 0) + 1,
+      messageCount: (conversation.messageCount || 0) + 2,
+      activeLeafMessageId: pendingMessageId,
       model: modelId || conversation.model,
       updatedAt: now,
     });
@@ -406,6 +429,7 @@ export const sendMessage = mutation({
         userId: user._id,
         modelId: effectiveModel,
         conversationId,
+        existingMessageId: pendingMessageId,
         thinkingEffort: "medium",
       },
     );

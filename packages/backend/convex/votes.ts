@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation } from "./_generated/server";
+import { getAuthorizedComparison } from "./lib/comparisonAccess";
 import { getCurrentUserOrCreate } from "./lib/userSync";
 
 export const recordVote = mutation({
@@ -15,6 +16,24 @@ export const recordVote = mutation({
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUserOrCreate(ctx);
+    const messages = await getAuthorizedComparison(
+      ctx,
+      args.comparisonGroupId,
+      user._id,
+    );
+    const responses = messages.filter(
+      (message) => message.role === "assistant",
+    );
+    if (!responses.length) throw new Error("Invalid comparison group");
+    if (
+      args.winnerId &&
+      !responses.some((message) => message._id === args.winnerId)
+    )
+      throw new Error("Winner is not a response in this comparison group");
+    const picksWinner =
+      args.rating === "left_better" || args.rating === "right_better";
+    if (picksWinner !== Boolean(args.winnerId))
+      throw new Error("Winner must match the vote rating");
 
     // 1. Insert into votes table (for analytics/leaderboard)
     await ctx.db.insert("votes", {
@@ -26,13 +45,6 @@ export const recordVote = mutation({
     });
 
     // 2. Embed in message records (dual persistence for quick access)
-    const messages = await ctx.db
-      .query("messages")
-      .withIndex("by_comparison_group", (q) =>
-        q.eq("comparisonGroupId", args.comparisonGroupId),
-      )
-      .collect();
-
     for (const msg of messages) {
       await ctx.db.patch(msg._id, {
         votes: {

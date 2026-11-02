@@ -124,11 +124,22 @@ function shouldAnalyzeModelFit(modelId: string): boolean {
 }
 
 // Every paid generation entry point uses the same tier limits as sendMessage.
-async function enforceModelPolicy(
+export function validatePromptContent(content: string) {
+  if (!content.trim() || content.length > 100_000)
+    throw new Error("Message content must contain 1-100000 characters");
+}
+
+export async function enforceModelPolicy(
   ctx: MutationCtx,
   user: Doc<"users">,
   models: string[],
 ) {
+  if (models.length < 1 || models.length > 8)
+    throw new Error("Choose between 1 and 8 models");
+  if (new Set(models).size !== models.length)
+    throw new Error("Comparison models must be distinct");
+  if (models.some((id) => id !== "auto" && !Object.hasOwn(MODEL_CONFIG, id)))
+    throw new Error("Unknown model");
   const hasProModel = models.some((id) => {
     const model = MODEL_CONFIG[id];
     return (
@@ -204,6 +215,7 @@ export const sendMessage = mutation({
     assistantMessageIds: Id<"messages">[];
     comparisonGroupId?: string;
   }> => {
+    validatePromptContent(args.content);
     const user = await getCurrentUserOrCreate(ctx);
 
     // Authorize before locks, accounting, message writes or scheduling work.
@@ -359,6 +371,15 @@ export const sendMessage = mutation({
         )) as Id<"messages">;
         assistantMessageIds.push(assistantMessageId);
       }
+
+      const lock = await ctx.db
+        .query("generationLocks")
+        .withIndex("by_conversation", (q) =>
+          q.eq("conversationId", conversationId!),
+        )
+        .first();
+      if (lock)
+        await ctx.db.patch(lock._id, { messageId: assistantMessageIds[0] });
 
       // 6. Schedule generation actions with existing message IDs
       for (let i = 0; i < modelsToUse.length; i++) {
@@ -630,6 +651,7 @@ export const editMessage = mutation({
     modelId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<Id<"messages"> | undefined> => {
+    validatePromptContent(args.content);
     const user = await getCurrentUserOrCreate(ctx);
 
     const message = await ctx.db.get(args.messageId);
@@ -947,14 +969,14 @@ export const stopGeneration = mutation({
       .withIndex("by_conversation", (q) =>
         q.eq("conversationId", args.conversationId),
       )
-      .order("desc")
-      .take(5);
+      .collect();
 
-    const generatingMsg = messages.find(
-      (m) => m.status && ["generating", "pending"].includes(m.status),
+    const generatingMessages = messages.filter(
+      (m) =>
+        m.role === "assistant" && ["generating", "pending"].includes(m.status),
     );
 
-    if (generatingMsg) {
+    for (const generatingMsg of generatingMessages) {
       await ctx.db.patch(generatingMsg._id, {
         content: generatingMsg.partialContent || "",
         partialContent: undefined,
@@ -962,6 +984,16 @@ export const stopGeneration = mutation({
         generationCompletedAt: Date.now(),
       });
     }
+
+    // All outstanding siblings are stopped atomically. Old action releases
+    // carry their lock ID and cannot delete a later request's lock.
+    const lock = await ctx.db
+      .query("generationLocks")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
+      .first();
+    if (lock) await ctx.db.delete(lock._id);
 
     // Update conversation timestamp
     await ctx.runMutation(internal.conversations.updateLastMessageAt, {
@@ -1033,11 +1065,21 @@ export const retryMessage = mutation({
       });
     }
 
-    // Schedule generation (action creates message)
+    const pendingMessageId = await ctx.runMutation(internal.messages.create, {
+      conversationId: userMessage.conversationId,
+      userId: user._id,
+      role: "assistant",
+      status: "pending",
+      model: modelId,
+      parentMessageIds: [userMessage._id],
+      isActiveBranch: true,
+    });
+    // Create the pending target before scheduling so stop can cancel queued work.
     await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
       conversationId: userMessage.conversationId,
       modelId,
       userId: user._id,
+      existingMessageId: pendingMessageId,
     });
     await ctx.scheduler.runAfter(0, internal.chat.runHousekeeping, {
       userId: user._id,
@@ -1349,6 +1391,7 @@ export const mergeBranches = mutation({
     modelId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<Id<"messages">> => {
+    validatePromptContent(args.content);
     const user = await getCurrentUserOrCreate(ctx);
 
     const conversation = await ctx.db.get(args.conversationId);

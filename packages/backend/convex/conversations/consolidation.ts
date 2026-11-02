@@ -2,6 +2,8 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { mutation } from "../_generated/server";
+import { enforceModelPolicy } from "../chat";
+import { getAuthorizedComparison } from "../lib/comparisonAccess";
 import { getCurrentUserOrCreate } from "../lib/userSync";
 
 export const createConsolidationConversation = mutation({
@@ -17,12 +19,11 @@ export const createConsolidationConversation = mutation({
     const user = await getCurrentUserOrCreate(ctx);
 
     // 1. Fetch comparison messages
-    const allMessages = await ctx.db
-      .query("messages")
-      .withIndex("by_comparison_group", (q) =>
-        q.eq("comparisonGroupId", args.comparisonGroupId),
-      )
-      .collect();
+    const allMessages = await getAuthorizedComparison(
+      ctx,
+      args.comparisonGroupId,
+      user._id,
+    );
 
     // 2. Separate user message and assistant responses
     let userMessage = allMessages.find((m) => m.role === "user");
@@ -52,6 +53,7 @@ export const createConsolidationConversation = mutation({
         `Invalid comparison group: found ${allMessages.length} messages (${responses.length} assistant, ${userMessage ? 1 : 0} user) for groupId ${args.comparisonGroupId}`,
       );
     }
+    await enforceModelPolicy(ctx, user, [args.consolidationModel]);
 
     // 3. Build consolidation prompt
     const modelList = responses.map((r) => r.model || "unknown").join(", ");
@@ -73,29 +75,41 @@ export const createConsolidationConversation = mutation({
       pinned: false,
       archived: false,
       starred: false,
-      messageCount: 0,
+      messageCount: 1,
       lastMessageAt: Date.now(),
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
 
     // 5. Insert user message with consolidated prompt
-    await ctx.db.insert("messages", {
+    const userMessageId = await ctx.db.insert("messages", {
       conversationId,
       userId: user._id,
       role: "user",
       content: consolidationPrompt,
       status: "complete",
+      isActiveBranch: true,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
 
-    // 6. Schedule generation (action creates assistant message)
+    const assistantMessageId = await ctx.runMutation(internal.messages.create, {
+      conversationId,
+      userId: user._id,
+      role: "assistant",
+      status: "pending",
+      model: args.consolidationModel,
+      parentMessageIds: [userMessageId],
+      isActiveBranch: true,
+    });
+
+    // 6. Schedule the durable pending target so queued work can be stopped.
     // @ts-ignore - Type depth exceeded with complex Convex action (94+ modules)
     await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
       conversationId,
       modelId: args.consolidationModel,
       userId: user._id,
+      existingMessageId: assistantMessageId,
     });
 
     return { conversationId };
@@ -112,12 +126,12 @@ export const consolidateInSameChat = mutation({
     const user = await getCurrentUserOrCreate(ctx);
 
     // 1. Fetch comparison group messages
-    const allMessages = await ctx.db
-      .query("messages")
-      .withIndex("by_comparison_group", (q) =>
-        q.eq("comparisonGroupId", args.comparisonGroupId),
-      )
-      .collect();
+    const allMessages = await getAuthorizedComparison(
+      ctx,
+      args.comparisonGroupId,
+      user._id,
+      args.conversationId,
+    );
 
     // 2. Separate user message and assistant responses
     const userMessage = allMessages.find((m) => m.role === "user");
@@ -126,6 +140,7 @@ export const consolidateInSameChat = mutation({
     if (!userMessage || responses.length === 0) {
       throw new Error("Invalid comparison group");
     }
+    await enforceModelPolicy(ctx, user, [args.consolidationModel]);
 
     // 3. Build consolidation prompt
     const modelList = responses.map((r) => r.model || "unknown").join(", ");
@@ -148,6 +163,8 @@ export const consolidateInSameChat = mutation({
       status: "pending",
       model: args.consolidationModel,
       isConsolidation: true,
+      isActiveBranch: true,
+      parentMessageIds: responses.map((response) => response._id),
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -164,6 +181,8 @@ export const consolidateInSameChat = mutation({
     await ctx.db.patch(args.conversationId, {
       messageCount: (conversation?.messageCount || 0) + 1,
       lastMessageAt: Date.now(),
+      updatedAt: Date.now(),
+      activeLeafMessageId: consolidatedMessageId,
     });
 
     // 7. Schedule generation with consolidation prompt as system context (reuse existing message)

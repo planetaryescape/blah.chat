@@ -435,7 +435,7 @@ export const getAllUserPreferences = query({
  * Get single user preference by userId (for internal use)
  * Used by actions that already have userId (e.g., memory extraction)
  */
-export const getUserPreferenceByUserId = query({
+export const getUserPreferenceByUserId = internalQuery({
   args: { userId: v.id("users"), key: v.string() },
   handler: async (ctx, { userId, key }) => {
     return await getUserPreferenceHelper(ctx, userId, key as any);

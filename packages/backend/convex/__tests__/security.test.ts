@@ -1,3 +1,4 @@
+import { DEFAULT_MODEL_ID } from "@blah-chat/ai/models";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { convexTest } from "../../__tests__/testSetup";
 import { api } from "../_generated/api";
@@ -214,7 +215,7 @@ describe("conversation authorization boundaries", () => {
         .mutation(api.chat.sendMessage, {
           conversationId,
           content: "hello",
-          models: ["openai:gpt-oss-20b", "openai:gpt-oss-20b"],
+          models: ["openai:gpt-oss-20b", DEFAULT_MODEL_ID],
         });
       expect(result.conversationId).toBe(conversationId);
       expect(result.assistantMessageIds).toHaveLength(2);

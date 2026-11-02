@@ -9,7 +9,7 @@ import { getModel } from "@blah-chat/ai/registry";
 import { embedMany, generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
-import { api, internal } from "../_generated/api";
+import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction, internalQuery } from "../_generated/server";
 import { logger } from "../lib/logger";
@@ -71,7 +71,7 @@ export const extractMemories = internalAction({
     // 2. Get user's extraction level preference
     const extractionLevel = ((await (ctx.runQuery as any)(
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      api.users.getUserPreferenceByUserId,
+      internal.users.getUserPreferenceByUserId,
       { userId: conversation.userId, key: "memoryExtractionLevel" },
     )) ?? "moderate") as MemoryExtractionLevel;
 

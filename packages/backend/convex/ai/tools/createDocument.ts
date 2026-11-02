@@ -51,14 +51,18 @@ export function createDocumentTool(
             ref: any,
             args: any,
           ) => Promise<Id<"canvasDocuments">>
-        )(internal.canvas.documents.createInternal, {
-          userId,
-          conversationId,
-          title,
-          content,
-          documentType,
-          language: documentType === "code" ? language : undefined,
-        });
+        )(
+          // @ts-ignore - Generated API reference exceeds Convex's module type-depth limit.
+          internal.canvas.documents.createInternal,
+          {
+            userId,
+            conversationId,
+            title,
+            content,
+            documentType,
+            language: documentType === "code" ? language : undefined,
+          },
+        );
 
         return {
           success: true,

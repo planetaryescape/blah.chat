@@ -1,7 +1,7 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { type NextRequest, NextResponse } from "next/server";
-import { getConvexClient } from "@/lib/api/convex";
+import { getAuthenticatedConvexClient } from "@/lib/api/convex";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { trackAPIPerformance } from "@/lib/api/monitoring";
@@ -13,7 +13,12 @@ async function postHandler(
   {
     params,
     userId,
-  }: { params: Promise<Record<string, string | string[]>>; userId: string },
+    sessionToken,
+  }: {
+    params: Promise<Record<string, string | string[]>>;
+    userId: string;
+    sessionToken: string;
+  },
 ) {
   const startTime = performance.now();
   const { id } = (await params) as { id: string };
@@ -22,7 +27,7 @@ async function postHandler(
     "POST /api/v1/conversations/[id]/star",
   );
 
-  const convex = getConvexClient();
+  const convex = getAuthenticatedConvexClient(sessionToken);
 
   // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
   await convex.mutation(api.conversations.toggleStar, {

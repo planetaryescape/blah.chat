@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@clerk/nextjs";
 import {
   createContext,
   type ReactNode,
@@ -55,6 +56,7 @@ export function TTSProvider({
   defaultSpeed?: number;
   defaultVoice?: string;
 }) {
+  const { getToken } = useAuth();
   const voiceRef = useRef(defaultVoice);
   const [state, setState] = useState<TTSState>({
     isVisible: false,
@@ -180,7 +182,11 @@ export function TTSProvider({
             audioPlayer.speedRef.current,
           );
 
+          const token = await getToken({ template: "convex" });
+          if (!token)
+            throw new Error("Speech requires an authenticated session");
           const response = await fetch(ttsUrl, {
+            headers: { Authorization: `Bearer ${token}` },
             signal: audioPlayer.getAbortSignal(),
           });
 
@@ -240,7 +246,7 @@ export function TTSProvider({
         }));
       }
     },
-    [audioPlayer],
+    [audioPlayer, getToken],
   );
 
   const pause = useCallback(() => {

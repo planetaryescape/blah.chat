@@ -1,9 +1,6 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import {
-  getAuthenticatedConvexClient,
-  getConvexClient,
-} from "@/lib/api/convex";
+import { getAuthenticatedConvexClient } from "@/lib/api/convex";
 import { formatEntity } from "@/lib/utils/formatEntity";
 import "server-only";
 import { z } from "zod";
@@ -60,10 +57,14 @@ export const conversationsDAL = {
   /**
    * Get conversation by ID (with ownership verification)
    */
-  getById: async (userId: string, conversationId: string) => {
-    const convex = getConvexClient();
+  getById: async (
+    userId: string,
+    conversationId: string,
+    sessionToken: string,
+  ) => {
+    const convex = getAuthenticatedConvexClient(sessionToken);
 
-    // Uses clerkId for server-side ownership verification
+    // Identity comes from the JWT, never from the supplied clerkId alone.
     const conversation = (await (convex.query as any)(
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
       api.conversations.getWithClerkVerification,
@@ -119,12 +120,13 @@ export const conversationsDAL = {
     userId: string,
     conversationId: string,
     data: z.infer<typeof updateConversationSchema>,
+    sessionToken: string,
   ) => {
     const validated = updateConversationSchema.parse(data);
-    const convex = getConvexClient();
+    const convex = getAuthenticatedConvexClient(sessionToken);
 
     // Verify ownership first
-    await conversationsDAL.getById(userId, conversationId);
+    await conversationsDAL.getById(userId, conversationId, sessionToken);
 
     // Update title if provided (use rename mutation)
     if (validated.title) {
@@ -160,11 +162,15 @@ export const conversationsDAL = {
   /**
    * Archive conversation
    */
-  archive: async (userId: string, conversationId: string) => {
-    const convex = getConvexClient();
+  archive: async (
+    userId: string,
+    conversationId: string,
+    sessionToken: string,
+  ) => {
+    const convex = getAuthenticatedConvexClient(sessionToken);
 
     // Verify ownership first
-    await conversationsDAL.getById(userId, conversationId);
+    await conversationsDAL.getById(userId, conversationId, sessionToken);
 
     await convex.mutation(api.conversations.archive, {
       conversationId: conversationId as Id<"conversations">,
@@ -193,10 +199,8 @@ export const conversationsDAL = {
     conversationId: string,
     sessionToken: string,
   ) => {
-    const _convex = getConvexClient();
-
     // Verify ownership first
-    await conversationsDAL.getById(userId, conversationId);
+    await conversationsDAL.getById(userId, conversationId, sessionToken);
 
     // Use authenticated client for mutation that requires ctx.auth
     const authConvex = getAuthenticatedConvexClient(sessionToken);

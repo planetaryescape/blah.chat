@@ -1,7 +1,7 @@
 import { MODEL_CONFIG } from "@blah-chat/ai/models";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { internalMutation, mutation } from "./_generated/server";
 import { getCurrentUserOrCreate } from "./lib/userSync";
@@ -123,6 +123,61 @@ function shouldAnalyzeModelFit(modelId: string): boolean {
   return avgCost >= 5.0; // Expensive threshold
 }
 
+// Every paid generation entry point uses the same tier limits as sendMessage.
+async function enforceModelPolicy(
+  ctx: MutationCtx,
+  user: Doc<"users">,
+  models: string[],
+) {
+  const hasProModel = models.some((id) => {
+    const model = MODEL_CONFIG[id];
+    return (
+      model?.isPro === true ||
+      (model?.pricing?.input ?? 0) >= 5 ||
+      (model?.pricing?.output ?? 0) >= 15
+    );
+  });
+  if (!hasProModel || user.isAdmin) return;
+  const settings = await ctx.db.query("adminSettings").first();
+  if (!settings?.proModelsEnabled)
+    throw new Error("Pro models are currently disabled");
+  const tier = user.tier || "free";
+  if (tier === "free")
+    throw new Error("Upgrade your account to access pro models");
+  const today = new Date().toISOString().split("T")[0];
+  if (tier === "tier1") {
+    const limit = settings.tier1DailyProModelLimit ?? 1;
+    const count =
+      user.lastProModelDate === today ? (user.dailyProModelCount ?? 0) : 0;
+    if (limit > 0) {
+      if (count >= limit)
+        throw new Error(
+          `Daily pro model limit reached (${limit} per day). Try again tomorrow.`,
+        );
+      await ctx.db.patch(user._id, {
+        dailyProModelCount: count + 1,
+        lastProModelDate: today,
+      });
+    }
+  }
+  if (tier === "tier2") {
+    const month = today.substring(0, 7);
+    const limit = settings.tier2MonthlyProModelLimit ?? 50;
+    const count =
+      user.lastProModelMonth === month ? (user.monthlyProModelCount ?? 0) : 0;
+    if (limit > 0) {
+      if (count >= limit)
+        throw new Error(
+          `Monthly pro model limit reached (${limit} per month). Try again next month.`,
+        );
+      await ctx.db.patch(user._id, {
+        monthlyProModelCount: count + 1,
+        lastProModelMonth: month,
+      });
+    }
+  }
+}
+
 export const sendMessage = mutation({
   args: {
     conversationId: v.optional(v.id("conversations")),
@@ -177,65 +232,7 @@ export const sendMessage = mutation({
     // Determine models to use - client MUST provide modelId, fallback only for edge cases
     const modelsToUse = args.models || [args.modelId || "openai:gpt-oss-20b"];
 
-    // Pro model enforcement (follows presentations.ts:87-115 pattern)
-    const hasProModel = modelsToUse.some((modelId) => {
-      const model = MODEL_CONFIG[modelId];
-      return (
-        model?.isPro === true ||
-        (model?.pricing?.input ?? 0) >= 5 ||
-        (model?.pricing?.output ?? 0) >= 15
-      );
-    });
-
-    if (hasProModel && !user.isAdmin) {
-      const adminSettings = await ctx.db.query("adminSettings").first();
-
-      if (!adminSettings?.proModelsEnabled) {
-        throw new Error("Pro models are currently disabled");
-      }
-
-      const tier = user.tier || "free";
-      if (tier === "free") {
-        throw new Error("Upgrade your account to access pro models");
-      }
-
-      const today = new Date().toISOString().split("T")[0];
-
-      if (tier === "tier1") {
-        const dailyLimit = adminSettings.tier1DailyProModelLimit ?? 1;
-        if (dailyLimit > 0) {
-          let currentCount = user.dailyProModelCount ?? 0;
-          if (user.lastProModelDate !== today) currentCount = 0;
-          if (currentCount >= dailyLimit) {
-            throw new Error(
-              `Daily pro model limit reached (${dailyLimit} per day). Try again tomorrow.`,
-            );
-          }
-          await ctx.db.patch(user._id, {
-            dailyProModelCount: currentCount + 1,
-            lastProModelDate: today,
-          });
-        }
-      }
-
-      if (tier === "tier2") {
-        const thisMonth = today.substring(0, 7);
-        const monthlyLimit = adminSettings.tier2MonthlyProModelLimit ?? 50;
-        if (monthlyLimit > 0) {
-          let currentCount = user.monthlyProModelCount ?? 0;
-          if (user.lastProModelMonth !== thisMonth) currentCount = 0;
-          if (currentCount >= monthlyLimit) {
-            throw new Error(
-              `Monthly pro model limit reached (${monthlyLimit} per month). Try again next month.`,
-            );
-          }
-          await ctx.db.patch(user._id, {
-            monthlyProModelCount: currentCount + 1,
-            lastProModelMonth: thisMonth,
-          });
-        }
-      }
-    }
+    await enforceModelPolicy(ctx, user, modelsToUse);
 
     // FAST PATH: Minimal blocking operations for snappy UX
     // Limit checks and housekeeping are deferred to background mutation
@@ -517,9 +514,11 @@ export const regenerate = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
-    const _user = await getCurrentUserOrCreate(ctx);
+    const user = await getCurrentUserOrCreate(ctx);
     const message = await ctx.db.get(args.messageId);
     if (!message) throw new Error("Message not found");
+    if (!(await canAccessConversation(ctx, message.conversationId, user._id)))
+      throw new Error("Unauthorized");
 
     const conversation = await ctx.db.get(message.conversationId);
     if (!conversation) throw new Error("Conversation not found");
@@ -543,6 +542,7 @@ export const regenerate = mutation({
       conversation.model ||
       userDefaultModel ||
       "openai:gpt-oss-20b";
+    await enforceModelPolicy(ctx, user, [modelId]);
 
     // P7 Tree Architecture: Create sibling message instead of replacing in-place
     // This preserves the original response and enables branch navigation
@@ -572,7 +572,7 @@ export const regenerate = mutation({
     // Create new sibling message
     const newMessageId = (await ctx.runMutation(internal.messages.create, {
       conversationId: message.conversationId,
-      userId: conversation.userId,
+      userId: user._id,
       role: "assistant",
       content: "",
       status: "pending",
@@ -596,8 +596,12 @@ export const regenerate = mutation({
       conversationId: message.conversationId,
       existingMessageId: newMessageId,
       modelId,
-      userId: conversation.userId,
+      userId: user._id,
       excludedModels,
+    });
+    await ctx.scheduler.runAfter(0, internal.chat.runHousekeeping, {
+      userId: user._id,
+      conversationId: message.conversationId,
     });
 
     // Update conversation timestamp
@@ -635,7 +639,7 @@ export const editMessage = mutation({
     if (!conversation) throw new Error("Conversation not found");
 
     // Verify ownership
-    if (conversation.userId !== user._id) {
+    if (!(await canAccessConversation(ctx, message.conversationId, user._id))) {
       throw new Error("Unauthorized");
     }
 
@@ -659,6 +663,18 @@ export const editMessage = mutation({
       });
       return;
     }
+
+    const userDefaultModel = await getUserPreference(
+      ctx,
+      user._id,
+      "defaultModel",
+    );
+    const modelId =
+      args.modelId ||
+      conversation.model ||
+      userDefaultModel ||
+      "openai:gpt-oss-20b";
+    await enforceModelPolicy(ctx, user, [modelId]);
 
     // P7 Tree Architecture: Create sibling message with edited content
     // This preserves the original branch and creates a new path
@@ -758,19 +774,6 @@ export const editMessage = mutation({
       },
     })) as Id<"messages">;
 
-    // Get model for new response
-    const userDefaultModel = (await (ctx.runQuery as any)(
-      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      api.users.getUserPreference,
-      { key: "defaultModel" },
-    )) as string | null;
-
-    const modelId =
-      args.modelId ||
-      conversation.model ||
-      userDefaultModel ||
-      "openai:gpt-oss-20b";
-
     // Create pending assistant message
     const newAssistantMessageId = (await ctx.runMutation(
       internal.messages.create,
@@ -802,6 +805,10 @@ export const editMessage = mutation({
       existingMessageId: newAssistantMessageId,
       modelId,
       userId: user._id,
+    });
+    await ctx.scheduler.runAfter(0, internal.chat.runHousekeeping, {
+      userId: user._id,
+      conversationId: message.conversationId,
     });
 
     // Update conversation timestamp
@@ -847,7 +854,10 @@ export const deleteMessage = mutation({
         .collect();
 
       for (const child of children) {
-        if (!visited.has(child._id)) {
+        if (
+          child.conversationId === message.conversationId &&
+          !visited.has(child._id)
+        ) {
           messagesToDelete.push(child._id);
           queue.push(child._id);
         }
@@ -966,9 +976,13 @@ export const retryMessage = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
-    const _user = await getCurrentUserOrCreate(ctx);
+    const user = await getCurrentUserOrCreate(ctx);
     const userMessage = await ctx.db.get(args.messageId);
     if (!userMessage) throw new Error("Message not found");
+    if (
+      !(await canAccessConversation(ctx, userMessage.conversationId, user._id))
+    )
+      throw new Error("Unauthorized");
     if (userMessage.role !== "user") {
       throw new Error("Can only retry user messages");
     }
@@ -993,6 +1007,18 @@ export const retryMessage = mutation({
       throw new Error("Can only retry failed messages");
     }
 
+    const userDefaultModel = await getUserPreference(
+      ctx,
+      user._id,
+      "defaultModel",
+    );
+    const modelId =
+      aiMessage.model ||
+      conversation.model ||
+      userDefaultModel ||
+      "openai:gpt-oss-20b";
+    await enforceModelPolicy(ctx, user, [modelId]);
+
     // Delete failed AI message + all following messages
     const deletedCount = allMessages.slice(userIndex + 1).length;
     for (const msg of allMessages.slice(userIndex + 1)) {
@@ -1007,23 +1033,15 @@ export const retryMessage = mutation({
       });
     }
 
-    // Phase 4: Get default model from new preference system
-    const userDefaultModel2 = await (
-      ctx.runQuery as (ref: any, args: any) => Promise<string | null>
-    )(api.users.getUserPreference as any, { key: "defaultModel" });
-
-    // Priority: aiMessage.model → conversation.model → user defaultModel preference → fallback
-    const modelId =
-      aiMessage.model ||
-      conversation.model ||
-      userDefaultModel2 ||
-      "openai:gpt-oss-20b";
-
     // Schedule generation (action creates message)
     await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
       conversationId: userMessage.conversationId,
       modelId,
-      userId: conversation.userId,
+      userId: user._id,
+    });
+    await ctx.scheduler.runAfter(0, internal.chat.runHousekeeping, {
+      userId: user._id,
+      conversationId: userMessage.conversationId,
     });
 
     // Update conversation timestamp
@@ -1063,7 +1081,10 @@ export const branchFromMessage = mutation({
 
     // Get conversation
     const conversation = await ctx.db.get(branchPoint.conversationId);
-    if (!conversation || conversation.userId !== user._id) {
+    if (
+      !conversation ||
+      !(await canAccessConversation(ctx, conversation._id, user._id))
+    ) {
       throw new Error("Unauthorized");
     }
 
@@ -1103,7 +1124,9 @@ export const branchFromMessage = mutation({
     return {
       conversationId: conversation._id,
       branchPointId: args.messageId,
-      existingSiblings: existingChildren.length,
+      existingSiblings: existingChildren.filter(
+        (child) => child.conversationId === conversation._id,
+      ).length,
     };
   },
 });
@@ -1124,7 +1147,10 @@ export const branchToNewConversation = mutation({
 
     // Get source conversation
     const sourceConversation = await ctx.db.get(sourceMessage.conversationId);
-    if (!sourceConversation || sourceConversation.userId !== user._id) {
+    if (
+      !sourceConversation ||
+      !(await canAccessConversation(ctx, sourceConversation._id, user._id))
+    ) {
       throw new Error("Unauthorized");
     }
 
@@ -1209,7 +1235,10 @@ export const switchBranch = mutation({
     const user = await getCurrentUserOrCreate(ctx);
 
     const conversation = await ctx.db.get(args.conversationId);
-    if (!conversation || conversation.userId !== user._id) {
+    if (
+      !conversation ||
+      !(await canAccessConversation(ctx, conversation._id, user._id))
+    ) {
       throw new Error("Unauthorized");
     }
 
@@ -1323,7 +1352,10 @@ export const mergeBranches = mutation({
     const user = await getCurrentUserOrCreate(ctx);
 
     const conversation = await ctx.db.get(args.conversationId);
-    if (!conversation || conversation.userId !== user._id) {
+    if (
+      !conversation ||
+      !(await canAccessConversation(ctx, conversation._id, user._id))
+    ) {
       throw new Error("Unauthorized");
     }
 
@@ -1347,6 +1379,19 @@ export const mergeBranches = mutation({
         );
       }
     }
+
+    const userDefaultModel = await getUserPreference(
+      ctx,
+      user._id,
+      "defaultModel",
+    );
+    const modelId =
+      args.modelId ||
+      conversation.model ||
+      userDefaultModel ||
+      "openai:gpt-oss-20b";
+    if (args.generateResponse !== false)
+      await enforceModelPolicy(ctx, user, [modelId]);
 
     // Find common ancestor to get rootMessageId
     const firstParent = parentMessages[0]!;
@@ -1412,18 +1457,6 @@ export const mergeBranches = mutation({
 
     // Optionally generate AI response
     if (args.generateResponse !== false) {
-      const userDefaultModel = (await (ctx.runQuery as any)(
-        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-        api.users.getUserPreference,
-        { key: "defaultModel" },
-      )) as string | null;
-
-      const modelId =
-        args.modelId ||
-        conversation.model ||
-        userDefaultModel ||
-        "openai:gpt-oss-20b";
-
       // Create pending assistant message
       const assistantMessageId = (await ctx.runMutation(
         internal.messages.create,
@@ -1450,6 +1483,10 @@ export const mergeBranches = mutation({
         existingMessageId: assistantMessageId,
         modelId,
         userId: user._id,
+      });
+      await ctx.scheduler.runAfter(0, internal.chat.runHousekeeping, {
+        userId: user._id,
+        conversationId: args.conversationId,
       });
     }
 

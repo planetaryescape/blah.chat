@@ -20,13 +20,18 @@ async function getHandler(
   {
     params,
     userId,
-  }: { params: Promise<Record<string, string | string[]>>; userId: string },
+    sessionToken,
+  }: {
+    params: Promise<Record<string, string | string[]>>;
+    userId: string;
+    sessionToken: string;
+  },
 ) {
   const { id } = (await params) as { id: string };
   const startTime = performance.now();
   logger.info({ userId, conversationId: id }, "GET /api/v1/conversations/:id");
 
-  const result = await conversationsDAL.getById(userId, id);
+  const result = await conversationsDAL.getById(userId, id, sessionToken);
 
   const duration = performance.now() - startTime;
   trackAPIPerformance({
@@ -49,7 +54,12 @@ async function patchHandler(
   {
     params,
     userId,
-  }: { params: Promise<Record<string, string | string[]>>; userId: string },
+    sessionToken,
+  }: {
+    params: Promise<Record<string, string | string[]>>;
+    userId: string;
+    sessionToken: string;
+  },
 ) {
   const { id } = (await params) as { id: string };
   const startTime = Date.now();
@@ -59,7 +69,7 @@ async function patchHandler(
   );
 
   const body = await parseBody(req, updateSchema);
-  const result = await conversationsDAL.update(userId, id, body);
+  const result = await conversationsDAL.update(userId, id, body, sessionToken);
 
   const duration = Date.now() - startTime;
   logger.info({ userId, conversationId: id, duration }, "Conversation updated");

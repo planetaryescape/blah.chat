@@ -179,6 +179,220 @@ describe("faithful structural narration", () => {
       narration.segments.map((s) => s.sourceStart).sort((a, b) => a - b),
     );
   });
+  it.each([
+    "\n",
+    "\r\n",
+  ])("maps wrapped unordered and ordered items to exact source spans (%j)", async (newline) => {
+    const source = [
+      "- First 😀 line",
+      "  continuation line",
+      "- Second line",
+      "",
+      "7. Ordered 😀 line",
+      "   ordered continuation",
+      "8. Last item",
+      "",
+      "Final sentence.",
+    ].join(newline);
+    const { narration } = await prepareDeterministic(source);
+    const sourceSegments = narration.segments.filter(
+      (segment) => segment.role === "source",
+    );
+    expect(sourceSegments.map((segment) => segment.text)).toEqual([
+      "First 😀 line\ncontinuation line",
+      "Second line",
+      "Ordered 😀 line\nordered continuation",
+      "Last item",
+      "Final sentence.",
+    ]);
+    expect(
+      sourceSegments.map((segment) => [segment.sourceStart, segment.sourceEnd]),
+    ).toEqual([
+      [
+        source.indexOf("First"),
+        source.indexOf("continuation line") + "continuation line".length,
+      ],
+      [source.indexOf("Second"), source.indexOf(`${newline}${newline}7.`)],
+      [
+        source.indexOf("Ordered"),
+        source.indexOf("ordered continuation") + "ordered continuation".length,
+      ],
+      [
+        source.indexOf("Last item"),
+        source.indexOf(`${newline}${newline}Final`),
+      ],
+      [source.indexOf("Final"), source.length],
+    ]);
+    expect(
+      narration.segments
+        .filter((segment) => segment.role === "detail")
+        .map((segment) => segment.text),
+    ).toEqual(["List item. ", "List item. ", "Item 7. ", "Item 8. "]);
+    expect(narration.coverage).toBe("complete");
+  });
+  it.each([
+    "\n",
+    "\r\n",
+  ])("retains wrapped nested lists, multiline code, quotes and table cells (%j)", async (newline) => {
+    const source = [
+      "- Parent 😀",
+      "  parent continuation",
+      "  - Nested 😀",
+      "    nested continuation",
+      "",
+      "    ```ts",
+      "    if (ready) {",
+      "      return false;",
+      "    }",
+      "    ```",
+      "",
+      "    > Quoted first",
+      "    > quoted continuation",
+      "",
+      "    | Name | Actual |",
+      "    |---|---|",
+      "    | A | -3.050 |",
+      "- Sibling",
+      "",
+      "Final sentence.",
+    ].join(newline);
+    const { narration, codeBlocks } = await prepareDeterministic(source);
+    const spoken = narration.segments.map((segment) => segment.text).join("\n");
+    for (const value of [
+      "Parent 😀\nparent continuation",
+      "Nested 😀\nnested continuation",
+      "return false",
+      "Quoted first\nquoted continuation",
+      "Row 1, A; column 2, Actual: minus 3 point zero five zero",
+      "Sibling",
+      "Final sentence.",
+    ])
+      expect(spoken).toContain(value);
+    expect(codeBlocks).toHaveLength(1);
+    expect(codeBlocks[0].text).toBe("if (ready) {\n  return false;\n}");
+    expect(codeBlocks[0].sourceStart).toBe(source.indexOf("```ts"));
+    expect(
+      source.slice(codeBlocks[0].sourceStart, codeBlocks[0].sourceEnd),
+    ).toContain(`      return false;${newline}`);
+    const quote = narration.segments.find(
+      (segment) => segment.text === "Quoted first\nquoted continuation",
+    );
+    expect(quote?.sourceStart).toBe(source.indexOf("Quoted first"));
+    expect(quote?.sourceEnd).toBe(
+      source.indexOf("quoted continuation") + "quoted continuation".length,
+    );
+    const table = narration.segments.filter(
+      (segment) => segment.kind === "table",
+    );
+    expect(table).toHaveLength(3);
+    expect(
+      table.every(
+        (segment) =>
+          segment.sourceStart === source.indexOf("| Name | Actual |"),
+      ),
+    ).toBe(true);
+    const labels = narration.segments.filter(
+      (segment) => segment.role === "detail" && segment.kind === "list",
+    );
+    expect(labels.map((segment) => segment.text)).toEqual([
+      "List item. ",
+      "Nested list level 2. List item. ",
+      "List item. ",
+    ]);
+    expect(labels.map((segment) => segment.sourceStart)).toEqual([
+      0,
+      source.indexOf("- Nested"),
+      source.indexOf("- Sibling"),
+    ]);
+    expect(narration.segments.map((segment) => segment.sourceStart)).toEqual(
+      narration.segments
+        .map((segment) => segment.sourceStart)
+        .sort((a, b) => a - b),
+    );
+    expect(spoken.match(/parent continuation/g) ?? []).toHaveLength(1);
+    expect(spoken.match(/nested continuation/g) ?? []).toHaveLength(1);
+    expect(narration.segments.at(-1)?.sourceEnd).toBe(source.length);
+    expect(narration.coverage).toBe("complete");
+  });
+  it("maps task markers, tab-expanded content and lazy continuations without losing code indentation", async () => {
+    const source =
+      "- [x] Task 😀\n  wrapped task\n-\tTabbed 😀\n\ttab continuation\n- Lazy first\nlazy continuation\n- Code\n\n  ```py\n  \tif ready:\n  \t\treturn False\n  ```\n\nEnd.";
+    const { narration, codeBlocks } = await prepareDeterministic(source);
+    const values = narration.segments.filter(
+      (segment) => segment.role === "source",
+    );
+    expect(values.map((segment) => segment.text)).toEqual([
+      "Task 😀\nwrapped task",
+      "Tabbed 😀\ntab continuation",
+      "Lazy first\nlazy continuation",
+      "Code",
+      "End.",
+    ]);
+    expect(values.slice(0, 3).map((segment) => segment.sourceStart)).toEqual([
+      source.indexOf("Task"),
+      source.indexOf("Tabbed"),
+      source.indexOf("Lazy"),
+    ]);
+    expect(narration.segments[0].text).toBe("List item. Checked. ");
+    expect(codeBlocks[0].text).toBe("    if ready:\n        return False");
+    expect(
+      narration.segments.some((segment) =>
+        segment.text.includes("indentation 8 spaces"),
+      ),
+    ).toBe(true);
+    expect(codeBlocks[0].sourceStart).toBe(source.indexOf("```py"));
+    expect(
+      source.slice(codeBlocks[0].sourceStart, codeBlocks[0].sourceEnd),
+    ).toContain("\t\treturn False");
+  });
+  it("distinguishes repeated wrapped items and paragraph boundaries instead of mapping to the first matching text", async () => {
+    const source =
+      "  10) Same 😀\n      continuation\n\n      next paragraph\n  11) Same 😀\n      continuation\n\nEnd.";
+    const { narration } = await prepareDeterministic(source);
+    const values = narration.segments.filter(
+      (segment) => segment.role === "source",
+    );
+    expect(values.map((segment) => segment.text)).toEqual([
+      "Same 😀\ncontinuation",
+      "next paragraph",
+      "Same 😀\ncontinuation",
+      "End.",
+    ]);
+    expect(values[0].sourceStart).toBe(source.indexOf("Same"));
+    expect(values[1].sourceStart).toBe(source.indexOf("next paragraph"));
+    expect(values[2].sourceStart).toBe(source.lastIndexOf("Same"));
+    expect(values[2].sourceEnd).toBe(
+      source.lastIndexOf("continuation") + "continuation".length,
+    );
+    expect(
+      narration.segments
+        .filter((segment) => segment.role === "detail")
+        .map((segment) => segment.text),
+    ).toEqual(["Item 10. ", "Item 11. "]);
+  });
+  it("composes quote and list mappings and handles interior tabs after emoji", async () => {
+    const source =
+      "> - First 😀\n>   continuation\n>   - Nested 😀\n>     nested continuation\n\n- 😀\tvalue\n  next\tvalue\n\nFinal.";
+    const { narration } = await prepareDeterministic(source);
+    const values = narration.segments.filter(
+      (segment) => segment.role === "source",
+    );
+    expect(values.map((segment) => segment.text)).toEqual([
+      "First 😀\ncontinuation",
+      "Nested 😀\nnested continuation",
+      "😀 value\nnext    value",
+      "Final.",
+    ]);
+    expect(values.slice(0, 3).map((segment) => segment.sourceStart)).toEqual([
+      source.indexOf("First"),
+      source.indexOf("Nested"),
+      source.lastIndexOf("😀"),
+    ]);
+    expect(values[1].sourceEnd).toBe(
+      source.indexOf("nested continuation") + "nested continuation".length,
+    );
+    expect(narration.coverage).toBe("complete");
+  });
   it("reads link labels and author alt, never fetches arbitrary images or obeys injected HTML", async () => {
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);

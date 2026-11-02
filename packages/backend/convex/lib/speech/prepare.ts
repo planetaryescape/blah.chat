@@ -78,6 +78,78 @@ function literal(text: string): string {
   return text.replace(/</g, " less than ").replace(/>/g, " greater than ");
 }
 
+/** Invert only Marked's list whitespace normalization, never search content for a match. */
+function listContentOffsets(
+  item: Tokens.ListItem,
+  sourceOffset: (index: number) => number,
+): number[] {
+  const rawLines = item.raw.split("\n");
+  const contentLines = item.text.split("\n");
+  const offsets: number[] = [];
+  let rawStart = 0;
+  let end = sourceOffset(0);
+  for (const [lineIndex, content] of contentLines.entries()) {
+    const raw = rawLines[lineIndex];
+    if (raw === undefined) throw new Error("Unable to map list content line");
+    const markerLength =
+      lineIndex === 0
+        ? (raw.match(/^ {0,3}(?:[*+-]|\d{1,9}[.)])/)?.[0].length ?? 0)
+        : 0;
+    const expand = (tabs: boolean) => {
+      let value = "";
+      const positions: number[] = [];
+      let local = markerLength;
+      let column = markerLength;
+      for (const character of raw.slice(markerLength)) {
+        const width =
+          character === "\t" && tabs
+            ? lineIndex === 0
+              ? 4 - (column % 4)
+              : 4
+            : character.length;
+        value += character === "\t" && tabs ? " ".repeat(width) : character;
+        for (let unit = 0; unit < width; unit++)
+          positions.push(
+            sourceOffset(rawStart + local + (character === "\t" ? 0 : unit)),
+          );
+        local += character.length;
+        column += character === "\t" && tabs ? width : 1;
+      }
+      if (lineIndex === 0 && item.task) {
+        const taskLength = value.match(/^ *\[[ xX]\] +/)?.[0].length ?? 0;
+        value = value.slice(taskLength);
+        positions.splice(0, taskLength);
+      }
+      const removed =
+        (value.match(/^ */)?.[0].length ?? 0) -
+        (content.match(/^ */)?.[0].length ?? 0);
+      if (removed < 0) return null;
+      const remainder = value.slice(removed);
+      // Only the final item's trimEnd may discard trailing whitespace. No
+      // identifier, punctuation, internal whitespace, or code indentation changes.
+      if (
+        remainder !== content &&
+        !(
+          lineIndex === contentLines.length - 1 &&
+          remainder.trimEnd() === content
+        )
+      )
+        return null;
+      return positions.slice(removed, removed + content.length);
+    };
+    const positions = expand(true) ?? (lineIndex > 0 ? expand(false) : null);
+    if (!positions) throw new Error("Unable to map normalized list content");
+    for (const position of positions) offsets.push(position);
+    end = sourceOffset(rawStart + raw.length);
+    if (lineIndex < contentLines.length - 1) offsets.push(end);
+    rawStart += raw.length + 1;
+  }
+  if (rawLines.slice(contentLines.length).some((line) => line.trim()))
+    throw new Error("Unmapped substantive list content");
+  offsets.push(end);
+  return offsets;
+}
+
 export function validateNarration(
   result: PreparedNarration,
 ): PreparedNarration {
@@ -231,11 +303,13 @@ export async function prepareDeterministic(
             0,
           );
           walk(
-            item.tokens,
+            marked.lexer(item.text, { gfm: true }),
             sourceOffset(itemStart),
-            item.raw,
+            item.text,
             depth + 1,
-            offsets?.slice(itemStart, itemCursor + 1),
+            listContentOffsets(item, (index) =>
+              sourceOffset(itemStart + index),
+            ),
           );
         }
         continue;

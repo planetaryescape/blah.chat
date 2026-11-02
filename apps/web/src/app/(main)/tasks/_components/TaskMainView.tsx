@@ -42,7 +42,8 @@ export function TaskMainView({
         status: "in_progress",
         projectId: projectId || undefined,
         urgency: view === "important" ? "urgent" : "medium",
-        deadline: view === "today" ? Date.now() : undefined,
+        deadline:
+          view === "today" ? new Date().setHours(23, 59, 59, 999) : undefined,
         sourceType: "manual",
       });
       setNewTaskTitle("");

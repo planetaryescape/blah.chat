@@ -24,7 +24,7 @@ export function NoteList({ notes, selectedNoteId, onSelect }: NoteListProps) {
   return (
     <div
       ref={parentRef}
-      className="overflow-y-auto h-[calc(100vh-240px)]"
+      className="h-full min-h-0 overflow-y-auto"
       style={{
         contain: "strict",
       }}

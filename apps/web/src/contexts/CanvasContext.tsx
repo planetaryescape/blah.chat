@@ -1,20 +1,21 @@
 "use client";
 
-import type { DiffOperation } from "@blah-chat/shared/canvas";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { createContext, type ReactNode, useContext, useState } from "react";
+import type { DiffOperation } from "@/lib/canvas/diff";
 
 export interface ConflictInfo {
   description: string;
   userContent: string;
   aiContent: string;
   lineRange?: { start: number; end: number };
-  documentId: string;
+  documentId: Id<"canvasDocuments">;
   pendingOperations: DiffOperation[];
 }
 
 interface CanvasContextType {
-  documentId: string | null;
-  setDocumentId: (id: string | null) => void;
+  documentId: Id<"canvasDocuments"> | null;
+  setDocumentId: (id: Id<"canvasDocuments"> | null) => void;
   pendingConflict: ConflictInfo | null;
   setPendingConflict: (conflict: ConflictInfo | null) => void;
   showHistoryPanel: boolean;
@@ -24,7 +25,9 @@ interface CanvasContextType {
 const CanvasContext = createContext<CanvasContextType | undefined>(undefined);
 
 export function CanvasProvider({ children }: { children: ReactNode }) {
-  const [documentId, setDocumentId] = useState<string | null>(null);
+  const [documentId, setDocumentId] = useState<Id<"canvasDocuments"> | null>(
+    null,
+  );
   const [pendingConflict, setPendingConflict] = useState<ConflictInfo | null>(
     null,
   );

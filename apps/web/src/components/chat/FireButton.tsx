@@ -1,5 +1,8 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useMutation } from "convex/react";
 import { Flame } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -21,33 +24,31 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useDeleteConversation } from "@/lib/hooks/mutations";
 import { cn } from "@/lib/utils";
 
 interface FireButtonProps {
-  conversationId: string;
+  conversationId: Id<"conversations">;
   className?: string;
 }
 
 export function FireButton({ conversationId, className }: FireButtonProps) {
   const [isDeleting, setIsDeleting] = useState(false);
-  const { mutateAsync: deleteConversation } = useDeleteConversation();
+  // @ts-ignore - Type depth exceeded with complex Convex mutation
+  const deleteConversation = useMutation(api.conversations.deleteConversation);
   const router = useRouter();
 
-  const handleFire = () => {
+  const handleFire = async () => {
     setIsDeleting(true);
-    void deleteConversation({ conversationId })
-      .then(() => {
-        toast.success("Conversation wiped");
-        router.push("/");
-      })
-      .catch((error) => {
-        console.error("Failed to wipe conversation:", error);
-        toast.error("Failed to wipe conversation");
-      })
-      .finally(() => {
-        setIsDeleting(false);
-      });
+    try {
+      await deleteConversation({ conversationId });
+      toast.success("Conversation wiped");
+      router.push("/");
+    } catch (error) {
+      console.error("Failed to wipe conversation:", error);
+      toast.error("Failed to wipe conversation");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (

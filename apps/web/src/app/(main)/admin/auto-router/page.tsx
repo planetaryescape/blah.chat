@@ -1,5 +1,6 @@
 "use client";
 
+import { useMutation } from "convex/react";
 import {
   AlertCircle,
   Loader2,
@@ -8,7 +9,6 @@ import {
   Settings2,
   Sliders,
 } from "lucide-react";
-import { notFound } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -26,8 +26,19 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { featureFlags } from "@/lib/featureFlags";
 import { useRouterConfig } from "@/lib/models";
+
+// Lazy load API to avoid type depth issues
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _modelsApi: any = null;
+function getModelsApi() {
+  if (!_modelsApi) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { api } = require("@blah-chat/backend/convex/_generated/api");
+    _modelsApi = api.models;
+  }
+  return _modelsApi;
+}
 
 const DEFAULT_CONFIG = {
   contextBuffer: 1.2,
@@ -43,34 +54,19 @@ function AutoRouterSkeleton() {
       <Skeleton className="h-8 w-64" />
       <div className="grid gap-4 md:grid-cols-2">
         {[...Array(2)].map((_, i) => (
-          <Skeleton key={`router-skeleton-${i}`} className="h-48 w-full" />
+          <Skeleton key={i} className="h-48 w-full" />
         ))}
       </div>
     </div>
   );
 }
 
-function AutoRouterPageContent() {
+function _AutoRouterPageContent() {
   const config = useRouterConfig();
-
-  const updateConfigMutation = {
-    mutateAsync: async (data: Record<string, unknown>) => {
-      const res = await fetch("/api/v1/admin/auto-router/config", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        let message = `Failed (${res.status})`;
-        const json = await res.json().catch(() => null);
-        message =
-          typeof json?.error === "string"
-            ? json.error
-            : (json?.error?.message ?? message);
-        throw new Error(message);
-      }
-    },
-  };
+  // @ts-ignore - Type depth exceeded
+  const updateConfigMutation = useMutation(
+    getModelsApi().mutations.updateRouterConfig,
+  );
 
   const [formData, setFormData] = useState(DEFAULT_CONFIG);
   const [isDirty, setIsDirty] = useState(false);
@@ -105,7 +101,7 @@ function AutoRouterPageContent() {
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
-      await updateConfigMutation.mutateAsync({
+      await updateConfigMutation({
         contextBuffer: formData.contextBuffer,
         longContextThreshold: formData.longContextThreshold,
         classifierConfidenceThreshold: formData.classifierConfidenceThreshold,
@@ -327,10 +323,9 @@ function AutoRouterPageContent() {
 }
 
 export default function AutoRouterPage() {
-  if (!featureFlags.adminFull) notFound();
   return (
     <Suspense fallback={<AutoRouterSkeleton />}>
-      <AutoRouterPageContent />
+      <_AutoRouterPageContent />
     </Suspense>
   );
 }

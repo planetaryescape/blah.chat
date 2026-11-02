@@ -1,29 +1,20 @@
 "use client";
 
 import { MODEL_CONFIG } from "@blah-chat/ai/models";
-import { AnimatePresence, m } from "framer-motion";
-import { Lightbulb, X } from "lucide-react";
-import { type Dispatch, useEffect } from "react";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useMutation } from "convex/react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Eye, Lightbulb, X } from "lucide-react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { analytics } from "@/lib/analytics";
-import { useApiClient } from "@/lib/api/client";
-import { useSDKClient } from "@/lib/api/sdkClient";
-
-interface ModelRecommendation {
-  suggestedModelId: string;
-  currentModelId: string;
-  estimatedSavings: { percentSaved: number };
-  reasoning: string;
-  dismissed: boolean;
-  createdAt: number;
-}
 
 interface Props {
-  recommendation: ModelRecommendation;
-  conversationId: string;
-  onSwitch: Dispatch<string>;
-  /** Optional: open ModelPreviewModal for the suggested model. */
-  onPreview?: Dispatch<string>;
+  recommendation: NonNullable<Doc<"conversations">["modelRecommendation"]>;
+  conversationId: Id<"conversations">;
+  onSwitch: (modelId: string) => void;
+  onPreview: (modelId: string) => void;
 }
 
 export function ModelRecommendationBanner({
@@ -32,8 +23,9 @@ export function ModelRecommendationBanner({
   onSwitch,
   onPreview,
 }: Props) {
-  const apiClient = useApiClient();
-  const sdk = useSDKClient();
+  // All hooks must be called before any conditional returns
+  const dismiss = useMutation(api.conversations.dismissModelRecommendation);
+  const updatePreferences = useMutation(api.users.updatePreferences);
   const suggestedModel = MODEL_CONFIG[recommendation.suggestedModelId];
 
   // Track when banner shows (only if visible)
@@ -52,12 +44,6 @@ export function ModelRecommendationBanner({
   if (recommendation.dismissed) return null;
   if (!suggestedModel) return null;
 
-  const dismissRecommendation = () =>
-    apiClient.post(
-      `/api/v1/conversations/${encodeURIComponent(conversationId)}/model-recommendation/dismiss`,
-      {},
-    );
-
   const handleDismiss = () => {
     analytics.track("recommendation_dismissed", {
       conversationId,
@@ -66,7 +52,7 @@ export function ModelRecommendationBanner({
       secondsVisible: (Date.now() - recommendation.createdAt) / 1000,
       timestamp: Date.now(),
     });
-    dismissRecommendation();
+    dismiss({ conversationId });
   };
 
   const handleSwitch = async () => {
@@ -83,15 +69,16 @@ export function ModelRecommendationBanner({
     onSwitch(recommendation.suggestedModelId);
 
     // 2. Dismiss the banner
-    dismissRecommendation();
+    dismiss({ conversationId });
 
     // 3. Update global settings (same as modal)
     try {
-      await sdk.updatePreference("newChatModelSelection", "fixed");
-      await sdk.updatePreference(
-        "defaultModel",
-        recommendation.suggestedModelId,
-      );
+      await updatePreferences({
+        preferences: {
+          newChatModelSelection: "fixed",
+          defaultModel: recommendation.suggestedModelId,
+        },
+      });
     } catch (err) {
       console.error(
         "[ModelRecommendationBanner] Failed to update global preference:",
@@ -103,6 +90,16 @@ export function ModelRecommendationBanner({
     window.dispatchEvent(new CustomEvent("focus-chat-input"));
   };
 
+  const handlePreview = () => {
+    analytics.track("recommendation_preview_clicked", {
+      conversationId,
+      currentModel: recommendation.currentModelId,
+      suggestedModel: recommendation.suggestedModelId,
+      timestamp: Date.now(),
+    });
+    onPreview(recommendation.suggestedModelId);
+  };
+
   const handleDisableRecommendations = async () => {
     analytics.track("recommendation_disabled_globally", {
       conversationId,
@@ -112,8 +109,10 @@ export function ModelRecommendationBanner({
     });
 
     try {
-      await sdk.updatePreference("enableModelRecommendations", false);
-      dismissRecommendation();
+      await updatePreferences({
+        preferences: { enableModelRecommendations: false },
+      });
+      dismiss({ conversationId });
     } catch (err) {
       console.error(
         "[ModelRecommendationBanner] Failed to disable recommendations:",
@@ -124,7 +123,7 @@ export function ModelRecommendationBanner({
 
   return (
     <AnimatePresence>
-      <m.div
+      <motion.div
         initial={{ opacity: 0, y: -10, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
@@ -161,21 +160,18 @@ export function ModelRecommendationBanner({
           {/* Actions */}
           <div className="flex items-center justify-between gap-2 pt-1">
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePreview}
+                className="h-7 text-xs"
+              >
+                <Eye className="h-3 w-3 mr-1" />
+                Compare
+              </Button>
               <Button size="sm" onClick={handleSwitch} className="h-7 text-xs">
                 Switch to {suggestedModel.name}
               </Button>
-              {onPreview && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    onPreview(recommendation.suggestedModelId);
-                  }}
-                  className="h-7 text-xs"
-                >
-                  Preview
-                </Button>
-              )}
             </div>
             <Button
               variant="ghost"
@@ -187,7 +183,7 @@ export function ModelRecommendationBanner({
             </Button>
           </div>
         </div>
-      </m.div>
+      </motion.div>
     </AnimatePresence>
   );
 }

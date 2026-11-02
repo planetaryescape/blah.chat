@@ -1,16 +1,17 @@
 /**
  * @vitest-environment node
  */
-import { createHash } from "node:crypto";
-import { cliApiKeys, users } from "@blah-chat/persistence-postgres";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockRequest } from "@/lib/test/api-helpers";
-import { createTestPersistenceDb } from "../../../../../../../packages/persistence-postgres/src/testing/pglite";
 
-let db: Awaited<ReturnType<typeof createTestPersistenceDb>>;
+const queryMock = vi.fn();
+const mutationMock = vi.fn();
 
-vi.mock("@/lib/persistence/server", () => ({
-  getPersistenceDb: () => db,
+vi.mock("@/lib/api/convex", () => ({
+  getConvexClient: vi.fn(() => ({
+    query: queryMock,
+    mutation: mutationMock,
+  })),
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -22,22 +23,14 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-vi.mock("server-only", () => ({}));
-
 vi.mock("@/lib/api/middleware/errors", async () => {
   const actual = await vi.importActual("@/lib/api/middleware/errors");
   return actual;
 });
 
-function hashApiKey(key: string) {
-  return createHash("sha256").update(key).digest("hex");
-}
-
 describe("/api/v1/cli/rpc", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    vi.resetModules();
-    db = await createTestPersistenceDb();
   });
 
   it("returns 401 when API key is missing", async () => {
@@ -52,6 +45,8 @@ describe("/api/v1/cli/rpc", () => {
   });
 
   it("returns 401 for invalid API key", async () => {
+    queryMock.mockResolvedValueOnce(null);
+
     const { POST } = await import("../cli/rpc/route");
     const req = createMockRequest("/api/v1/cli/rpc", {
       method: "POST",
@@ -66,25 +61,10 @@ describe("/api/v1/cli/rpc", () => {
   });
 
   it("returns success envelope for validateApiKey", async () => {
-    // Seed a user and API key
-    const [user] = await db
-      .insert(users)
-      .values({
-        clerkId: "clerk_123",
-        email: "test@example.com",
-        name: "Test User",
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      })
-      .returning();
-
-    const apiKey = "blah_valid_test_key";
-    await db.insert(cliApiKeys).values({
-      userId: user!.id,
-      keyHash: hashApiKey(apiKey),
-      keyPrefix: apiKey.slice(0, 12),
-      name: "Test Key",
-      createdAt: Date.now(),
+    queryMock.mockResolvedValueOnce({
+      userId: "user_123",
+      email: "test@example.com",
+      name: "Test User",
     });
 
     const { POST } = await import("../cli/rpc/route");
@@ -92,7 +72,7 @@ describe("/api/v1/cli/rpc", () => {
       method: "POST",
       body: { method: "validateApiKey" },
       headers: {
-        "x-api-key": apiKey,
+        "x-api-key": "blah_valid",
       },
     });
 
@@ -101,6 +81,6 @@ describe("/api/v1/cli/rpc", () => {
 
     expect(response.status).toBe(200);
     expect(json.status).toBe("success");
-    expect(json.data.userId).toBe(user!.id);
+    expect(json.data.userId).toBe("user_123");
   });
 });

@@ -1,4 +1,4 @@
-import "../lib/polyfills"; // MUST BE FIRST - Node.js polyfills for mobile SDK/runtime
+import "../lib/polyfills"; // MUST BE FIRST - Node.js polyfills for Convex
 console.log("[mobile][init] polyfills loaded");
 
 import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
@@ -6,6 +6,8 @@ import { resourceCache } from "@clerk/clerk-expo/resource-cache";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { ConvexReactClient } from "convex/react";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
 import Constants from "expo-constants";
 import * as Font from "expo-font";
 import { LinearGradient } from "expo-linear-gradient";
@@ -33,7 +35,6 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { persister, queryClient } from "@/lib/cache/queryClient";
 import { tokenCache } from "@/lib/clerk";
-import { MobileRuntimeBridge } from "@/lib/offline/RuntimeBridge";
 import { getRuntimeConfig } from "@/lib/runtimeConfig";
 import { palette } from "@/lib/theme/designSystem";
 
@@ -186,6 +187,8 @@ function DiagnosticOverlay({ onRetry }: { onRetry: () => void }) {
           ? "process.env"
           : "NONE",
     ],
+    ["convexUrl defined", config.convexUrl ? "yes" : "NO"],
+    ["convexUrl", config.convexUrl?.substring(0, 30) ?? "undefined"],
     [
       "expoConfig.extra",
       extra ? `keys: ${Object.keys(extra).join(",")}` : "undefined",
@@ -374,9 +377,17 @@ function ClerkLoadingGate({ children }: { children: ReactNode }) {
 export default function RootLayout() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const runtimeConfig = useMemo(() => getRuntimeConfig(), []);
+  const convex = useMemo(
+    () =>
+      runtimeConfig.convexUrl
+        ? new ConvexReactClient(runtimeConfig.convexUrl)
+        : null,
+    [runtimeConfig.convexUrl],
+  );
 
   console.log("[mobile][layout] RootLayout rendering", {
     hasClerkKey: !!runtimeConfig.clerkPublishableKey,
+    hasConvexUrl: !!runtimeConfig.convexUrl,
   });
 
   useEffect(() => {
@@ -437,6 +448,15 @@ export default function RootLayout() {
         logMessage="[mobile] Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY"
       />
     );
+  } else if (!convex) {
+    console.error("[mobile][layout] Missing convexUrl - showing config error");
+    content = (
+      <ConfigurationError
+        title="Configuration Error"
+        message="Missing EXPO_PUBLIC_CONVEX_URL"
+        logMessage="[mobile] Missing EXPO_PUBLIC_CONVEX_URL"
+      />
+    );
   } else {
     console.log("[mobile][layout] Rendering ClerkProvider");
     content = (
@@ -451,12 +471,13 @@ export default function RootLayout() {
             client={queryClient}
             persistOptions={{ persister }}
           >
-            <MobileRuntimeBridge />
-            <BottomSheetModalProvider>
-              <ThemeProvider value={navigationTheme}>
-                <RootLayoutNav />
-              </ThemeProvider>
-            </BottomSheetModalProvider>
+            <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+              <BottomSheetModalProvider>
+                <ThemeProvider value={navigationTheme}>
+                  <RootLayoutNav />
+                </ThemeProvider>
+              </BottomSheetModalProvider>
+            </ConvexProviderWithClerk>
           </PersistQueryClientProvider>
         </ClerkLoadingGate>
       </ClerkProvider>

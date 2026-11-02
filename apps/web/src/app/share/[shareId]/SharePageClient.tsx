@@ -1,17 +1,21 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
 import { useAuth } from "@clerk/nextjs";
-import { useQuery } from "@tanstack/react-query";
-import { m } from "framer-motion";
+import { useAction, useQuery } from "convex/react";
+import { motion } from "framer-motion";
 import {
   AlertCircle,
   Clock,
+  Copy,
   ExternalLink,
   Loader2,
   Lock,
   Share2,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/brand/Logo";
 import { ChatMessage } from "@/components/chat/ChatMessage";
@@ -26,30 +30,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useCurrentUser } from "@/lib/hooks/queries/useCurrentUser";
 
 interface SharePageClientProps {
   shareId: string;
 }
 
-type PublicNoteShareMetadata = {
-  _id: string;
-  title: string;
-  requiresPassword: boolean;
-  expiresAt?: number;
-  isOwner: boolean;
-};
-
-type PublicNoteShare = {
-  _id: string;
-  title: string;
-  content: string;
-  createdAt: number;
-  updatedAt: number;
-  isOwner: boolean;
-};
-
 export default function SharePageClient({ shareId }: SharePageClientProps) {
+  const router = useRouter();
   const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const [password, setPassword] = useState("");
   const [verified, setVerified] = useState(false);
@@ -57,64 +44,23 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
   const [entityType, setEntityType] = useState<"conversation" | "note" | null>(
     null,
   );
-  const [noteShare, setNoteShare] = useState<
-    PublicNoteShareMetadata | null | undefined
-  >(undefined);
-  const [publicNote, setPublicNote] = useState<PublicNoteShare | null>(null);
+  const [isForking, setIsForking] = useState<"private" | "collab" | null>(null);
   const [forkError, setForkError] = useState("");
 
   // Get current user to check ownership
-  const { data: currentUser } = useCurrentUser();
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const currentUser = useQuery(api.users.getCurrentUser);
 
   // Try conversation share first
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const conversationShare = useQuery(api.shares.get, { shareId });
 
-  const { data: conversationShare } = useQuery({
-    queryKey: ["share", shareId],
-    queryFn: async () => {
-      const res = await fetch(`/api/v1/shares/${shareId}`);
-      if (!res.ok) return null;
-      const json = await res.json();
-      return json.data ?? null;
-    },
-  });
-
-  useEffect(() => {
-    if (conversationShare !== null) {
-      return;
-    }
-
-    let cancelled = false;
-
-    async function loadNoteShare() {
-      try {
-        const response = await fetch(`/api/v1/public/notes/shares/${shareId}`);
-        if (!response.ok) {
-          if (!cancelled) {
-            setNoteShare(null);
-          }
-          return;
-        }
-
-        const payload = (await response.json()) as {
-          data?: PublicNoteShareMetadata;
-        };
-
-        if (!cancelled) {
-          setNoteShare(payload.data ?? null);
-        }
-      } catch {
-        if (!cancelled) {
-          setNoteShare(null);
-        }
-      }
-    }
-
-    void loadNoteShare();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [conversationShare, shareId]);
+  // Try note share if conversation doesn't exist
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const noteShare = useQuery(
+    api.notes.getByShareId,
+    conversationShare === null ? { shareId } : "skip",
+  );
 
   // Determine entity type
   useEffect(() => {
@@ -125,46 +71,17 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
     }
   }, [conversationShare, noteShare]);
 
-  async function verifyNoteShareAccess(passwordInput?: string) {
-    const response = await fetch(
-      `/api/v1/public/notes/shares/${shareId}/verify`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(
-          passwordInput
-            ? {
-                password: passwordInput,
-              }
-            : {},
-        ),
-      },
-    );
+  // Separate verify actions
+  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
+  const verifyConversationShare = useAction(api.shares.verify);
+  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
+  const verifyNoteShare = useAction(api.notes.verifyShare);
 
-    const payload = (await response.json()) as {
-      status: string;
-      data?: PublicNoteShare;
-      error?: string | { message?: string };
-    };
-
-    if (!response.ok || payload.status === "error" || !payload.data) {
-      throw new Error(
-        typeof payload.error === "string"
-          ? payload.error
-          : payload.error?.message || "Verification failed",
-      );
-    }
-
-    setPublicNote(payload.data);
-  }
-
-  // For v1, conversation shares are public read-only.
-  // Password-protected conversation shares + forking are deferred to v1.1.
-  const verifyConversationShare = async () => {
-    // No-op: conversation share API serves public content via GET endpoints below.
-  };
+  // Fork actions
+  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
+  const forkPrivate = useAction(api.shares.forkPrivate);
+  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
+  const forkCollaborative = useAction(api.shares.forkCollaborative);
 
   // Use the appropriate share
   const share = entityType === "note" ? noteShare : conversationShare;
@@ -177,28 +94,16 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
     share.userId === currentUser._id;
 
   // Use public queries for shared content (no auth required)
-
-  const { data: conversation } = useQuery({
-    queryKey: ["shared-conversation", shareId, verified],
-    queryFn: async () => {
-      const res = await fetch(`/api/v1/shares/${shareId}/conversation`);
-      if (!res.ok) return null;
-      const json = await res.json();
-      return json.data ?? null;
-    },
-    enabled: verified && entityType === "conversation",
-  });
-
-  const { data: messages } = useQuery({
-    queryKey: ["shared-messages", shareId, verified],
-    queryFn: async () => {
-      const res = await fetch(`/api/v1/shares/${shareId}/messages`);
-      if (!res.ok) return null;
-      const json = await res.json();
-      return json.data ?? null;
-    },
-    enabled: verified && entityType === "conversation",
-  });
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const conversation = useQuery(
+    api.shares.getSharedConversation,
+    verified && entityType === "conversation" ? { shareId } : "skip",
+  );
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const messages = useQuery(
+    api.shares.getSharedMessages,
+    verified && entityType === "conversation" ? { shareId } : "skip",
+  );
 
   // Auto-verify shares that don't require password
   useEffect(() => {
@@ -209,10 +114,10 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
 
     const autoVerify = async () => {
       try {
-        if (entityType === "note") {
-          await verifyNoteShareAccess();
+        if (entityType === "note" && noteShare?._id) {
+          await verifyNoteShare({ noteId: noteShare._id });
         } else if (entityType === "conversation") {
-          await verifyConversationShare();
+          await verifyConversationShare({ shareId });
         }
         setVerified(true);
       } catch (err) {
@@ -225,21 +130,66 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
     entityType,
     verified,
     share?.requiresPassword,
+    noteShare?._id,
     shareId,
+    verifyNoteShare,
     verifyConversationShare,
   ]);
 
   const handleVerify = async () => {
     try {
-      if (entityType === "note") {
-        await verifyNoteShareAccess(password || undefined);
+      if (entityType === "note" && noteShare?._id) {
+        await verifyNoteShare({
+          noteId: noteShare._id,
+          password: password || undefined,
+        });
       } else {
-        await verifyConversationShare();
+        await verifyConversationShare({
+          shareId,
+          password: password || undefined,
+        });
       }
       setVerified(true);
       setError("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed");
+    }
+  };
+
+  // Fork handlers
+  const handleForkPrivate = async () => {
+    if (!isSignedIn) {
+      router.push(`/sign-in?redirect_url=/share/${shareId}`);
+      return;
+    }
+    setIsForking("private");
+    setForkError("");
+    try {
+      const newId = await forkPrivate({ shareId });
+      router.push(`/chat/${newId}`);
+    } catch (err) {
+      setForkError(err instanceof Error ? err.message : "Failed to fork");
+      setIsForking(null);
+    }
+  };
+
+  const handleForkCollaborative = async () => {
+    if (!isSignedIn) {
+      router.push(`/sign-in?redirect_url=/share/${shareId}`);
+      return;
+    }
+    setIsForking("collab");
+    setForkError("");
+    try {
+      const collabId = await forkCollaborative({ shareId });
+      router.push(`/chat/${collabId}`);
+    } catch (err) {
+      setForkError(
+        err instanceof Error
+          ? err.message
+          : "Failed to create collaborative conversation",
+      );
+      setIsForking(null);
     }
   };
 
@@ -278,7 +228,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
         <div className="absolute top-4 right-4 z-50">
           <ThemeToggle />
         </div>
-        <m.div
+        <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.2, 0, 0, 1] }}
@@ -331,7 +281,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
               </div>
             </div>
           </div>
-        </m.div>
+        </motion.div>
       </div>
     );
   }
@@ -342,7 +292,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
         <div className="absolute top-4 right-4 z-50">
           <ThemeToggle />
         </div>
-        <m.div
+        <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.2, 0, 0, 1] }}
@@ -396,7 +346,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
               </div>
             </div>
           </div>
-        </m.div>
+        </motion.div>
       </div>
     );
   }
@@ -411,7 +361,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
         <div className="absolute top-4 right-4 z-50">
           <ThemeToggle />
         </div>
-        <m.div
+        <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.2, 0, 0, 1] }}
@@ -465,7 +415,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
               </div>
             </div>
           </div>
-        </m.div>
+        </motion.div>
       </div>
     );
   }
@@ -540,8 +490,8 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
   }
 
   // Render note share view if it's a note
-  if (entityType === "note" && verified && publicNote) {
-    return <NoteShareView note={publicNote} isOwner={publicNote.isOwner} />;
+  if (entityType === "note" && verified && noteShare?._id) {
+    return <NoteShareView noteId={noteShare._id} />;
   }
 
   // Check if data is valid (not revoked/expired union types)
@@ -593,6 +543,54 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
                   </Link>
                 </Button>
               )}
+            {/* Non-owner signed-in: show fork buttons */}
+            {authLoaded &&
+              isSignedIn &&
+              entityType === "conversation" &&
+              !isOwner && (
+                <>
+                  <Button
+                    onClick={handleForkPrivate}
+                    disabled={!!isForking}
+                    variant="outline"
+                    size="sm"
+                    className="hidden sm:flex"
+                  >
+                    {isForking === "private" ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Importing...
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Continue Privately
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={handleForkCollaborative}
+                    disabled={!!isForking}
+                    variant="default"
+                    size="sm"
+                  >
+                    {isForking === "collab" ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Users className="h-4 w-4 mr-2" />
+                        <span className="hidden sm:inline">
+                          Continue with Creator
+                        </span>
+                        <span className="sm:hidden">Join</span>
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
             <ThemeToggle />
             {!isSignedIn && authLoaded && (
               <Button
@@ -624,7 +622,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
       {/* Main Content */}
       <main className="flex-1 container max-w-4xl mx-auto px-4 py-8 md:py-12 space-y-8">
         {/* Conversation Header */}
-        <m.div
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -641,7 +639,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
               ? "Continue this conversation privately or collaborate with the creator."
               : "Sign in to continue this conversation or try blah.chat for free."}
           </p>
-        </m.div>
+        </motion.div>
 
         {/* Messages */}
         <div className="space-y-6 pb-20">
@@ -651,7 +649,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
 
           {/* Try blah.chat CTA - only show to unauthenticated users */}
           {!isSignedIn && authLoaded && (
-            <m.div
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.5 }}
@@ -681,7 +679,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
                   </Button>
                 </CardContent>
               </Card>
-            </m.div>
+            </motion.div>
           )}
         </div>
       </main>

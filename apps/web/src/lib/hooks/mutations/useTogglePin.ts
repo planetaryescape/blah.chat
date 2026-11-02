@@ -1,10 +1,11 @@
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useApiClient } from "@/lib/api/client";
 import { queryKeys } from "@/lib/query/keys";
 
 interface TogglePinArgs {
-  conversationId: string;
+  conversationId: Id<"conversations">;
 }
 
 export function useTogglePin() {
@@ -13,7 +14,7 @@ export function useTogglePin() {
 
   return useMutation({
     mutationFn: async ({ conversationId }: TogglePinArgs) => {
-      return api.post(`/api/v1/conversations/${conversationId}/pin`);
+      return api.patch(`/api/v1/conversations/${conversationId}/pin`);
     },
 
     onMutate: async ({ conversationId }) => {

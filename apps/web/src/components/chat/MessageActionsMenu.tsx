@@ -1,4 +1,8 @@
 "use client";
+
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useMutation } from "convex/react";
 import { MoreHorizontal, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,76 +18,80 @@ import {
 } from "@/components/ui/tooltip";
 import { useHaptic } from "@/hooks/useHaptic";
 import { analytics } from "@/lib/analytics";
-import { useApiClient } from "@/lib/api/client";
 import { cache } from "@/lib/cache";
 import type { OptimisticMessage } from "@/types/optimistic";
 
 interface MessageActionsMenuProps {
-  message: any | OptimisticMessage;
+  message: Doc<"messages"> | OptimisticMessage;
   isGenerating: boolean;
   isUser: boolean;
 }
 
 export function MessageActionsMenu({ message }: MessageActionsMenuProps) {
-  const apiClient = useApiClient();
-  const { haptic } = useHaptic();
-
   // Check if this is a temporary optimistic message (not yet persisted)
+  // Early return before hooks - isTempMessage is pure prop computation
   const isTempMessage =
     typeof message._id === "string" && message._id.startsWith("temp-");
   if (isTempMessage) return null;
 
-  const handleDelete = () => {
-    const messageId = message._id as string;
-    const messageElement = document.querySelector(
-      `[data-message-id="${messageId}"]`,
-    );
-    const currentGroup = messageElement?.closest("[id^='message-group-']");
-    const nextGroup = currentGroup?.nextElementSibling as HTMLElement | null;
-    const prevGroup =
-      currentGroup?.previousElementSibling as HTMLElement | null;
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const deleteMsg = useMutation(api.chat.deleteMessage);
+  const { haptic } = useHaptic();
 
-    haptic("HEAVY");
-    void apiClient
-      .delete(`/api/v1/messages/${messageId}`)
-      .then(() =>
-        Promise.all([
-          cache.messages.delete(messageId),
-          cache.attachments.where("messageId").equals(messageId).delete(),
-          cache.toolCalls.where("messageId").equals(messageId).delete(),
-          cache.sources.where("messageId").equals(messageId).delete(),
-        ]).catch(console.error),
-      )
-      .then(() => {
-        requestAnimationFrame(() => {
-          let targetElement: HTMLElement | null = null;
+  const handleDelete = async () => {
+    try {
+      const messageId = message._id as Id<"messages">;
 
-          if (nextGroup && document.body.contains(nextGroup)) {
-            targetElement = nextGroup;
-          } else if (prevGroup && document.body.contains(prevGroup)) {
-            targetElement = prevGroup;
-          }
+      // Find message group before deleting for focus management
+      const messageElement = document.querySelector(
+        `[data-message-id="${messageId}"]`,
+      );
+      const currentGroup = messageElement?.closest("[id^='message-group-']");
+      const nextGroup = currentGroup?.nextElementSibling as HTMLElement | null;
+      const prevGroup =
+        currentGroup?.previousElementSibling as HTMLElement | null;
 
-          if (targetElement) {
-            targetElement.setAttribute("tabindex", "-1");
-            targetElement.focus();
-            return;
-          }
+      haptic("HEAVY");
+      await deleteMsg({ messageId });
 
+      // Clear from local cache (prevents stale data)
+      await Promise.all([
+        cache.messages.delete(messageId),
+        cache.attachments.where("messageId").equals(messageId).delete(),
+        cache.toolCalls.where("messageId").equals(messageId).delete(),
+        cache.sources.where("messageId").equals(messageId).delete(),
+      ]).catch(console.error);
+
+      // Focus next, or prev, or chat input as fallback (WCAG 2.4.3)
+      requestAnimationFrame(() => {
+        let targetElement: HTMLElement | null = null;
+
+        if (nextGroup && document.body.contains(nextGroup)) {
+          targetElement = nextGroup;
+        } else if (prevGroup && document.body.contains(prevGroup)) {
+          targetElement = prevGroup;
+        }
+
+        if (targetElement) {
+          targetElement.setAttribute("tabindex", "-1");
+          targetElement.focus();
+        } else {
+          // Fallback to chat input
           const chatInput = document.getElementById(
             "chat-input",
           ) as HTMLElement | null;
           chatInput?.focus();
-        });
-
-        analytics.track("message_deleted", {
-          messageId: message._id,
-          conversationId: message.conversationId,
-        });
-      })
-      .catch((error) => {
-        console.error("Failed to delete:", error);
+        }
       });
+
+      // Track message deletion
+      analytics.track("message_deleted", {
+        messageId: message._id,
+        conversationId: message.conversationId,
+      });
+    } catch (error) {
+      console.error("Failed to delete:", error);
+    }
   };
 
   return (

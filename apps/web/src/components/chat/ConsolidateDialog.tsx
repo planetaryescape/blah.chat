@@ -1,6 +1,7 @@
 "use client";
 
-import { isAutoModel, MODEL_CONFIG } from "@blah-chat/ai/models";
+import { MODEL_CONFIG } from "@blah-chat/ai/models";
+import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,13 +21,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { OptimisticMessage } from "@/types/optimistic";
 
 type ConsolidationMode = "same-chat" | "new-chat";
 
-type MessageWithUser = {
-  _id: string;
-  role: "user" | "assistant" | "system";
-  content: string;
+type MessageWithUser = (Doc<"messages"> | OptimisticMessage) & {
+  senderUser?: { name?: string; imageUrl?: string } | null;
 };
 
 interface ConsolidateDialogProps {
@@ -43,9 +43,7 @@ export function ConsolidateDialog({
   onConfirm,
   onClose,
 }: ConsolidateDialogProps) {
-  const availableModels = Object.values(MODEL_CONFIG).filter(
-    (model) => !model.isLocal && !isAutoModel(model.id),
-  );
+  const availableModels = Object.values(MODEL_CONFIG).filter((m) => !m.isLocal);
   const [selectedModel, setSelectedModel] = useState<string>(
     availableModels[0]?.id || "",
   );
@@ -77,9 +75,8 @@ export function ConsolidateDialog({
 
         <div className="space-y-4 py-4">
           <div className="space-y-3">
-            <p className="text-sm font-medium">Consolidation mode</p>
+            <label className="text-sm font-medium">Consolidation mode</label>
             <RadioGroup
-              aria-label="Consolidation mode"
               value={mode}
               onValueChange={(v) => setMode(v as ConsolidationMode)}
             >
@@ -105,11 +102,11 @@ export function ConsolidateDialog({
           </div>
 
           <div>
-            <Label htmlFor="consolidate-model" className="mb-2 block">
+            <label className="text-sm font-medium mb-2 block">
               Which model should consolidate?
-            </Label>
+            </label>
             <Select value={selectedModel} onValueChange={setSelectedModel}>
-              <SelectTrigger id="consolidate-model">
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

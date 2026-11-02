@@ -1,19 +1,19 @@
 "use client";
 
 import { getModelConfig } from "@blah-chat/ai/utils";
-import { useQuery as useRestQuery } from "@tanstack/react-query";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useCachedToolCalls } from "@/hooks/useCacheSync";
+import { useCachedAttachments, useCachedToolCalls } from "@/hooks/useCacheSync";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useHoverIntent } from "@/hooks/useHoverIntent";
 import { useMessageKeyboardShortcuts } from "@/hooks/useMessageKeyboardShortcuts";
 import { useUserPreference } from "@/hooks/useUserPreference";
-import { useApiClient } from "@/lib/api/client";
-import { useRegenerateMessage } from "@/lib/hooks/mutations/useRegenerateMessage";
 import { cn } from "@/lib/utils";
 import { formatTTFT, isCachedResponse } from "@/lib/utils/formatMetrics";
 import type { OptimisticMessage } from "@/types/optimistic";
@@ -36,38 +36,37 @@ import { StatusTimeline } from "./StatusTimeline";
 function ErrorDisplay({
   error,
   messageId,
-  conversationId,
   hasFailedModels,
 }: {
   error?: string;
-  messageId: string;
-  conversationId: string;
+  messageId: Id<"messages">;
   hasFailedModels?: boolean;
 }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const alertRef = useRef<HTMLDivElement>(null);
-  const regenerate = useRegenerateMessage();
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const regenerate = useMutation(api.chat.regenerate);
 
   // Focus error on mount for screen reader announcement (WCAG 2.4.3)
   useEffect(() => {
     alertRef.current?.focus();
   }, []);
 
-  const handleRetry = () => {
+  const handleRetry = async () => {
     setIsRetrying(true);
-    regenerate.mutate(
-      {
+    try {
+      await regenerate({
         messageId,
-        conversationId,
         modelId: "auto",
-      },
-      {
-        onSettled: () => {
-          setIsRetrying(false);
-        },
-      },
-    );
+        useFailedModelsFromMessage: hasFailedModels,
+      });
+    } catch (err) {
+      console.error("[ErrorDisplay] Retry failed:", err);
+      toast.error("Failed to retry generation");
+    } finally {
+      setIsRetrying(false);
+    }
   };
 
   return (
@@ -116,71 +115,16 @@ function ErrorDisplay({
 }
 
 interface ChatMessageProps {
-  message: MessageWithAttachments;
-  nextMessage?: MessageWithAttachments;
+  message: Doc<"messages"> | OptimisticMessage;
+  nextMessage?: Doc<"messages"> | OptimisticMessage;
   readOnly?: boolean;
   isCollaborative?: boolean;
   senderUser?: { name?: string; imageUrl?: string } | null;
   // Lifted from child to reduce N subscription to 1
-  conversation?: MessageConversationContext | null;
+  conversation?: Doc<"conversations"> | null;
   // Lifted preference to avoid memo blocking updates
   showMessageStats?: boolean;
 }
-
-function hasHttpStatus(
-  error: unknown,
-  status: number,
-): error is { status: number } {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "status" in error &&
-    (error as { status?: unknown }).status === status
-  );
-}
-
-export interface MessageConversationContext {
-  _id: string | string;
-  modelRecommendation?: {
-    dismissed?: boolean;
-  } | null;
-}
-
-type MessageAttachment = {
-  id: string;
-  type: "file" | "image" | "audio";
-  name: string;
-  storageId: string;
-  mimeType: string;
-  size: number;
-  url?: string;
-};
-
-type MessageWithAttachments = (any | OptimisticMessage) & {
-  attachments?: MessageAttachment[];
-};
-
-type ApiMessageEnvelope = {
-  data: {
-    _id: string;
-    conversationId: string;
-    role: "user" | "assistant" | "system";
-    content: string;
-    partialContent?: string;
-    status?: string;
-    model?: string;
-    comparisonGroupId?: string;
-    consolidatedMessageId?: string;
-    isConsolidation?: boolean;
-    inputTokens?: number;
-    outputTokens?: number;
-    cost?: number;
-    generationCompletedAt?: number;
-    createdAt: number;
-    updatedAt: number;
-    _creationTime: number;
-  };
-};
 
 export const ChatMessage = memo(
   function ChatMessage({
@@ -206,9 +150,12 @@ export const ChatMessage = memo(
     // Check if this is a temporary optimistic message (not yet persisted)
     const isTempMessage =
       typeof message._id === "string" && message._id.startsWith("temp-");
-    const apiClient = useApiClient();
-    const shouldLoadOriginalResponses =
-      !!message.isConsolidation && !isTempMessage;
+
+    // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+    const editMessage = useMutation(api.chat.editMessage);
+
+    // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+    const _updateModel = useMutation(api.conversations.updateModel);
 
     // Phase 4: Use new preference hooks
     const prefAlwaysShowActions = useUserPreference("alwaysShowMessageActions");
@@ -228,29 +175,12 @@ export const ChatMessage = memo(
     } = useHoverIntent({ enterDelay: 350, leaveDelay: 150 });
 
     // Query for original responses if this is a consolidated message
-    const originalResponsesQuery = useRestQuery({
-      queryKey: ["message", message._id, "original-responses"],
-      queryFn: async () => {
-        if (!shouldLoadOriginalResponses) return [];
-
-        try {
-          return await apiClient.get<ApiMessageEnvelope[]>(
-            `/api/v1/messages/${message._id}/original-responses`,
-          );
-        } catch (error) {
-          if (hasHttpStatus(error, 404)) return [];
-          throw error;
-        }
-      },
-      enabled: shouldLoadOriginalResponses,
-      staleTime: 30_000,
-      retry: false,
-      retryOnMount: false,
-    });
-    const originalResponses = originalResponsesQuery.data?.map((response) => ({
-      ...response.data,
-      status: response.data.status ?? "complete",
-    }));
+    const originalResponses = useQuery(
+      api.messages.getOriginalResponses,
+      message.isConsolidation && !isTempMessage
+        ? { consolidatedMessageId: message._id as Id<"messages"> }
+        : "skip",
+    );
 
     // conversation is now passed as prop from VirtualizedMessageList (reduces N→1 subscriptions)
 
@@ -277,14 +207,27 @@ export const ChatMessage = memo(
         : null;
     const isCached = ttft !== null && isCachedResponse(ttft);
 
-    const attachments = message.attachments;
+    // Read attachments from local cache (instant)
+    // Cache is synced by useMetadataCacheSync in VirtualizedMessageList
+    const attachments = useCachedAttachments(
+      isTempMessage ? "" : (message._id as string),
+    );
+
+    // Fetch URLs for attachments
+    const attachmentStorageIds =
+      attachments?.map((a: any) => a.storageId) || [];
+    const attachmentUrls = useQuery(
+      api.files.getAttachmentUrls,
+      attachmentStorageIds.length > 0
+        ? { storageIds: attachmentStorageIds }
+        : "skip",
+    );
+
     const urlMap = new Map<string, string>(
-      ((attachments ?? []) as MessageAttachment[])
-        .filter(
-          (attachment): attachment is MessageAttachment & { url: string } =>
-            !!attachment?.url,
-        )
-        .map((attachment) => [attachment.storageId, attachment.url]),
+      attachmentUrls
+        ?.map((a: any) => [a.storageId, a.url] as [string, string])
+        .filter((pair: any): pair is [string, string] => pair[1] !== null) ||
+        [],
     );
 
     // Read tool calls from local cache (instant)
@@ -324,7 +267,8 @@ export const ChatMessage = memo(
 
     const handleSaveEdit = async () => {
       try {
-        await apiClient.patch(`/api/v1/messages/${message._id}`, {
+        await editMessage({
+          messageId: message._id as Id<"messages">,
           content: editedContent,
         });
         setIsEditing(false);
@@ -342,7 +286,7 @@ export const ChatMessage = memo(
 
     // Keyboard shortcuts for focused messages (disabled for temp/optimistic messages)
     useMessageKeyboardShortcuts({
-      messageId: message._id as string,
+      messageId: message._id as Id<"messages">,
       conversationId: message.conversationId,
       content: displayContent,
       isFocused,
@@ -417,8 +361,7 @@ export const ChatMessage = memo(
             {isError ? (
               <ErrorDisplay
                 error={message.error}
-                messageId={message._id as string}
-                conversationId={message.conversationId}
+                messageId={message._id as Id<"messages">}
                 hasFailedModels={
                   "failedModels" in message &&
                   Array.isArray(message.failedModels) &&
@@ -502,22 +445,16 @@ export const ChatMessage = memo(
                         }
                         isDecidingModel={_isDecidingModel}
                         modelName={modelName}
-                        ackText={
-                          "ackText" in message &&
-                          typeof message.ackText === "string"
-                            ? message.ackText
-                            : undefined
-                        }
                       />
                     ) : null}
                   </>
                 )}
 
                 {/* Canvas document artifact cards (message body, not inside tool calls) */}
-                <ArtifactList messageId={message._id as string} />
+                <ArtifactList messageId={message._id as Id<"messages">} />
 
                 {/* Source citations (Phase 2: from normalized tables) */}
-                <SourceList messageId={message._id as string} />
+                <SourceList messageId={message._id as Id<"messages">} />
 
                 {/* Attachments - don't reserve space, most messages don't have attachments */}
                 {attachments && attachments.length > 0 && urlMap.size > 0 && (
@@ -586,12 +523,14 @@ export const ChatMessage = memo(
                 {/* Branch indicator */}
                 {!readOnly && conversation && (
                   <MessageBranchIndicator
-                    messageId={message._id as string}
-                    conversationId={conversation._id as string}
+                    messageId={message._id as Id<"messages">}
+                    conversationId={conversation._id}
                   />
                 )}
                 {!readOnly && features.showNotes && (
-                  <MessageNotesIndicator messageId={message._id as string} />
+                  <MessageNotesIndicator
+                    messageId={message._id as Id<"messages">}
+                  />
                 )}
 
                 {/* Status indicator removed - optimistic updates should feel instant */}
@@ -672,7 +611,6 @@ export const ChatMessage = memo(
       prev.message.createdAt === next.message.createdAt &&
       prev.message.content === next.message.content &&
       prev.message.partialContent === next.message.partialContent &&
-      prev.message.ackText === next.message.ackText &&
       prev.message.status === next.message.status &&
       prev.message.error === next.message.error &&
       prev.message.reasoning === next.message.reasoning &&
@@ -680,14 +618,6 @@ export const ChatMessage = memo(
       prev.message.thinkingStartedAt === next.message.thinkingStartedAt &&
       prev.message.thinkingCompletedAt === next.message.thinkingCompletedAt &&
       prev.message.isConsolidation === next.message.isConsolidation &&
-      prev.message.model === next.message.model &&
-      prev.message.firstTokenAt === next.message.firstTokenAt &&
-      prev.message.generationStartedAt === next.message.generationStartedAt &&
-      prev.message.tokensPerSecond === next.message.tokensPerSecond &&
-      prev.message.inputTokens === next.message.inputTokens &&
-      prev.message.outputTokens === next.message.outputTokens &&
-      prev.message.routingDecision === next.message.routingDecision &&
-      prev.message.attachments === next.message.attachments &&
       prev.nextMessage?.status === next.nextMessage?.status &&
       prev.isCollaborative === next.isCollaborative &&
       prev.senderUser?.name === next.senderUser?.name &&

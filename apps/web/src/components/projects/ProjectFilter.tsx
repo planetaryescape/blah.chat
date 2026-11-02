@@ -1,5 +1,7 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import { useQuery } from "convex/react";
 import { FolderOpen } from "lucide-react";
 import {
   Select,
@@ -8,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useProjects } from "@/lib/hooks/queries/useProjects";
 
 interface ProjectFilterProps {
   value: string | null;
@@ -16,7 +17,8 @@ interface ProjectFilterProps {
 }
 
 export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
-  const { data: projects } = useProjects();
+  // @ts-ignore - Type depth exceeded with complex Convex query (94+ modules)
+  const projects = useQuery(api.projects.list);
 
   const handleChange = (newValue: string) => {
     if (newValue === "all") {
@@ -57,7 +59,7 @@ export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
         <SelectContent>
           <SelectItem value="all">All projects</SelectItem>
           <SelectItem value="none">Unassigned</SelectItem>
-          {projects?.map((project) => (
+          {projects?.map((project: any) => (
             <SelectItem key={project._id} value={project._id}>
               <span className="truncate" title={project.name}>
                 {project.name}

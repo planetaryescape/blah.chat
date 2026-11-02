@@ -1,6 +1,7 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -15,50 +16,26 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 
 export function AdminMemorySettings() {
-  const queryClient = useQueryClient();
-  const { data: settings } = useQuery({
-    queryKey: ["admin", "settings"],
-    queryFn: async () => {
-      const res = await fetch("/api/v1/admin/settings");
-      if (!res.ok) return null;
-      const json = await res.json();
-      return json.data ?? null;
-    },
-  });
-
-  const updateSettingsMut = useMutation({
-    mutationFn: async (data: Record<string, any>) => {
-      const res = await fetch("/api/v1/admin/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
-    },
-  });
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const settings = useQuery(api.adminSettings.get);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const updateSettings = useMutation(api.adminSettings.update);
 
   const [autoExtractEnabled, setAutoExtractEnabled] = useState(true);
   const [extractInterval, setExtractInterval] = useState(5);
 
   // Load settings from query
   useEffect(() => {
-    const memory = settings?.memory;
-    if (memory) {
-      setAutoExtractEnabled(memory.autoExtractionEnabled ?? true);
-      setExtractInterval(memory.extractEveryNMessages ?? 5);
+    if (settings) {
+      setAutoExtractEnabled(settings.autoMemoryExtractEnabled ?? true);
+      setExtractInterval(settings.autoMemoryExtractInterval ?? 5);
     }
   }, [settings]);
 
   const handleToggleChange = async (checked: boolean) => {
     setAutoExtractEnabled(checked);
     try {
-      await updateSettingsMut.mutateAsync({
-        memory: { autoExtractionEnabled: checked },
-      });
+      await updateSettings({ autoMemoryExtractEnabled: checked });
       toast.success(`Memory extraction ${checked ? "enabled" : "disabled"}`);
     } catch (_error) {
       toast.error("Failed to update settings");
@@ -69,9 +46,7 @@ export function AdminMemorySettings() {
   const handleSliderChange = async (value: number[]) => {
     const newInterval = value[0];
     try {
-      await updateSettingsMut.mutateAsync({
-        memory: { extractEveryNMessages: newInterval },
-      });
+      await updateSettings({ autoMemoryExtractInterval: newInterval });
       toast.success(`Extraction interval updated to ${newInterval} messages`);
     } catch (_error) {
       toast.error("Failed to update interval");

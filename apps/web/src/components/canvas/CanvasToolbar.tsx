@@ -1,6 +1,8 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useQuery } from "convex/react";
 import {
   Check,
   Copy,
@@ -31,7 +33,7 @@ import { useCanvasHistory } from "@/hooks/useCanvasHistory";
 import { cn } from "@/lib/utils";
 
 interface CanvasToolbarProps {
-  documentId: string | null;
+  documentId: Id<"canvasDocuments"> | null;
   isSaving?: boolean;
   className?: string;
   onDelete?: () => void;
@@ -46,25 +48,11 @@ export function CanvasToolbar({
   const { setShowHistoryPanel } = useCanvasContext();
   const [copied, setCopied] = useState(false);
 
-  const { data: document } = useQuery<{
-    _id: string;
-    title: string;
-    content: string;
-    documentType: "code" | "prose";
-    language?: string;
-  } | null>({
-    queryKey: ["canvas-document", documentId],
-    enabled: !!documentId,
-    queryFn: async () => {
-      if (!documentId) return null;
-      const res = await fetch(
-        `/api/v1/documents/${encodeURIComponent(documentId)}`,
-      );
-      if (!res.ok) return null;
-      const json = await res.json();
-      return json.data ?? null;
-    },
-  });
+  // @ts-ignore - Type depth exceeded
+  const document = useQuery(
+    api.canvas.documents.get,
+    documentId ? { documentId } : "skip",
+  );
 
   const {
     canUndo,

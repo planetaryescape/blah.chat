@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Store mutation config to call lifecycle methods
@@ -12,7 +12,6 @@ let mutationConfig: null | {
 // Store mock functions for assertions
 let mockPost: ReturnType<typeof vi.fn>;
 let mockInvalidateQueries: ReturnType<typeof vi.fn>;
-const mockPlayNotificationChime = vi.hoisted(() => vi.fn());
 
 // Create mocks inline in vi.mock factories - no external variable references
 vi.mock("@tanstack/react-query", () => {
@@ -34,6 +33,10 @@ vi.mock("@tanstack/react-query", () => {
     },
   };
 });
+
+vi.mock("convex/react", () => ({
+  useQuery: () => ({ _id: "user-123", name: "Test User" }),
+}));
 
 vi.mock("@/lib/api/client", () => {
   const post = vi.fn().mockResolvedValue({ status: "success", data: {} });
@@ -73,11 +76,8 @@ vi.mock("@/lib/query/keys", () => ({
   },
 }));
 
-vi.mock("@/hooks/useNotificationChimes", () => ({
-  useNotificationChimes: () => ({ play: mockPlayNotificationChime }),
-}));
-
 // Import AFTER mocks
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { toast } from "sonner";
 import { messageQueue } from "@/lib/offline/messageQueue";
 import { useSendMessage } from "../useSendMessage";
@@ -87,7 +87,7 @@ const mockToast = vi.mocked(toast);
 const mockMessageQueue = vi.mocked(messageQueue);
 
 describe("useSendMessage", () => {
-  const conversationId = "conv-123" as string;
+  const conversationId = "conv-123" as Id<"conversations">;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -181,48 +181,6 @@ describe("useSendMessage", () => {
     });
   });
 
-  it("dispatches generation request metadata on success", () => {
-    const dispatchEventSpy = vi.spyOn(window, "dispatchEvent");
-    renderHook(() => useSendMessage());
-
-    mutationConfig?.onSuccess?.(
-      {
-        requestId: "req_123",
-        streamUrl: "/api/v1/generations/req_123/stream",
-        assistantMessageId: "msg_assistant_123",
-        assistantMessageIds: ["msg_assistant_123"],
-        assistantModelId: "openai:gpt-5.2-chat",
-        modelIds: ["openai:gpt-5.2-chat"],
-      },
-      { conversationId, content: "Test" },
-    );
-
-    expect(dispatchEventSpy).toHaveBeenCalledTimes(1);
-    const [event] = dispatchEventSpy.mock.calls[0] ?? [];
-    expect(event).toBeInstanceOf(CustomEvent);
-    expect((event as CustomEvent).type).toBe("generation-request-started");
-    expect((event as CustomEvent).detail).toEqual({
-      conversationId,
-      requestId: "req_123",
-      streamUrl: "/api/v1/generations/req_123/stream",
-      assistantMessageId: "msg_assistant_123",
-      assistantMessageIds: ["msg_assistant_123"],
-      assistantModelId: "openai:gpt-5.2-chat",
-      modelIds: ["openai:gpt-5.2-chat"],
-    });
-  });
-
-  it("plays the sent chime when the server confirms a message", () => {
-    renderHook(() => useSendMessage());
-
-    mutationConfig?.onSuccess?.(
-      { status: "success" },
-      { conversationId, content: "Test" },
-    );
-
-    expect(mockPlayNotificationChime).toHaveBeenCalledWith("messageSent");
-  });
-
   it("shows error toast when online and fails", () => {
     Object.defineProperty(navigator, "onLine", {
       value: true,
@@ -253,10 +211,7 @@ describe("useSendMessage", () => {
     const args = {
       conversationId,
       content: "Offline message",
-      parentMessageId: "msg-parent-1",
       modelId: "openai:gpt-4o",
-      clientMessageId: "client-fixed-id",
-      thinkingEffort: "high" as const,
     };
 
     mutationConfig?.onError?.(new Error("Failed"), args, undefined);
@@ -264,87 +219,12 @@ describe("useSendMessage", () => {
     expect(mockMessageQueue.enqueue).toHaveBeenCalledWith({
       conversationId,
       content: "Offline message",
-      parentMessageId: "msg-parent-1",
       modelId: "openai:gpt-4o",
       models: undefined,
-      clientMessageId: "client-fixed-id",
-      thinkingEffort: "high",
       attachments: undefined,
     });
     expect(mockToast.info).toHaveBeenCalledWith(
       "You're offline. Message queued and will send when reconnected.",
     );
-  });
-
-  it("replays queued messages with branch anchor, client id, and thinking effort on reconnect", async () => {
-    const dispatchEventSpy = vi.spyOn(window, "dispatchEvent");
-    mockMessageQueue.getCount.mockResolvedValueOnce(1);
-    mockPost.mockResolvedValueOnce({
-      requestId: "req_replay_1",
-      streamUrl: "/api/v1/generations/req_replay_1/stream",
-      assistantMessageId: "msg_assistant_replay_1",
-      assistantMessageIds: ["msg_assistant_replay_1"],
-      assistantModelId: "openai:gpt-4o",
-      modelIds: ["openai:gpt-4o"],
-    });
-    mockMessageQueue.processQueue.mockImplementationOnce(async (sendFn) => {
-      const queued = {
-        id: "queued-1",
-        conversationId,
-        content: "Queued branch reply",
-        parentMessageId: "msg-parent-1",
-        modelId: "openai:gpt-4o",
-        clientMessageId: "client-fixed-id",
-        thinkingEffort: "medium" as const,
-        attachments: undefined,
-        timestamp: Date.now(),
-        retries: 0,
-      };
-      await sendFn(queued);
-      return { sent: [queued], failed: [] };
-    });
-
-    renderHook(() => useSendMessage());
-
-    window.dispatchEvent(new Event("online"));
-    await waitFor(() => {
-      expect(mockPost).toHaveBeenCalledWith(
-        `/api/v1/conversations/${conversationId}/messages`,
-        {
-          conversationId,
-          content: "Queued branch reply",
-          modelId: "openai:gpt-4o",
-          models: undefined,
-          parentMessageId: "msg-parent-1",
-          clientMessageId: "client-fixed-id",
-          thinkingEffort: "medium",
-          attachments: undefined,
-        },
-      );
-      expect(mockToast.info).toHaveBeenCalledWith(
-        "Processing 1 queued message...",
-      );
-      expect(mockToast.success).toHaveBeenCalledWith(
-        "All queued messages sent",
-      );
-      const generationEvents = dispatchEventSpy.mock.calls
-        .map(([event]) => event)
-        .filter(
-          (event): event is CustomEvent =>
-            event instanceof CustomEvent &&
-            event.type === "generation-request-started",
-        );
-      expect(generationEvents).toHaveLength(1);
-      const [event] = generationEvents;
-      expect((event as CustomEvent).detail).toEqual({
-        conversationId,
-        requestId: "req_replay_1",
-        streamUrl: "/api/v1/generations/req_replay_1/stream",
-        assistantMessageId: "msg_assistant_replay_1",
-        assistantMessageIds: ["msg_assistant_replay_1"],
-        assistantModelId: "openai:gpt-4o",
-        modelIds: ["openai:gpt-4o"],
-      });
-    });
   });
 });

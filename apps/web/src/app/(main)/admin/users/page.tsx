@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
   type ColumnDef,
   flexRender,
@@ -11,6 +12,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useMutation, useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowUpDown, Shield, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -34,17 +36,12 @@ import {
   formatCurrency,
   getLastNDays,
 } from "@/lib/utils/date";
-import {
-  type AdminUsageSummaryRow,
-  type AdminUser,
-  unwrapEntityList,
-} from "./types";
 
 type UserWithUsage = {
-  _id: string;
+  _id: Id<"users">;
   name: string;
   email: string;
-  imageUrl?: string;
+  imageUrl: string | undefined;
   isAdmin: boolean;
   tier?: "free" | "tier1" | "tier2";
   createdAt: number;
@@ -62,8 +59,7 @@ function UsersListSkeleton() {
       <Skeleton className="h-8 w-48" />
       <div className="space-y-2">
         {[...Array(5)].map((_, i) => (
-          // react-doctor: static skeleton, index key is fine
-          <Skeleton key={`user-skeleton-${i}`} className="h-16 w-full" />
+          <Skeleton key={i} className="h-16 w-full" />
         ))}
       </div>
     </div>
@@ -72,7 +68,10 @@ function UsersListSkeleton() {
 
 function UsersPageContent() {
   const router = useRouter();
-  const queryClient = useQueryClient();
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const updateRole = useMutation(api.admin.updateUserRole);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const updateTier = useMutation(api.admin.updateUserTier);
 
   // Date range state - fresh last 30 days on each page load
   const [dateRange, setDateRange] = useState(() => getLastNDays(30));
@@ -89,70 +88,37 @@ function UsersPageContent() {
   // Virtualization ref (must be before early return)
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
-  const { data: users } = useQuery({
-    queryKey: ["admin", "users"],
-    queryFn: async (): Promise<AdminUser[]> => {
-      const res = await fetch("/api/v1/admin/users");
-      if (!res.ok) return [];
-      return unwrapEntityList<AdminUser>(await res.json());
-    },
-  });
-
-  const { data: usageSummary } = useQuery({
-    queryKey: [
-      "admin",
-      "usage-summary",
-      dateRange.startDate,
-      dateRange.endDate,
-    ],
-    queryFn: async (): Promise<AdminUsageSummaryRow[]> => {
-      const res = await fetch(
-        `/api/v1/admin/usage-summary?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
-      );
-      if (!res.ok) return [];
-      return unwrapEntityList<AdminUsageSummaryRow>(await res.json());
-    },
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const users = useQuery(api.admin.listUsers);
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const usageSummary = useQuery(api.usage.queries.getAllUsersUsageSummary, {
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate,
   });
 
   // Stabilize callback to prevent column recreation
   const handleToggleAdmin = useCallback(
-    async (userId: string, isAdmin: boolean) => {
+    async (userId: Id<"users">, isAdmin: boolean) => {
       try {
-        const res = await fetch(`/api/v1/admin/users/${userId}/role`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ isAdmin }),
-        });
-        if (!res.ok) throw new Error("Failed to update role");
-        await queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+        await updateRole({ userId, isAdmin });
         toast.success(isAdmin ? "Admin role granted" : "Admin role revoked");
-      } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : "Failed to update role",
-        );
+      } catch (error: any) {
+        toast.error(error.message || "Failed to update role");
       }
     },
-    [queryClient],
+    [updateRole],
   );
 
   const handleUpdateTier = useCallback(
-    async (userId: string, tier: "free" | "tier1" | "tier2") => {
+    async (userId: Id<"users">, tier: "free" | "tier1" | "tier2") => {
       try {
-        const res = await fetch(`/api/v1/admin/users/${userId}/tier`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tier }),
-        });
-        if (!res.ok) throw new Error("Failed to update tier");
-        await queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+        await updateTier({ userId, tier });
         toast.success(`User tier updated to ${tier}`);
-      } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : "Failed to update tier",
-        );
+      } catch (error: any) {
+        toast.error(error.message || "Failed to update tier");
       }
     },
-    [queryClient],
+    [updateTier],
   );
 
   // Merge users with usage data - MUST be memoized to prevent infinite re-renders
@@ -160,10 +126,10 @@ function UsersPageContent() {
     if (!users || !usageSummary) return [];
 
     const usageByUserId = new Map(
-      usageSummary.map((usage) => [usage.userId, usage]),
+      usageSummary.map((usage: any) => [usage.userId, usage]),
     );
 
-    return users.map((user) => ({
+    return users.map((user: any) => ({
       ...user,
       tier: user.tier,
       usage: usageByUserId.get(user._id) || {

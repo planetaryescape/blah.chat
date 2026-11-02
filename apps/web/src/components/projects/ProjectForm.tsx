@@ -1,5 +1,8 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useMutation } from "convex/react";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -9,16 +12,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { analytics } from "@/lib/analytics";
-import {
-  useCreateProject,
-  useUpdateProject,
-} from "@/lib/hooks/mutations/useProjectMutations";
 
 interface ProjectFormProps {
   project?: {
-    _id: string;
+    _id: Id<"projects">;
     name: string;
     description?: string;
     systemPrompt?: string;
@@ -31,23 +29,27 @@ export function ProjectForm({ project, onSuccess }: ProjectFormProps) {
   const [description, setDescription] = useState(project?.description || "");
   const [systemPrompt, setSystemPrompt] = useState(project?.systemPrompt || "");
   const [isTemplate, setIsTemplate] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const createProject = useCreateProject();
-  const updateProject = useUpdateProject();
+  const createProject = useMutation(api.projects.create);
+  const updateProject = useMutation(api.projects.update);
 
   const isEditing = !!project;
 
   // Core submission logic
-  const { run: executeSubmission, isPending: isSubmitting } = useAsyncAction(
-    async () => {
-      if (!name.trim()) {
-        toast.error("Project name is required");
-        return;
-      }
+  const executeSubmission = async () => {
+    setIsSubmitting(true);
 
+    if (!name.trim()) {
+      toast.error("Project name is required");
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
       if (isEditing) {
-        await updateProject.mutateAsync({
-          projectId: project._id,
+        await updateProject({
+          id: project._id,
           name: name.trim(),
           description: description.trim() || undefined,
           systemPrompt: systemPrompt.trim() || undefined,
@@ -59,7 +61,7 @@ export function ProjectForm({ project, onSuccess }: ProjectFormProps) {
           hasSystemPrompt: !!systemPrompt.trim(),
         });
       } else {
-        await createProject.mutateAsync({
+        await createProject({
           name: name.trim(),
           description: description.trim() || undefined,
           systemPrompt: systemPrompt.trim() || undefined,
@@ -74,14 +76,13 @@ export function ProjectForm({ project, onSuccess }: ProjectFormProps) {
         });
       }
       onSuccess?.();
-    },
-    {
-      onError: (error) => {
-        toast.error(`Failed to ${isEditing ? "update" : "create"} project`);
-        console.error(error);
-      },
-    },
-  );
+    } catch (error) {
+      toast.error(`Failed to ${isEditing ? "update" : "create"} project`);
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Debounced wrapper - prevents rapid double-clicks
   const debouncedSubmit = useDebouncedCallback(executeSubmission, 500, {

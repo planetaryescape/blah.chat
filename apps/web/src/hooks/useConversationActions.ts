@@ -1,19 +1,21 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useAction } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { analytics } from "@/lib/analytics";
 import {
   useArchiveConversation,
-  useAutoRenameConversation,
   useDeleteConversation,
   useTogglePin,
   useToggleStar,
 } from "@/lib/hooks/mutations";
 
 export function useConversationActions(
-  conversationId: string | null,
+  conversationId: Id<"conversations"> | null,
   source: "command_palette" | "header_menu",
 ) {
   const router = useRouter();
@@ -25,7 +27,8 @@ export function useConversationActions(
     useArchiveConversation();
   const { mutate: togglePin, isPending: isPinning } = useTogglePin();
   const { mutate: toggleStar, isPending: isStarring } = useToggleStar();
-  const { mutateAsync: autoRenameConversation } = useAutoRenameConversation();
+  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
+  const autoRenameAction = useAction(api.conversations.actions.bulkAutoRename);
 
   const isLoading =
     isDeleting || isArchiving || isPinning || isStarring || isRenaming;
@@ -107,15 +110,20 @@ export function useConversationActions(
     try {
       setIsRenaming(true);
       toast.loading("Generating title...", { id: "auto-rename" });
-      await autoRenameConversation({
-        conversationId,
+      const results = await autoRenameAction({
+        conversationIds: [conversationId],
       });
-      toast.success("Conversation renamed", { id: "auto-rename" });
-      analytics.track("conversation_action", {
-        action: "auto_rename",
-        source,
-        conversationId,
-      });
+
+      if (results[0]?.success) {
+        toast.success("Conversation renamed", { id: "auto-rename" });
+        analytics.track("conversation_action", {
+          action: "auto_rename",
+          source,
+          conversationId,
+        });
+      } else {
+        throw new Error(results[0]?.error || "Failed to generate title");
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to auto-rename";
       toast.error(msg, { id: "auto-rename" });

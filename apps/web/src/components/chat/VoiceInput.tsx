@@ -1,5 +1,7 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { Mic } from "lucide-react";
 import {
   forwardRef,
@@ -17,9 +19,6 @@ import {
 } from "@/components/ui/tooltip";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { analytics } from "@/lib/analytics";
-import { useApiClient } from "@/lib/api/client";
-import { useSDKClient } from "@/lib/api/sdkClient";
-import { useCurrentUser } from "@/lib/hooks/queries/useCurrentUser";
 import { useApiKeyValidation } from "@/lib/hooks/useApiKeyValidation";
 import { cn } from "@/lib/utils";
 
@@ -43,9 +42,10 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
     const streamRef = useRef<MediaStream | null>(null);
     const stopModeRef = useRef<"preview" | "send" | null>(null);
 
-    const { data: user } = useCurrentUser();
-    const apiClient = useApiClient();
-    const sdk = useSDKClient();
+    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+    const user = useQuery(api.users.getCurrentUser as any);
+    const transcribeAudio = useAction(api.transcription.transcribeAudio);
+    const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
     // Phase 4: Use new preference hooks
     const sttEnabled = useUserPreference("sttEnabled");
@@ -55,118 +55,119 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
     const { byok, getSTTErrorMessage } = useApiKeyValidation();
     const isByokGroqMissing = byok.enabled && !byok.hasGroqKey;
 
-    const startRecording = useCallback(() => {
+    const startRecording = useCallback(async () => {
       if (!sttEnabled) {
         toast.error("Voice input disabled in settings");
         return;
       }
 
-      void navigator.mediaDevices
-        .getUserMedia({
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
           audio: true,
-        })
-        .then((stream) => {
-          streamRef.current = stream;
+        });
+        streamRef.current = stream;
 
-          const recorder = new MediaRecorder(stream, {
-            mimeType: "audio/webm;codecs=opus",
+        const recorder = new MediaRecorder(stream, {
+          mimeType: "audio/webm;codecs=opus",
+        });
+
+        audioChunksRef.current = [];
+
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            audioChunksRef.current.push(e.data);
+          }
+        };
+
+        recorder.onstop = async () => {
+          setIsProcessing(true);
+          onRecordingStateChange?.(false);
+
+          const audioBlob = new Blob(audioChunksRef.current, {
+            type: "audio/webm",
           });
 
-          audioChunksRef.current = [];
+          // Track recording stopped
+          analytics.track("voice_recording_stopped", {
+            durationMs: audioBlob.size / 16,
+          });
 
-          recorder.ondataavailable = (e) => {
-            if (e.data.size > 0) {
-              audioChunksRef.current.push(e.data);
+          try {
+            // Upload audio to Convex storage first
+            const uploadUrl = await generateUploadUrl();
+            const uploadResponse = await fetch(uploadUrl, {
+              method: "POST",
+              headers: { "Content-Type": audioBlob.type },
+              body: audioBlob,
+            });
+
+            if (!uploadResponse.ok) {
+              throw new Error("Failed to upload audio file");
             }
-          };
 
-          recorder.onstop = () => {
-            setIsProcessing(true);
-            onRecordingStateChange?.(false);
+            const { storageId } = await uploadResponse.json();
 
-            const audioBlob = new Blob(audioChunksRef.current, {
-              type: "audio/webm",
+            // Client-side timeout (95s - slightly longer than backend 90s)
+            const timeoutPromise = new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("TIMEOUT")), 95_000),
+            );
+
+            const transcriptionPromise = transcribeAudio({
+              storageId,
+              mimeType: "audio/webm",
             });
 
-            analytics.track("voice_recording_stopped", {
-              durationMs: audioBlob.size / 16,
+            const transcript = await Promise.race([
+              transcriptionPromise,
+              timeoutPromise,
+            ]);
+
+            const autoSend = stopModeRef.current === "send";
+            onTranscript(transcript, autoSend);
+
+            // Track successful transcription
+            analytics.track("transcription_completed", {
+              autoSendUsed: autoSend,
             });
+          } catch (error) {
+            console.error("Transcription failed:", error);
 
-            void apiClient
-              .post<{
-                uploadUrl: string;
-                storageId: string;
-              }>("/api/v1/files/upload-url", {
-                fileName: `voice-input-${Date.now()}.webm`,
-                contentType: audioBlob.type,
-              })
-              .then(({ uploadUrl, storageId }) =>
-                fetch(uploadUrl, {
-                  method: "PUT",
-                  headers: { "Content-Type": audioBlob.type },
-                  body: audioBlob,
-                }).then((uploadResponse) => {
-                  if (!uploadResponse.ok) {
-                    throw new Error("Failed to upload audio file");
-                  }
+            // Better error messages
+            const message =
+              error instanceof Error ? error.message : String(error);
+            if (message === "TIMEOUT") {
+              toast.error(
+                "Transcription timed out. Try recording a shorter message.",
+              );
+            } else {
+              toast.error(message || "STT not working right now");
+            }
 
-                  return sdk.transcribeAudio({
-                    storageId,
-                    mimeType: "audio/webm",
-                  });
-                }),
-              )
-              .then(({ jobId }) =>
-                sdk.waitForJob<{ text: string }>(jobId, {
-                  timeoutMs: 95_000,
-                  initialInterval: 1000,
-                  maxInterval: 10_000,
-                }),
-              )
-              .then((job) => {
-                const transcript = job.result?.text;
-                if (!transcript) {
-                  throw new Error("Transcription did not return text");
-                }
+            onTranscript("", false);
+          } finally {
+            setIsProcessing(false);
+            stopModeRef.current = null;
+          }
+        };
 
-                const autoSend = stopModeRef.current === "send";
-                onTranscript(transcript, autoSend);
-                analytics.track("transcription_completed", {
-                  autoSendUsed: autoSend,
-                });
-              })
-              .catch((error) => {
-                console.error("Transcription failed:", error);
+        recorder.start();
+        mediaRecorderRef.current = recorder;
+        setIsRecording(true);
+        onRecordingStateChange?.(true, stream);
 
-                const message =
-                  error instanceof Error ? error.message : String(error);
-                if (message === "TIMEOUT") {
-                  toast.error(
-                    "Transcription timed out. Try recording a shorter message.",
-                  );
-                } else {
-                  toast.error(message || "STT not working right now");
-                }
-
-                onTranscript("", false);
-              })
-              .finally(() => {
-                setIsProcessing(false);
-                stopModeRef.current = null;
-              });
-          };
-
-          recorder.start();
-          mediaRecorderRef.current = recorder;
-          setIsRecording(true);
-          onRecordingStateChange?.(true, stream);
-          analytics.track("voice_recording_started");
-        })
-        .catch((error) => {
-          console.error("MediaRecorder failed:", error);
-          toast.error("Microphone access denied");
-        });
-    }, [sttEnabled, apiClient, sdk, onTranscript, onRecordingStateChange]);
+        // Track recording started
+        analytics.track("voice_recording_started");
+      } catch (error) {
+        console.error("MediaRecorder failed:", error);
+        toast.error("Microphone access denied");
+      }
+    }, [
+      sttEnabled,
+      transcribeAudio,
+      onTranscript,
+      onRecordingStateChange,
+      generateUploadUrl,
+    ]);
 
     const stopRecording = useCallback(
       (mode: "preview" | "send") => {

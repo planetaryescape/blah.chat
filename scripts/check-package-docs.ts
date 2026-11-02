@@ -43,9 +43,9 @@ if (!exists(cfgPath)) die("Missing .release-please-config.json");
 const cfg = readJson<ReleasePleaseConfig>(cfgPath);
 const pkgs = cfg.packages ?? {};
 
-const publishedPackagePaths = Object.keys(pkgs).filter((p) =>
-  p.startsWith("packages/"),
-);
+const publishedPackagePaths = Object.keys(pkgs)
+  .filter((p) => p.startsWith("packages/"))
+  .filter((p) => p !== "packages/backend" && p !== "packages/byod-schema");
 
 if (publishedPackagePaths.length === 0) {
   // eslint-disable-next-line no-console

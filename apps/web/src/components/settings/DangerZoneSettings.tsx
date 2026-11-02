@@ -1,6 +1,8 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
 import { useClerk } from "@clerk/nextjs";
+import { useAction, useMutation } from "convex/react";
 import { AlertTriangle, Download, Loader2, Trash2, UserX } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -22,25 +24,31 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAsyncAction } from "@/hooks/useAsyncAction";
-import { useSDKClient } from "@/lib/api/sdkClient";
 
 export function DangerZoneSettings() {
   const { signOut } = useClerk();
-  const sdk = useSDKClient();
+
+  // Export
+  const [isExporting, setIsExporting] = useState(false);
+  const exportMyData = useAction(api.users.exportMyData);
 
   // Delete data
   const [isDeleteDataOpen, setIsDeleteDataOpen] = useState(false);
   const [deleteDataConfirmation, setDeleteDataConfirmation] = useState("");
+  const [isDeletingData, setIsDeletingData] = useState(false);
+  const deleteMyData = useMutation(api.users.deleteMyData);
 
   // Delete account
   const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
   const [deleteAccountConfirmation, setDeleteAccountConfirmation] =
     useState("");
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const deleteMyAccount = useMutation(api.users.deleteMyAccount);
 
-  const { run: handleExport, isPending: isExporting } = useAsyncAction(
-    async () => {
-      const data = await sdk.exportUserData();
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const data = await exportMyData();
       const blob = new Blob([JSON.stringify(data, null, 2)], {
         type: "application/json",
       });
@@ -53,48 +61,45 @@ export function DangerZoneSettings() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       toast.success("Data exported successfully");
-    },
-    {
-      onError: (error) => {
-        toast.error("Failed to export data");
-        console.error(error);
-      },
-    },
-  );
+    } catch (error) {
+      toast.error("Failed to export data");
+      console.error(error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
-  const { run: handleDeleteData, isPending: isDeletingData } = useAsyncAction(
-    async () => {
-      if (deleteDataConfirmation !== "DELETE MY DATA") return;
-      await sdk.deleteUserData({ confirmationText: deleteDataConfirmation });
+  const handleDeleteData = async () => {
+    if (deleteDataConfirmation !== "DELETE MY DATA") return;
+
+    setIsDeletingData(true);
+    try {
+      await deleteMyData({ confirmationText: deleteDataConfirmation });
       toast.success("All your data has been deleted");
       setIsDeleteDataOpen(false);
       setDeleteDataConfirmation("");
-    },
-    {
-      onError: (error) => {
-        toast.error("Failed to delete data");
-        console.error(error);
-      },
-    },
-  );
+    } catch (error) {
+      toast.error("Failed to delete data");
+      console.error(error);
+    } finally {
+      setIsDeletingData(false);
+    }
+  };
 
-  const { run: handleDeleteAccount, isPending: isDeletingAccount } =
-    useAsyncAction(
-      async () => {
-        if (deleteAccountConfirmation !== "DELETE MY ACCOUNT") return;
-        await sdk.deleteUserAccount({
-          confirmationText: deleteAccountConfirmation,
-        });
-        toast.success("Your account has been deleted");
-        await signOut({ redirectUrl: "/" });
-      },
-      {
-        onError: (error) => {
-          toast.error("Failed to delete account");
-          console.error(error);
-        },
-      },
-    );
+  const handleDeleteAccount = async () => {
+    if (deleteAccountConfirmation !== "DELETE MY ACCOUNT") return;
+
+    setIsDeletingAccount(true);
+    try {
+      await deleteMyAccount({ confirmationText: deleteAccountConfirmation });
+      toast.success("Your account has been deleted");
+      await signOut({ redirectUrl: "/" });
+    } catch (error) {
+      toast.error("Failed to delete account");
+      console.error(error);
+      setIsDeletingAccount(false);
+    }
+  };
 
   return (
     <div className="space-y-6">

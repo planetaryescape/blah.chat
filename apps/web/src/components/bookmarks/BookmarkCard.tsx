@@ -1,6 +1,8 @@
 "use client";
 
-import type { Bookmark } from "@blah-chat/api-client";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useMutation } from "convex/react";
 import { format } from "date-fns";
 import { MessageSquare, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -9,40 +11,42 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { useRemoveBookmark } from "@/lib/hooks/mutations/useBookmarkMutations";
 
 interface BookmarkCardProps {
-  bookmark: Bookmark;
+  bookmark: Doc<"bookmarks"> & {
+    message: Doc<"messages"> | null;
+    conversation: Doc<"conversations"> | null;
+  };
 }
 
 export function BookmarkCard({ bookmark }: BookmarkCardProps) {
   const router = useRouter();
-  const removeBookmarkMutation = useRemoveBookmark();
+  // @ts-ignore - Type depth exceeded with complex Convex query
+  const removeBookmark = useMutation(api.bookmarks.remove);
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    removeBookmarkMutation.mutate(
-      { bookmarkId: bookmark._id },
-      {
-        onSuccess: () => toast.success("Bookmark removed"),
-        onError: () => toast.error("Failed to remove bookmark"),
-      },
-    );
+    try {
+      await removeBookmark({ bookmarkId: bookmark._id });
+      toast.success("Bookmark removed");
+    } catch (_error) {
+      toast.error("Failed to remove bookmark");
+    }
   };
 
   const handleNavigate = () => {
-    if (bookmark.conversationId) {
+    if (bookmark.conversation) {
       router.push(
         `/chat/${bookmark.conversationId}?messageId=${bookmark.messageId}`,
       );
     }
   };
 
-  if (!bookmark.messagePreview || !bookmark.conversationTitle) {
+  if (!bookmark.message || !bookmark.conversation) {
     return null;
   }
 
-  const messageContent = bookmark.messagePreview;
+  const messageContent = bookmark.message.content;
 
   // Always strip markdown for card preview - clean and concise
   const stripped = removeMarkdown(messageContent);
@@ -61,7 +65,7 @@ export function BookmarkCard({ bookmark }: BookmarkCardProps) {
             <div className="flex items-center gap-2 mb-2">
               <MessageSquare className="h-3.5 w-3.5 text-primary/60 flex-shrink-0" />
               <span className="font-semibold text-sm text-foreground truncate">
-                {bookmark.conversationTitle}
+                {bookmark.conversation.title}
               </span>
             </div>
 
@@ -106,9 +110,9 @@ export function BookmarkCard({ bookmark }: BookmarkCardProps) {
         {/* Tags */}
         {bookmark.tags && bookmark.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pt-3 border-t border-border/30">
-            {bookmark.tags.slice(0, 4).map((tag: any) => (
+            {bookmark.tags.slice(0, 4).map((tag: any, index: number) => (
               <Badge
-                key={tag}
+                key={`${tag}-${index}`}
                 variant="secondary"
                 className="text-xs px-2 py-0.5 bg-primary/5 text-primary/80 border-primary/10 hover:bg-primary/10 transition-colors"
               >

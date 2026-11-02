@@ -1,9 +1,12 @@
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { type NextRequest, NextResponse } from "next/server";
-import { conversationsDAL } from "@/lib/api/dal/conversations";
+import { getConvexClient } from "@/lib/api/convex";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { trackAPIPerformance } from "@/lib/api/monitoring";
 import logger from "@/lib/logger";
+import { formatEntity } from "@/lib/utils/formatEntity";
 
 async function postHandler(
   _req: NextRequest,
@@ -19,7 +22,12 @@ async function postHandler(
     "POST /api/v1/conversations/[id]/archive",
   );
 
-  const result = await conversationsDAL.archive(userId, id);
+  const convex = getConvexClient();
+
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
+  await convex.mutation(api.conversations.archive, {
+    conversationId: id as Id<"conversations">,
+  });
 
   const duration = performance.now() - startTime;
   trackAPIPerformance({
@@ -34,7 +42,10 @@ async function postHandler(
     "Conversation archived",
   );
 
-  return NextResponse.json(result, { status: 200 });
+  return NextResponse.json(
+    formatEntity({ conversationId: id }, "conversation"),
+    { status: 200 },
+  );
 }
 
 export const POST = withErrorHandling(withAuth(postHandler));

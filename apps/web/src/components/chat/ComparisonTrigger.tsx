@@ -10,8 +10,6 @@ import {
 } from "@/components/ui/tooltip";
 import { QuickModelSwitcher } from "./QuickModelSwitcher";
 
-const EMPTY_MODELS: string[] = [];
-
 interface ComparisonTriggerProps {
   onStartComparison: (models: string[]) => void;
   isActive: boolean;
@@ -23,7 +21,7 @@ interface ComparisonTriggerProps {
 export function ComparisonTrigger({
   onStartComparison,
   isActive,
-  selectedModels = EMPTY_MODELS,
+  selectedModels = [],
   open: externalOpen,
   onOpenChange: externalOnOpenChange,
 }: ComparisonTriggerProps) {
@@ -45,7 +43,6 @@ export function ComparisonTrigger({
             onClick={() => setOpen(true)}
             className="h-7 text-xs border border-primary/20 bg-primary/2 hover:bg-primary/10 text-primary/80 hover:text-primary/80 cursor-pointer px-3 transition-colors min-w-0 w-auto font-medium gap-1.5"
             data-tour="comparison"
-            data-testid="comparison-trigger"
           >
             <ArrowLeftRight className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Compare</span>

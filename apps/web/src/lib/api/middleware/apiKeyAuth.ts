@@ -1,10 +1,7 @@
-import "server-only";
-import { createHash } from "node:crypto";
-import { cliApiKeys, users } from "@blah-chat/persistence-postgres";
-import { and, eq, isNull } from "drizzle-orm";
+import { api } from "@blah-chat/backend/convex/_generated/api";
 import { type NextRequest, NextResponse } from "next/server";
+import { getConvexClient } from "@/lib/api/convex";
 import logger from "@/lib/logger";
-import { getPersistenceDb } from "@/lib/persistence/server";
 import { formatErrorEntity } from "@/lib/utils/formatEntity";
 
 export type ApiKeyAuthContext = {
@@ -12,7 +9,6 @@ export type ApiKeyAuthContext = {
   apiKey: string;
   user: {
     userId: string;
-    clerkId: string;
     email: string;
     name: string;
   };
@@ -38,10 +34,6 @@ function getApiKeyFromRequest(req: NextRequest): string | null {
   return null;
 }
 
-function hashApiKey(key: string) {
-  return createHash("sha256").update(key).digest("hex");
-}
-
 export function withApiKeyAuth(handler: ApiKeyAuthenticatedHandler) {
   return async (
     req: NextRequest,
@@ -55,45 +47,30 @@ export function withApiKeyAuth(handler: ApiKeyAuthenticatedHandler) {
     }
 
     try {
-      const db = getPersistenceDb();
-      const keyHash = hashApiKey(apiKey);
+      const convex = getConvexClient();
+      const user = (await (convex.query as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        api.cliAuth.validate,
+        { key: apiKey },
+      )) as {
+        userId: string;
+        email: string;
+        name: string;
+      } | null;
 
-      const result = await db
-        .select({
-          keyId: cliApiKeys.id,
-          userId: cliApiKeys.userId,
-          clerkId: users.clerkId,
-          email: users.email,
-          name: users.name,
-        })
-        .from(cliApiKeys)
-        .innerJoin(users, eq(users.id, cliApiKeys.userId))
-        .where(
-          and(eq(cliApiKeys.keyHash, keyHash), isNull(cliApiKeys.revokedAt)),
-        )
-        .limit(1);
-
-      const row = result[0];
-      if (!row) {
+      if (!user) {
         return NextResponse.json(formatErrorEntity("Invalid API key"), {
           status: 401,
         });
       }
 
-      // Update lastUsedAt (fire-and-forget)
-      db.update(cliApiKeys)
-        .set({ lastUsedAt: Date.now() })
-        .where(eq(cliApiKeys.id, row.keyId))
-        .catch(() => {});
-
       return handler(req, {
         ...context,
         apiKey,
         user: {
-          userId: row.userId,
-          clerkId: row.clerkId,
-          email: row.email,
-          name: row.name,
+          userId: user.userId,
+          email: user.email,
+          name: user.name,
         },
       });
     } catch (error) {

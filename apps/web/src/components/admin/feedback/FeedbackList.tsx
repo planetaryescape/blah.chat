@@ -1,5 +1,6 @@
 "use client";
 
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -14,17 +15,9 @@ import {
 import { cn } from "@/lib/utils";
 
 interface FeedbackListProps {
-  items: Array<{
-    _id: string;
-    userName: string;
-    description: string;
-    feedbackType: string;
-    status: string;
-    priority: string;
-    createdAt: number;
-  }>;
-  selectedId: string | null;
-  onSelect: (id: string) => void;
+  items: Doc<"feedback">[];
+  selectedId: Id<"feedback"> | null;
+  onSelect: (id: Id<"feedback">) => void;
   selectedIds: Set<string>;
   onToggleSelection: (id: string) => void;
   isSelectionMode: boolean;

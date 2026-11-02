@@ -1,3 +1,4 @@
+import { useQuery } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { FileText, FolderOpen, MessageSquare } from "lucide-react-native";
 import { useMemo } from "react";
@@ -5,14 +6,9 @@ import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import type { Doc, Id } from "@/lib/convex";
+import { api, type Doc, type Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
-import {
-  useConversations,
-  useProject,
-  useProjectStats,
-  useSearchNotes,
-} from "@/lib/hooks";
+import { useConversations, useSearchNotes } from "@/lib/hooks";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 import { getTimeAgo } from "@/lib/utils/time";
 
@@ -75,11 +71,13 @@ export default function ProjectDetailScreen() {
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
   const projectId = typeof id === "string" ? id : null;
 
-  const project = useProject(
-    projectId ? (projectId as Id<"projects">) : null,
+  const project = useQuery(
+    api.projects.get,
+    projectId ? { id: projectId as Id<"projects"> } : "skip",
   ) as Project | null | undefined;
-  const stats = useProjectStats(
-    projectId ? (projectId as Id<"projects">) : null,
+  const stats = useQuery(
+    api.projects.getProjectStats,
+    projectId ? { projectId: projectId as Id<"projects"> } : "skip",
   ) as ProjectStats | null | undefined;
 
   const conversations = useConversations(projectId);
@@ -391,7 +389,9 @@ export default function ProjectDetailScreen() {
                       marginTop: 2,
                     }}
                   >
-                    {getTimeAgo(note.updatedAt || note.createdAt || Date.now())}
+                    {getTimeAgo(
+                      note.updatedAt || note._creationTime || Date.now(),
+                    )}
                   </Text>
                 </View>
               </AnimatedPressable>

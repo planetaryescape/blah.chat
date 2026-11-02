@@ -1,5 +1,8 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useQuery } from "convex/react";
 import {
   Archive,
   BookOpen,
@@ -16,13 +19,11 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { useProjectSurfaceStats } from "@/hooks/useProjectSurfaceStats";
 import { useUserPreference } from "@/hooks/useUserPreference";
-import { useProject } from "@/lib/hooks/queries/useProjects";
 import { cn } from "@/lib/utils";
 
 interface ProjectLayoutProps {
-  projectId: string;
+  projectId: Id<"projects">;
   children: ReactNode;
 }
 
@@ -30,8 +31,10 @@ export function ProjectLayout({ projectId, children }: ProjectLayoutProps) {
   const _router = useRouter();
   const pathname = usePathname();
   const showTasks = useUserPreference("showTasks");
-  const { data: project } = useProject(projectId);
-  const surface = useProjectSurfaceStats(projectId);
+  // @ts-ignore - Type depth exceeded
+  const project = useQuery(api.projects.get, { id: projectId });
+  // @ts-ignore - Type depth exceeded
+  const stats = useQuery(api.projects.getProjectStats, { projectId });
 
   if (!project) {
     return (
@@ -61,28 +64,28 @@ export function ProjectLayout({ projectId, children }: ProjectLayoutProps) {
       label: "Tasks",
       icon: Archive, // Using Archive as placeholder for "Tasks" drawer icon, commonly used in Linear-likes
       path: `/projects/${projectId}/tasks`,
-      count: surface.stats?.taskStats.active || undefined,
+      count: stats?.taskStats?.active || undefined,
     },
     {
       id: "notes",
       label: "Notes",
       icon: FileText,
       path: `/projects/${projectId}/notes`,
-      count: surface.stats?.noteCount || undefined,
+      count: stats?.noteCount || undefined,
     },
     {
       id: "knowledge",
       label: "Knowledge",
       icon: BookOpen,
       path: `/projects/${projectId}/knowledge`,
-      count: surface.stats?.fileCount || undefined,
+      count: stats?.fileCount || undefined,
     },
     {
       id: "conversations",
       label: "Conversations",
       icon: MessageSquare,
       path: `/projects/${projectId}/conversations`,
-      count: surface.stats?.conversationCount || undefined,
+      count: stats?.conversationCount || undefined,
     },
   ];
 

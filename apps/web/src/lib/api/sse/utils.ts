@@ -119,37 +119,24 @@ export function formatSSEEvent(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
-export interface PollingLoopHandle {
-  stop: () => void;
-}
-
 /**
- * Create polling loop with error handling
+ * Create polling interval with error handling
  *
- * Used by SSE endpoints to poll the database for updates.
- *
- * Self-scheduling: the next iteration is only scheduled after the current
- * one completes, so slow polls never overlap (no concurrent DB reads or
- * out-of-order sends).
+ * Used by SSE endpoints to poll Convex for updates.
  *
  * @param pollFn - Async function to poll
  * @param send - SSE send function
  * @param interval - Poll interval in milliseconds
  * @param eventName - SSE event name (default: "update")
- * @returns Polling handle for cleanup
+ * @returns Interval ID for cleanup
  */
 export function createPollingLoop(
   pollFn: () => Promise<unknown>,
   send: (event: string, data: unknown) => Promise<void>,
   interval: number,
   eventName = "update",
-): PollingLoopHandle {
-  let stopped = false;
-  let timeout: NodeJS.Timeout;
-
-  const run = async () => {
-    if (stopped) return;
-
+): NodeJS.Timeout {
+  return setInterval(async () => {
     try {
       const data = await pollFn();
       await send(eventName, data);
@@ -160,19 +147,7 @@ export function createPollingLoop(
         // Client disconnected
       });
     }
-
-    if (stopped) return;
-    timeout = setTimeout(run, interval);
-  };
-
-  timeout = setTimeout(run, interval);
-
-  return {
-    stop: () => {
-      stopped = true;
-      clearTimeout(timeout);
-    },
-  };
+  }, interval);
 }
 
 /**
@@ -191,16 +166,10 @@ export function createPollingLoop(
 export function setupSSECleanup(
   signal: AbortSignal,
   close: () => Promise<void>,
-  intervals: Array<NodeJS.Timeout | PollingLoopHandle>,
+  intervals: NodeJS.Timeout[],
 ): void {
   signal.addEventListener("abort", () => {
-    intervals.forEach((interval) => {
-      if ("stop" in interval) {
-        interval.stop();
-      } else {
-        clearInterval(interval);
-      }
-    });
+    intervals.forEach((interval) => clearInterval(interval));
     close().catch(() => {
       // Already closed
     });

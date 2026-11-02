@@ -65,9 +65,8 @@ export function MessageListSkeleton({
           )}
         >
           {skeletonMessages.map((msg, i) => (
-            // react-doctor: static skeleton list, index key is fine
             <div
-              key={`skeleton-${i}`}
+              key={i}
               className={cn(
                 "col-start-2 flex w-full pb-10",
                 msg.isUser ? "justify-end" : "justify-start",
@@ -86,7 +85,7 @@ export function MessageListSkeleton({
                   <div className="space-y-2">
                     {msg.lines.map((line, j) => (
                       <Skeleton
-                        key={`${line.width}-${j}`}
+                        key={j}
                         className={cn(
                           "h-4",
                           line.width,

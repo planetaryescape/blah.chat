@@ -21,7 +21,7 @@ export function AttachmentIndicators({
     <div className="flex gap-2 mt-2 flex-wrap">
       {attachments.map((attachment, idx) => (
         <Badge
-          key={attachment.name ?? `attachment-${idx}`}
+          key={idx}
           variant="secondary"
           className="flex items-center gap-1.5 py-1 px-2"
         >

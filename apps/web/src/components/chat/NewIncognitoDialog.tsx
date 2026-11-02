@@ -1,6 +1,8 @@
 "use client";
 
 import { DEFAULT_MODEL_ID } from "@blah-chat/ai/operational-models";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import { useMutation } from "convex/react";
 import { Ghost, Search, Sparkles, Timer } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -23,8 +25,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { useAsyncAction } from "@/hooks/useAsyncAction";
-import { useApiClient } from "@/lib/api/client";
 
 interface NewIncognitoDialogProps {
   open: boolean;
@@ -38,28 +38,28 @@ export function NewIncognitoDialog({
   const [enableReadTools, setEnableReadTools] = useState(true);
   const [applyCustomInstructions, setApplyCustomInstructions] = useState(true);
   const [autoDeleteTimeout, setAutoDeleteTimeout] = useState("30");
+  const [isCreating, setIsCreating] = useState(false);
 
-  const apiClient = useApiClient();
+  // @ts-ignore - Type depth exceeded with complex Convex mutation
+  const createConversation = useMutation(api.conversations.create);
   const router = useRouter();
 
-  const { run: handleCreate, isPending: isCreating } = useAsyncAction(
-    async () => {
-      const conversation = await apiClient.post<{ _id: string }>(
-        "/api/v1/conversations",
-        {
-          model: DEFAULT_MODEL_ID,
-          isIncognito: true,
-          incognitoSettings: {
-            enableReadTools,
-            applyCustomInstructions,
-            inactivityTimeoutMinutes:
-              autoDeleteTimeout === "none"
-                ? undefined
-                : Number(autoDeleteTimeout),
-          },
+  const handleCreate = async () => {
+    setIsCreating(true);
+    try {
+      const id = await createConversation({
+        model: DEFAULT_MODEL_ID,
+        isIncognito: true,
+        incognitoSettings: {
+          enableReadTools,
+          applyCustomInstructions,
+          inactivityTimeoutMinutes:
+            autoDeleteTimeout === "none"
+              ? undefined
+              : Number(autoDeleteTimeout),
         },
-      );
-      router.push(`/chat/${conversation._id}`);
+      });
+      router.push(`/chat/${id}`);
       onOpenChange(false);
       toast.success("Incognito chat started");
 
@@ -67,14 +67,13 @@ export function NewIncognitoDialog({
       setEnableReadTools(true);
       setApplyCustomInstructions(true);
       setAutoDeleteTimeout("30");
-    },
-    {
-      onError: (error) => {
-        console.error("Failed to create incognito chat:", error);
-        toast.error("Failed to create incognito chat");
-      },
-    },
-  );
+    } catch (error) {
+      console.error("Failed to create incognito chat:", error);
+      toast.error("Failed to create incognito chat");
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

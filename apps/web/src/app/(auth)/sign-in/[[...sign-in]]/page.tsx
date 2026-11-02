@@ -3,7 +3,7 @@ import { SignIn } from "@clerk/nextjs";
 export default function SignInPage() {
   return (
     <SignIn
-      forceRedirectUrl="/app"
+      redirectUrl="/app"
       appearance={{
         elements: {
           rootBox: "w-full flex justify-center",

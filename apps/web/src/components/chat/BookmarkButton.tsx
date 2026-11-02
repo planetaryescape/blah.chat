@@ -1,5 +1,8 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useMutation, useQuery } from "convex/react";
 import { Bookmark, BookmarkCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -20,16 +23,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { analytics } from "@/lib/analytics";
-import {
-  useCreateBookmark,
-  useRemoveBookmark,
-  useUpdateBookmark,
-} from "@/lib/hooks/mutations/useBookmarkMutations";
-import { useBookmarkByMessage } from "@/lib/hooks/queries/useBookmarks";
 
 interface BookmarkButtonProps {
-  messageId: string;
-  conversationId: string;
+  messageId: Id<"messages">;
+  conversationId: Id<"conversations">;
 }
 
 export function BookmarkButton({
@@ -40,84 +37,83 @@ export function BookmarkButton({
   const [note, setNote] = useState("");
   const [tags, setTags] = useState("");
 
+  // Check if this is a temporary optimistic message (not yet persisted)
   const isTempMessage =
     typeof messageId === "string" && messageId.startsWith("temp-");
 
-  const { data: existingBookmark } = useBookmarkByMessage(
-    isTempMessage ? null : messageId,
+  // Skip query for temporary optimistic messages
+  const existingBookmark = useQuery(
+    // @ts-ignore - Type depth exceeded with complex Convex query
+    api.bookmarks.getByMessage,
+    isTempMessage ? "skip" : { messageId },
   );
-  const createBookmarkMutation = useCreateBookmark();
-  const removeBookmarkMutation = useRemoveBookmark();
-  const updateBookmarkMutation = useUpdateBookmark();
-
-  if (isTempMessage) {
-    return null;
-  }
+  const createBookmark = useMutation(api.bookmarks.create);
+  const removeBookmark = useMutation(api.bookmarks.remove);
+  const updateBookmark = useMutation(api.bookmarks.update);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const recordAction = useMutation(api.usage.mutations.recordAction);
 
   const isBookmarked = !!existingBookmark;
 
-  const handleToggleBookmark = () => {
+  const handleToggleBookmark = async () => {
     if (isBookmarked && existingBookmark) {
-      removeBookmarkMutation.mutate(
-        { bookmarkId: existingBookmark._id },
-        {
-          onSuccess: () => {
-            toast.success("Bookmark removed");
-            analytics.track("bookmark_deleted", { source: "message" });
-          },
-          onError: () => toast.error("Failed to remove bookmark"),
-        },
-      );
-      return;
-    }
+      try {
+        await removeBookmark({ bookmarkId: existingBookmark._id });
+        toast.success("Bookmark removed");
 
-    setShowDialog(true);
+        // Track bookmark deletion
+        analytics.track("bookmark_deleted", {
+          source: "message",
+        });
+      } catch (_error) {
+        toast.error("Failed to remove bookmark");
+      }
+    } else {
+      setShowDialog(true);
+    }
   };
 
-  const handleSaveBookmark = () => {
-    const tagList = tags ? tags.split(",").map((tag) => tag.trim()) : undefined;
+  const handleSaveBookmark = async () => {
+    try {
+      const tagList = tags
+        ? tags.split(",").map((t: any) => t.trim())
+        : undefined;
 
-    const onSettled = () => {
-      setShowDialog(false);
-      setNote("");
-      setTags("");
-    };
-
-    if (isBookmarked && existingBookmark) {
-      updateBookmarkMutation.mutate(
-        {
+      if (isBookmarked && existingBookmark) {
+        await updateBookmark({
           bookmarkId: existingBookmark._id,
           note: note || undefined,
           tags: tagList,
-        },
-        {
-          onSuccess: () => {
-            toast.success("Bookmark updated");
-            analytics.track("bookmark_updated", {
-              hasNote: !!note,
-              tagCount: tagList?.length || 0,
-            });
-            onSettled();
-          },
-          onError: () => toast.error("Failed to save bookmark"),
-        },
-      );
-    } else {
-      createBookmarkMutation.mutate(
-        { messageId, conversationId, note: note || undefined, tags: tagList },
-        {
-          onSuccess: () => {
-            toast.success("Bookmark created");
-            analytics.track("bookmark_created", {
-              source: "message",
-              hasNote: !!note,
-              tagCount: tagList?.length || 0,
-            });
-            onSettled();
-          },
-          onError: () => toast.error("Failed to save bookmark"),
-        },
-      );
+        });
+        toast.success("Bookmark updated");
+
+        // Track bookmark update
+        analytics.track("bookmark_updated", {
+          hasNote: !!note,
+          tagCount: tagList?.length || 0,
+        });
+      } else {
+        await createBookmark({
+          messageId,
+          conversationId,
+          note: note || undefined,
+          tags: tagList,
+        });
+        toast.success("Bookmark created");
+
+        // Track bookmark creation
+        analytics.track("bookmark_created", {
+          source: "message",
+          hasNote: !!note,
+          tagCount: tagList?.length || 0,
+        });
+        recordAction({ actionType: "bookmark_message", resourceId: messageId });
+      }
+      setShowDialog(false);
+      setNote("");
+      setTags("");
+    } catch (_error) {
+      toast.error("Failed to save bookmark");
     }
   };
 

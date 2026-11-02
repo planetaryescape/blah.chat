@@ -10,7 +10,7 @@ import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
 interface BookmarkMenuSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  bookmark: { conversationTitle?: string } | null;
+  bookmark: { conversation?: { title?: string } | null } | null;
   onGoToChat: () => void;
   onRemove: () => void;
 }
@@ -95,7 +95,7 @@ export function BookmarkMenuSheet({
             marginTop: spacing.sm,
           }}
         >
-          {bookmark.conversationTitle || "Bookmarked Message"}
+          {bookmark.conversation?.title || "Bookmarked Message"}
         </Text>
 
         {/* Go to Chat */}

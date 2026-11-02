@@ -1,11 +1,12 @@
 "use client";
 
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { ChevronRight, FileCode, FileText } from "lucide-react";
 import { useCanvasContext } from "@/contexts/CanvasContext";
 import { cn } from "@/lib/utils";
 
 interface ArtifactCardProps {
-  documentId: string;
+  documentId: Id<"canvasDocuments">;
   title: string;
   documentType: "code" | "prose";
   language?: string;

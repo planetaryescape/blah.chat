@@ -1,6 +1,6 @@
 {
   "name": "@blah-chat/streaming-core",
-  "version": "0.4.1",
+  "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -21,19 +21,11 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean",
     "typecheck": "tsc --noEmit",
-    "test": "vitest",
-    "test:run": "vitest run --coverage",
     "prepublishOnly": "bun run build"
   },
-  "dependencies": {
-    "zod": "^4.2.1"
-  },
   "devDependencies": {
-    "@types/node": "^25.0.10",
-    "@vitest/coverage-v8": "^4.1.8",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.8",
     "@blah-chat/config": "workspace:*"
   }
 }

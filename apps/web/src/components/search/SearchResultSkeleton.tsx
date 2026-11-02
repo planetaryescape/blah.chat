@@ -33,9 +33,8 @@ export function SearchResultSkeletonList({ count = 6 }: { count?: number }) {
   return (
     <div className="space-y-4">
       {Array.from({ length: count }, (_, i) => (
-        // react-doctor: static skeleton, index key is fine
         <div
-          key={`skeleton-${i}`}
+          key={i}
           style={{
             animationDelay: `${i * 75}ms`,
           }}

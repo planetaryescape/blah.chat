@@ -122,9 +122,7 @@ export default function TermsPage() {
           <ul>
             <li>We don't sell your data</li>
             <li>You can export or delete your data anytime</li>
-            <li>
-              BYOD preview is coming soon; cloud accounts use managed storage
-            </li>
+            <li>BYOD mode keeps your data in your own database</li>
           </ul>
 
           <h2>8. Intellectual Property</h2>

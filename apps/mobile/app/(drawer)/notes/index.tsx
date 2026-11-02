@@ -108,17 +108,6 @@ export default function NotesListScreen() {
   const isFiltered = selectedProjectId !== null || pinnedOnly;
   const isSearching = searchQuery.trim().length > 0;
 
-  const renderNoteItem = useCallback(
-    ({ item }: { item: Note }) => (
-      <NoteListItem
-        note={item}
-        onPress={() => handleNotePress(item._id)}
-        onLongPress={() => handleNoteLongPress(item)}
-      />
-    ),
-    [handleNotePress, handleNoteLongPress],
-  );
-
   const createNoteAction = (
     <TouchableOpacity
       onPress={() => {
@@ -238,7 +227,13 @@ export default function NotesListScreen() {
       ) : (
         <FlashList<Note>
           data={filteredNotes}
-          renderItem={renderNoteItem}
+          renderItem={({ item }) => (
+            <NoteListItem
+              note={item}
+              onPress={() => handleNotePress(item._id)}
+              onLongPress={() => handleNoteLongPress(item)}
+            />
+          )}
           keyExtractor={(item) => item._id}
           contentContainerStyle={{
             paddingVertical: spacing.sm,

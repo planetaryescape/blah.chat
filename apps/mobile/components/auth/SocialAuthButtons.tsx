@@ -1,5 +1,6 @@
 import { useSignInWithApple, useSSO } from "@clerk/clerk-expo";
 import * as Linking from "expo-linking";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -8,7 +9,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 
 function GoogleIcon() {
@@ -35,8 +35,12 @@ export function SocialAuthButtons({ onError }: SocialAuthButtonsProps) {
   const { startSSOFlow } = useSSO();
   const { startAppleAuthenticationFlow } = useSignInWithApple();
 
-  const { run: handleGoogleSignIn, isPending: googleLoading } = useAsyncAction(
-    async () => {
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    try {
       const redirectUrl = Linking.createURL("/(drawer)/chat/new");
 
       const { createdSessionId, setActive } = await startSSOFlow({
@@ -47,31 +51,30 @@ export function SocialAuthButtons({ onError }: SocialAuthButtonsProps) {
       if (createdSessionId && setActive) {
         await setActive({ session: createdSessionId });
       }
-    },
-    {
-      onError: (err: any) => {
-        if (err?.code === "ERR_CANCELED") return;
-        onError?.(err?.errors?.[0]?.message || "Google sign-in failed");
-      },
-    },
-  );
+    } catch (err: any) {
+      if (err?.code === "ERR_CANCELED") return;
+      onError?.(err?.errors?.[0]?.message || "Google sign-in failed");
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
-  const { run: handleAppleSignIn, isPending: appleLoading } = useAsyncAction(
-    async () => {
+  const handleAppleSignIn = async () => {
+    setAppleLoading(true);
+    try {
       const { createdSessionId, setActive } =
         await startAppleAuthenticationFlow();
 
       if (createdSessionId && setActive) {
         await setActive({ session: createdSessionId });
       }
-    },
-    {
-      onError: (err: any) => {
-        if (err?.code === "ERR_CANCELED") return;
-        onError?.(err?.errors?.[0]?.message || "Apple sign-in failed");
-      },
-    },
-  );
+    } catch (err: any) {
+      if (err?.code === "ERR_CANCELED") return;
+      onError?.(err?.errors?.[0]?.message || "Apple sign-in failed");
+    } finally {
+      setAppleLoading(false);
+    }
+  };
 
   const isLoading = googleLoading || appleLoading;
 

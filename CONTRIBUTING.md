@@ -17,51 +17,48 @@ Thanks for your interest in contributing! This guide will help you get started.
 
 ### Prerequisites
 
-- Bun 1.3+ (we don't use npm/yarn/pnpm)
-- Docker Desktop or another Docker Compose runtime
+- Bun 1.0+ (we don't use npm/yarn/pnpm)
+- Convex account (free tier works)
 - Clerk account (free tier works)
 - Vercel AI Gateway API key
-- Trigger.dev account/API key
 
 ### Local Development
 
 ```bash
-# Run web + Postgres + Redis + MinIO
-cp docker/env.example .env.docker
-BLAH_CHAT_ENV_FILE=.env.docker docker compose up
+# Start Convex dev server
+bunx convex dev
+
+# Seed the database with models (required for first-time setup)
+bunx convex run models/seed:seedModels
+
+# In another terminal, start Next.js
+bun dev
 ```
 
 Visit http://localhost:3000
 
-For host-run development, use `docker compose -f docker-compose.dev.yml up -d`, then `bun install`, `bun run db:migrate`, and `bun dev`.
+> **Note**: The models seed is required for the app to function. Without it, the model picker will be empty.
 
 ### Environment Variables
 
 Copy the example environment file:
 
 ```bash
-cp docker/env.example .env.local
+cp .env.local.example .env.local
 ```
 
 Add required API keys to `.env.local`:
 
 #### Required Keys
 ```bash
-# Postgres, Redis, and R2-compatible storage
-DATABASE_URL=postgres://blah:blah@localhost:55432/blah_chat
-UPSTASH_REDIS_REST_URL=http://localhost:58079
-UPSTASH_REDIS_REST_TOKEN=dev-token
-R2_ENDPOINT=http://localhost:59000
-R2_BUCKET=blah-chat-dev
+# Convex Backend
+NEXT_PUBLIC_CONVEX_URL=https://your-convex-url.convex.cloud
+CONVEX_DEPLOY_KEY=your-convex-deploy-key
 
 # Authentication (Clerk)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
 CLERK_SECRET_KEY=sk_test_...
 CLERK_WEBHOOK_SECRET=whsec_...
-
-# Background jobs
-TRIGGER_SECRET_KEY=tr_dev_...
-INTERNAL_TASK_SECRET=shared-secret
 
 # AI Gateway (Required for all AI models)
 AI_GATEWAY_API_KEY=your-vercel-ai-gateway-key
@@ -167,13 +164,13 @@ Look for issues labeled `good first issue`. These are beginner-friendly:
 - Documentation improvements
 - UI/UX polish
 - Bug fixes with clear reproduction steps
-- Adding new AI models to `packages/ai/src/models.ts`
+- Adding new AI models to `src/lib/ai/models.ts`
 
 ### High-Priority Areas
 
 - **Better Auth integration** - Self-hosted auth alternative (see Auth Adapter Pattern below)
 - **Mobile app** - React Native client using REST API
-- **Docker/self-hosting hardening** - Compose, docs, health checks, and deployment polish
+- **Docker setup** - Better containerization
 - **Tests** - E2E tests with Playwright
 - **Accessibility** - ARIA labels, keyboard navigation
 
@@ -182,7 +179,7 @@ Look for issues labeled `good first issue`. These are beginner-friendly:
 - Major architecture changes (discuss first in Discussions)
 - UI framework changes (we're committed to shadcn/ui + Tailwind)
 - Package manager changes (Bun only)
-- Replacing Clerk or Trigger.dev without an adapter proposal first
+- Replacing Convex/Clerk (but adding alternatives is welcome)
 
 ## Auth Adapter Pattern
 
@@ -276,7 +273,7 @@ export async function migrateFromClerk() {
 1. **Test locally**: Verify your changes work
 2. **Run linter**: `bun run lint`
 3. **Format code**: `bun run format`
-4. **Check types**: `bun run typecheck`
+4. **Check types**: `bunx convex dev --once --typecheck=enable`
 5. **Update docs**: If you changed functionality, update relevant docs
 
 ### PR Description Template
@@ -292,7 +289,7 @@ See `.github/PULL_REQUEST_TEMPLATE.md` for the full template.
 
 ### Review Process
 
-1. **Automated checks** run (Biome, TypeScript, tests, build)
+1. **Automated checks** run (Biome, TypeScript, Convex deploy)
 2. **Maintainer review** (usually within 48 hours)
 3. **Address feedback** if requested
 4. **Squash and merge** once approved
@@ -319,12 +316,23 @@ See `.github/PULL_REQUEST_TEMPLATE.md` for the full template.
 - Server Components by default (use `"use client"` only when needed)
 - Avoid prop drilling (use context or composition)
 
-### Backend
+### Convex
 
-- Route handlers return API envelopes via `formatEntity`, `formatEntityList`, or `formatErrorEntity`.
-- Persistence goes through Postgres repositories/DAL helpers, not ad hoc SQL in UI code.
-- Long-running work goes through Trigger.dev jobs in `packages/jobs`.
-- Local infrastructure uses Postgres, Redis HTTP, and MinIO from the compose files.
+- Queries for reads (reactive, cached)
+- Mutations for writes (optimistic updates)
+- Actions for long-running operations (LLM calls, external APIs)
+- Always add `"use node"` to files importing Node.js APIs
+
+**TypeScript recursion workaround** (for large Convex codebases):
+
+```typescript
+// Actions calling internal queries/mutations
+const result = await ((ctx.runQuery as any)(
+  // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+  internal.path.to.query,
+  { args },
+) as ReturnType);
+```
 
 ### File Organization
 
@@ -341,15 +349,16 @@ src/
 ├── hooks/           # Custom React hooks
 └── types/           # Shared TypeScript types
 
-packages/persistence-postgres/
-├── src/schema.ts    # Canonical Postgres schema
-├── drizzle/         # Drizzle migrations
-└── src/             # Repository/client helpers
+convex/
+├── _generated/      # Auto-generated (don't edit)
+├── schema.ts        # Database schema
+├── *.ts             # Queries, mutations (V8 runtime)
+└── */actions.ts     # Actions with "use node" (Node runtime)
 ```
 
 ## Adding New AI Models
 
-Easy contribution! Edit `packages/ai/src/models.ts`:
+Easy contribution! Just edit `src/lib/ai/models.ts`:
 
 ```typescript
 export const MODEL_CONFIG: Record<string, ModelConfig> = {
@@ -381,7 +390,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
 
 **What we need**:
 - Unit tests for utilities (`src/lib/utils/`)
-- Integration tests for REST routes and Postgres repositories
+- Integration tests for Convex functions
 - E2E tests with Playwright (chat flows, auth flows)
 - Visual regression tests (Chromatic/Percy)
 

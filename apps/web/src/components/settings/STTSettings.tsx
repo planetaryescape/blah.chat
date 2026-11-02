@@ -1,5 +1,7 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import { useMutation, useQuery } from "convex/react";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -24,13 +26,13 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useUserPreference } from "@/hooks/useUserPreference";
-import { useSDKClient } from "@/lib/api/sdkClient";
-import { useCurrentUser } from "@/lib/hooks/queries/useCurrentUser";
 import { useApiKeyValidation } from "@/lib/hooks/useApiKeyValidation";
 
 export function STTSettings() {
-  const { data: user } = useCurrentUser();
-  const sdk = useSDKClient();
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const user = useQuery(api.users.getCurrentUser);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const updatePreferences = useMutation(api.users.updatePreferences);
 
   // Phase 4: Use new preference hooks for source of truth
   const prefSttEnabled = useUserPreference("sttEnabled");
@@ -60,7 +62,11 @@ export function STTSettings() {
 
     setSttEnabled(checked);
     try {
-      await sdk.updatePreference("sttEnabled", checked);
+      await updatePreferences({
+        preferences: {
+          sttEnabled: checked,
+        },
+      });
       toast.success(`Voice input ${checked ? "enabled" : "disabled"}!`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save");
@@ -145,9 +151,7 @@ export function STTSettings() {
         ttsAutoRead={prefTtsAutoRead}
         onSettingsChange={async (settings) => {
           try {
-            for (const [key, value] of Object.entries(settings)) {
-              await sdk.updatePreference(key, value);
-            }
+            await updatePreferences({ preferences: settings });
             toast.success("TTS settings updated!");
           } catch (error) {
             toast.error(

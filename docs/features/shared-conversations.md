@@ -1,7 +1,5 @@
 # Shared Conversations Feature
 
-> **Note (post-Postgres migration).** Implementation references below are Convex-era. The feature now runs on the REST API + Postgres stack (apps/web, packages/persistence-postgres, packages/jobs); treat file paths and code samples as historical.
-
 **Status**: ✅ Complete (Implemented December 2024)
 **Version**: 1.0
 **Maintainer Reference**: Living documentation for the Shared Conversations feature
@@ -55,7 +53,7 @@ conversations: defineTable({
 - **Extensible**: Can add metadata (role, joinedAt, invitedBy, sourceShareId) without bloating conversation documents
 - **No document bloat**: Conversation documents stay small (important for performance)
 - **Atomic updates**: Add/remove participants without touching conversation document
-- **Follows project standards**: blah.chat uses normalized schema throughout (see AGENTS.md)
+- **Follows project standards**: blah.chat uses normalized schema throughout (see CLAUDE.md)
 
 **Performance Impact**:
 - 40% smaller conversation documents

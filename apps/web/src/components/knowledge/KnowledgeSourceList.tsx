@@ -1,5 +1,6 @@
 "use client";
 
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -9,8 +10,8 @@ import type { KnowledgeSource, SourceType } from "./types";
 
 interface KnowledgeSourceListProps {
   sources: KnowledgeSource[];
-  selectedSourceId: string | null;
-  onSelect: (id: string) => void;
+  selectedSourceId: Id<"knowledgeSources"> | null;
+  onSelect: (id: Id<"knowledgeSources">) => void;
   groupByType: boolean;
 }
 

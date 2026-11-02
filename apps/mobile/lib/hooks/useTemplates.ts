@@ -1,21 +1,17 @@
-import type { Template } from "@blah-chat/api-client";
-import { useAuth } from "@clerk/clerk-expo";
-import { useQuery } from "@tanstack/react-query";
-import { createMobileSdkClient } from "@/lib/transport/httpClient";
+import { useQuery } from "convex/react";
+import { api } from "@/lib/convex";
 
-export type MobileTemplate = Template;
+export interface MobileTemplate {
+  _id: string;
+  name: string;
+  prompt: string;
+  description?: string;
+  category?: string;
+  isBuiltIn?: boolean;
+}
 
 export function useTemplates() {
-  const { getToken } = useAuth();
-
-  const query = useQuery({
-    queryKey: ["mobile", "templates"],
-    staleTime: 60_000,
-    queryFn: async () => {
-      const client = createMobileSdkClient(() => getToken());
-      return client.listTemplates();
-    },
-  });
-
-  return (query.data ?? []) as MobileTemplate[];
+  return (
+    (useQuery(api.templates.list, {}) as MobileTemplate[] | undefined) ?? []
+  );
 }

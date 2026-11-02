@@ -1,7 +1,28 @@
-import { screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders } from "@/lib/test/render-helpers";
+
+// Hoisted mocks
+const { mockCreateShare, mockToggleShare, mockExistingShare } = vi.hoisted(
+  () => ({
+    mockCreateShare: vi.fn(),
+    mockToggleShare: vi.fn(),
+    mockExistingShare: {
+      current: null as {
+        shareId: string;
+        isActive: boolean;
+        password?: string;
+        expiresAt?: number;
+      } | null,
+    },
+  }),
+);
+
+vi.mock("convex/react", () => ({
+  useQuery: () => mockExistingShare.current,
+  useAction: () => mockCreateShare,
+  useMutation: () => mockToggleShare,
+}));
 
 vi.mock("@/lib/analytics", () => ({
   analytics: { track: vi.fn() },
@@ -14,38 +35,21 @@ Object.assign(navigator, {
 });
 
 // Import AFTER mocks
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { ShareDialog } from "../ShareDialog";
 
 describe("ShareDialog", () => {
-  const conversationId = "conv123" as string;
+  const conversationId = "conv-123" as Id<"conversations">;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn((url: string) => {
-        if (url.includes("/api/v1/shares") && !url.includes("?")) {
-          return Promise.resolve({
-            ok: true,
-            json: () =>
-              Promise.resolve({
-                status: "success",
-                data: { shareId: "share-abc123" },
-              }),
-          } as Response);
-        }
-        // GET share query
-        return Promise.resolve({
-          ok: false,
-          json: () => Promise.resolve({ status: "error" }),
-        } as Response);
-      }),
-    );
+    mockExistingShare.current = null;
+    mockCreateShare.mockResolvedValue("share-abc123");
   });
 
   it("dialog opens when trigger clicked", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<ShareDialog conversationId={conversationId} />);
+    render(<ShareDialog conversationId={conversationId} />);
 
     await user.click(screen.getByRole("button"));
 
@@ -54,7 +58,7 @@ describe("ShareDialog", () => {
 
   it("shows password input when no existing share", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<ShareDialog conversationId={conversationId} />);
+    render(<ShareDialog conversationId={conversationId} />);
 
     await user.click(screen.getByRole("button"));
 
@@ -63,7 +67,7 @@ describe("ShareDialog", () => {
 
   it("password input accepts text", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<ShareDialog conversationId={conversationId} />);
+    render(<ShareDialog conversationId={conversationId} />);
 
     await user.click(screen.getByRole("button"));
 
@@ -73,172 +77,48 @@ describe("ShareDialog", () => {
     expect(input).toHaveValue("secret123");
   });
 
-  it("create share button calls fetch with correct args", async () => {
+  it("create share button calls action", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<ShareDialog conversationId={conversationId} />);
+    render(<ShareDialog conversationId={conversationId} />);
 
     await user.click(screen.getByRole("button")); // Open dialog
 
     const createButton = screen.getByRole("button", { name: /create share/i });
     await user.click(createButton);
 
-    await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith(
-        "/api/v1/shares",
-        expect.objectContaining({
-          method: "POST",
-        }),
-      );
+    expect(mockCreateShare).toHaveBeenCalledWith({
+      conversationId,
+      password: undefined,
+      expiresIn: 7,
+      anonymizeUsernames: false,
     });
   });
 
   it("shows share URL input after creating share", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<ShareDialog conversationId={conversationId} />);
+    render(<ShareDialog conversationId={conversationId} />);
 
     await user.click(screen.getByRole("button")); // Open dialog
     await user.click(screen.getByRole("button", { name: /create share/i }));
 
     // After share creation, URL should appear in a readonly input
-    await waitFor(() => {
-      const urlInput = screen.getByDisplayValue(/share-abc123/);
-      expect(urlInput).toBeInTheDocument();
-    });
+    const urlInput = await screen.findByDisplayValue(/share-abc123/);
+    expect(urlInput).toBeInTheDocument();
   });
 
-  it("does not render for non-legacy conversation ids", () => {
-    renderWithProviders(<ShareDialog conversationId="WRBHYWzRJwMeRigUQqMnq" />);
+  it("shows existing share URL when share exists", async () => {
+    mockExistingShare.current = {
+      shareId: "existing-share",
+      isActive: true,
+    };
 
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
-  });
-
-  it("queries existing share via /shares/by-conversation, not /shares?conversationId=", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<ShareDialog conversationId={conversationId} />);
+    render(<ShareDialog conversationId={conversationId} />);
 
     await user.click(screen.getByRole("button"));
 
-    await waitFor(() => {
-      const calls = vi.mocked(fetch).mock.calls.map(([url]) => String(url));
-      expect(
-        calls.some((u) => u.includes("/api/v1/shares/by-conversation")),
-      ).toBe(true);
-      expect(
-        calls.some((u) => /\/api\/v1\/shares\?conversationId=/.test(u)),
-      ).toBe(false);
-    });
-  });
-
-  it("toggle calls PATCH share id with {isActive}", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn((url: string, init?: RequestInit) => {
-        if (url.includes("/api/v1/shares/by-conversation")) {
-          return Promise.resolve({
-            ok: true,
-            json: () =>
-              Promise.resolve({
-                status: "success",
-                data: {
-                  shareId: "share-abc123",
-                  isActive: true,
-                  expiresAt: Date.now() + 86_400_000,
-                },
-              }),
-          } as Response);
-        }
-        // PATCH /api/v1/shares/share-abc123
-        if (url === "/api/v1/shares/share-abc123" && init?.method === "PATCH") {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ status: "success" }),
-          } as Response);
-        }
-        return Promise.resolve({
-          ok: false,
-          json: () => Promise.resolve({ status: "error" }),
-        } as Response);
-      }),
-    );
-
-    const user = userEvent.setup();
-    renderWithProviders(<ShareDialog conversationId={conversationId} />);
-    await user.click(screen.getByRole("button"));
-
-    // Wait for existing share fetch + UI
-    const toggle = await screen.findByRole("switch");
-    await user.click(toggle);
-
-    await waitFor(() => {
-      const patchCall = vi.mocked(fetch).mock.calls.find(([url, init]) => {
-        return (
-          String(url) === "/api/v1/shares/share-abc123" &&
-          (init as RequestInit | undefined)?.method === "PATCH"
-        );
-      });
-      expect(patchCall).toBeTruthy();
-      if (!patchCall) throw new Error("Missing share PATCH call");
-      const body = JSON.parse(String((patchCall[1] as RequestInit).body));
-      expect(body).toEqual({ isActive: false });
-    });
-  });
-
-  it("extend calls PATCH share id with {expiresAt}", async () => {
-    const futureTs = Date.now() + 86_400_000;
-    vi.stubGlobal(
-      "fetch",
-      vi.fn((url: string, init?: RequestInit) => {
-        if (url.includes("/api/v1/shares/by-conversation")) {
-          return Promise.resolve({
-            ok: true,
-            json: () =>
-              Promise.resolve({
-                status: "success",
-                data: {
-                  shareId: "share-abc123",
-                  isActive: true,
-                  // Expired so the "Extend Expiration" UI renders
-                  expiresAt: Date.now() - 1000,
-                },
-              }),
-          } as Response);
-        }
-        if (url === "/api/v1/shares/share-abc123" && init?.method === "PATCH") {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ status: "success" }),
-          } as Response);
-        }
-        return Promise.resolve({
-          ok: false,
-          json: () => Promise.resolve({ status: "error" }),
-        } as Response);
-      }),
-    );
-
-    const user = userEvent.setup();
-    renderWithProviders(<ShareDialog conversationId={conversationId} />);
-    await user.click(screen.getByRole("button"));
-
-    const extendBtn = await screen.findByRole("button", {
-      name: /^extend$/i,
-    });
-    await user.click(extendBtn);
-
-    await waitFor(() => {
-      const patchCall = vi.mocked(fetch).mock.calls.find(([url, init]) => {
-        return (
-          String(url) === "/api/v1/shares/share-abc123" &&
-          (init as RequestInit | undefined)?.method === "PATCH"
-        );
-      });
-      expect(patchCall).toBeTruthy();
-      if (!patchCall) throw new Error("Missing share PATCH call");
-      const body = JSON.parse(String((patchCall[1] as RequestInit).body));
-      expect(body).toHaveProperty("expiresAt");
-      expect(typeof body.expiresAt).toBe("number");
-      // Reasonable future timestamp (relative to test start)
-      expect(body.expiresAt).toBeGreaterThan(futureTs - 60_000);
-    });
+    // Should show share URL input
+    const urlInput = screen.getByDisplayValue(/existing-share/);
+    expect(urlInput).toBeInTheDocument();
   });
 });

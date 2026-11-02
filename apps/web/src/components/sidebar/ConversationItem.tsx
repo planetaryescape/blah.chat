@@ -1,3 +1,6 @@
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useAction, useMutation } from "convex/react";
 import { Ghost, GitBranch, MoreVertical, Pin, Star, Users } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryState } from "nuqs";
@@ -27,13 +30,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
-import {
-  useArchiveConversation,
-  useAutoRenameConversation,
-  useDeleteConversation,
-  useTogglePin,
-  useToggleStar,
-} from "@/lib/hooks/mutations";
 import { cn } from "@/lib/utils";
 import { getConversationMenuItems } from "./ConversationMenuItems";
 import { ConversationPrefetcher } from "./ConversationPrefetcher";
@@ -48,7 +44,7 @@ export function ConversationItem({
   isSelectedById = false,
   onToggleSelection,
 }: {
-  conversation: any;
+  conversation: Doc<"conversations">;
   selectedId?: string | null;
   onClearSelection?: () => void;
   isSelectionMode?: boolean;
@@ -64,11 +60,12 @@ export function ConversationItem({
   const [projectFilter, setProjectFilter] = useQueryState("project");
   const features = useFeatureToggles();
 
-  const { mutateAsync: deleteConversation } = useDeleteConversation();
-  const { mutateAsync: togglePin } = useTogglePin();
-  const { mutateAsync: toggleStar } = useToggleStar();
-  const { mutateAsync: archiveConversation } = useArchiveConversation();
-  const { mutateAsync: autoRenameConversation } = useAutoRenameConversation();
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const deleteConversation = useMutation(api.conversations.deleteConversation);
+  const togglePin = useMutation(api.conversations.togglePin);
+  const toggleStar = useMutation(api.conversations.toggleStar);
+  const archiveConversation = useMutation(api.conversations.archive);
+  const autoRenameAction = useAction(api.conversations.actions.bulkAutoRename);
 
   const isActive = pathname === `/chat/${conversation._id}`;
   const isSelected = selectedId === conversation._id;
@@ -105,33 +102,34 @@ export function ConversationItem({
     }
   };
 
-  const handlePinClick = (e?: React.MouseEvent) => {
+  const handlePinClick = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    void Promise.resolve(togglePin({ conversationId: conversation._id })).catch(
-      (error) => {
-        const message =
-          error instanceof Error ? error.message : "Failed to pin conversation";
-        toast.error(message);
-      },
-    );
+    try {
+      await togglePin({ conversationId: conversation._id });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to pin conversation";
+      toast.error(message);
+    }
   };
 
-  const handleAutoRename = (e?: React.MouseEvent) => {
+  const handleAutoRename = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    toast.loading("Generating title...", { id: "auto-rename" });
-    void Promise.resolve(
-      autoRenameConversation({
-        conversationId: conversation._id,
-      }),
-    )
-      .then(() => {
-        toast.success("Conversation renamed", { id: "auto-rename" });
-      })
-      .catch((err) => {
-        const msg =
-          err instanceof Error ? err.message : "Failed to auto-rename";
-        toast.error(msg, { id: "auto-rename" });
+    try {
+      toast.loading("Generating title...", { id: "auto-rename" });
+      const results = await autoRenameAction({
+        conversationIds: [conversation._id],
       });
+
+      if (results[0]?.success) {
+        toast.success("Conversation renamed", { id: "auto-rename" });
+      } else {
+        throw new Error(results[0]?.error || "Failed to generate title");
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to auto-rename";
+      toast.error(msg, { id: "auto-rename" });
+    }
   };
 
   const handleProjectFilterClick = useCallback(() => {
@@ -159,9 +157,8 @@ export function ConversationItem({
       ? () => onToggleSelection(conversation._id)
       : undefined,
     onPin: () => handlePinClick(),
-    onStar: () => void toggleStar({ conversationId: conversation._id }),
-    onArchive: () =>
-      void archiveConversation({ conversationId: conversation._id }),
+    onStar: () => toggleStar({ conversationId: conversation._id }),
+    onArchive: () => archiveConversation({ conversationId: conversation._id }),
     onAutoRename: () => handleAutoRename(),
   });
 

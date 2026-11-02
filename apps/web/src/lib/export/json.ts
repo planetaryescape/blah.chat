@@ -1,3 +1,5 @@
+import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
+
 export interface ExportData {
   version: string;
   exportedAt: string;
@@ -5,20 +7,20 @@ export interface ExportData {
     userId: string;
   };
   conversations: Array<
-    any & {
-      messages: any[];
+    Doc<"conversations"> & {
+      messages: Doc<"messages">[];
     }
   >;
-  memories: any[];
-  projects: any[];
-  bookmarks: any[];
+  memories: Doc<"memories">[];
+  projects: Doc<"projects">[];
+  bookmarks: Doc<"bookmarks">[];
 }
 
 export function exportToJSON(data: {
-  conversations: Array<any & { messages: any[] }>;
-  memories: any[];
-  projects: any[];
-  bookmarks: any[];
+  conversations: Array<Doc<"conversations"> & { messages: Doc<"messages">[] }>;
+  memories: Doc<"memories">[];
+  projects: Doc<"projects">[];
+  bookmarks: Doc<"bookmarks">[];
   userId: string;
 }): ExportData {
   return {

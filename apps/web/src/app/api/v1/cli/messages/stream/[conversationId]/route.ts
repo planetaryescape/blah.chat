@@ -1,7 +1,6 @@
-import "server-only";
+import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { NextRequest } from "next/server";
-import { cliChatDAL } from "@/lib/api/dal/cliChat";
-import type { ApiKeyAuthContext } from "@/lib/api/middleware/apiKeyAuth";
+import { getConvexClient } from "@/lib/api/convex";
 import { withApiKeyAuth } from "@/lib/api/middleware/apiKeyAuth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import {
@@ -12,19 +11,32 @@ import {
 } from "@/lib/api/sse/utils";
 import logger from "@/lib/logger";
 
-async function handler(req: NextRequest, context: ApiKeyAuthContext) {
-  const { params, user } = context;
+async function handler(
+  req: NextRequest,
+  {
+    params,
+    apiKey,
+    user,
+  }: {
+    params: Promise<Record<string, string | string[]>>;
+    apiKey: string;
+    user: {
+      userId: string;
+      email: string;
+      name: string;
+    };
+  },
+) {
   const { conversationId } = (await params) as { conversationId: string };
-  const identity = {
-    clerkId: user.clerkId,
-    email: user.email,
-    name: user.name,
-  };
+  const convex = getConvexClient();
 
-  const initialMessages = await cliChatDAL.listMessages(
-    identity,
-    conversationId,
-  );
+  const initialMessages = (await (convex.query as any)(
+    api.cliAuth.listMessages,
+    {
+      apiKey,
+      conversationId,
+    },
+  )) as any[] | null;
 
   if (!initialMessages) {
     return new Response("Not found", { status: 404 });
@@ -47,10 +59,13 @@ async function handler(req: NextRequest, context: ApiKeyAuthContext) {
       async () => {
         if (isClosed()) return null;
 
-        const messages = await cliChatDAL.listMessages(
-          identity,
-          conversationId,
-        );
+        const messages = (await (convex.query as any)(
+          api.cliAuth.listMessages,
+          {
+            apiKey,
+            conversationId,
+          },
+        )) as any[] | null;
 
         if (!messages) {
           return { messages: [] };
@@ -80,5 +95,5 @@ async function handler(req: NextRequest, context: ApiKeyAuthContext) {
   }
 }
 
-export const GET = withErrorHandling(withApiKeyAuth(handler)) as any;
+export const GET = withErrorHandling(withApiKeyAuth(handler));
 export const dynamic = "force-dynamic";

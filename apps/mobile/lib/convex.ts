@@ -1,8 +1,6 @@
-/**
- * Standalone type aliases for entity types.
- * These were originally Convex document types but are now simple
- * structural types used across mobile components.
- */
+import { anyApi } from "convex/server";
+
+export const api = anyApi;
 
 export type Id<T extends string = string> = string & { __tableName?: T };
 

@@ -14,10 +14,10 @@ vi.mock("@/lib/hooks/mutations", () => ({
   useArchiveConversation: () => ({ mutate: mockArchive, isPending: false }),
   useTogglePin: () => ({ mutate: mockTogglePin, isPending: false }),
   useToggleStar: () => ({ mutate: mockToggleStar, isPending: false }),
-  useAutoRenameConversation: () => ({
-    mutateAsync: mockAutoRename,
-    isPending: false,
-  }),
+}));
+
+vi.mock("convex/react", () => ({
+  useAction: () => mockAutoRename,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -36,11 +36,12 @@ vi.mock("@/lib/analytics", () => ({
   analytics: { track: vi.fn() },
 }));
 
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 // Import AFTER mocks
 import { useConversationActions } from "../useConversationActions";
 
 describe("useConversationActions", () => {
-  const conversationId = "conv-123" as string;
+  const conversationId = "conv-123" as Id<"conversations">;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -143,19 +144,5 @@ describe("useConversationActions", () => {
     expect(mockArchive).not.toHaveBeenCalled();
     expect(mockTogglePin).not.toHaveBeenCalled();
     expect(mockToggleStar).not.toHaveBeenCalled();
-  });
-
-  it("handleAutoRename calls REST-backed auto-rename mutation", async () => {
-    mockAutoRename.mockResolvedValue({ _id: conversationId, title: "Renamed" });
-
-    const { result } = renderHook(() =>
-      useConversationActions(conversationId, "header_menu"),
-    );
-
-    await act(async () => {
-      await result.current.handleAutoRename();
-    });
-
-    expect(mockAutoRename).toHaveBeenCalledWith({ conversationId });
   });
 });

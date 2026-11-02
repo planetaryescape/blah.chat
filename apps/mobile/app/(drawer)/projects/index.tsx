@@ -98,13 +98,6 @@ export default function ProjectsListScreen() {
 
   const isLoading = projects === undefined;
 
-  const renderProjectItem = useCallback(
-    ({ item }: { item: Project }) => (
-      <ProjectRow project={item} onPress={() => handleProjectPress(item._id)} />
-    ),
-    [handleProjectPress],
-  );
-
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: "transparent" }}
@@ -157,7 +150,12 @@ export default function ProjectsListScreen() {
       ) : (
         <FlashList<Project>
           data={projects}
-          renderItem={renderProjectItem}
+          renderItem={({ item }) => (
+            <ProjectRow
+              project={item}
+              onPress={() => handleProjectPress(item._id)}
+            />
+          )}
           keyExtractor={(item) => item._id}
           contentContainerStyle={{ paddingVertical: spacing.sm }}
         />

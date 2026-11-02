@@ -4,6 +4,7 @@ import { UserButton } from "@clerk/nextjs";
 import {
   ArrowLeft,
   BarChart3,
+  Bot,
   MessageSquare,
   Settings,
   Sliders,
@@ -25,22 +26,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { featureFlags } from "@/lib/featureFlags";
 
-const ALWAYS_ON_ITEMS = [
+const ADMIN_MENU_ITEMS = [
   { icon: MessageSquare, label: "Feedback", href: "/admin/feedback" },
   { icon: Users, label: "Users", href: "/admin/users" },
-];
-
-const FLAG_GATED_ITEMS = [
+  { icon: Bot, label: "Models", href: "/admin/models" },
   { icon: Sliders, label: "Auto-Router", href: "/admin/auto-router" },
   { icon: Settings, label: "Settings", href: "/admin/settings" },
   { icon: BarChart3, label: "Usage", href: "/admin/usage" },
 ];
-
-const ADMIN_MENU_ITEMS = featureFlags.adminFull
-  ? [...ALWAYS_ON_ITEMS, ...FLAG_GATED_ITEMS]
-  : ALWAYS_ON_ITEMS;
 
 export function AdminSidebar() {
   const pathname = usePathname();
@@ -115,12 +109,12 @@ export function AdminSidebar() {
         </SidebarMenu>
         <div className="px-2 pt-2 group-data-[collapsible=icon]:hidden">
           <div className="flex items-center justify-between">
-            <UserButton />
+            <UserButton afterSignOutUrl="/sign-in" />
             <ThemeSwitcher />
           </div>
         </div>
         <div className="hidden group-data-[collapsible=icon]:flex justify-center pt-2">
-          <UserButton />
+          <UserButton afterSignOutUrl="/sign-in" />
         </div>
       </SidebarFooter>
     </Sidebar>

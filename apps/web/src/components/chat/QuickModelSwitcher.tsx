@@ -6,7 +6,9 @@ import {
   type ModelConfig,
 } from "@blah-chat/ai/models";
 import { getModelsByProvider } from "@blah-chat/ai/utils";
+import { api } from "@blah-chat/backend/convex/_generated/api";
 import commandScore from "command-score";
+import { useQuery } from "convex/react";
 import { ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -26,7 +28,6 @@ import { useUserPreference } from "@/hooks/useUserPreference";
 import { MODEL_CATEGORIES } from "@/lib/ai/categories";
 import { sortModels } from "@/lib/ai/sortModels";
 import { analytics } from "@/lib/analytics";
-import { useCurrentUser } from "@/lib/hooks/queries/useCurrentUser";
 import { useApiKeyValidation } from "@/lib/hooks/useApiKeyValidation";
 import { useModels } from "@/lib/models/repository";
 import { cn } from "@/lib/utils";
@@ -38,8 +39,6 @@ import { CategorySidebar } from "./CategorySidebar";
 import { ModelSelectorItem } from "./ModelSelectorItem";
 import { SelectedModelsChips } from "./SelectedModelsChips";
 import { UpgradeRequestDialog } from "./UpgradeRequestDialog";
-
-const EMPTY_MODELS: string[] = [];
 
 interface QuickModelSwitcherProps {
   open: boolean;
@@ -60,7 +59,7 @@ export function QuickModelSwitcher({
   currentModel,
   onSelectModel,
   mode = "single",
-  selectedModels = EMPTY_MODELS,
+  selectedModels = [],
   onSelectedModelsChange,
   showTrigger = false,
   currentTokenUsage,
@@ -72,15 +71,8 @@ export function QuickModelSwitcher({
   );
   const { favorites, toggleFavorite, isFavorite } = useFavoriteModels();
   const { recents, addRecent } = useRecentModels();
-  const { data: currentUser } = useCurrentUser();
-  const proAccess = currentUser
-    ? {
-        canUse: currentUser.tier !== "free",
-        tier: currentUser.tier,
-        remainingDaily: null as number | null,
-        remainingMonthly: null as number | null,
-      }
-    : undefined;
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const proAccess = useQuery(api.adminSettings.getProModelAccess);
 
   const prefDefaultModel = useUserPreference("defaultModel");
 
@@ -305,7 +297,7 @@ export function QuickModelSwitcher({
             return commandScore(extendValue, search);
           },
         }}
-        className="max-w-[95vw] md:max-w-4xl h-[85vh] md:h-[600px] p-0 gap-0 overflow-hidden bg-background/95 backdrop-blur-xl border-border/50 shadow-2xl flex flex-col"
+        className="max-w-[95vw] md:max-w-4xl h-[85vh] md:h-[600px] p-0 gap-0 overflow-hidden bg-background/95 backdrop-blur-xl border-border/50 shadow-2xl"
       >
         <div className="flex items-center px-4 py-3 border-b shrink-0">
           <CommandInput
@@ -316,7 +308,7 @@ export function QuickModelSwitcher({
           />
         </div>
 
-        <div className="flex flex-1 min-h-0 flex-col md:flex-row overflow-hidden">
+        <div className="flex h-[500px] overflow-hidden">
           <CategorySidebar
             activeCategory={activeCategory}
             onCategoryChange={handleCategoryChange}
@@ -334,7 +326,7 @@ export function QuickModelSwitcher({
               />
             )}
 
-            <CommandList className="flex-1 min-h-0 overflow-y-auto p-2">
+            <CommandList className="max-h-[600px] overflow-y-auto p-2">
               <CommandEmpty>No models found.</CommandEmpty>
 
               {/* Auto Router - Smart Model Selection */}

@@ -1,13 +1,41 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { MIN_MESSAGES_FOR_COMPACTION } from "@blah-chat/shared/limits";
-import { MoreHorizontal } from "lucide-react";
+import { useAction, useMutation, useQuery } from "convex/react";
+import {
+  Archive,
+  BarChart3,
+  Brain,
+  Check,
+  Copy,
+  Edit,
+  Loader2,
+  Maximize2,
+  MoreHorizontal,
+  Pin,
+  Shrink,
+  Sparkles,
+  Star,
+  Trash2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useReducer } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -21,159 +49,111 @@ import {
   useUserPreference,
 } from "@/hooks/useUserPreference";
 import { analytics } from "@/lib/analytics";
-import { useApiClient } from "@/lib/api/client";
-import { useSDKClient } from "@/lib/api/sdkClient";
 import { exportConversationToMarkdown } from "@/lib/export/markdown";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
 import { DeleteConversationDialog } from "../sidebar/DeleteConversationDialog";
 import { RenameDialog } from "../sidebar/RenameDialog";
-import { ConversationHeaderMenuContent } from "./ConversationHeaderMenuContent";
 
 interface ConversationHeaderMenuProps {
-  conversation: any;
-}
-
-interface ConversationHeaderMenuState {
-  showRename: boolean;
-  showDelete: boolean;
-  isExtracting: boolean;
-  isCompacting: boolean;
-  copied: boolean;
-}
-
-type ConversationHeaderMenuAction = {
-  type: "set";
-  key: keyof ConversationHeaderMenuState;
-  value: boolean;
-};
-
-const INITIAL_MENU_STATE: ConversationHeaderMenuState = {
-  showRename: false,
-  showDelete: false,
-  isExtracting: false,
-  isCompacting: false,
-  copied: false,
-};
-
-function conversationHeaderMenuReducer(
-  state: ConversationHeaderMenuState,
-  action: ConversationHeaderMenuAction,
-): ConversationHeaderMenuState {
-  if (state[action.key] === action.value) {
-    return state;
-  }
-
-  return { ...state, [action.key]: action.value };
+  conversation: Doc<"conversations">;
 }
 
 export function ConversationHeaderMenu({
   conversation,
 }: ConversationHeaderMenuProps) {
   const router = useRouter();
-  const [state, dispatch] = useReducer(
-    conversationHeaderMenuReducer,
-    INITIAL_MENU_STATE,
-  );
+  const [showRename, setShowRename] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [isCompacting, setIsCompacting] = useState(false);
+  const [copied, setCopied] = useState(false);
   const actions = useConversationActions(conversation._id, "header_menu");
-  const apiClient = useApiClient();
-  const sdk = useSDKClient();
-  const setState = (key: keyof ConversationHeaderMenuState, value: boolean) =>
-    dispatch({ type: "set", key, value });
 
-  const handleExtractMemories = () => {
-    setState("isExtracting", true);
-    void sdk
-      .extractMemories(conversation._id)
-      .then(() => {
-        toast.success(
-          "Memory extraction started! This may take a few moments.",
-        );
-        analytics.track("memory_extraction_triggered", {
-          source: "manual",
-          conversationId: conversation._id,
-        });
-      })
-      .catch(() => {
-        toast.error("Failed to start extraction");
-      })
-      .finally(() => {
-        setTimeout(() => setState("isExtracting", false), 3000);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const triggerExtraction = useMutation(api.memories.triggerExtraction);
+  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
+  const compactConversation = useAction(api.conversations.compact.compact);
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const messages = useQuery(api.messages.list, {
+    conversationId: conversation._id,
+  });
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const sources = useQuery(api.sources.operations.getByConversation, {
+    conversationId: conversation._id,
+  });
+
+  const handleExtractMemories = async () => {
+    setIsExtracting(true);
+    try {
+      await triggerExtraction({ conversationId: conversation._id });
+      toast.success("Memory extraction started! This may take a few moments.");
+      analytics.track("memory_extraction_triggered", {
+        source: "manual",
+        conversationId: conversation._id,
       });
+    } catch (_error) {
+      toast.error("Failed to start extraction");
+    } finally {
+      setTimeout(() => setIsExtracting(false), 3000);
+    }
   };
 
-  const handleCompactConversation = () => {
-    setState("isCompacting", true);
-    void apiClient
-      .post<{
-        conversationId: string;
-      }>(`/api/v1/conversations/${conversation._id}/compact`, {
+  const handleCompactConversation = async () => {
+    setIsCompacting(true);
+    try {
+      const { conversationId } = await compactConversation({
+        conversationId: conversation._id,
         targetModel: conversation.model,
-      })
-      .then(({ conversationId }) => {
-        toast.success("Conversation compacted!");
-        analytics.track("conversation_compacted", {
-          source: "manual",
-          conversationId: conversation._id,
-        });
-        router.push(`/chat/${conversationId}`);
-      })
-      .catch(() => {
-        toast.error("Failed to compact conversation");
-      })
-      .finally(() => {
-        setState("isCompacting", false);
       });
+      toast.success("Conversation compacted!");
+      analytics.track("conversation_compacted", {
+        source: "manual",
+        conversationId: conversation._id,
+      });
+      router.push(`/chat/${conversationId}`);
+    } catch (_error) {
+      toast.error("Failed to compact conversation");
+    } finally {
+      setIsCompacting(false);
+    }
   };
 
   const handleCopyConversation = async () => {
-    const [messages, sources] = await Promise.all([
-      apiClient.get<
-        Array<{
-          data: {
-            _id: string;
-            role: "user" | "assistant" | "system";
-            content: string;
-          };
-        }>
-      >(`/api/v1/conversations/${conversation._id}/messages`),
-      apiClient.get<
-        Array<{
-          data: {
-            messageId: string;
-            position: number;
-            title?: string | null;
-            url: string;
-          };
-        }>
-      >(`/api/v1/conversations/${conversation._id}/sources`),
-    ]);
+    if (!messages) return;
 
+    // Group sources by messageId
     const sourcesByMessage = new Map<
-      string,
+      Id<"messages">,
       Array<{ position: number; title?: string | null; url: string }>
     >();
-    for (const entry of sources) {
-      const source = entry.data;
-      const existing = sourcesByMessage.get(source.messageId) || [];
-      existing.push(source);
-      sourcesByMessage.set(source.messageId, existing);
+    if (sources) {
+      for (const src of sources) {
+        const existing = sourcesByMessage.get(src.messageId) || [];
+        existing.push(src);
+        sourcesByMessage.set(src.messageId, existing);
+      }
     }
 
     const markdown = exportConversationToMarkdown(
       conversation,
-      messages.map((entry) => entry.data),
+      messages,
       sourcesByMessage,
     );
     await navigator.clipboard.writeText(markdown);
-    setState("copied", true);
+    setCopied(true);
     toast.success("Conversation copied to clipboard");
-    setTimeout(() => setState("copied", false), 2000);
+    setTimeout(() => setCopied(false), 2000);
 
     analytics.track("conversation_copied", {
       conversationId: conversation._id,
       messageCount: messages.length,
     });
   };
+
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const _user = useQuery(api.users.getCurrentUser);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const updatePreferences = useMutation(api.users.updatePreferences);
 
   // Phase 4: Use new preference hooks
   const prefChatWidth = useUserPreference("chatWidth");
@@ -183,78 +163,77 @@ export function ConversationHeaderMenu({
   const currentWidth = (prefChatWidth as ChatWidth) || "standard";
   const showMessageStats = prefShowMessageStats ?? false;
   const showComparisonStats = prefShowComparisonStats ?? false;
-  const canExtractMemories =
-    !conversation.isIncognito && (conversation.messageCount ?? 0) >= 3;
-  const canCompactConversation =
-    (conversation.messageCount ?? 0) >= MIN_MESSAGES_FOR_COMPACTION;
 
-  const handleWidthChange = (width: ChatWidth) => {
-    void sdk
-      .updatePreference("chatWidth", width)
-      .then(() => {
-        toast.success("Chat width updated");
-      })
-      .catch((error) => {
-        console.error(
-          "[ConversationHeaderMenu] Failed to update width:",
-          error,
-        );
-        toast.error(
-          error instanceof Error ? error.message : "Failed to update width",
-        );
+  const handleWidthChange = async (width: ChatWidth) => {
+    try {
+      await updatePreferences({
+        preferences: { chatWidth: width },
       });
+      toast.success("Chat width updated");
+    } catch (error) {
+      console.error("[ConversationHeaderMenu] Failed to update width:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update width",
+      );
+    }
   };
 
-  const handleToggleMessageStats = (checked: boolean) => {
-    void updatePreferenceCache("showMessageStatistics", checked)
-      .then(() => sdk.updatePreference("showMessageStatistics", checked))
-      .then(() => {
-        toast.success(checked ? "Statistics enabled" : "Statistics hidden");
-        analytics.track("ui_preference_changed", {
-          setting: "show_message_statistics",
-          value: checked,
-          source: "header_menu",
-        });
-      })
-      .catch((error) => {
-        void updatePreferenceCache("showMessageStatistics", !checked);
-        console.error(
-          "[ConversationHeaderMenu] Failed to update message statistics:",
-          error,
-        );
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "Failed to update statistics",
-        );
+  const handleToggleMessageStats = async (checked: boolean) => {
+    // Optimistic update - instant UI response
+    await updatePreferenceCache("showMessageStatistics", checked);
+
+    try {
+      await updatePreferences({
+        preferences: { showMessageStatistics: checked },
       });
+      toast.success(checked ? "Statistics enabled" : "Statistics hidden");
+      analytics.track("ui_preference_changed", {
+        setting: "show_message_statistics",
+        value: checked,
+        source: "header_menu",
+      });
+    } catch (error) {
+      // Rollback on error
+      await updatePreferenceCache("showMessageStatistics", !checked);
+      console.error(
+        "[ConversationHeaderMenu] Failed to update message statistics:",
+        error,
+      );
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update statistics",
+      );
+    }
   };
 
-  const handleToggleComparisonStats = (checked: boolean) => {
-    void updatePreferenceCache("showComparisonStatistics", checked)
-      .then(() => sdk.updatePreference("showComparisonStatistics", checked))
-      .then(() => {
-        toast.success(
-          checked ? "Comparison stats enabled" : "Comparison stats hidden",
-        );
-        analytics.track("ui_preference_changed", {
-          setting: "show_comparison_statistics",
-          value: checked,
-          source: "header_menu",
-        });
-      })
-      .catch((error) => {
-        void updatePreferenceCache("showComparisonStatistics", !checked);
-        console.error(
-          "[ConversationHeaderMenu] Failed to update comparison statistics:",
-          error,
-        );
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "Failed to update comparison statistics",
-        );
+  const handleToggleComparisonStats = async (checked: boolean) => {
+    // Optimistic update - instant UI response
+    await updatePreferenceCache("showComparisonStatistics", checked);
+
+    try {
+      await updatePreferences({
+        preferences: { showComparisonStatistics: checked },
       });
+      toast.success(
+        checked ? "Comparison stats enabled" : "Comparison stats hidden",
+      );
+      analytics.track("ui_preference_changed", {
+        setting: "show_comparison_statistics",
+        value: checked,
+        source: "header_menu",
+      });
+    } catch (error) {
+      // Rollback on error
+      await updatePreferenceCache("showComparisonStatistics", !checked);
+      console.error(
+        "[ConversationHeaderMenu] Failed to update comparison statistics:",
+        error,
+      );
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to update comparison statistics",
+      );
+    }
   };
 
   return (
@@ -272,44 +251,192 @@ export function ConversationHeaderMenu({
           <TooltipContent>Conversation options</TooltipContent>
         </Tooltip>
 
-        <ConversationHeaderMenuContent
-          conversation={conversation}
-          copied={state.copied}
-          currentWidth={currentWidth}
-          isCompacting={state.isCompacting}
-          isExtracting={state.isExtracting}
-          showComparisonStats={showComparisonStats}
-          showMessageStats={showMessageStats}
-          canCompactConversation={canCompactConversation}
-          canExtractMemories={canExtractMemories}
-          onArchive={actions.handleArchive}
-          onAutoRename={actions.handleAutoRename}
-          onCompactConversation={handleCompactConversation}
-          onCopyConversation={() => {
-            handleCopyConversation().catch(() => {
-              toast.error("Failed to copy conversation");
-            });
-          }}
-          onDelete={() => setState("showDelete", true)}
-          onExtractMemories={handleExtractMemories}
-          onRename={() => setState("showRename", true)}
-          onToggleComparisonStats={handleToggleComparisonStats}
-          onToggleMessageStats={handleToggleMessageStats}
-          onTogglePin={() => actions.handleTogglePin(conversation.pinned)}
-          onToggleStar={() => actions.handleToggleStar(conversation.starred)}
-          onWidthChange={handleWidthChange}
-        />
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowRename(true);
+            }}
+          >
+            <Edit className="mr-2 h-4 w-4" />
+            Rename
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+
+          <DropdownMenuItem
+            disabled={!conversation.pinned && conversation.messageCount === 0}
+            onClick={(e) => {
+              e.stopPropagation();
+              actions.handleTogglePin(conversation.pinned);
+            }}
+          >
+            <Pin className="mr-2 h-4 w-4" />
+            {conversation.pinned
+              ? "Unpin"
+              : conversation.messageCount === 0
+                ? "Cannot pin empty"
+                : "Pin"}
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              actions.handleToggleStar(conversation.starred);
+            }}
+          >
+            <Star className="mr-2 h-4 w-4" />
+            {conversation.starred ? "Unstar" : "Star"}
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              actions.handleArchive();
+            }}
+          >
+            <Archive className="mr-2 h-4 w-4" />
+            Archive
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCopyConversation();
+            }}
+            disabled={!messages?.length}
+          >
+            {copied ? (
+              <Check className="mr-2 h-4 w-4" />
+            ) : (
+              <Copy className="mr-2 h-4 w-4" />
+            )}
+            {copied ? "Copied!" : "Copy conversation"}
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCompactConversation();
+            }}
+            disabled={
+              isCompacting ||
+              (conversation.messageCount ?? 0) < MIN_MESSAGES_FOR_COMPACTION
+            }
+          >
+            {isCompacting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Shrink className="mr-2 h-4 w-4" />
+            )}
+            {isCompacting ? "Compacting..." : "Compact conversation"}
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              actions.handleAutoRename();
+            }}
+          >
+            <Sparkles className="mr-2 h-4 w-4" />
+            Auto-rename
+          </DropdownMenuItem>
+
+          {/* Only show for non-incognito conversations with enough messages */}
+          {!conversation.isIncognito &&
+            (conversation.messageCount ?? 0) >= 3 && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleExtractMemories();
+                }}
+                disabled={isExtracting}
+              >
+                {isExtracting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Brain className="mr-2 h-4 w-4" />
+                )}
+                {isExtracting ? "Extracting..." : "Extract Memories"}
+              </DropdownMenuItem>
+            )}
+
+          <DropdownMenuSeparator />
+
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <Maximize2 className="mr-2 h-4 w-4" />
+              Chat Width
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <DropdownMenuLabel>Layout Width</DropdownMenuLabel>
+              <DropdownMenuRadioGroup
+                value={currentWidth}
+                onValueChange={(value) => handleWidthChange(value as ChatWidth)}
+              >
+                <DropdownMenuRadioItem value="narrow">
+                  Narrow (672px)
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="standard">
+                  Standard (896px)
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="wide">
+                  Wide (1152px)
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="full">
+                  Full Width (95%)
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Statistics
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <DropdownMenuLabel>Display Options</DropdownMenuLabel>
+              <DropdownMenuCheckboxItem
+                checked={showMessageStats}
+                onCheckedChange={handleToggleMessageStats}
+              >
+                Message Statistics
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={showComparisonStats}
+                onCheckedChange={handleToggleComparisonStats}
+              >
+                Comparison Statistics
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+
+          <DropdownMenuSeparator />
+
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowDelete(true);
+            }}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
       </DropdownMenu>
 
+      {/* Dialogs */}
       <RenameDialog
         conversation={conversation}
-        open={state.showRename}
-        onOpenChange={(open) => setState("showRename", open)}
+        open={showRename}
+        onOpenChange={setShowRename}
       />
 
       <DeleteConversationDialog
-        open={state.showDelete}
-        onOpenChange={(open) => setState("showDelete", open)}
+        open={showDelete}
+        onOpenChange={setShowDelete}
         onConfirm={actions.handleDelete}
         conversationTitle={conversation.title}
       />

@@ -1,12 +1,14 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useMutation } from "convex/react";
 import { Loader2, Paperclip } from "lucide-react";
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { analytics } from "@/lib/analytics";
-import { useApiClient } from "@/lib/api/client";
 
 interface Attachment {
   type: "file" | "image" | "audio";
@@ -18,64 +20,11 @@ interface Attachment {
 }
 
 interface FileUploadProps {
-  conversationId?: string;
+  conversationId?: Id<"conversations">;
   attachments: Attachment[];
   onAttachmentsChange: (attachments: Attachment[]) => void;
   onUploadComplete?: () => void;
   maxSizeMB?: number;
-}
-
-type UploadApiClient = {
-  post<T>(path: string, body?: unknown): Promise<T>;
-};
-
-async function uploadAttachmentFile(args: {
-  apiClient: UploadApiClient;
-  conversationId: string;
-  file: File;
-}) {
-  const { apiClient, conversationId, file } = args;
-  const { uploadUrl, storageId } = await apiClient.post<{
-    uploadUrl: string;
-    storageId: string;
-  }>("/api/v1/files/upload-url", {
-    conversationId,
-    fileName: file.name,
-    contentType: file.type || "application/octet-stream",
-  });
-
-  const result = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type },
-    body: file,
-  });
-
-  if (!result.ok) {
-    throw new Error("Failed to upload file");
-  }
-
-  let type: "file" | "image" | "audio" = "file";
-  if (file.type.startsWith("image/")) type = "image";
-  else if (file.type.startsWith("audio/")) type = "audio";
-
-  return {
-    attachment: {
-      type,
-      name: file.name,
-      storageId,
-      mimeType: file.type,
-      size: file.size,
-      url: file.type.startsWith("image/")
-        ? URL.createObjectURL(file)
-        : undefined,
-    } satisfies Attachment,
-    analyticsPayload: {
-      type,
-      size: file.size,
-      mimeType: file.type,
-      countPerMessage: 1,
-    },
-  };
 }
 
 export function FileUpload({
@@ -90,63 +39,91 @@ export function FileUpload({
   uploading: boolean;
   setUploading: (uploading: boolean) => void;
 }) {
-  const apiClient = useApiClient();
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const saveFile = useMutation(api.files.saveFile);
 
   const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
-      if (!conversationId) {
-        toast.error("Conversation not ready for uploads");
-        return;
-      }
-
+    async (acceptedFiles: File[]) => {
       setUploading(true);
-      const validFiles = acceptedFiles.filter((file) => {
-        if (file.size <= maxSizeMB * 1024 * 1024) {
-          return true;
+
+      try {
+        const newAttachments: Attachment[] = [];
+
+        for (const file of acceptedFiles) {
+          // Validate size
+          if (file.size > maxSizeMB * 1024 * 1024) {
+            toast.error(`${file.name} exceeds ${maxSizeMB}MB limit`);
+            continue;
+          }
+
+          // Get upload URL
+          const uploadUrl = await generateUploadUrl();
+
+          // Upload file
+          const result = await fetch(uploadUrl, {
+            method: "POST",
+            headers: { "Content-Type": file.type },
+            body: file,
+          });
+
+          const { storageId } = await result.json();
+
+          // Save file metadata
+          await saveFile({
+            storageId,
+            name: file.name,
+            mimeType: file.type,
+            size: file.size,
+            conversationId,
+          });
+
+          // Determine type
+          let type: "file" | "image" | "audio" = "file";
+          if (file.type.startsWith("image/")) type = "image";
+          else if (file.type.startsWith("audio/")) type = "audio";
+
+          newAttachments.push({
+            type,
+            name: file.name,
+            storageId,
+            mimeType: file.type,
+            size: file.size,
+          });
+
+          // Track each attachment upload
+          analytics.track("attachment_uploaded", {
+            type,
+            size: file.size,
+            mimeType: file.type,
+            countPerMessage: 1,
+          });
         }
 
-        toast.error(`${file.name} exceeds ${maxSizeMB}MB limit`);
-        return false;
-      });
-
-      if (validFiles.length === 0) {
+        onAttachmentsChange([...attachments, ...newAttachments]);
+        toast.success(
+          `Uploaded ${newAttachments.length} file${
+            newAttachments.length === 1 ? "" : "s"
+          }`,
+        );
+        // Focus input after successful upload
+        onUploadComplete?.();
+      } catch (error) {
+        console.error("Upload failed:", error);
+        toast.error("Failed to upload files");
+      } finally {
         setUploading(false);
-        return;
       }
-
-      void Promise.all(
-        validFiles.map((file) =>
-          uploadAttachmentFile({ apiClient, conversationId, file }),
-        ),
-      )
-        .then((uploads) => {
-          uploads.forEach(({ analyticsPayload }) => {
-            analytics.track("attachment_uploaded", analyticsPayload);
-          });
-          const newAttachments = uploads.map(({ attachment }) => attachment);
-          onAttachmentsChange([...attachments, ...newAttachments]);
-          toast.success(
-            `Uploaded ${newAttachments.length} file${
-              newAttachments.length === 1 ? "" : "s"
-            }`,
-          );
-          onUploadComplete?.();
-        })
-        .catch((error) => {
-          console.error("Upload failed:", error);
-          toast.error("Failed to upload files");
-        })
-        .finally(() => {
-          setUploading(false);
-        });
     },
     [
       attachments,
-      apiClient,
       conversationId,
+      generateUploadUrl,
       maxSizeMB,
       onAttachmentsChange,
       onUploadComplete,
+      saveFile,
       setUploading,
     ],
   );

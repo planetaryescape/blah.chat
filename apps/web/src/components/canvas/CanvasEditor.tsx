@@ -1,6 +1,8 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useMutation } from "convex/react";
 import type { editor } from "monaco-editor";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -25,7 +27,7 @@ const Editor = dynamic(
 );
 
 interface CanvasEditorProps {
-  document: any;
+  document: Doc<"canvasDocuments">;
   onEditorReady?: (editor: editor.IStandaloneCodeEditor) => void;
   onDelete?: () => void;
 }
@@ -36,48 +38,8 @@ export function CanvasEditor({
   onDelete,
 }: CanvasEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-  const queryClient = useQueryClient();
-
-  const updateMutation = useMutation({
-    mutationFn: async (args: {
-      documentId: string;
-      content: string;
-      expectedVersion?: number;
-      source: "user_edit" | "ai_edit" | "conflict_resolution" | "restore";
-      diff?: string;
-    }) => {
-      const res = await fetch(
-        `/api/v1/documents/${encodeURIComponent(args.documentId)}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            content: args.content,
-            expectedVersion: args.expectedVersion,
-            source: args.source,
-            diffSummary: args.diff,
-          }),
-        },
-      );
-      if (!res.ok) {
-        const errorBody = await res.json().catch(() => null);
-        throw Object.assign(new Error("Save failed"), {
-          status: res.status,
-          body: errorBody,
-        });
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: ["canvas-document", document._id],
-      });
-      void queryClient.invalidateQueries({
-        queryKey: ["canvas-history", document._id],
-      });
-    },
-  });
-  const updateContent = updateMutation.mutateAsync;
+  // @ts-ignore - Type depth exceeded
+  const updateContent = useMutation(api.canvas.documents.updateContent);
 
   // Local content for immediate UI
   const [localContent, setLocalContent] = useState(document.content);

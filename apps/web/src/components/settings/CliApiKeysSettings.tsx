@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import { useMutation, useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import {
   Check,
@@ -31,33 +32,35 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useAsyncAction } from "@/hooks/useAsyncAction";
-import { useSDKClient } from "@/lib/api/sdkClient";
 
 export function CliApiKeysSettings() {
-  const sdk = useSDKClient();
-  const queryClient = useQueryClient();
-  const { data: keys, isLoading: keysLoading } = useQuery({
-    queryKey: ["cli-api-keys"],
-    queryFn: () => sdk.listCliApiKeys(),
-    staleTime: 10_000,
-  });
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const keys = useQuery(api.cliAuth.list);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const createKey = useMutation(api.cliAuth.create);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const revokeKey = useMutation(api.cliAuth.revoke);
+  const [creating, setCreating] = useState(false);
   const [newKey, setNewKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [revoking, setRevoking] = useState<string | null>(null);
   const [confirmRevoke, setConfirmRevoke] = useState<{
     id: string;
     name: string;
   } | null>(null);
 
-  const { run: handleCreate, isPending: creating } = useAsyncAction(
-    async () => {
-      const result = await sdk.createCliApiKey();
+  const handleCreate = async () => {
+    setCreating(true);
+    try {
+      const result = await createKey();
       setNewKey(result.key);
-      await queryClient.invalidateQueries({ queryKey: ["cli-api-keys"] });
       toast.success("API key created");
-    },
-    { onError: () => toast.error("Failed to create key") },
-  );
+    } catch (_err) {
+      toast.error("Failed to create key");
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const handleCopy = async () => {
     if (!newKey) return;
@@ -72,20 +75,23 @@ export function CliApiKeysSettings() {
     setCopied(false);
   };
 
-  const { run: handleRevoke, isPending: isRevoking } = useAsyncAction(
-    async () => {
-      if (!confirmRevoke) return;
-      await sdk.revokeCliApiKey(confirmRevoke.id);
-      await queryClient.invalidateQueries({ queryKey: ["cli-api-keys"] });
+  const handleRevoke = async () => {
+    if (!confirmRevoke) return;
+
+    setRevoking(confirmRevoke.id);
+    try {
+      // @ts-ignore - Type depth
+      await revokeKey({ keyId: confirmRevoke.id as any });
       toast.success("API key revoked");
       setConfirmRevoke(null);
-    },
-    { onError: () => toast.error("Failed to revoke key") },
-  );
+    } catch (_err) {
+      toast.error("Failed to revoke key");
+    } finally {
+      setRevoking(null);
+    }
+  };
 
-  const revoking = isRevoking ? (confirmRevoke?.id ?? null) : null;
-
-  if (keysLoading || !keys) {
+  if (keys === undefined) {
     return (
       <Card>
         <CardHeader>

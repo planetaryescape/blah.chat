@@ -1,7 +1,8 @@
 "use client";
 
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { formatDistanceToNow } from "date-fns";
-import { domAnimation, LazyMotion, m } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ArrowRight,
   CheckSquare,
@@ -18,14 +19,10 @@ export function ProjectOverview({
   resources,
   stats,
 }: {
-  projectId: string;
+  projectId: Id<"projects">;
   resources: any;
   stats: any;
 }) {
-  const conversations = resources?.conversations ?? [];
-  const files = resources?.files ?? [];
-  const hasRecentActivity = conversations.length + files.length > 0;
-
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -42,54 +39,57 @@ export function ProjectOverview({
   };
 
   return (
-    <LazyMotion features={domAnimation}>
-      <m.div
-        variants={container}
-        initial="hidden"
-        animate="show"
-        className="space-y-8"
-      >
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <StatsCard
-            icon={MessageSquare}
-            label="Conversations"
-            value={stats?.conversationCount || 0}
-            delay={0}
-          />
-          <StatsCard
-            icon={FileText}
-            label="Files"
-            value={stats?.fileCount || 0}
-            delay={0.1}
-          />
-          <StatsCard
-            icon={NotebookPen}
-            label="Notes"
-            value={stats?.noteCount || 0}
-            delay={0.2}
-          />
-          <StatsCard
-            icon={CheckSquare}
-            label="Active Tasks"
-            value={stats?.activeTaskCount || 0}
-            delay={0.3}
-          />
+    <motion.div
+      variants={container}
+      initial="hidden"
+      animate="show"
+      className="space-y-8"
+    >
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <StatsCard
+          icon={MessageSquare}
+          label="Conversations"
+          value={stats?.conversationCount || 0}
+          delay={0}
+        />
+        <StatsCard
+          icon={FileText}
+          label="Files"
+          value={stats?.fileCount || 0}
+          delay={0.1}
+        />
+        <StatsCard
+          icon={NotebookPen}
+          label="Notes"
+          value={stats?.noteCount || 0}
+          delay={0.2}
+        />
+        <StatsCard
+          icon={CheckSquare}
+          label="Active Tasks"
+          value={stats?.activeTaskCount || 0}
+          delay={0.3}
+        />
+      </div>
+
+      {/* Recent Activity */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            Recent Activity
+          </h3>
+          {/* Optional: Add "View All" link if needed */}
         </div>
 
-        {/* Recent Activity */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-              Recent Activity
-            </h3>
-          </div>
-
-          <Card className="border shadow-sm bg-card/50 overflow-hidden">
+        <Card className="border shadow-sm bg-card/50 overflow-hidden">
+          {resources && (
             <div className="divide-y divide-border/40">
-              {hasRecentActivity ? (
+              {/* Merge and sort resources if possible, or just display them cleanly */}
+              {[...(resources.conversations || []), ...(resources.files || [])]
+                .length > 0 ? (
                 <>
-                  {conversations.slice(0, 3).map((conv: any) => (
+                  {resources.conversations?.slice(0, 3).map((conv: any) => (
                     <ActivityItem
                       key={conv._id}
                       type="conversation"
@@ -99,11 +99,11 @@ export function ProjectOverview({
                       projectId={projectId}
                     />
                   ))}
-                  {files.slice(0, 3).map((file: any) => (
+                  {resources.files?.slice(0, 3).map((file: any) => (
                     <ActivityItem
                       key={file._id}
                       type="file"
-                      title={file.title}
+                      title={file.name}
                       date={file.createdAt}
                       id={file._id}
                       projectId={projectId}
@@ -117,10 +117,10 @@ export function ProjectOverview({
                 </div>
               )}
             </div>
-          </Card>
-        </div>
-      </m.div>
-    </LazyMotion>
+          )}
+        </Card>
+      </div>
+    </motion.div>
   );
 }
 
@@ -136,7 +136,7 @@ function StatsCard({
   delay: number;
 }) {
   return (
-    <m.div
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
@@ -153,7 +153,7 @@ function StatsCard({
       <p className="text-3xl font-light tracking-tight text-foreground">
         {value}
       </p>
-    </m.div>
+    </motion.div>
   );
 }
 
@@ -172,11 +172,7 @@ function ActivityItem({
 }) {
   return (
     <Link
-      href={
-        type === "conversation"
-          ? `/chat/${id}`
-          : `/projects/${projectId}/files?file=${encodeURIComponent(id)}`
-      }
+      href={type === "conversation" ? `/chat/${id}` : `#`}
       className="flex items-center justify-between p-3 hover:bg-muted/50 transition-colors group cursor-pointer border-b border-border/40 last:border-0"
     >
       <div className="flex items-center gap-3 overflow-hidden">

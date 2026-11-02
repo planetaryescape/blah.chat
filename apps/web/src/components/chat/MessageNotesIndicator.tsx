@@ -1,14 +1,16 @@
 "use client";
 
-import { AnimatePresence, m } from "framer-motion";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useQuery } from "convex/react";
+import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronRight, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useNotesByMessage } from "@/lib/hooks/queries/useNotes";
 
 interface MessageNotesIndicatorProps {
-  messageId: string;
+  messageId: Id<"messages">;
 }
 
 export function MessageNotesIndicator({
@@ -17,13 +19,18 @@ export function MessageNotesIndicator({
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Check if this is a temporary optimistic message (not yet persisted)
   const isTempMessage =
     typeof messageId === "string" && messageId.startsWith("temp-");
-  const shouldSkipNotes = isTempMessage;
 
-  const { data: notes } = useNotesByMessage(shouldSkipNotes ? null : messageId);
+  // Skip query for temporary optimistic messages
+  const notes = useQuery(
+    api.notes.getNotesFromMessage,
+    isTempMessage ? "skip" : { messageId },
+  );
 
-  if (shouldSkipNotes || !notes || notes.length === 0) {
+  // Don't reserve space - most messages don't have notes
+  if (!notes || notes.length === 0) {
     return null;
   }
 
@@ -56,7 +63,7 @@ export function MessageNotesIndicator({
 
       <AnimatePresence>
         {isExpanded && (
-          <m.div
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -96,7 +103,7 @@ export function MessageNotesIndicator({
                 ),
               )}
             </div>
-          </m.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

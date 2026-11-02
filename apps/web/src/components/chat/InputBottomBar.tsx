@@ -10,7 +10,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ComparisonTrigger } from "./ComparisonTrigger";
-import { IntegrationSelector } from "./IntegrationSelector";
+import { IntegrationsIndicator } from "./IntegrationsIndicator";
 import { KeyboardHints } from "./KeyboardHints";
 import { QuickModelSwitcher } from "./QuickModelSwitcher";
 import {
@@ -32,11 +32,6 @@ interface InputBottomBarProps {
   onModelChange: (modelId: string) => void;
   modelSelectorOpen?: boolean;
   onModelSelectorOpenChange?: (open: boolean) => void;
-
-  // Integration selection
-  selectedIntegrationIds: string[];
-  onToggleIntegration: (integrationId: string) => void;
-  integrationsSaving?: boolean;
 
   // Thinking effort
   supportsThinking: boolean;
@@ -65,9 +60,6 @@ export function InputBottomBar({
   onModelChange,
   modelSelectorOpen,
   onModelSelectorOpenChange,
-  selectedIntegrationIds,
-  onToggleIntegration,
-  integrationsSaving,
   supportsThinking,
   thinkingEffort,
   onThinkingEffortChange,
@@ -138,11 +130,7 @@ export function InputBottomBar({
 
         <KeyboardHints isEmpty={isEmpty} hasContent={hasContent} />
 
-        <IntegrationSelector
-          selectedIntegrationIds={selectedIntegrationIds}
-          onToggleIntegration={onToggleIntegration}
-          isSaving={integrationsSaving}
-        />
+        <IntegrationsIndicator />
 
         <div className="hidden sm:block">
           <AIInfoTooltip />

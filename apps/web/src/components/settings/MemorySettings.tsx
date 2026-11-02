@@ -1,6 +1,8 @@
 "use client";
 
-import type { Memory } from "@blah-chat/api-client";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useAction, useMutation, useQuery } from "convex/react";
 import {
   Brain,
   Eye,
@@ -35,12 +37,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useMemories } from "@/hooks/useMemories";
-import {
-  updatePreferenceCache,
-  useUserPreference,
-} from "@/hooks/useUserPreference";
-import { useSDKClient } from "@/lib/api/sdkClient";
+import { useUserPreference } from "@/hooks/useUserPreference";
 
 type MemoryExtractionLevel =
   | "none"
@@ -133,7 +130,6 @@ const CATEGORY_LABELS: Record<string, { title: string; description: string }> =
 
 export function MemorySettings() {
   const router = useRouter();
-  const sdk = useSDKClient();
 
   // Local filter state
   const [showReasoning, setShowReasoning] = useState(false);
@@ -148,15 +144,31 @@ export function MemorySettings() {
   const currentLevel = (
     isValidExtractionLevel(rawLevel) ? rawLevel : "moderate"
   ) as MemoryExtractionLevel;
-  const {
-    data: memories = [],
-    isLoading,
-    refetch,
-  } = useMemories({
-    category: categoryFilter,
-    sortBy,
-    searchQuery: debouncedSearchQuery,
+
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const user = useQuery(api.users.getCurrentUser);
+
+  // @ts-ignore - Type instantiation is excessively deep and possibly infinite
+  const memories = useQuery(api.memories.listFiltered, {
+    category: categoryFilter || undefined,
+    sortBy: sortBy || undefined,
+    searchQuery: debouncedSearchQuery || undefined,
   });
+
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const createMemory = useMutation(api.memories.createManual);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const deleteMemory = useMutation(api.memories.deleteMemory);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const deleteAllMemories = useMutation(api.memories.deleteAllMemories);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const scanRecentConversations = useMutation(
+    api.memories.scanRecentConversations,
+  );
+  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
+  const consolidateMemories = useAction(api.memories.consolidateUserMemories);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const updatePreferences = useMutation(api.users.updatePreferences);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isConsolidating, setIsConsolidating] = useState(false);
@@ -169,88 +181,73 @@ export function MemorySettings() {
   };
 
   const saveExtractionLevel = async (level: MemoryExtractionLevel) => {
-    return sdk
-      .updatePreference("memoryExtractionLevel", level)
-      .then(async () => {
-        await updatePreferenceCache("memoryExtractionLevel", level);
-        toast.success(
-          `Memory extraction set to "${EXTRACTION_LEVELS.find((l) => l.value === level)?.label}"`,
-        );
-      })
-      .catch(() => {
-        toast.error("Failed to update memory settings");
+    try {
+      await updatePreferences({
+        preferences: { memoryExtractionLevel: level },
       });
+      toast.success(
+        `Memory extraction set to "${EXTRACTION_LEVELS.find((l) => l.value === level)?.label}"`,
+      );
+    } catch (_error) {
+      toast.error("Failed to update memory settings");
+    }
   };
 
   const handleAddMemory = async (content: string) => {
-    return sdk
-      .createMemory({ content })
-      .then(async () => {
-        await refetch();
-        toast.success("Memory added!");
-      })
-      .catch((error) => {
-        toast.error("Failed to add memory");
-        throw error;
-      });
+    try {
+      await createMemory({ content });
+      toast.success("Memory added!");
+    } catch (_error) {
+      toast.error("Failed to add memory");
+      throw _error;
+    }
   };
 
   const handleDelete = async (id: string) => {
-    return sdk
-      .deleteMemory(id)
-      .then(async () => {
-        await refetch();
-        toast.success("Memory deleted");
-      })
-      .catch(() => {
-        toast.error("Failed to delete memory");
-      });
+    try {
+      await deleteMemory({ id: id as any });
+      toast.success("Memory deleted");
+    } catch (_error) {
+      toast.error("Failed to delete memory");
+    }
   };
 
   const handleDeleteAll = async () => {
-    const result = await sdk.deleteAllMemories();
-    await refetch();
+    const result = await deleteAllMemories({});
     toast.success(`Deleted ${result.deleted} memories`);
   };
 
   const handleScanRecent = async () => {
-    return sdk
-      .scanRecentConversations()
-      .then((result) => {
-        if (result.triggered > 0) {
-          toast.success(`Scanning ${result.triggered} recent conversations...`);
-        } else {
-          toast.info("No recent conversations found to scan.");
-        }
-      })
-      .catch(() => {
-        toast.error("Failed to scan conversations");
-      });
+    try {
+      const result = await scanRecentConversations();
+      if (result.triggered > 0) {
+        toast.success(`Scanning ${result.triggered} recent conversations...`);
+      } else {
+        toast.info("No recent conversations found to scan.");
+      }
+    } catch (_error) {
+      toast.error("Failed to scan conversations");
+    }
   };
 
   const handleConsolidate = async () => {
     setIsConsolidating(true);
-    toast.info("Consolidating memories...");
-
-    return sdk
-      .consolidateMemories()
-      .then(async (result) => {
-        await refetch();
-        if (result.created > 0 || result.deleted > 0) {
-          toast.success(
-            `Consolidated ${result.original} → ${result.consolidated} memories`,
-          );
-        } else {
-          toast.info("No duplicate memories found.");
-        }
-      })
-      .catch((error) => {
-        toast.error("Failed to consolidate memories");
-        console.error("Consolidation error:", error);
-      })
-      .finally(() => {
-        setIsConsolidating(false);
-      });
+    try {
+      toast.info("Consolidating memories...");
+      const result = await consolidateMemories({});
+      if (result.created > 0 || result.deleted > 0) {
+        toast.success(
+          `Consolidated ${result.original} → ${result.consolidated} memories`,
+        );
+      } else {
+        toast.info("No duplicate memories found.");
+      }
+    } catch (error) {
+      toast.error("Failed to consolidate memories");
+      console.error("Consolidation error:", error);
+    } finally {
+      setIsConsolidating(false);
+    }
   };
 
   const handleNavigateToSource = (
@@ -260,16 +257,27 @@ export function MemorySettings() {
     router.push(`/chat/${conversationId}?messageId=${messageId}`);
   };
 
+  if (!user) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Group memories by category
-  const groupedMemories = memories.reduce<Record<string, Memory[]>>(
-    (acc, memory) => {
-      const category = (memory.metadata?.category as string) || "other";
-      if (!acc[category]) acc[category] = [];
-      acc[category].push(memory);
-      return acc;
-    },
-    {},
-  );
+  const groupedMemories = (memories || []).reduce<
+    Record<string, Doc<"memories">[]>
+  >((acc, memory: Doc<"memories">) => {
+    const category = (memory.metadata?.category as string) || "other";
+    if (!acc[category]) acc[category] = [];
+    acc[category].push(memory);
+    return acc;
+  }, {});
 
   return (
     <div className="space-y-6">
@@ -379,7 +387,7 @@ export function MemorySettings() {
             <div>
               <CardTitle>My Memories</CardTitle>
               <CardDescription>
-                {memories.length} memories stored
+                {memories?.length || 0} memories stored
               </CardDescription>
             </div>
             <Button
@@ -409,7 +417,7 @@ export function MemorySettings() {
           />
 
           {/* Memory List */}
-          {isLoading ? (
+          {memories === undefined ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
@@ -448,7 +456,7 @@ export function MemorySettings() {
 
                       <div className="border border-border/40 rounded-lg overflow-hidden bg-card/30">
                         <div className="divide-y divide-border/40">
-                          {categoryMemories.map((memory: Memory) => (
+                          {categoryMemories.map((memory: Doc<"memories">) => (
                             <MemoryItem
                               key={memory._id}
                               memory={memory}
@@ -471,7 +479,7 @@ export function MemorySettings() {
       <DeleteAllMemoriesDialog
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
-        memoriesCount={memories.length}
+        memoriesCount={memories?.length || 0}
         onConfirm={handleDeleteAll}
       />
     </div>

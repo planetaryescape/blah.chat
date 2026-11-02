@@ -1,13 +1,32 @@
-import type { Metadata } from "next";
-import ProjectTasksPageClient from "./ProjectTasksPageClient";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Project Tasks",
-  description: "Manage project tasks stored on the Postgres rewrite stack.",
-};
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { Suspense, use } from "react";
+import { TasksDashboard } from "@/app/(main)/tasks/_components/TasksDashboard";
 
-export default function ProjectTasksPage(props: {
+function TasksDashboardFallback() {
+  return (
+    <div className="h-full w-full flex items-center justify-center">
+      <div className="animate-pulse text-muted-foreground">
+        Loading tasks...
+      </div>
+    </div>
+  );
+}
+
+export default function ProjectTasksPage({
+  params,
+}: {
   params: Promise<{ id: string }>;
 }) {
-  return <ProjectTasksPageClient {...props} />;
+  const { id } = use(params);
+  const projectId = id as Id<"projects">;
+
+  return (
+    <div className="h-full w-full">
+      <Suspense fallback={<TasksDashboardFallback />}>
+        <TasksDashboard initialProjectId={projectId} hideSidebar />
+      </Suspense>
+    </div>
+  );
 }

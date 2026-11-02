@@ -1,4 +1,4 @@
-import { m } from "framer-motion";
+import { motion } from "framer-motion";
 import { FolderOpen, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -8,7 +8,7 @@ export function ProjectsEmptyState({
   onCreateProject: () => void;
 }) {
   return (
-    <m.div
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
@@ -25,7 +25,8 @@ export function ProjectsEmptyState({
         </div>
       </div>
 
-      <h2 className="text-2xl font-semibold tracking-tight mb-3 text-foreground">
+      {/* Heading with gradient text */}
+      <h2 className="text-2xl font-semibold tracking-tight mb-3 bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">
         Create Your First Project
       </h2>
 
@@ -36,7 +37,7 @@ export function ProjectsEmptyState({
       </p>
 
       {/* Primary CTA */}
-      <m.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
         <Button
           onClick={onCreateProject}
           size="lg"
@@ -45,7 +46,7 @@ export function ProjectsEmptyState({
           <Sparkles className="w-4 h-4 mr-2" />
           Create Project
         </Button>
-      </m.div>
-    </m.div>
+      </motion.div>
+    </motion.div>
   );
 }

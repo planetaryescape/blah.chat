@@ -33,8 +33,8 @@ function BookmarkCard({
   onPress: () => void;
   onLongPress: () => void;
 }) {
-  const contentPreview = bookmark.messagePreview
-    ? stripMarkdown(bookmark.messagePreview).slice(0, 150)
+  const contentPreview = bookmark.message?.content
+    ? stripMarkdown(bookmark.message.content).slice(0, 150)
     : "";
 
   return (
@@ -69,7 +69,7 @@ function BookmarkCard({
             color: palette.starlightDim,
           }}
         >
-          {bookmark.conversationTitle || "Untitled"}
+          {bookmark.conversation?.title || "Untitled"}
         </Text>
         <Text
           style={{
@@ -174,8 +174,8 @@ export default function BookmarksListScreen() {
     if (!searchQuery.trim()) return bookmarks;
     const q = searchQuery.toLowerCase();
     return bookmarks.filter((b: BookmarkItem) => {
-      const content = b.messagePreview?.toLowerCase() || "";
-      const title = b.conversationTitle?.toLowerCase() || "";
+      const content = b.message?.content?.toLowerCase() || "";
+      const title = b.conversation?.title?.toLowerCase() || "";
       const note = b.note?.toLowerCase() || "";
       const tags = b.tags?.join(" ").toLowerCase() || "";
       return (
@@ -228,17 +228,6 @@ export default function BookmarksListScreen() {
   }, [selectedBookmark, removeBookmark]);
 
   const isLoading = bookmarks === undefined;
-
-  const renderBookmarkItem = useCallback(
-    ({ item }: { item: BookmarkItem }) => (
-      <BookmarkCard
-        bookmark={item}
-        onPress={() => handleBookmarkPress(item)}
-        onLongPress={() => handleBookmarkLongPress(item)}
-      />
-    ),
-    [handleBookmarkPress, handleBookmarkLongPress],
-  );
 
   return (
     <SafeAreaView
@@ -330,7 +319,13 @@ export default function BookmarksListScreen() {
       ) : (
         <FlashList<BookmarkItem>
           data={filteredBookmarks}
-          renderItem={renderBookmarkItem}
+          renderItem={({ item }) => (
+            <BookmarkCard
+              bookmark={item}
+              onPress={() => handleBookmarkPress(item)}
+              onLongPress={() => handleBookmarkLongPress(item)}
+            />
+          )}
           keyExtractor={(item) => item._id}
           contentContainerStyle={{
             paddingVertical: spacing.sm,

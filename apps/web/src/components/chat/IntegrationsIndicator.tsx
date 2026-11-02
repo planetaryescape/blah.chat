@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import { useQuery } from "convex/react";
 import { Plug2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useSDKClient } from "@/lib/api/sdkClient";
 import { cn } from "@/lib/utils";
 
 /**
@@ -17,22 +17,15 @@ import { cn } from "@/lib/utils";
  * Hover shows list of connected services, click goes to settings.
  */
 export function IntegrationsIndicator() {
-  const sdk = useSDKClient();
-
-  const { data: connections } = useQuery({
-    queryKey: ["composio-connections"],
-    queryFn: () => sdk.listComposioConnections(),
-    staleTime: 60_000,
-  });
+  // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+  const connections = useQuery(api.composio.connections.getActiveConnections);
 
   // Don't render if no connections or still loading
   if (!connections || connections.length === 0) {
     return null;
   }
 
-  const connectionNames = connections.map(
-    (c) => c.integrationName ?? c.integrationId,
-  );
+  const connectionNames = connections.map((c) => c.integrationName);
 
   return (
     <Tooltip>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
+import { useConvexAuth } from "convex/react";
 import { Ghost, Keyboard, MoreHorizontal, Plus, Search } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useState } from "react";
@@ -11,10 +11,9 @@ import { SelectionContextMenu } from "@/components/chat/SelectionContextMenu";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import { KeyboardShortcutsManager } from "@/components/KeyboardShortcutsManager";
 import { OfflineQueueIndicator } from "@/components/layout/OfflineQueueIndicator";
-import {
-  NotificationAudioBridge,
-  NotificationBell,
-} from "@/components/notifications";
+import { NotificationBell } from "@/components/notifications";
+import { AutoRouterPreferenceModal } from "@/components/onboarding/AutoRouterPreferenceModal";
+import { OnboardingWrapper } from "@/components/onboarding/OnboardingTour";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +28,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { CanvasProvider } from "@/contexts/CanvasContext";
+import { ConversationProvider } from "@/contexts/ConversationContext";
 import { SelectionProvider } from "@/contexts/SelectionContext";
 import { useNewChat } from "@/hooks/useNewChat";
 import { cn } from "@/lib/utils";
@@ -138,61 +138,61 @@ export default function MainLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isSignedIn: isAuthenticated, isLoaded } = useAuth();
-  const isLoading = !isLoaded;
+  const { isAuthenticated, isLoading } = useConvexAuth();
   const pathname = usePathname();
   const isAdminRoute = pathname.startsWith("/admin");
-  const shouldMountNotificationAudio = !isLoading && isAuthenticated;
 
   return (
     <SelectionProvider>
-      <CanvasProvider>
-        <KeyboardShortcutsManager />
-        {shouldMountNotificationAudio ? <NotificationAudioBridge /> : null}
+      <ConversationProvider>
+        <CanvasProvider>
+          <KeyboardShortcutsManager />
 
-        {/* Skip to main content - WCAG 2.1 */}
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:shadow-lg"
-        >
-          Skip to main content
-        </a>
+          {/* Skip to main content - WCAG 2.1 */}
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:shadow-lg"
+          >
+            Skip to main content
+          </a>
 
-        {/* Don't show sidebar when not authenticated */}
-        {!isLoading && !isAuthenticated ? (
-          children
-        ) : (
-          <SidebarProvider>
-            <>
-              {isAdminRoute ? (
-                // Admin routes: let admin layout control structure
-                <div className="flex w-full h-[100dvh] overflow-hidden">
-                  {children}
-                </div>
-              ) : (
-                // Regular routes: sidebar + main
-                <div className="flex w-full h-[100dvh] overflow-hidden">
-                  <Suspense fallback={null}>
-                    <AppSidebar />
-                  </Suspense>
-                  <main
-                    id="main-content"
-                    className="flex-1 flex flex-col min-w-0 overflow-x-hidden overflow-y-hidden"
-                    aria-label="Chat interface"
-                  >
-                    <Header />
+          {/* Don't show sidebar when not authenticated */}
+          {!isLoading && !isAuthenticated ? (
+            children
+          ) : (
+            <SidebarProvider>
+              <OnboardingWrapper>
+                {isAdminRoute ? (
+                  // Admin routes: let admin layout control structure
+                  <div className="flex w-full h-[100dvh] overflow-hidden">
                     {children}
-                  </main>
-                </div>
-              )}
-              <CommandPalette />
-              <KeyboardHelpManager />
-              <SelectionContextMenu />
-              <OfflineQueueIndicator />
-            </>
-          </SidebarProvider>
-        )}
-      </CanvasProvider>
+                  </div>
+                ) : (
+                  // Regular routes: sidebar + main
+                  <div className="flex w-full h-[100dvh] overflow-hidden">
+                    <Suspense fallback={null}>
+                      <AppSidebar />
+                    </Suspense>
+                    <main
+                      id="main-content"
+                      className="flex-1 flex flex-col min-w-0 overflow-x-hidden overflow-y-hidden"
+                      aria-label="Chat interface"
+                    >
+                      <Header />
+                      {children}
+                    </main>
+                  </div>
+                )}
+                <CommandPalette />
+                <KeyboardHelpManager />
+                <SelectionContextMenu />
+                <OfflineQueueIndicator />
+                {!isAdminRoute && <AutoRouterPreferenceModal />}
+              </OnboardingWrapper>
+            </SidebarProvider>
+          )}
+        </CanvasProvider>
+      </ConversationProvider>
     </SelectionProvider>
   );
 }

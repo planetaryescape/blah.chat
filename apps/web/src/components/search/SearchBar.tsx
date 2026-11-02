@@ -11,7 +11,7 @@ interface SearchBarProps {
   onChange: (value: string) => void;
   isSearching?: boolean;
   placeholder?: string;
-  focusOnMount?: boolean;
+  autoFocus?: boolean;
 }
 
 export function SearchBar({
@@ -19,16 +19,9 @@ export function SearchBar({
   onChange,
   isSearching = false,
   placeholder = "Search conversations...",
-  focusOnMount = false,
+  autoFocus = false,
 }: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // Focus the input on mount when requested by the parent.
-  useEffect(() => {
-    if (focusOnMount) {
-      inputRef.current?.focus();
-    }
-  }, [focusOnMount]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -78,6 +71,7 @@ export function SearchBar({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
+            autoFocus={autoFocus}
             className={cn(
               "pl-9 pr-9 h-10 text-sm font-medium shadow-sm",
               "bg-background/50 border-transparent",

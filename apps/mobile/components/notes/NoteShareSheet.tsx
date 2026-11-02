@@ -8,7 +8,6 @@ import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
 import type { Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import { useCreateNoteShare, useToggleNoteShare } from "@/lib/hooks";
-import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
 
@@ -34,6 +33,7 @@ export function NoteShareSheet({ isOpen, onClose, note }: NoteShareSheetProps) {
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const [password, setPassword] = useState("");
   const [selectedExpiry, setSelectedExpiry] = useState<number | undefined>(7);
+  const [isCreating, setIsCreating] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const createShare = useCreateNoteShare();
@@ -59,10 +59,13 @@ export function NoteShareSheet({ isOpen, onClose, note }: NoteShareSheetProps) {
     [onClose],
   );
 
-  const { run: handleCreateShare, isPending: isCreating } = useAsyncAction(
-    async () => {
-      if (!note) return;
-      haptic.medium();
+  const handleCreateShare = useCallback(async () => {
+    if (!note) return;
+
+    setIsCreating(true);
+    haptic.medium();
+
+    try {
       await createShare({
         noteId: note._id,
         password: password.trim() || undefined,
@@ -70,14 +73,13 @@ export function NoteShareSheet({ isOpen, onClose, note }: NoteShareSheetProps) {
       });
       setPassword("");
       toast({ title: "Share link created", preset: "done", haptic: "success" });
-    },
-    {
-      onError: () => {
-        haptic.error();
-        toast({ title: "Failed to create share link", preset: "error" });
-      },
-    },
-  );
+    } catch (_e) {
+      haptic.error();
+      toast({ title: "Failed to create share link", preset: "error" });
+    } finally {
+      setIsCreating(false);
+    }
+  }, [note, password, selectedExpiry, createShare]);
 
   const handleToggleShare = useCallback(
     async (isActive: boolean) => {
@@ -96,7 +98,7 @@ export function NoteShareSheet({ isOpen, onClose, note }: NoteShareSheetProps) {
   const handleCopyLink = useCallback(async () => {
     if (!note?.shareId) return;
 
-    const url = `https://blah.chat/share/${note.shareId}`;
+    const url = `https://blah.chat/shared/notes/${note.shareId}`;
     await Clipboard.setStringAsync(url);
     setCopied(true);
     haptic.success();
@@ -107,7 +109,9 @@ export function NoteShareSheet({ isOpen, onClose, note }: NoteShareSheetProps) {
   if (!note) return null;
 
   const hasShare = !!note.shareId;
-  const shareUrl = hasShare ? `https://blah.chat/share/${note.shareId}` : "";
+  const shareUrl = hasShare
+    ? `https://blah.chat/shared/notes/${note.shareId}`
+    : "";
 
   return (
     <BottomSheetModal

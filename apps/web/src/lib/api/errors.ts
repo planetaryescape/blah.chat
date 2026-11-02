@@ -44,9 +44,3 @@ export class InternalServerError extends ApiError {
     super(500, message, "INTERNAL_ERROR");
   }
 }
-
-export class ConfigurationError extends ApiError {
-  constructor(message = "Service configuration error") {
-    super(503, message, "CONFIGURATION_ERROR");
-  }
-}

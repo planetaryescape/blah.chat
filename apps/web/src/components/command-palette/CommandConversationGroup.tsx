@@ -1,11 +1,12 @@
 "use client";
 
+import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { Command } from "cmdk";
 import type { LucideIcon } from "lucide-react";
 
 interface CommandConversationGroupProps {
   heading: string;
-  conversations: any[];
+  conversations: Doc<"conversations">[];
   icon: LucideIcon;
   onSelect: (conversationId: string) => void;
   className?: string;

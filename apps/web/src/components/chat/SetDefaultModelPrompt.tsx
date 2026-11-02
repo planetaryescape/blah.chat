@@ -1,6 +1,7 @@
 "use client";
 
-import { AnimatePresence, m } from "framer-motion";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle, X } from "lucide-react";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ interface Props {
   modelName: string;
   onSetDefault: () => void;
   onDismiss: () => void;
-  conversationId: string;
+  conversationId: Id<"conversations">;
 }
 
 export function SetDefaultModelPrompt({
@@ -50,7 +51,7 @@ export function SetDefaultModelPrompt({
 
   return (
     <AnimatePresence>
-      <m.div
+      <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
@@ -88,7 +89,7 @@ export function SetDefaultModelPrompt({
             </Button>
           </div>
         </div>
-      </m.div>
+      </motion.div>
     </AnimatePresence>
   );
 }

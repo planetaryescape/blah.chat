@@ -1,5 +1,6 @@
 "use client";
 
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { formatDistanceToNow } from "date-fns";
 import { Bot, Clock, Loader2, Undo2, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { useCanvasHistory } from "@/hooks/useCanvasHistory";
 import { cn } from "@/lib/utils";
 
 interface VersionHistoryPanelProps {
-  documentId: string;
+  documentId: Id<"canvasDocuments">;
 }
 
 export function VersionHistoryPanel({ documentId }: VersionHistoryPanelProps) {
@@ -54,7 +55,7 @@ export function VersionHistoryPanel({ documentId }: VersionHistoryPanelProps) {
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 text-sm">
-                    {entry.source === "ai_edit" ? (
+                    {entry.source === "llm_diff" ? (
                       <Bot className="w-4 h-4 text-primary shrink-0" />
                     ) : (
                       <User className="w-4 h-4 shrink-0" />
@@ -68,9 +69,9 @@ export function VersionHistoryPanel({ documentId }: VersionHistoryPanelProps) {
                     <Clock className="w-3 h-3" />
                     {formatDistanceToNow(entry.createdAt, { addSuffix: true })}
                   </div>
-                  {entry.diffSummary && (
+                  {entry.diff && (
                     <p className="mt-1 text-xs text-muted-foreground truncate">
-                      {getChangeDescription(entry.diffSummary)}
+                      {getChangeDescription(entry.diff)}
                     </p>
                   )}
                 </div>

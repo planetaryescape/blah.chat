@@ -1,52 +1,20 @@
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "convex/react";
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { useNotificationChimes } from "@/hooks/useNotificationChimes";
 import { analytics } from "@/lib/analytics";
 import { useApiClient } from "@/lib/api/client";
 import { messageQueue } from "@/lib/offline/messageQueue";
 import { queryKeys } from "@/lib/query/keys";
 import type { OptimisticMessage } from "@/types/optimistic";
 
-type GenerationRequestResponse = {
-  conversationId?: string;
-  requestId?: string;
-  streamUrl?: string;
-  assistantMessageId?: string;
-  assistantMessageIds?: string[];
-  assistantModelId?: string;
-  modelIds?: string[];
-};
-
-function dispatchGenerationStartedEvent(
-  conversationId: string,
-  data: GenerationRequestResponse | undefined,
-) {
-  if (!data?.requestId || !data.streamUrl) {
-    return;
-  }
-
-  window.dispatchEvent(
-    new CustomEvent("generation-request-started", {
-      detail: {
-        conversationId: data.conversationId ?? conversationId,
-        requestId: data.requestId,
-        streamUrl: data.streamUrl,
-        assistantMessageId: data.assistantMessageId,
-        assistantMessageIds: data.assistantMessageIds,
-        assistantModelId: data.assistantModelId,
-        modelIds: data.modelIds,
-      },
-    }),
-  );
-}
-
 interface SendMessageArgs {
-  conversationId: string;
+  conversationId: Id<"conversations">;
   content: string;
   modelId?: string;
   models?: string[];
-  parentMessageId?: string;
   clientMessageId?: string;
   thinkingEffort?: "none" | "low" | "medium" | "high";
   attachments?: Array<{
@@ -63,7 +31,9 @@ export function useSendMessage(
 ) {
   const apiClient = useApiClient();
   const queryClient = useQueryClient();
-  const { play: playNotificationChime } = useNotificationChimes();
+
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const user = useQuery(api.users.getCurrentUser);
 
   // Auto-process offline queue when connection restored
   useEffect(() => {
@@ -75,36 +45,21 @@ export function useSendMessage(
         `Processing ${queueCount} queued message${queueCount > 1 ? "s" : ""}...`,
       );
 
-      const { failed } = await messageQueue.processQueue(async (msg) => {
+      await messageQueue.processQueue(async (msg) => {
         // Send queued message
-        const response = await apiClient.post<GenerationRequestResponse>(
+        await apiClient.post(
           `/api/v1/conversations/${msg.conversationId}/messages`,
           {
             conversationId: msg.conversationId,
             content: msg.content,
             modelId: msg.modelId,
             models: msg.models,
-            parentMessageId: msg.parentMessageId,
-            clientMessageId: msg.clientMessageId,
-            thinkingEffort: msg.thinkingEffort,
             attachments: msg.attachments,
           },
         );
-        dispatchGenerationStartedEvent(msg.conversationId, response);
       });
 
-      if (failed.length > 0) {
-        toast.error(
-          `${failed.length} queued message${failed.length > 1 ? "s" : ""} could not be sent and ${failed.length > 1 ? "were" : "was"} discarded`,
-          {
-            description: failed
-              .map((msg) => `"${msg.content.slice(0, 60)}"`)
-              .join(", "),
-          },
-        );
-      } else {
-        toast.success("All queued messages sent");
-      }
+      toast.success("All queued messages sent");
     };
 
     window.addEventListener("online", handleOnline);
@@ -128,17 +83,14 @@ export function useSendMessage(
       const optimisticUserMsg: OptimisticMessage = {
         _id: `temp-user-${Date.now()}` as `temp-${string}`,
         conversationId: variables.conversationId,
+        userId: user?._id,
         role: "user" as const,
         content: variables.content,
         clientMessageId,
         status: "optimistic" as const,
         attachments: variables.attachments?.map((att) => ({
           id: att.storageId,
-          type: att.type,
-          name: att.name,
-          storageId: att.storageId,
-          mimeType: att.mimeType,
-          size: att.size,
+          storageId: att.storageId as Id<"_storage">,
           _optimistic: true,
         })),
         createdAt: Date.now(),
@@ -147,7 +99,7 @@ export function useSendMessage(
         _optimistic: true,
       };
 
-      // Server creates assistant messages synchronously on the server
+      // Server creates assistant messages synchronously (convex/chat.ts:188-205)
       // Only user message needs optimistic update for instant feedback
       onOptimisticUpdate?.([optimisticUserMsg]);
 
@@ -156,18 +108,12 @@ export function useSendMessage(
       };
     },
 
-    onSuccess: (data, variables) => {
-      // Server confirmed - REST query will update with real messages
+    onSuccess: (_data, variables) => {
+      // Server confirmed - Convex query will update with real messages
       // Deduplication happens automatically in useOptimistic merge
       queryClient.invalidateQueries({
         queryKey: queryKeys.messages.list(variables.conversationId),
       });
-
-      dispatchGenerationStartedEvent(
-        variables.conversationId,
-        data as GenerationRequestResponse | undefined,
-      );
-      playNotificationChime("messageSent");
 
       // Track analytics
       analytics.track("message_sent", {
@@ -189,9 +135,6 @@ export function useSendMessage(
           content: variables.content,
           modelId: variables.modelId,
           models: variables.models,
-          parentMessageId: variables.parentMessageId,
-          clientMessageId: variables.clientMessageId,
-          thinkingEffort: variables.thinkingEffort,
           attachments: variables.attachments,
         });
 

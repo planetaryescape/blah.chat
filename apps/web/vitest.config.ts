@@ -7,12 +7,15 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
-    testTimeout: 30_000,
-    hookTimeout: 30_000,
     setupFiles: ["./src/lib/test/setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
     exclude: ["node_modules", "e2e", ".next"],
     css: false, // Don't process CSS imports
+    server: {
+      deps: {
+        inline: ["convex-test"],
+      },
+    },
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],
@@ -27,37 +30,14 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: [
+    alias: {
       // Order matters: more specific aliases first
-      {
-        find: "@blah-chat/persistence-postgres",
-        replacement: path.resolve(
-          __dirname,
-          "../../packages/persistence-postgres/src/index.ts",
-        ),
-      },
-      {
-        find: "@blah-chat/chat-ui-core",
-        replacement: path.resolve(
-          __dirname,
-          "../../packages/chat-ui-core/src/index.ts",
-        ),
-      },
-      {
-        find: /^@blah-chat\/shared$/,
-        replacement: path.resolve(
-          __dirname,
-          "../../packages/shared/src/index.ts",
-        ),
-      },
-      {
-        find: /^@blah-chat\/shared\/(.+)$/,
-        replacement: `${path.resolve(__dirname, "../../packages/shared/src")}/$1`,
-      },
-      {
-        find: "@",
-        replacement: path.resolve(__dirname, "./src"),
-      },
-    ],
+      "@blah-chat/chat-ui-core": path.resolve(
+        __dirname,
+        "../../packages/chat-ui-core/src/index.ts",
+      ),
+      "@blah-chat/backend": path.resolve(__dirname, "../../packages/backend"),
+      "@": path.resolve(__dirname, "./src"),
+    },
   },
 });

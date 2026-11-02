@@ -1,15 +1,15 @@
-import { deriveMessageSiblings } from "@/lib/chat/messageTree";
-import type { Id } from "@/lib/convex";
-import { useMessageTree } from "./useMessages";
+import { useQuery } from "convex/react";
+import type { FunctionReference } from "convex/server";
+import type { Doc, Id } from "@/lib/convex";
+import { api } from "@/lib/convex";
 
-export function useSiblings(
-  conversationId: Id<"conversations"> | undefined,
-  messageId: Id<"messages"> | undefined,
-) {
-  const messages = useMessageTree(conversationId ?? null);
-  if (!messageId || !messages) {
-    return undefined;
-  }
-
-  return deriveMessageSiblings(messages, messageId);
+export function useSiblings(messageId: Id<"messages"> | undefined) {
+  // Type assertion needed due to re-export type inference issue
+  const getSiblings = api.messages.getSiblings as FunctionReference<
+    "query",
+    "public",
+    { messageId: Id<"messages"> },
+    Doc<"messages">[]
+  >;
+  return useQuery(getSiblings, messageId ? { messageId } : "skip");
 }

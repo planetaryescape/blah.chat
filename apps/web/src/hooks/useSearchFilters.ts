@@ -1,3 +1,4 @@
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
   parseAsInteger,
   parseAsString,
@@ -7,7 +8,7 @@ import {
 import { useMemo } from "react";
 
 export interface SearchFilters {
-  conversationId?: string;
+  conversationId?: Id<"conversations">;
   dateFrom?: number;
   dateTo?: number;
   messageType?: "user" | "assistant";
@@ -24,7 +25,7 @@ export function useSearchFilters() {
   const filters = useMemo<SearchFilters>(
     () => ({
       conversationId: params.conversation
-        ? (params.conversation as string)
+        ? (params.conversation as Id<"conversations">)
         : undefined,
       dateFrom: params.from ?? undefined,
       dateTo: params.to ?? undefined,

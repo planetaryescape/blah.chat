@@ -1,6 +1,8 @@
 "use client";
 
 import { getModelConfig } from "@blah-chat/ai/utils";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
   deserializeDraftRecord,
   emptyDraft,
@@ -11,17 +13,10 @@ import {
   serializeDraftRecord,
   WEB_MOBILE_DRAFT_STORAGE_KEY,
 } from "@blah-chat/chat-ui-core";
-import { useLiveQuery } from "dexie-react-hooks";
-import { AnimatePresence, domAnimation, LazyMotion, m } from "framer-motion";
+import { useMutation, useQuery } from "convex/react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Expand, Loader2, Send, Square, Upload } from "lucide-react";
-import {
-  memo,
-  useCallback,
-  useEffect,
-  useEffectEvent,
-  useRef,
-  useState,
-} from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,8 +32,6 @@ import { useHaptic } from "@/hooks/useHaptic";
 import { useIOSKeyboard } from "@/hooks/useIOSKeyboard";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { analytics } from "@/lib/analytics";
-import { useApiClient } from "@/lib/api/client";
-import { cache } from "@/lib/cache";
 import { useSendMessage } from "@/lib/hooks/mutations";
 import { cn } from "@/lib/utils";
 import { type ChatWidth, getChatWidthClass } from "@/lib/utils/chatWidth";
@@ -88,18 +81,13 @@ interface Attachment {
   storageId: string;
   mimeType: string;
   size: number;
-  url?: string;
 }
 
 interface ChatInputProps {
-  conversationId: string;
-  parentMessageId?: string;
+  conversationId: Id<"conversations">;
   isGenerating: boolean;
   selectedModel: string;
   onModelChange: (modelId: string) => void;
-  selectedIntegrationIds?: string[];
-  onToggleIntegration?: (integrationId: string) => void;
-  integrationsSaving?: boolean;
   thinkingEffort?: ThinkingEffort;
   onThinkingEffortChange?: (effort: ThinkingEffort) => void;
   attachments: Attachment[];
@@ -118,111 +106,11 @@ interface ChatInputProps {
   onOptimisticUpdate?: (messages: OptimisticMessage[]) => void;
 }
 
-type ApiClientLike = {
-  post<T>(path: string, body?: unknown): Promise<T>;
-};
-
-async function uploadComposerAttachment(args: {
-  apiClient: ApiClientLike;
-  conversationId: string;
-  fileName: string;
-  contentType: string;
-  body: Blob | File;
-  errorMessage: string;
-}) {
-  const {
-    apiClient,
-    conversationId,
-    fileName,
-    contentType,
-    body,
-    errorMessage,
-  } = args;
-  const { uploadUrl, storageId } = await apiClient.post<{
-    uploadUrl: string;
-    storageId: string;
-  }>("/api/v1/files/upload-url", {
-    conversationId,
-    fileName,
-    contentType,
-  });
-  const result = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: { "Content-Type": contentType },
-    body,
-  });
-
-  if (!result.ok) {
-    throw new Error(errorMessage);
-  }
-
-  return { storageId };
-}
-
-function restoreDraftIntoComposer(args: {
-  conversationId: string;
-  isComparisonMode: boolean;
-  onAttachmentsChange: (attachments: Attachment[]) => void;
-  onExitComparison?: () => void;
-  onIntegrationsChange: (integrationIds: string[]) => void;
-  onModelChange: (modelId: string) => void;
-  onStartComparison?: (models: string[]) => void;
-  onThinkingEffortChange?: (effort: ThinkingEffort) => void;
-  setCursorPosition: (position: number) => void;
-  setInput: (value: string) => void;
-  setQuote: (value: string | null) => void;
-  setSlashMenuSuppressed: (value: boolean) => void;
-}) {
-  const {
-    conversationId,
-    isComparisonMode,
-    onAttachmentsChange,
-    onExitComparison,
-    onIntegrationsChange,
-    onModelChange,
-    onStartComparison,
-    onThinkingEffortChange,
-    setCursorPosition,
-    setInput,
-    setQuote,
-    setSlashMenuSuppressed,
-  } = args;
-
-  const record = deserializeDraftRecord(
-    sessionStorage.getItem(WEB_MOBILE_DRAFT_STORAGE_KEY),
-  );
-  const draft = record[String(conversationId)];
-
-  setInput(draft?.text ?? "");
-  setQuote(draft?.quote ?? null);
-  setCursorPosition(draft?.text.length ?? 0);
-  onAttachmentsChange(draft?.attachments ?? []);
-  onIntegrationsChange(draft?.selectedIntegrationIds ?? []);
-
-  if (draft?.selectedModel) {
-    onModelChange(draft.selectedModel);
-  }
-
-  onThinkingEffortChange?.(draft?.thinkingEffort ?? "none");
-
-  if (draft?.comparisonMode && (draft.selectedModels?.length ?? 0) >= 2) {
-    onStartComparison?.(draft.selectedModels);
-  } else if (isComparisonMode) {
-    onExitComparison?.();
-  }
-
-  setSlashMenuSuppressed(false);
-}
-
 export const ChatInput = memo(function ChatInput({
   conversationId,
-  parentMessageId,
   isGenerating,
   selectedModel,
   onModelChange,
-  selectedIntegrationIds = [],
-  onToggleIntegration = () => {},
-  integrationsSaving,
   thinkingEffort,
   onThinkingEffortChange,
   attachments,
@@ -268,77 +156,35 @@ export const ChatInput = memo(function ChatInput({
   const dragCounterRef = useRef(0);
   const restoringDraftRef = useRef(false);
 
-  const handleDraftModelChange = useEffectEvent((modelId: string) => {
-    onModelChange(modelId);
-  });
-  const handleDraftIntegrationsChange = useEffectEvent(
-    (integrationIds: string[]) => {
-      const current = new Set(selectedIntegrationIds);
-      const next = new Set(integrationIds);
-
-      for (const integrationId of selectedIntegrationIds) {
-        if (!next.has(integrationId)) {
-          onToggleIntegration(integrationId);
-        }
-      }
-
-      for (const integrationId of integrationIds) {
-        if (!current.has(integrationId)) {
-          onToggleIntegration(integrationId);
-        }
-      }
-    },
-  );
-  const handleDraftThinkingEffortChange = useEffectEvent(
-    (effort: ThinkingEffort) => {
-      onThinkingEffortChange?.(effort);
-    },
-  );
-  const handleDraftAttachmentsChange = useEffectEvent(
-    (nextAttachments: Attachment[]) => {
-      onAttachmentsChange(nextAttachments);
-    },
-  );
-  const handleDraftStartComparison = useEffectEvent((models: string[]) => {
-    onStartComparison?.(models);
-  });
-  const handleDraftExitComparison = useEffectEvent(() => {
-    onExitComparison?.();
-  });
+  const onModelChangeRef = useRef(onModelChange);
+  onModelChangeRef.current = onModelChange;
+  const onThinkingEffortChangeRef = useRef(onThinkingEffortChange);
+  onThinkingEffortChangeRef.current = onThinkingEffortChange;
+  const onAttachmentsChangeRef = useRef(onAttachmentsChange);
+  onAttachmentsChangeRef.current = onAttachmentsChange;
+  const onStartComparisonRef = useRef(onStartComparison);
+  onStartComparisonRef.current = onStartComparison;
+  const onExitComparisonRef = useRef(onExitComparison);
+  onExitComparisonRef.current = onExitComparison;
+  const isComparisonModeRef = useRef(isComparisonMode);
+  isComparisonModeRef.current = isComparisonMode;
   const { isMobile, isTouchDevice } = useMobileDetect();
   const { haptic } = useHaptic();
   const hasSpeechRecognition = useBrowserFeature("webkitSpeechRecognition");
-  const apiClient = useApiClient();
 
   // iOS keyboard handling - scrolls input into view when virtual keyboard appears
   useIOSKeyboard({ inputRef: textareaRef });
 
-  const { mutateAsync: sendMessageAsync } = useSendMessage(onOptimisticUpdate);
-  const lastAssistantMessage = useLiveQuery(
-    async () => {
-      const messages = await cache.messages
-        .where("conversationId")
-        .equals(conversationId)
-        .toArray();
-
-      return (
-        [...messages]
-          .filter(
-            (
-              message,
-            ): message is (typeof messages)[number] & {
-              _id: string;
-              role: "assistant";
-              status?: string;
-              createdAt: number;
-            } => message.role === "assistant",
-          )
-          .sort((a, b) => b.createdAt - a.createdAt)[0] ?? null
-      );
-    },
-    [conversationId],
-    null,
-  );
+  const { mutate: sendMessage } = useSendMessage(onOptimisticUpdate);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const stopGeneration = useMutation(api.chat.stopGeneration);
+  const lastAssistantMessage = useQuery(api.messages.getLastAssistantMessage, {
+    conversationId,
+  });
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const saveFile = useMutation(api.files.saveFile);
 
   // Check model capabilities
   const modelConfig = getModelConfig(selectedModel);
@@ -358,10 +204,6 @@ export const ChatInput = memo(function ChatInput({
     !!slashMatch &&
     slashCommands.length > 0 &&
     !isRecording;
-  const activeSlashIndex =
-    slashCommands.length === 0
-      ? 0
-      : Math.min(slashIndex, slashCommands.length - 1);
 
   const persistDraft = useCallback(
     (draftInput?: ReturnType<typeof emptyDraft>) => {
@@ -377,7 +219,6 @@ export const ChatInput = memo(function ChatInput({
           nextDraft.text = input;
           nextDraft.attachments = attachments;
           nextDraft.selectedModel = selectedModel;
-          nextDraft.selectedIntegrationIds = selectedIntegrationIds;
           nextDraft.thinkingEffort = thinkingEffort ?? "none";
           nextDraft.quote = quote;
           nextDraft.comparisonMode = isComparisonMode;
@@ -412,7 +253,6 @@ export const ChatInput = memo(function ChatInput({
       isComparisonMode,
       quote,
       selectedModel,
-      selectedIntegrationIds,
       selectedModels,
       thinkingEffort,
     ],
@@ -534,16 +374,9 @@ export const ChatInput = memo(function ChatInput({
       .toString(36)
       .slice(2, 10)}`;
 
-    setInput("");
-    setQuote(null);
-    onAttachmentsChange([]);
-    setCursorPosition(0);
-    haptic("MEDIUM");
-
-    try {
-      await sendMessageAsync({
+    sendMessage(
+      {
         conversationId,
-        parentMessageId,
         content: messageContent,
         clientMessageId,
         ...(isComparisonMode
@@ -551,27 +384,38 @@ export const ChatInput = memo(function ChatInput({
           : { modelId: selectedModel }),
         thinkingEffort,
         attachments: attachments.length > 0 ? attachments : undefined,
-      });
-      clearPersistedDraft();
-    } catch (error) {
-      const currentInput = textareaRef.current?.value?.trim() || "";
-      if (!currentInput) {
-        setInput(originalInput);
-        setQuote(originalQuote);
-        onAttachmentsChange(originalAttachments);
-      }
+      },
+      {
+        onError: (error) => {
+          const currentInput = textareaRef.current?.value?.trim() || "";
+          if (!currentInput) {
+            setInput(originalInput);
+            setQuote(originalQuote);
+            onAttachmentsChange(originalAttachments);
+          }
 
-      if (
-        error instanceof Error &&
-        error.message.includes("Daily message limit")
-      ) {
-        setShowRateLimitDialog(true);
-      }
-    } finally {
-      setIsSending(false);
-      if (!isMobile) {
-        setTimeout(() => textareaRef.current?.focus(), 0);
-      }
+          if (
+            error instanceof Error &&
+            error.message.includes("Daily message limit")
+          ) {
+            setShowRateLimitDialog(true);
+          }
+        },
+        onSuccess: () => {
+          clearPersistedDraft();
+        },
+      },
+    );
+
+    setInput("");
+    setQuote(null);
+    onAttachmentsChange([]);
+    setCursorPosition(0);
+    setIsSending(false);
+    haptic("MEDIUM");
+
+    if (!isMobile) {
+      setTimeout(() => textareaRef.current?.focus(), 0);
     }
   };
 
@@ -600,7 +444,7 @@ export const ChatInput = memo(function ChatInput({
         }
         if (e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
-          const command = slashCommands[activeSlashIndex];
+          const command = slashCommands[slashIndex];
           if (command) {
             applySlashCommand(command.id);
           }
@@ -620,7 +464,7 @@ export const ChatInput = memo(function ChatInput({
       applySlashCommand,
       handleKeyDown,
       slashCommands,
-      activeSlashIndex,
+      slashIndex,
       slashMenuOpen,
       syncCursorPosition,
     ],
@@ -639,33 +483,19 @@ export const ChatInput = memo(function ChatInput({
     setLastCompletedMessageId,
   });
 
-  // Stop is async: the POST only requests cancellation; generation keeps
-  // running until the stream's terminal event flips isGenerating. Track the
-  // in-between so the button shows "stopping" instead of lying.
-  const [isStopping, setIsStopping] = useState(false);
-  useEffect(() => {
-    if (!isGenerating) {
-      setIsStopping(false);
-    }
-  }, [isGenerating]);
-
-  const handleStop = (e: React.MouseEvent) => {
+  const handleStop = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsStopping(true);
-    void apiClient
-      .post(`/api/v1/conversations/${conversationId}/stop`)
-      .then(() => {
-        haptic("LIGHT");
-        analytics.track("generation_stopped", {
-          model: selectedModel,
-          source: "stop_button",
-        });
-      })
-      .catch((error) => {
-        setIsStopping(false);
-        console.error("Failed to stop generation:", error);
+    try {
+      await stopGeneration({ conversationId });
+      haptic("LIGHT");
+      analytics.track("generation_stopped", {
+        model: selectedModel,
+        source: "stop_button",
       });
+    } catch (error) {
+      console.error("Failed to stop generation:", error);
+    }
   };
 
   // Auto-resize textarea - NOW RUNS ON INPUT CHANGE
@@ -691,27 +521,47 @@ export const ChatInput = memo(function ChatInput({
   useEffect(() => {
     if (!conversationId) return;
     restoringDraftRef.current = true;
-    restoreDraftIntoComposer({
-      conversationId,
-      isComparisonMode,
-      onAttachmentsChange: handleDraftAttachmentsChange,
-      onExitComparison: handleDraftExitComparison,
-      onIntegrationsChange: handleDraftIntegrationsChange,
-      onModelChange: handleDraftModelChange,
-      onStartComparison: handleDraftStartComparison,
-      onThinkingEffortChange: handleDraftThinkingEffortChange,
-      setCursorPosition,
-      setInput,
-      setQuote,
-      setSlashMenuSuppressed,
-    });
+    const record = deserializeDraftRecord(
+      sessionStorage.getItem(WEB_MOBILE_DRAFT_STORAGE_KEY),
+    );
+    const draft = record[String(conversationId)];
+
+    setInput(draft?.text ?? "");
+    setQuote(draft?.quote ?? null);
+    setCursorPosition(draft?.text.length ?? 0);
+    onAttachmentsChangeRef.current(draft?.attachments ?? []);
+
+    if (draft?.selectedModel) {
+      onModelChangeRef.current(draft.selectedModel);
+    }
+
+    if (onThinkingEffortChangeRef.current) {
+      onThinkingEffortChangeRef.current(draft?.thinkingEffort ?? "none");
+    }
+
+    if (draft?.comparisonMode && draft.selectedModels.length >= 2) {
+      onStartComparisonRef.current?.(draft.selectedModels);
+    } else if (isComparisonModeRef.current) {
+      onExitComparisonRef.current?.();
+    }
+
+    setSlashMenuSuppressed(false);
     requestAnimationFrame(() => {
       restoringDraftRef.current = false;
       syncCursorPosition();
     });
-    // useEffectEvent callbacks intentionally omitted; this should only rerun on conversation changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId, syncCursorPosition]);
+
+  useEffect(() => {
+    if (!slashMatch) {
+      setSlashMenuSuppressed(false);
+    }
+  }, [slashMatch]);
+
+  useEffect(() => {
+    setSlashIndex(0);
+  }, [slashMatch?.query, slashCommands.length]);
 
   useEffect(() => {
     window.dispatchEvent(new CustomEvent("chat-composer-resize"));
@@ -738,7 +588,7 @@ export const ChatInput = memo(function ChatInput({
   }, []);
 
   const handleImagePaste = useCallback(
-    (file: File) => {
+    async (file: File) => {
       const MAX_SIZE = 10 * 1024 * 1024; // 10MB
       if (file.size > MAX_SIZE) {
         toast.error("Image too large (max 10MB)");
@@ -752,87 +602,109 @@ export const ChatInput = memo(function ChatInput({
       }
 
       setUploading(true);
-      const fileName = file.name || `pasted-image-${Date.now()}.png`;
-
-      void uploadComposerAttachment({
-        apiClient,
-        conversationId,
-        fileName,
-        contentType: file.type,
-        body: file,
-        errorMessage: "Failed to upload image",
-      })
-        .then(({ storageId }) => {
-          const attachment: Attachment = {
-            type: "image",
-            name: fileName,
-            storageId,
-            mimeType: file.type,
-            size: file.size,
-            url: URL.createObjectURL(file),
-          };
-
-          onAttachmentsChange([...attachments, attachment]);
-          toast.success("Image added");
-          analytics.track("attachment_uploaded", {
-            type: "image",
-            size: file.size,
-            mimeType: file.type,
-            countPerMessage: 1,
-          });
-        })
-        .catch((error) => {
-          console.error("Image paste upload failed:", error);
-          toast.error("Failed to upload image");
-        })
-        .finally(() => {
-          setUploading(false);
+      try {
+        const uploadUrl = await generateUploadUrl();
+        const result = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": file.type },
+          body: file,
         });
+        const { storageId } = await result.json();
+
+        await saveFile({
+          storageId,
+          name: file.name || `pasted-image-${Date.now()}.png`,
+          mimeType: file.type,
+          size: file.size,
+          conversationId,
+        });
+
+        const attachment: Attachment = {
+          type: "image",
+          name: file.name || `pasted-image-${Date.now()}.png`,
+          storageId,
+          mimeType: file.type,
+          size: file.size,
+        };
+
+        onAttachmentsChange([...attachments, attachment]);
+        toast.success("Image added");
+        analytics.track("attachment_uploaded", {
+          type: "image",
+          size: file.size,
+          mimeType: file.type,
+          countPerMessage: 1,
+        });
+      } catch (error) {
+        console.error("Image paste upload failed:", error);
+        toast.error("Failed to upload image");
+      } finally {
+        setUploading(false);
+      }
     },
-    [attachments, apiClient, conversationId, onAttachmentsChange, setUploading],
+    [
+      attachments,
+      conversationId,
+      generateUploadUrl,
+      onAttachmentsChange,
+      saveFile,
+      setUploading,
+    ],
   );
 
   const handleLargeTextPaste = useCallback(
-    (text: string) => {
+    async (text: string) => {
       setUploading(true);
-      const blob = new Blob([text], { type: "text/plain" });
-      const filename = `pasted-text-${Date.now()}.txt`;
+      try {
+        const blob = new Blob([text], { type: "text/plain" });
+        const filename = `pasted-text-${Date.now()}.txt`;
 
-      void uploadComposerAttachment({
-        apiClient,
-        conversationId,
-        fileName: filename,
-        contentType: "text/plain",
-        body: blob,
-        errorMessage: "Failed to upload text attachment",
-      })
-        .then(({ storageId }) => {
-          const attachment: Attachment = {
-            type: "file",
-            name: filename,
-            storageId,
-            mimeType: "text/plain",
-            size: blob.size,
-          };
-
-          onAttachmentsChange([...attachments, attachment]);
-          toast.success("Large text attached as file");
-          analytics.track("attachment_uploaded", {
-            type: "file",
-            size: blob.size,
-            mimeType: "text/plain",
-            countPerMessage: 1,
-          });
-        })
-        .catch((error) => {
-          console.error("Large text paste upload failed:", error);
-          toast.error("Failed to attach text");
-        })
-        .finally(() => {
-          setUploading(false);
+        const uploadUrl = await generateUploadUrl();
+        const result = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: blob,
         });
+        const { storageId } = await result.json();
+
+        await saveFile({
+          storageId,
+          name: filename,
+          mimeType: "text/plain",
+          size: blob.size,
+          conversationId,
+        });
+
+        const attachment: Attachment = {
+          type: "file",
+          name: filename,
+          storageId,
+          mimeType: "text/plain",
+          size: blob.size,
+        };
+
+        onAttachmentsChange([...attachments, attachment]);
+        toast.success("Large text attached as file");
+        analytics.track("attachment_uploaded", {
+          type: "file",
+          size: blob.size,
+          mimeType: "text/plain",
+          countPerMessage: 1,
+        });
+      } catch (error) {
+        console.error("Large text paste upload failed:", error);
+        toast.error("Failed to attach text");
+      } finally {
+        setUploading(false);
+      }
     },
-    [attachments, apiClient, conversationId, onAttachmentsChange],
+    [
+      attachments,
+      conversationId,
+      generateUploadUrl,
+      onAttachmentsChange,
+      saveFile,
+    ],
   );
 
   const handlePaste = useCallback(
@@ -897,392 +769,372 @@ export const ChatInput = memo(function ChatInput({
   const showExpandButton = input.length > 100;
 
   return (
-    <LazyMotion features={domAnimation}>
-      <div
+    <div
+      className={cn(
+        "w-full mx-auto px-2 sm:px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] transition-[max-width] duration-300 ease-out",
+        getChatWidthClass(chatWidth, false),
+      )}
+    >
+      <form
+        ref={formRef}
+        onSubmit={handleSubmit}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        role="search"
+        aria-label="Send message to AI"
         className={cn(
-          "w-full mx-auto px-2 sm:px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] transition-[max-width] duration-300 ease-out",
-          getChatWidthClass(chatWidth, false),
+          "relative flex flex-col gap-2 p-2 sm:p-4 transition-all duration-300 ease-out",
+          isTouchDevice ? "bg-background" : "bg-background/90 backdrop-blur-xl",
+          "border border-white/15 dark:border-white/10",
+          "rounded-xl",
+          "shadow-lg",
+          isFocused && [
+            "ring-1 ring-primary/20",
+            "shadow-[0_0_0_1px_rgba(var(--primary-rgb),0.1),0_2px_8px_rgba(var(--primary-rgb),0.08),0_8px_24px_rgba(var(--primary-rgb),0.06)]",
+            "border-primary/20",
+          ],
+          !isFocused &&
+            "hover:border-white/[0.1] hover:shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.08),0_12px_24px_rgba(0,0,0,0.06)]",
         )}
       >
-        <form
-          ref={formRef}
-          onSubmit={handleSubmit}
-          onDragEnter={handleDragEnter}
-          onDragLeave={handleDragLeave}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          role="search"
-          aria-label="Send message to AI"
-          className={cn(
-            "relative flex flex-col gap-2 p-2 sm:p-4 transition-all duration-300 ease-out",
-            isTouchDevice
-              ? "bg-background"
-              : "bg-background/90 backdrop-blur-xl",
-            "border border-white/15 dark:border-white/10",
-            "rounded-xl",
-            "shadow-lg",
-            isFocused && [
-              "ring-1 ring-primary/20",
-              "shadow-[0_0_0_1px_rgba(var(--primary-rgb),0.1),0_2px_8px_rgba(var(--primary-rgb),0.08),0_8px_24px_rgba(var(--primary-rgb),0.06)]",
-              "border-primary/20",
-            ],
-            !isFocused &&
-              "hover:border-white/[0.1] hover:shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.08),0_12px_24px_rgba(0,0,0,0.06)]",
+        {/* Drop zone overlay */}
+        <AnimatePresence>
+          {isDraggingOver && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="absolute inset-0 z-10 overflow-hidden pointer-events-none rounded-3xl"
+            >
+              <div className="absolute inset-0 border-2 border-dashed border-primary/50 rounded-3xl animate-pulse" />
+              <div className="absolute inset-0 flex items-center justify-center bg-primary/5 backdrop-blur-sm">
+                <motion.div
+                  initial={{ y: 4, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.05 }}
+                  className="flex flex-col items-center gap-2"
+                >
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10">
+                    <Upload className="w-6 h-6 text-primary" />
+                  </div>
+                  <span className="text-sm font-medium text-primary">
+                    Drop files here
+                  </span>
+                </motion.div>
+              </div>
+            </motion.div>
           )}
-        >
-          {/* Drop zone overlay */}
-          <AnimatePresence>
-            {isDraggingOver && (
-              <m.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="absolute inset-0 z-10 overflow-hidden pointer-events-none rounded-3xl"
-              >
-                <div className="absolute inset-0 border-2 border-dashed border-primary/50 rounded-3xl animate-pulse" />
-                <div className="absolute inset-0 flex items-center justify-center bg-primary/5 backdrop-blur-sm">
-                  <m.div
-                    initial={{ y: 4, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.05 }}
-                    className="flex flex-col items-center gap-2"
+        </AnimatePresence>
+
+        {/* Quote Preview */}
+        {quote && (
+          <QuotePreview quote={quote} onDismiss={() => setQuote(null)} />
+        )}
+
+        {/* Attachment previews */}
+        {attachments.length > 0 && (
+          <div className="px-3 pt-2">
+            <AttachmentPreview
+              attachments={attachments}
+              onRemove={(idx) =>
+                onAttachmentsChange(attachments.filter((_, i) => i !== idx))
+              }
+            />
+          </div>
+        )}
+
+        {/* Main input row - ChatGPT style: [+] [textarea] [mic/send] */}
+        <div className="flex items-start gap-2">
+          {/* Plus button - LEFT, bottom-aligned */}
+          <div className="flex-shrink-0">
+            <MobileAwareTooltip
+              content="Attach files"
+              side="top"
+              isTouchDevice={isTouchDevice}
+            >
+              <div>
+                <FileUpload
+                  conversationId={conversationId}
+                  attachments={attachments}
+                  onAttachmentsChange={onAttachmentsChange}
+                  onUploadComplete={() => textareaRef.current?.focus()}
+                  uploading={uploading}
+                  setUploading={setUploading}
+                />
+              </div>
+            </MobileAwareTooltip>
+          </div>
+
+          {/* Textarea container - grows upward, takes remaining space */}
+          <div className="relative flex-1 min-w-0">
+            <ChatInputSlashMenu
+              open={slashMenuOpen}
+              commands={slashCommands}
+              selectedCommandId={slashCommands[slashIndex]?.id ?? null}
+              onSelect={(command) => applySlashCommand(command.id)}
+            />
+            {isRecording ? (
+              <div className="relative min-h-[50px] flex items-center justify-center rounded-xl overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 animate-pulse" />
+                <div className="absolute inset-0 border border-primary/20 rounded-xl" />
+                <AudioWaveform
+                  stream={recordingStream!}
+                  height={50}
+                  className="absolute inset-0 w-full h-full"
+                />
+              </div>
+            ) : (
+              <>
+                <Textarea
+                  ref={textareaRef}
+                  data-testid="chat-input"
+                  value={input}
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    setCursorPosition(
+                      e.target.selectionStart ?? e.target.value.length,
+                    );
+                    setSlashMenuSuppressed(false);
+                  }}
+                  onKeyDown={handleTextareaKeyDown}
+                  onSelect={syncCursorPosition}
+                  onClick={syncCursorPosition}
+                  onKeyUp={syncCursorPosition}
+                  onPaste={handlePaste}
+                  onCompositionStart={() => setIsComposing(true)}
+                  onCompositionEnd={() => setIsComposing(false)}
+                  onFocus={() => {
+                    setIsFocused(true);
+                    syncCursorPosition();
+                  }}
+                  onBlur={() => setIsFocused(false)}
+                  placeholder={getPlaceholder()}
+                  aria-label="Message input"
+                  aria-describedby="input-hint"
+                  aria-multiline="true"
+                  className="block [field-sizing:fixed] resize-none min-h-[50px] max-h-[200px] py-3 px-2 pr-8 bg-transparent border-0 shadow-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/50"
+                  rows={1}
+                  disabled={isSending || uploading}
+                  data-tour="input"
+                />
+                {/* Expand button for long text */}
+                {showExpandButton && (
+                  <MobileAwareTooltip
+                    content="Expand editor"
+                    side="top"
+                    isTouchDevice={isTouchDevice}
                   >
-                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10">
-                      <Upload className="w-6 h-6 text-primary" />
-                    </div>
-                    <span className="text-sm font-medium text-primary">
-                      Drop files here
-                    </span>
-                  </m.div>
-                </div>
-              </m.div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowExpandedInput(true)}
+                      className="absolute w-6 h-6 top-2 right-1 text-muted-foreground/50 hover:text-muted-foreground hover:bg-transparent"
+                      aria-label="Expand input"
+                    >
+                      <Expand className="w-3.5 h-3.5" />
+                    </Button>
+                  </MobileAwareTooltip>
+                )}
+              </>
             )}
-          </AnimatePresence>
+          </div>
 
-          {/* Quote Preview */}
-          {quote && (
-            <QuotePreview quote={quote} onDismiss={() => setQuote(null)} />
-          )}
+          <div id="input-hint" className="sr-only">
+            Type your message. Press Enter to send, Shift+Enter for new line.
+          </div>
 
-          {/* Attachment previews */}
-          {attachments.length > 0 && (
-            <div className="px-3 pt-2">
-              <AttachmentPreview
-                attachments={attachments}
-                onRemove={(idx) =>
-                  onAttachmentsChange(attachments.filter((_, i) => i !== idx))
-                }
-              />
-            </div>
-          )}
-
-          {/* Main input row - ChatGPT style: [+] [textarea] [mic/send] */}
-          <div className="flex items-start gap-2">
-            {/* Plus button - LEFT, bottom-aligned */}
-            <div className="flex-shrink-0">
+          {/* Right button(s) - bottom-aligned */}
+          <div className="flex items-center flex-shrink-0 gap-1">
+            {/* VoiceInput always rendered (hidden when !showMic) to preserve ref during recording */}
+            <div className={cn(showMic ? "block" : "hidden")}>
               <MobileAwareTooltip
-                content="Attach files"
-                side="top"
+                content="Voice input"
                 isTouchDevice={isTouchDevice}
               >
                 <div>
-                  <FileUpload
-                    conversationId={conversationId}
-                    attachments={attachments}
-                    onAttachmentsChange={onAttachmentsChange}
-                    onUploadComplete={() => textareaRef.current?.focus()}
-                    uploading={uploading}
-                    setUploading={setUploading}
-                  />
-                </div>
-              </MobileAwareTooltip>
-            </div>
-
-            {/* Textarea container - grows upward, takes remaining space */}
-            <div className="relative flex-1 min-w-0">
-              <ChatInputSlashMenu
-                open={slashMenuOpen}
-                commands={slashCommands}
-                selectedCommandId={slashCommands[activeSlashIndex]?.id ?? null}
-                onSelect={(command) => applySlashCommand(command.id)}
-              />
-              {isRecording ? (
-                <div className="relative min-h-[50px] flex items-center justify-center rounded-xl overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 animate-pulse" />
-                  <div className="absolute inset-0 border border-primary/20 rounded-xl" />
-                  <AudioWaveform
-                    stream={recordingStream!}
-                    height={50}
-                    className="absolute inset-0 w-full h-full"
-                  />
-                </div>
-              ) : (
-                <>
-                  <Textarea
-                    ref={textareaRef}
-                    data-testid="chat-input"
-                    value={input}
-                    onChange={(e) => {
-                      setInput(e.target.value);
-                      setCursorPosition(
-                        e.target.selectionStart ?? e.target.value.length,
-                      );
-                      setSlashMenuSuppressed(false);
-                    }}
-                    onKeyDown={handleTextareaKeyDown}
-                    onSelect={syncCursorPosition}
-                    onClick={syncCursorPosition}
-                    onKeyUp={syncCursorPosition}
-                    onPaste={handlePaste}
-                    onCompositionStart={() => setIsComposing(true)}
-                    onCompositionEnd={() => setIsComposing(false)}
-                    onFocus={() => {
-                      setIsFocused(true);
-                      syncCursorPosition();
-                    }}
-                    onBlur={() => setIsFocused(false)}
-                    placeholder={getPlaceholder()}
-                    aria-label="Message input"
-                    aria-describedby="input-hint"
-                    aria-multiline="true"
-                    className="block [field-sizing:fixed] resize-none min-h-[50px] max-h-[200px] py-3 px-2 pr-8 bg-transparent border-0 shadow-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/50"
-                    rows={1}
-                    disabled={isSending || uploading}
-                    data-tour="input"
-                  />
-                  {/* Expand button for long text */}
-                  {showExpandButton && (
-                    <MobileAwareTooltip
-                      content="Expand editor"
-                      side="top"
-                      isTouchDevice={isTouchDevice}
-                    >
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setShowExpandedInput(true)}
-                        className="absolute w-6 h-6 top-2 right-1 text-muted-foreground/50 hover:text-muted-foreground hover:bg-transparent"
-                        aria-label="Expand input"
-                      >
-                        <Expand className="w-3.5 h-3.5" />
-                      </Button>
-                    </MobileAwareTooltip>
-                  )}
-                </>
-              )}
-            </div>
-
-            <div id="input-hint" className="sr-only">
-              Type your message. Press Enter to send, Shift+Enter for new line.
-            </div>
-
-            {/* Right button(s) - bottom-aligned */}
-            <div className="flex items-center flex-shrink-0 gap-1">
-              {/* VoiceInput always rendered (hidden when !showMic) to preserve ref during recording */}
-              <div className={cn(showMic ? "block" : "hidden")}>
-                <MobileAwareTooltip
-                  content="Voice input"
-                  isTouchDevice={isTouchDevice}
-                >
-                  <div>
-                    <VoiceInput
-                      ref={voiceInputRef}
-                      onTranscript={(text, autoSend) => {
-                        setIsTranscribing(false);
-                        if (autoSend && text.trim()) {
-                          setIsSending(true);
-                          void sendMessageAsync({
+                  <VoiceInput
+                    ref={voiceInputRef}
+                    onTranscript={async (text, autoSend) => {
+                      setIsTranscribing(false);
+                      if (autoSend && text.trim()) {
+                        setIsSending(true);
+                        try {
+                          await sendMessage({
                             conversationId,
-                            parentMessageId,
                             content: text.trim(),
-                            clientMessageId: `client-${Date.now()}-${Math.random()
-                              .toString(36)
-                              .slice(2, 10)}`,
                             ...(isComparisonMode
                               ? { models: selectedModels }
                               : { modelId: selectedModel }),
                             thinkingEffort,
                             attachments:
                               attachments.length > 0 ? attachments : undefined,
-                          })
-                            .then(() => {
-                              onAttachmentsChange([]);
-                            })
-                            .catch((error) => {
-                              if (
-                                error instanceof Error &&
-                                error.message.includes("Daily message limit")
-                              ) {
-                                setShowRateLimitDialog(true);
-                                return;
-                              }
-                              console.error("Failed to send message:", error);
-                            })
-                            .finally(() => {
-                              setIsSending(false);
-                            });
-                          return;
+                          });
+                          onAttachmentsChange([]);
+                        } catch (error) {
+                          if (
+                            error instanceof Error &&
+                            error.message.includes("Daily message limit")
+                          ) {
+                            setShowRateLimitDialog(true);
+                          } else {
+                            console.error("Failed to send message:", error);
+                          }
+                        } finally {
+                          setIsSending(false);
                         }
-
+                      } else {
                         setInput((prev) =>
                           prev.trim() ? `${prev} ${text}` : text,
                         );
-                      }}
-                      onRecordingStateChange={(recording, stream) => {
-                        setIsRecording(recording);
-                        setRecordingStream(stream || null);
-                        if (!recording && stream) setIsTranscribing(true);
-                      }}
-                      isDisabled={isSending || uploading}
-                    />
-                  </div>
-                </MobileAwareTooltip>
-              </div>
-
-              {/* Stop recording button (preview mode) - appears during recording */}
-              {isRecording && (
-                <MobileAwareTooltip
-                  content="Stop & edit"
-                  isTouchDevice={isTouchDevice}
-                >
-                  <m.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                  >
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      onClick={() =>
-                        voiceInputRef.current?.stopRecording("preview")
                       }
-                      aria-label="Stop recording and edit"
-                      className="w-10 h-10 rounded-full"
-                    >
-                      <Square
-                        className="w-4 h-4 fill-current"
-                        aria-hidden="true"
-                      />
-                    </Button>
-                  </m.div>
-                </MobileAwareTooltip>
-              )}
+                    }}
+                    onRecordingStateChange={(recording, stream) => {
+                      setIsRecording(recording);
+                      setRecordingStream(stream || null);
+                      if (!recording && stream) setIsTranscribing(true);
+                    }}
+                    isDisabled={isSending || uploading}
+                  />
+                </div>
+              </MobileAwareTooltip>
+            </div>
 
-              {/* Show send/stop button when not showing mic */}
-              {!showMic && (
-                <m.div
-                  whileHover={canSend ? { scale: 1.05 } : undefined}
-                  whileTap={canSend ? { scale: 0.95, rotate: -2 } : undefined}
+            {/* Stop recording button (preview mode) - appears during recording */}
+            {isRecording && (
+              <MobileAwareTooltip
+                content="Stop & edit"
+                isTouchDevice={isTouchDevice}
+              >
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 >
                   <Button
-                    type={
-                      isGenerating
-                        ? "button"
-                        : isRecording
-                          ? "button"
-                          : "submit"
-                    }
+                    type="button"
                     size="icon"
-                    onClick={
-                      isGenerating
-                        ? handleStop
-                        : isRecording
-                          ? () => voiceInputRef.current?.stopRecording("send")
-                          : undefined
+                    variant="outline"
+                    onClick={() =>
+                      voiceInputRef.current?.stopRecording("preview")
                     }
-                    data-testid="send-button"
-                    aria-label={
-                      isGenerating
-                        ? isStopping
-                          ? "Stopping generation"
-                          : "Stop generating response"
-                        : isRecording
-                          ? "Stop recording and send"
-                          : "Send message"
-                    }
-                    className={cn(
-                      "h-10 w-10 rounded-full transition-all duration-200",
-                      !canSend
-                        ? "bg-muted/50 text-muted-foreground/50"
-                        : [
-                            "bg-primary text-primary-foreground",
-                            "shadow-[0_2px_8px_rgba(var(--primary-rgb),0.25)]",
-                            "hover:shadow-[0_4px_16px_rgba(var(--primary-rgb),0.35)]",
-                          ],
-                    )}
-                    disabled={!canSend}
+                    aria-label="Stop recording and edit"
+                    className="w-10 h-10 rounded-full"
                   >
-                    {isSending || isStopping ? (
-                      <Loader2
-                        className="w-5 h-5 animate-spin"
-                        aria-hidden="true"
-                      />
-                    ) : isGenerating ? (
-                      <Square
-                        className="w-4 h-4 fill-current"
-                        aria-hidden="true"
-                      />
-                    ) : (
-                      <Send className="w-5 h-5 ml-0.5" aria-hidden="true" />
-                    )}
+                    <Square
+                      className="w-4 h-4 fill-current"
+                      aria-hidden="true"
+                    />
                   </Button>
-                </m.div>
-              )}
-            </div>
+                </motion.div>
+              </MobileAwareTooltip>
+            )}
+
+            {/* Show send/stop button when not showing mic */}
+            {!showMic && (
+              <motion.div
+                whileHover={canSend ? { scale: 1.05 } : undefined}
+                whileTap={canSend ? { scale: 0.95, rotate: -2 } : undefined}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              >
+                <Button
+                  type={
+                    isGenerating ? "button" : isRecording ? "button" : "submit"
+                  }
+                  size="icon"
+                  onClick={
+                    isGenerating
+                      ? handleStop
+                      : isRecording
+                        ? () => voiceInputRef.current?.stopRecording("send")
+                        : undefined
+                  }
+                  data-testid="send-button"
+                  aria-label={
+                    isGenerating
+                      ? "Stop generating response"
+                      : isRecording
+                        ? "Stop recording and send"
+                        : "Send message"
+                  }
+                  className={cn(
+                    "h-10 w-10 rounded-full transition-all duration-200",
+                    !canSend
+                      ? "bg-muted/50 text-muted-foreground/50"
+                      : [
+                          "bg-primary text-primary-foreground",
+                          "shadow-[0_2px_8px_rgba(var(--primary-rgb),0.25)]",
+                          "hover:shadow-[0_4px_16px_rgba(var(--primary-rgb),0.35)]",
+                        ],
+                  )}
+                  disabled={!canSend}
+                >
+                  {isSending ? (
+                    <Loader2
+                      className="w-5 h-5 animate-spin"
+                      aria-hidden="true"
+                    />
+                  ) : isGenerating ? (
+                    <Square
+                      className="w-4 h-4 fill-current"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <Send className="w-5 h-5 ml-0.5" aria-hidden="true" />
+                  )}
+                </Button>
+              </motion.div>
+            )}
           </div>
+        </div>
 
-          <InputBottomBar
-            isComparisonMode={isComparisonMode}
-            selectedModels={selectedModels}
-            onExitComparison={onExitComparison}
-            onStartComparison={onStartComparison}
-            comparisonDialogOpen={comparisonDialogOpen}
-            onComparisonDialogOpenChange={onComparisonDialogOpenChange}
-            selectedModel={selectedModel}
-            onModelChange={onModelChange}
-            modelSelectorOpen={modelSelectorOpen}
-            onModelSelectorOpenChange={onModelSelectorOpenChange}
-            selectedIntegrationIds={selectedIntegrationIds}
-            onToggleIntegration={onToggleIntegration}
-            integrationsSaving={integrationsSaving}
-            supportsThinking={supportsThinking}
-            thinkingEffort={thinkingEffort}
-            onThinkingEffortChange={onThinkingEffortChange}
-            thinkingOpen={thinkingSelectorOpen}
-            onThinkingOpenChange={setThinkingSelectorOpen}
-            isEmpty={isEmpty}
-            hasContent={input.length > 0}
-          />
-          {isEmpty && !input.trim() && !quote && (
-            <div className="px-1 text-[11px] text-muted-foreground/70">
-              Type <span className="font-medium text-foreground">/</span> for
-              model, reasoning, template, or compare actions.
-            </div>
-          )}
-        </form>
-
-        <RateLimitDialog
-          open={showRateLimitDialog}
-          onOpenChange={setShowRateLimitDialog}
-          limit={50}
+        <InputBottomBar
+          isComparisonMode={isComparisonMode}
+          selectedModels={selectedModels}
+          onExitComparison={onExitComparison}
+          onStartComparison={onStartComparison}
+          comparisonDialogOpen={comparisonDialogOpen}
+          onComparisonDialogOpenChange={onComparisonDialogOpenChange}
+          selectedModel={selectedModel}
+          onModelChange={onModelChange}
+          modelSelectorOpen={modelSelectorOpen}
+          onModelSelectorOpenChange={onModelSelectorOpenChange}
+          supportsThinking={supportsThinking}
+          thinkingEffort={thinkingEffort}
+          onThinkingEffortChange={onThinkingEffortChange}
+          thinkingOpen={thinkingSelectorOpen}
+          onThinkingOpenChange={setThinkingSelectorOpen}
+          isEmpty={isEmpty}
+          hasContent={input.length > 0}
         />
+        {isEmpty && !input.trim() && !quote && (
+          <div className="px-1 text-[11px] text-muted-foreground/70">
+            Type <span className="font-medium text-foreground">/</span> for
+            model, reasoning, template, or compare actions.
+          </div>
+        )}
+      </form>
 
-        <ExpandedInputDialog
-          open={showExpandedInput}
-          onOpenChange={setShowExpandedInput}
-          value={input}
-          onChange={setInput}
-          onSubmit={() => {
-            setShowExpandedInput(false);
-            formRef.current?.requestSubmit();
-          }}
-          placeholder={getPlaceholder()}
-        />
-      </div>
-    </LazyMotion>
+      <RateLimitDialog
+        open={showRateLimitDialog}
+        onOpenChange={setShowRateLimitDialog}
+        limit={50}
+      />
+
+      <ExpandedInputDialog
+        open={showExpandedInput}
+        onOpenChange={setShowExpandedInput}
+        value={input}
+        onChange={setInput}
+        onSubmit={() => {
+          setShowExpandedInput(false);
+          formRef.current?.requestSubmit();
+        }}
+        placeholder={getPlaceholder()}
+      />
+    </div>
   );
 });

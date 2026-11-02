@@ -1,14 +1,4 @@
-> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; file paths and code samples below no longer apply.
-
 <project>
-<current_status_note>
-This spec predates the Postgres rewrite. It is useful product context, but its
-Convex-specific architecture sections are historical. Current self-hosting and
-runtime architecture use Next.js, Postgres with pgvector, Redis, R2-compatible
-storage, Clerk, and Trigger.dev; see ../SELF_HOSTING.md and
-operations/production-env-checklist.md.
-</current_status_note>
-
 <overview>
 Project Name: blah.chat - A personal, SaaS ChatGPT alternative that provides: The core motivation is to have full control over the chat experience, reduce subscription costs by using API pricing, support multiple LLM providers in one interface, and implement a custom memory system using RAG that works exactly how I want it to.
 
@@ -23,15 +13,15 @@ This is a serious, production-quality application for personal use. It should fe
   </core_framework>
 
 <database>
-- Postgres (Neon) with pgvector - Primary database, accessed via Drizzle ORM (packages/persistence-postgres):
-  - pgvector powers the RAG memory system and semantic search
-  - Redis (Upstash-compatible) provides cache and the live event log for streaming
-  - File storage on S3-compatible object storage (Cloudflare R2 in production, MinIO locally)
-  - Background jobs (generation, embeddings, transcription, maintenance) run on Trigger.dev (packages/jobs)
+- Convex - Reactive database with built-in vector search capabilities. This is crucial because:
+  - Real-time reactivity means chat messages appear instantly without polling
+  - Built-in vector search powers the RAG memory system
+  - Handles file storage
+  - No need for a separate ORM like Drizzle
 </database>
 
 <authentication>
-- Clerk - Handle all authentication, user management, sessions. Users sync into Postgres via Clerk webhooks.
+- Clerk - Handle all authentication, user management, sessions. Integrate with Convex for user data sync.
 </authentication>
 
 <ai_llm>
@@ -50,7 +40,7 @@ This is a serious, production-quality application for personal use. It should fe
 
 <data_fetching>
 
-- TanStack React Query - Client-side data fetching, caching, and state management over the REST API, with SSE for live streaming updates.
+- TanStack React Query - Client-side data fetching, caching, and state management. Use alongside Convex's reactive queries where appropriate.
   </data_fetching>
 
 <logging>
@@ -225,8 +215,8 @@ Powerful search across entire conversation history using hybrid search:
 
 Hybrid search approach:
 
-- Full-text search (keyword matching) via Postgres tsvector indexes
-- Vector/semantic search (meaning matching) via embeddings stored in pgvector
+- Full-text search (keyword matching) via Convex's built-in search
+- Vector/semantic search (meaning matching) via embeddings
 - Combine results with configurable weighting
 
 Search features:
@@ -1643,11 +1633,12 @@ Architecture Approach:
 
 5. Implementation options:
 
-   Option A - Trigger.dev jobs (Recommended for this stack):
-   - API route creates a generation request and enqueues a Trigger.dev task
-   - Worker calls the LLM API and persists partial/final content to Postgres
-   - Client resumes by polling or streaming from the server-backed request state
-   - Even if client disconnects, the worker completes and saves
+   Option A - Convex Actions (Recommended for this stack):
+   - Convex actions can run for up to 10 minutes
+   - Start action, it calls LLM API and streams internally
+   - Periodically mutate the message record with new content
+   - Client subscribes to the message via Convex query - gets automatic updates
+   - Even if client disconnects, action completes and saves
 
    Option B - External background job:
    - Use a job queue (Inngest, Trigger.dev, QStash, or similar)
@@ -1776,23 +1767,14 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
 CLERK_WEBHOOK_SECRET=
 
-# Postgres, Redis, R2-compatible storage
-DATABASE_URL=
-UPSTASH_REDIS_REST_URL=
-UPSTASH_REDIS_REST_TOKEN=
-R2_ACCOUNT_ID=
-R2_ACCESS_KEY_ID=
-R2_SECRET_ACCESS_KEY=
-R2_BUCKET=
-
-# Background jobs
-TRIGGER_SECRET_KEY=
-TRIGGER_API_URL=https://api.trigger.dev
-INTERNAL_TASK_SECRET=
-INTERNAL_TASK_BASE_URL=
+# Convex
+NEXT_PUBLIC_CONVEX_URL=
+CONVEX_DEPLOY_KEY=
 
 # LLM Providers
-AI_GATEWAY_API_KEY=
+OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
+GOOGLE_GENERATIVE_AI_API_KEY=
 
 # Image Generation (Google Imagen via Vertex AI)
 GOOGLE_CLOUD_PROJECT_ID=

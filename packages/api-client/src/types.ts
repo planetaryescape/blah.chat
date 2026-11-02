@@ -12,84 +12,10 @@ export interface ApiEnvelope<T = unknown> {
 
 export type ThinkingEffort = "none" | "low" | "medium" | "high";
 
-export interface GenerationRequest {
-  requestId: string;
-  conversationId: string;
-  userMessageId: string;
-  assistantMessageIds: string[];
-  modelIds?: string[];
-  streamUrl: string;
-  stopUrl: string;
-  status: string;
-}
-
-export interface ActiveGeneration {
-  conversationId: string;
-  requestId: string | null;
-  streamUrl: string | null;
-  status: string | null;
-}
-
-export interface BackgroundJobProgress {
-  current?: number;
-  message?: string;
-  eta?: number;
-}
-
-export interface BackgroundJobError {
-  message: string;
-  code?: string;
-}
-
-export interface BackgroundJob<TResult = unknown> {
-  _id: string;
-  status: "pending" | "running" | "completed" | "failed" | "cancelled";
-  progress?: BackgroundJobProgress;
-  result?: TResult;
-  error?: BackgroundJobError;
-}
-
-export interface GenerationStreamEvent {
-  type: string;
-  requestId: string;
-  sessionId: string;
-  assistantMessageId: string;
-  modelId: string;
-  seq: number;
-  ts: number;
-  content?: string;
-  delta?: string;
-  error?: string;
-  retryable?: boolean;
-  reason?: string;
-}
-
-export type UserTier = "free" | "tier1" | "tier2";
-
-export interface User {
-  _id: string;
-  clerkId: string;
-  email: string;
-  name: string;
-  imageUrl?: string;
-  tier: UserTier;
-  isAdmin: boolean;
-  createdAt: number;
-  updatedAt: number;
-}
-
 export interface Conversation {
   _id: string;
   title?: string | null;
   model?: string | null;
-  selectedIntegrationIds?: string[];
-  isIncognito?: boolean;
-  incognitoSettings?: {
-    enableReadTools: boolean;
-    applyCustomInstructions: boolean;
-    inactivityTimeoutMinutes?: number;
-    lastActivityAt?: number;
-  };
   pinned?: boolean;
   messageCount?: number;
   lastMessageAt?: number;
@@ -99,7 +25,6 @@ export interface Conversation {
 export interface Message {
   _id: string;
   conversationId?: string;
-  conversationTitle?: string | null;
   role: "user" | "assistant" | "system";
   content: string;
   partialContent?: string;
@@ -124,21 +49,9 @@ export interface Model {
 export interface Memory {
   _id: string;
   content: string;
-  category?: string;
-  conversationId?: string;
-  sourceMessageId?: string;
-  sourceMessageIds?: string[];
-  metadata?: {
-    category?: string;
-    importance?: number;
-    confidence?: number;
-    reasoning?: string;
-    expiresAt?: number;
-    version?: number;
-    verifiedBy?: string;
-  };
+  category: string;
+  importance?: number;
   createdAt: number;
-  updatedAt?: number;
 }
 
 export interface Project {
@@ -146,7 +59,6 @@ export interface Project {
   name: string;
   description?: string;
   createdAt: number;
-  updatedAt?: number;
 }
 
 export interface Bookmark {
@@ -156,9 +68,7 @@ export interface Bookmark {
   note?: string;
   tags?: string[];
   messagePreview?: string;
-  conversationTitle?: string;
   createdAt: number;
-  updatedAt?: number;
 }
 
 export interface Template {
@@ -170,95 +80,6 @@ export interface Template {
   isBuiltIn: boolean;
   usageCount: number;
   createdAt: number;
-  updatedAt?: number;
-}
-
-export interface StarterSuggestion {
-  id: string;
-  text: string;
-  icon: "sparkles" | "brain" | "zap" | "penLine";
-}
-
-export interface StarterSuggestionsResponse {
-  suggestions: StarterSuggestion[];
-  needsRefresh: boolean;
-  generatedAt: number;
-  source: "cache" | "fallback";
-}
-
-export interface ProjectStats {
-  conversationCount: number;
-  noteCount: number;
-  fileCount: number;
-  activeTaskCount: number;
-  taskStats?: {
-    total: number;
-    active: number;
-    completed: number;
-  };
-  lastActivityAt: number;
-}
-
-export interface KnowledgeSource {
-  _id: string;
-  projectId?: string;
-  type: "file" | "text" | "web" | "youtube";
-  title: string;
-  description?: string;
-  status: string;
-  error?: string;
-  chunkCount?: number;
-  mimeType?: string;
-  size?: number;
-  url?: string;
-  createdAt: number;
-  updatedAt: number;
-}
-
-export interface CliApiKey {
-  _id: string;
-  keyPrefix: string;
-  name: string;
-  lastUsedAt?: number;
-  createdAt: number;
-}
-
-export interface CliApiKeyCreateResult {
-  key: string;
-  keyPrefix: string;
-  email: string;
-  name: string;
-}
-
-export interface ByokConfig {
-  _id: string;
-  byokEnabled: boolean;
-  hasVercelGatewayKey: boolean;
-  hasOpenRouterKey: boolean;
-  hasGroqKey: boolean;
-  hasDeepgramKey: boolean;
-  lastValidated?: {
-    vercelGateway?: number;
-    openRouter?: number;
-    groq?: number;
-    deepgram?: number;
-  };
-  createdAt: number;
-  updatedAt: number;
-}
-
-export interface ComposioConnection {
-  _id: string;
-  integrationId: string;
-  integrationName?: string;
-  composioConnectionId?: string;
-  status: "pending" | "initiated" | "active" | "expired" | "failed";
-  scopes?: string[];
-  connectedAt?: number;
-  lastUsedAt?: number;
-  lastError?: string;
-  createdAt: number;
-  updatedAt: number;
 }
 
 export interface Task {
@@ -283,12 +104,6 @@ export interface Note {
   isPinned: boolean;
   projectId?: string;
   tags?: string[];
-  suggestedTags?: string[];
-  sourceMessageId?: string;
-  sourceConversationId?: string;
-  shareId?: string;
-  isPublic?: boolean;
-  shareExpiresAt?: number;
   createdAt: number;
   updatedAt: number;
 }

@@ -1,19 +1,14 @@
 "use client";
 
+import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { OptimisticMessage } from "@/types/optimistic";
 
-type ServerMessage = any;
+type ServerMessage = Doc<"messages">;
 export type MessageWithOptimistic = ServerMessage | OptimisticMessage;
 
 interface UseOptimisticMessagesOptions {
   serverMessages: ServerMessage[] | undefined;
-  /**
-   * Route-owned conversation id. Optimistic state is scoped to it — deriving
-   * the id from serverMessages[0] broke for new/empty conversations
-   * (undefined) and leaked optimistic messages into the next conversation.
-   */
-  conversationId: string | undefined;
 }
 
 interface UseOptimisticMessagesReturn {
@@ -25,7 +20,7 @@ interface UseOptimisticMessagesReturn {
  * Time windows for matching optimistic user messages to server-confirmed ones.
  *
  * NOTE: Only USER messages are optimistic. Server creates assistant messages
- * synchronously (server-side) so no client-side optimistic assistant
+ * synchronously (convex/chat.ts:188-205) so no client-side optimistic assistant
  * messages exist.
  *
  * - MATCH_FUTURE_WINDOW_MS (10s): Allow server message to arrive after optimistic
@@ -187,23 +182,14 @@ function findBestOptimisticMatchIndex(
 function mergeWithOptimisticMessages(
   serverMessages: ServerMessage[],
   optimisticMessages: OptimisticMessage[],
-  conversationId: string | undefined,
 ): MessageWithOptimistic[] {
   const orderedServerMessages = stabilizeServerOrder(serverMessages);
 
-  // Optimistic messages are stamped with their conversation at creation;
-  // never overlay messages that belong to a different conversation.
-  const scopedOptimistic = conversationId
-    ? optimisticMessages.filter(
-        (message) => message.conversationId === conversationId,
-      )
-    : [];
-
-  if (scopedOptimistic.length === 0) {
+  if (optimisticMessages.length === 0) {
     return orderedServerMessages;
   }
 
-  const remainingOptimistic = [...scopedOptimistic];
+  const remainingOptimistic = [...optimisticMessages];
   for (const serverMessage of orderedServerMessages) {
     if (serverMessage.role !== "user") {
       continue;
@@ -230,24 +216,29 @@ function mergeWithOptimisticMessages(
  */
 export function useOptimisticMessages({
   serverMessages,
-  conversationId,
 }: UseOptimisticMessagesOptions): UseOptimisticMessagesReturn {
   const [optimisticMessages, setOptimisticMessages] = useState<
     OptimisticMessage[]
   >([]);
 
-  // Track the route conversation id to clear optimistic messages on switch.
-  // Using the route id (not serverMessages[0].conversationId) means new/empty
-  // conversations are handled too — they have no server messages to derive
-  // an id from.
-  const conversationIdRef = useRef<string | undefined>(conversationId);
+  // Track conversation ID to clear optimistic messages on conversation switch
+  const conversationIdRef = useRef<string | undefined>(undefined);
+  const currentConversationId = serverMessages?.[0]?.conversationId;
 
+  // Clear optimistic messages when conversation changes
+  // This handles all transitions:
+  // - Conversation A → B (clear A's optimistic messages)
+  // - Conversation A → undefined/loading (clear A's optimistic messages)
+  // - undefined → Conversation A (keep empty, no messages to clear)
   useEffect(() => {
-    if (conversationIdRef.current !== conversationId) {
-      conversationIdRef.current = conversationId;
+    if (
+      conversationIdRef.current &&
+      conversationIdRef.current !== currentConversationId
+    ) {
       setOptimisticMessages([]);
     }
-  }, [conversationId]);
+    conversationIdRef.current = currentConversationId;
+  }, [currentConversationId]);
 
   // Callback for ChatInput to add optimistic messages (instant, before API call)
   const addOptimisticMessages = useCallback(
@@ -269,7 +260,7 @@ export function useOptimisticMessages({
     if (serverMessages === undefined) {
       if (
         prevConversationIdRef.current &&
-        prevConversationIdRef.current === conversationId
+        prevConversationIdRef.current === currentConversationId
       ) {
         return prevMessagesRef.current ?? undefined;
       }
@@ -279,12 +270,11 @@ export function useOptimisticMessages({
     const merged = mergeWithOptimisticMessages(
       serverMessages,
       optimisticMessages,
-      conversationId,
     );
     prevMessagesRef.current = merged;
-    prevConversationIdRef.current = conversationId;
+    prevConversationIdRef.current = currentConversationId;
     return merged;
-  }, [serverMessages, optimisticMessages, conversationId]);
+  }, [serverMessages, optimisticMessages, currentConversationId]);
 
   // NOTE: We intentionally don't clean up optimistic messages from state
   // The useMemo already filters them out visually when server confirms.

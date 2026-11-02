@@ -40,12 +40,12 @@ export default function PrivacyPage() {
                 can export or delete anytime.
               </li>
               <li>
-                <strong>BYOK</strong>: BYOK keys are encrypted at rest and used
-                only to call providers on your behalf.
+                <strong>BYOK</strong>: Your API keys go directly to providers.
+                We never store them.
               </li>
               <li>
-                <strong>BYOD preview</strong>: Own-database storage is not
-                generally available yet; cloud accounts use managed storage.
+                <strong>BYOD</strong>: Your data stays in your Convex database.
+                We only store operational data.
               </li>
               <li>
                 <strong>Self-hosted</strong>: You control everything. Nothing
@@ -69,13 +69,13 @@ export default function PrivacyPage() {
             <li>Notes, tasks, and projects you create</li>
             <li>Memory extractions (facts from conversations)</li>
             <li>Token usage and costs (for billing and transparency)</li>
-            <li>Encrypted BYOK API keys if you enable BYOK</li>
           </ul>
 
           <h3>What We Don't Collect</h3>
           <ul>
+            <li>Your API keys (BYOK mode - sent directly to providers)</li>
             <li>Browsing history or tracking cookies</li>
-            <li>BYOD database contents while BYOD remains in preview</li>
+            <li>Data from your personal Convex database (BYOD mode)</li>
           </ul>
 
           <h2>How We Use Your Data</h2>
@@ -102,9 +102,9 @@ export default function PrivacyPage() {
           <p>We use these services to operate blah.chat:</p>
           <ul>
             <li>
-              <strong>Neon Postgres</strong>: Database (
+              <strong>Convex</strong>: Database and backend (
               <a
-                href="https://neon.tech/privacy"
+                href="https://convex.dev/privacy"
                 target="_blank"
                 rel="noopener"
               >
@@ -178,7 +178,7 @@ export default function PrivacyPage() {
           <ul>
             <li>All data encrypted in transit (TLS 1.3)</li>
             <li>All data encrypted at rest (AES-256)</li>
-            <li>SOC 2 compliant infrastructure (Neon, Clerk, Vercel)</li>
+            <li>SOC 2 compliant infrastructure (Convex, Clerk, Vercel)</li>
             <li>No plaintext storage of sensitive data</li>
           </ul>
 

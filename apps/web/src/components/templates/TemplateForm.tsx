@@ -1,5 +1,8 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useMutation } from "convex/react";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -14,15 +17,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useAsyncAction } from "@/hooks/useAsyncAction";
-import {
-  useCreateTemplate,
-  useUpdateTemplate,
-} from "@/lib/hooks/mutations/useTemplateMutations";
 
 interface TemplateFormProps {
   template?: {
-    _id: string;
+    _id: Id<"templates">;
     name: string;
     prompt: string;
     description?: string;
@@ -38,22 +36,25 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
   const [prompt, setPrompt] = useState(template?.prompt || "");
   const [description, setDescription] = useState(template?.description || "");
   const [category, setCategory] = useState(template?.category || "coding");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const createTemplateMutation = useCreateTemplate();
-  const updateTemplateMutation = useUpdateTemplate();
+  const createTemplate = useMutation(api.templates.create);
+  const updateTemplate = useMutation(api.templates.update);
 
   const isEditing = !!template;
 
-  const { run: submitTemplate, isPending: isSubmitting } = useAsyncAction(
-    async () => {
-      if (!name.trim() || !prompt.trim()) {
-        toast.error("Name and prompt are required");
-        return;
-      }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !prompt.trim()) {
+      toast.error("Name and prompt are required");
+      return;
+    }
 
+    setIsSubmitting(true);
+    try {
       if (isEditing) {
-        await updateTemplateMutation.mutateAsync({
-          templateId: template._id,
+        await updateTemplate({
+          id: template._id,
           name: name.trim(),
           prompt: prompt.trim(),
           description: description.trim() || undefined,
@@ -61,7 +62,7 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
         });
         toast.success("Template updated");
       } else {
-        await createTemplateMutation.mutateAsync({
+        await createTemplate({
           name: name.trim(),
           prompt: prompt.trim(),
           description: description.trim() || undefined,
@@ -70,18 +71,12 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
         toast.success("Template created");
       }
       onSuccess?.();
-    },
-    {
-      onError: (error) => {
-        toast.error(`Failed to ${isEditing ? "update" : "create"} template`);
-        console.error(error);
-      },
-    },
-  );
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    void submitTemplate();
+    } catch (error) {
+      toast.error(`Failed to ${isEditing ? "update" : "create"} template`);
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -105,7 +100,7 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {CATEGORIES.map((cat) => (
+            {CATEGORIES.map((cat: any) => (
               <SelectItem key={cat} value={cat}>
                 {cat.charAt(0).toUpperCase() + cat.slice(1)}
               </SelectItem>

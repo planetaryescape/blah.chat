@@ -20,7 +20,7 @@ This privacy policy applies to **self-hosted instances** of blah.chat. For the c
 
 When you run blah.chat on your own infrastructure:
 
-### Your Postgres Database
+### Your Convex Database
 - User accounts (name, email from Clerk)
 - Conversations and messages (content you create)
 - AI model preferences
@@ -36,12 +36,10 @@ When you run blah.chat on your own infrastructure:
 
 **Controlled by**: Your Clerk account settings.
 
-### File Storage (S3-Compatible Object Storage)
+### File Storage (Convex Storage)
 - Message attachments (images, PDFs, audio)
 - Generated images (DALL-E, Imagen)
 - Voice recordings (transcription input)
-
-Stored in any S3-compatible bucket (MinIO locally, Cloudflare R2 or similar in production).
 
 **You control**: Storage location, retention policies.
 
@@ -119,19 +117,12 @@ Check console logs - you'll see exactly what data is collected.
 
 Self-hosted blah.chat requires these services:
 
-### Postgres Database (Neon or Self-Managed)
-- **Purpose**: Database for all application data
+### Convex (Database + Backend)
+- **Purpose**: Database, serverless functions, file storage
 - **Data**: All conversation data, messages, user preferences
-- **Privacy policy** (if using Neon): https://neon.tech/privacy
-- **Your control**: You choose where Postgres runs (Neon, another host, or your own server); you're the controller
-- **GDPR**: Neon is GDPR-compliant, SOC 2 certified; self-managed Postgres is fully under your control
-
-### Trigger.dev (Background Jobs)
-- **Purpose**: Durable background jobs (generation, embeddings, transcription, maintenance)
-- **Data**: Job payloads may reference message/file IDs; job execution calls back into your instance
-- **Privacy policy**: https://trigger.dev/legal/privacy
-- **Your control**: Your Trigger.dev project; can also be self-hosted
-- **GDPR**: Trigger.dev is GDPR-compliant
+- **Privacy policy**: https://convex.dev/privacy
+- **Your control**: Data in your Convex project, you're the controller
+- **GDPR**: Convex is GDPR-compliant, SOC 2 certified
 
 ### Clerk (Authentication)
 - **Purpose**: User sign-in, session management
@@ -182,11 +173,11 @@ Each has their own privacy policy. These are optional - disable if not needed.
 
 **Export data anytime**:
 ```bash
-pg_dump "$DATABASE_URL" > backup.sql
+bunx convex export --output backup.json
 ```
 
 **Delete all data**:
-Drop your Postgres database (and delete your storage bucket) = all data permanently deleted.
+Delete your Convex project = all data permanently deleted.
 
 ---
 
@@ -212,8 +203,7 @@ If you're in the EU or serve EU users:
 - Implement appropriate security measures
 
 ### Data Processors
-- Your Postgres host (e.g. Neon, stores your data)
-- Trigger.dev (runs background jobs)
+- Convex (stores your data)
 - Clerk (manages authentication)
 - AI providers (process messages)
 
@@ -222,7 +212,7 @@ Each is GDPR-compliant, but **you** are responsible for contracts (DPAs).
 ### User Rights
 
 Users of your instance can request:
-- **Access**: Export their data (e.g. `pg_dump` or per-user SQL export)
+- **Access**: Export their data (`bunx convex export`)
 - **Deletion**: Delete user account (deletes all associated data)
 - **Portability**: Export in JSON format (machine-readable)
 - **Rectification**: Edit profile, preferences
@@ -238,8 +228,8 @@ Users of your instance can request:
 **Your responsibility** as self-host operator:
 
 - **Encryption in transit**: HTTPS (use Vercel, Railway, or reverse proxy)
-- **Encryption at rest**: Depends on your Postgres host (Neon encrypts at rest); enable disk encryption if self-managed
-- **Access control**: Limit who can access your database, storage, and Clerk dashboards
+- **Encryption at rest**: Convex encrypts data at rest (AES-256)
+- **Access control**: Limit who can access your Convex/Clerk dashboards
 - **Secrets management**: Keep API keys secure (use environment variables)
 - **Updates**: Keep blah.chat updated (security patches)
 

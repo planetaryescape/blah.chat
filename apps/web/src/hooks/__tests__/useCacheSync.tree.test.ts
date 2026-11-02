@@ -1,3 +1,4 @@
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { describe, expect, it } from "vitest";
 import {
   getChildMessagesForParent,
@@ -5,13 +6,13 @@ import {
   orderMessagesByActivePath,
 } from "../useCacheSync";
 
-function createMessage(overrides: Partial<any>): any {
+function createMessage(overrides: Partial<Doc<"messages">>): Doc<"messages"> {
   const now = Date.now();
   return {
-    _id: `msg-${crypto.randomUUID()}` as string,
+    _id: `msg-${crypto.randomUUID()}` as Id<"messages">,
     _creationTime: now,
-    conversationId: "conv-1" as string,
-    userId: "user-1" as string,
+    conversationId: "conv-1" as Id<"conversations">,
+    userId: "user-1" as Id<"users">,
     role: "user",
     content: "message",
     status: "complete",
@@ -24,19 +25,19 @@ function createMessage(overrides: Partial<any>): any {
 describe("useCacheSync tree helpers", () => {
   it("orders active-path messages from root to active leaf", () => {
     const root = createMessage({
-      _id: "root" as string,
+      _id: "root" as Id<"messages">,
       siblingIndex: 0,
       isActiveBranch: true,
     });
     const branch = createMessage({
-      _id: "branch" as string,
+      _id: "branch" as Id<"messages">,
       role: "assistant",
       parentMessageIds: [root._id],
       siblingIndex: 0,
       isActiveBranch: true,
     });
     const leaf = createMessage({
-      _id: "leaf" as string,
+      _id: "leaf" as Id<"messages">,
       parentMessageIds: [branch._id],
       siblingIndex: 0,
       isActiveBranch: true,
@@ -51,17 +52,17 @@ describe("useCacheSync tree helpers", () => {
   });
 
   it("resolves children from both parentMessageId and parentMessageIds", () => {
-    const parentId = "parent" as string;
+    const parentId = "parent" as Id<"messages">;
     const messages = [
       createMessage({ _id: parentId }),
       createMessage({
-        _id: "legacy-child" as string,
+        _id: "legacy-child" as Id<"messages">,
         role: "assistant",
         parentMessageId: parentId,
         siblingIndex: 1,
       }),
       createMessage({
-        _id: "array-child" as string,
+        _id: "array-child" as Id<"messages">,
         role: "assistant",
         parentMessageIds: [parentId],
         siblingIndex: 0,
@@ -76,15 +77,15 @@ describe("useCacheSync tree helpers", () => {
   });
 
   it("resolves siblings when message only has parentMessageIds", () => {
-    const parentId = "parent" as string;
+    const parentId = "parent" as Id<"messages">;
     const first = createMessage({
-      _id: "first" as string,
+      _id: "first" as Id<"messages">,
       role: "assistant",
       parentMessageIds: [parentId],
       siblingIndex: 0,
     });
     const second = createMessage({
-      _id: "second" as string,
+      _id: "second" as Id<"messages">,
       role: "assistant",
       parentMessageIds: [parentId],
       siblingIndex: 1,

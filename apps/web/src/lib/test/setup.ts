@@ -37,29 +37,6 @@ vi.mock("@/lib/cache", () => ({
       put: vi.fn(async () => {}),
     },
   },
-  prefetchConversationIntoCache: vi.fn(async () => {}),
-  prefetchMessagesIntoCache: vi.fn(async () => {}),
-}));
-
-// Mock Clerk auth - requires ClerkProvider context
-vi.mock("@clerk/nextjs", () => ({
-  useAuth: () => ({
-    isLoaded: true,
-    isSignedIn: true,
-    userId: "user_test123",
-    getToken: vi.fn(async () => "mock-token"),
-  }),
-  useUser: () => ({
-    isLoaded: true,
-    isSignedIn: true,
-    user: {
-      id: "user_test123",
-      primaryEmailAddress: { emailAddress: "test@test.com" },
-    },
-  }),
-  ClerkProvider: ({ children }: { children: unknown }) => children,
-  SignedIn: ({ children }: { children: unknown }) => children,
-  SignedOut: () => null,
 }));
 
 // Mock Radix UI Tooltip - requires TooltipProvider context
@@ -115,7 +92,6 @@ if (typeof window !== "undefined") {
   global.IntersectionObserver = class IntersectionObserver {
     readonly root: Element | null = null;
     readonly rootMargin: string = "";
-    readonly scrollMargin: string = "";
     readonly thresholds: ReadonlyArray<number> = [];
     observe() {}
     unobserve() {}

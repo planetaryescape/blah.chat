@@ -1,7 +1,7 @@
 "use client";
 
-import type { Project } from "@blah-chat/api-client";
-import { useQuery } from "@tanstack/react-query";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import { useMutation, useQuery } from "convex/react";
 import { FileText, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -13,25 +13,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useSDKClient } from "@/lib/api/sdkClient";
-import { useCreateProject } from "@/lib/hooks/mutations/useProjectMutations";
 
 export function TemplateManager() {
-  const sdk = useSDKClient();
+  const templates = useQuery(api.projects.listTemplates);
+  const createFromTemplate = useMutation(api.projects.createFromTemplate);
   const router = useRouter();
-  const createProject = useCreateProject();
 
-  const { data: templates } = useQuery<Project[]>({
-    queryKey: ["projects", "templates"],
-    queryFn: () => sdk.listProjectTemplates(),
-    staleTime: 10_000,
-  });
-
-  const handleCreateFromTemplate = async (template: Project) => {
+  const handleCreateFromTemplate = async (templateId: string) => {
     try {
-      await createProject.mutateAsync({
-        name: `${template.name} (Copy)`,
-        description: template.description,
+      const _projectId = await createFromTemplate({
+        templateId: templateId as any,
       });
       toast.success("Project created from template");
       router.push("/projects");
@@ -57,32 +48,47 @@ export function TemplateManager() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {templates.map((template) => (
-          <Card
-            key={template._id}
-            className="hover:shadow-md transition-shadow"
-          >
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                {template.name}
-              </CardTitle>
-              {template.description && (
-                <CardDescription>{template.description}</CardDescription>
-              )}
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={() => handleCreateFromTemplate(template)}
-                className="w-full"
-                size="sm"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create from Template
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+        {templates.map(
+          (template: {
+            _id: string;
+            name: string;
+            description?: string;
+            systemPrompt?: string;
+          }) => (
+            <Card
+              key={template._id}
+              className="hover:shadow-md transition-shadow"
+            >
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  {template.name}
+                </CardTitle>
+                {template.description && (
+                  <CardDescription>{template.description}</CardDescription>
+                )}
+              </CardHeader>
+              <CardContent>
+                {template.systemPrompt && (
+                  <div className="mb-4">
+                    <p className="text-sm font-medium mb-1">System Prompt:</p>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {template.systemPrompt}
+                    </p>
+                  </div>
+                )}
+                <Button
+                  onClick={() => handleCreateFromTemplate(template._id)}
+                  className="w-full"
+                  size="sm"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create from Template
+                </Button>
+              </CardContent>
+            </Card>
+          ),
+        )}
       </div>
     </div>
   );

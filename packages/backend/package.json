@@ -43,6 +43,7 @@
     "convex-helpers": "^0.1.108",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
+    "htmlparser2": "8.0.2",
     "jszip": "^3.10.1",
     "marked": "^17.0.1",
     "mathjs": "15.2.0",

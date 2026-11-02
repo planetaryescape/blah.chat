@@ -60,7 +60,7 @@ export function useComposioOAuth(options: UseComposioOAuthOptions = {}) {
 
       // Clean up CSRF state cookie
       document.cookie =
-        "composio_oauth_state=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        "composio_oauth_state=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax; Secure";
 
       // Clean up
       pendingIntegrationRef.current = null;
@@ -102,6 +102,13 @@ export function useComposioOAuth(options: UseComposioOAuthOptions = {}) {
       pendingIntegrationRef.current = integrationId;
 
       try {
+        // OAuth state must never be initialized on an insecure remote origin.
+        // Local development uses HTTPS localhost, with the same cookie policy.
+        if (window.location.protocol !== "https:") {
+          throw new Error(
+            "OAuth requires HTTPS, including HTTPS localhost for local development",
+          );
+        }
         // Build callback URL
         const callbackUrl = `${window.location.origin}/api/composio/callback`;
 
@@ -115,12 +122,15 @@ export function useComposioOAuth(options: UseComposioOAuthOptions = {}) {
           throw new Error("No redirect URL returned");
         }
 
-        // SECURITY: Store CSRF state in cookie for validation
-        if (result.state) {
-          // Set cookie with secure flags (10 min expiry to match backend)
-          const expires = new Date(Date.now() + 10 * 60 * 1000).toUTCString();
-          document.cookie = `composio_oauth_state=${result.state}; path=/; expires=${expires}; SameSite=Lax${window.location.protocol === "https:" ? "; Secure" : ""}`;
+        // The backend's generateOAuthState returns exactly 32 random hex bytes.
+        if (
+          typeof result.state !== "string" ||
+          !/^[0-9a-f]{64}$/i.test(result.state)
+        ) {
+          throw new Error("Invalid OAuth state returned");
         }
+        const expires = new Date(Date.now() + 10 * 60 * 1000).toUTCString();
+        document.cookie = `composio_oauth_state=${result.state}; path=/; expires=${expires}; SameSite=Lax; Secure`;
 
         // Try popup flow first
         const width = 600;

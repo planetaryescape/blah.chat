@@ -27,6 +27,7 @@ import {
 import { logger } from "../lib/logger";
 import { assertPublicHttpUrl, fetchPublicUrl } from "../lib/urlGuard";
 import { EMBEDDING_BATCH_SIZE } from "./constants";
+import { extractHtmlText } from "./htmlText";
 import { KNOWLEDGE_BANK_LIMITS } from "./index";
 
 interface ProcessedChunk {
@@ -293,14 +294,7 @@ async function extractWebContent(
       throw new Error(`Failed to fetch URL: ${response.status}`);
     }
     const html = await response.text();
-    // Basic HTML to text (strips tags)
-    const text = html
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    return { content: text };
+    return { content: extractHtmlText(html) };
   }
 
   // Firecrawl scrape endpoint

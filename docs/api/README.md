@@ -92,6 +92,10 @@ blah.chat uses **dual architecture**:
 
 Use a Clerk session with the `convex` JWT template configured. The server forwards
 that token to Convex; a Clerk subject is not a Convex user document ID.
+For browser-based Composio OAuth, serve the app over HTTPS, including local
+development (`bun --cwd apps/web run dev --experimental-https`). HTTP origins
+are rejected before connection initialization; CSRF cookies always use Secure
+and SameSite=Lax when created or cleared.
 Authenticated REST and SSE responses use `private, no-store` so account changes
 and message polling cannot reuse another session's HTTP cache.
 

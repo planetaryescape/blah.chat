@@ -1,4 +1,6 @@
 import { useAuth, useUser } from "@clerk/clerk-expo";
+import { toast } from "burnt";
+import { useMutation } from "convex/react";
 import { useRouter } from "expo-router";
 import {
   AlertTriangle,
@@ -20,8 +22,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ModelPicker } from "@/components/chat/ModelPicker";
 import { SettingsRow } from "@/components/settings/SettingsRow";
 import { SettingsSection } from "@/components/settings/SettingsSection";
+import { AlertDialog } from "@/components/ui/AlertDialog";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { api } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
+import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { usePreferences } from "@/lib/hooks/usePreferences";
 import { useUpdatePreference } from "@/lib/hooks/useUpdatePreference";
 import { palette, spacing, typography } from "@/lib/theme/designSystem";
@@ -33,6 +38,26 @@ export default function SettingsScreen() {
   const prefs = usePreferences();
   const updatePref = useUpdatePreference();
   const [isModelPickerOpen, setIsModelPickerOpen] = useState(false);
+  const [isCleanupOpen, setIsCleanupOpen] = useState(false);
+  const cleanup = useMutation(api.conversations.cleanupEmptyConversations);
+  const { run: runCleanup, isPending: isCleaning } = useAsyncAction(
+    async () => {
+      const result = await cleanup({ keepOne: true });
+      setIsCleanupOpen(false);
+      haptic.success();
+      toast({
+        preset: "done",
+        title: `Deleted ${result.deletedCount} empty conversations`,
+      });
+      return result;
+    },
+    {
+      onError: () => {
+        haptic.error();
+        toast({ preset: "error", title: "Failed to clean up conversations" });
+      },
+    },
+  );
 
   const handleModelPickerSelect = useCallback(
     (modelId: string) => {
@@ -394,8 +419,8 @@ export default function SettingsScreen() {
             description="Remove conversations with no messages"
             icon={Wrench}
             onPress={() => {
-              // TODO: Implement cleanup action (Phase 8)
               haptic.medium();
+              setIsCleanupOpen(true);
             }}
           />
         </SettingsSection>
@@ -412,6 +437,17 @@ export default function SettingsScreen() {
         </SettingsSection>
       </ScrollView>
 
+      <AlertDialog
+        open={isCleanupOpen}
+        title="Clean Up Empty Conversations"
+        description="Remove empty conversations, keeping the most recent empty conversation?"
+        confirmLabel="Clean Up"
+        pending={isCleaning}
+        onCancel={() => setIsCleanupOpen(false)}
+        onConfirm={() => {
+          void runCleanup();
+        }}
+      />
       <ModelPicker
         isOpen={isModelPickerOpen}
         onClose={() => setIsModelPickerOpen(false)}

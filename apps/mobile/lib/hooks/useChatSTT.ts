@@ -3,6 +3,7 @@ import { useAction, useMutation } from "convex/react";
 import { Audio } from "expo-av";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/convex";
+import { getMobileTransportMode } from "@/lib/transport/mode";
 
 export type STTState = "idle" | "recording" | "transcribing";
 export type STTStopMode = "insert" | "send";
@@ -10,6 +11,7 @@ export type STTStopMode = "insert" | "send";
 const DEFAULT_RECORDING_MIME_TYPE = "audio/m4a";
 
 export function useChatSTT(sttEnabled: boolean) {
+  getMobileTransportMode();
   // @ts-ignore - Type depth exceeded with complex Convex action modules
   const transcribeAudio = useAction(api.transcription.transcribeAudio);
   // @ts-ignore - Type depth exceeded with complex Convex mutation modules

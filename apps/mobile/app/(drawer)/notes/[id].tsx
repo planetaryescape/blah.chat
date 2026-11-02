@@ -3,6 +3,7 @@ import {
   BottomSheetScrollView,
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
+import { toast } from "burnt";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ArrowLeft,
@@ -50,6 +51,7 @@ import {
   useTriggerAutoTag,
   useUpdateNote,
 } from "@/lib/hooks";
+import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
 
@@ -70,6 +72,23 @@ export default function NoteDetailScreen() {
   const removeTag = useRemoveNoteTag();
   const acceptTag = useAcceptNoteTag();
   const triggerAutoTag = useTriggerAutoTag();
+  const { run: saveNote } = useAsyncAction(
+    async (args: { noteId: Id<"notes">; content?: string; title?: string }) => {
+      await updateNote(args);
+      return true;
+    },
+    {
+      onError: () => {
+        haptic.error();
+        toast({
+          preset: "error",
+          title: "Note not saved",
+          message:
+            "Your edit is still here. Check your connection and try again before leaving.",
+        });
+      },
+    },
+  );
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -124,7 +143,7 @@ export default function NoteDetailScreen() {
 
         setIsSaving(true);
         try {
-          await updateNote({
+          await saveNote({
             noteId: note._id,
             content: newContent,
           });
@@ -133,7 +152,7 @@ export default function NoteDetailScreen() {
         }
       }, AUTOSAVE_DELAY);
     },
-    [note, updateNote],
+    [note, saveNote],
   );
 
   const handleContentChange = useCallback(
@@ -150,30 +169,25 @@ export default function NoteDetailScreen() {
   const handleTitleBlur = useCallback(async () => {
     if (!note || title === note.title) return;
 
-    try {
-      await updateNote({
-        noteId: note._id,
-        title: title || "Untitled Note",
-      });
-    } catch {
-      haptic.error();
-    }
-  }, [note, title, updateNote]);
+    await saveNote({ noteId: note._id, title: title || "Untitled Note" });
+  }, [note, title, saveNote]);
 
-  const handleBack = useCallback(() => {
+  const handleBack = useCallback(async () => {
     haptic.light();
     // Save any pending changes before navigating
     if (autosaveTimeoutRef.current) {
       clearTimeout(autosaveTimeoutRef.current);
     }
-    if (note && content !== note.content) {
-      updateNote({
+    if (note && (content !== note.content || title !== note.title)) {
+      const saved = await saveNote({
         noteId: note._id,
         content,
+        title: title || "Untitled Note",
       });
+      if (!saved) return;
     }
     router.back();
-  }, [router, content, note, updateNote]);
+  }, [router, content, title, note, saveNote]);
 
   const handleTogglePin = useCallback(async () => {
     if (!note) return;

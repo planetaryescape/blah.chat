@@ -51,13 +51,13 @@ export function ChatView(props: ChatViewProps) {
   const [draftValue, setDraftValue] = createSignal("");
   const [draftModel, setDraftModel] = createSignal<string | null>(null);
 
-  // Subscribe to messages (WebSocket, for real-time updates)
-  const { data: wsMessages, error: messagesError } = useMessages(
+  // Subscribe through authenticated HTTP/SSE, with polling on stream failure.
+  const { data: streamMessages, error: messagesError } = useMessages(
     () => props.conversationId,
   );
 
-  // Use WebSocket data when available, fall back to HTTP-loaded messages
-  const messages = () => wsMessages() ?? httpMessages();
+  // Use SSE snapshots when available, falling back to initially loaded messages.
+  const messages = () => streamMessages() ?? httpMessages();
 
   const isGenerating = () =>
     messages()?.some(

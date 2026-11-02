@@ -19,7 +19,7 @@ Tauri v2 desktop shell for blah.chat.
 Notes:
 
 - Desktop builds are currently macOS-only.
-- New builds are published as `desktop-vX.Y.Z` releases.
+- Published builds use `desktop-vX.Y.Z` tags; automatic desktop releases are currently suspended.
 
 ## Commands
 
@@ -52,6 +52,20 @@ Examples:
 - Tray actions: `New Chat`, `Open Companion`, `Search`, `Quit`.
 
 ## Release Pipeline
+
+**Suspended:** the previously documented `release-desktop.yml` and
+`release-desktop-finalize.yml` workflows are absent. Desktop is deliberately not a
+Release Please component until artifact building, signing, notarization and
+finalization are restored together. Do not create empty draft releases. Existing
+`desktop-v*` releases and updater tag compatibility are unchanged; updater remains
+disabled by default. The package, Cargo and Tauri versions are all `0.1.0`, which
+must be the baseline if the component is re-enabled. Bundles reuse the committed
+mobile app icon rather than referencing a missing Raycast asset. The committed
+`src-tauri/icons/icon.icns` and `icon.ico` are generated from that PNG using
+`bun run tauri icon ../mobile/assets/icon.png`; macOS bundling needs the ICNS file.
+
+The following describes the former pipeline and required credentials, not a
+currently available publishing command.
 
 Workflow: `.github/workflows/release-desktop.yml`
 

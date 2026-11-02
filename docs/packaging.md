@@ -24,6 +24,21 @@ We use release-please with a manifest. Each publishable package is listed in:
 
 When changes only affect `packages/rag-core/**`, release-please creates only a `rag-core-vX.Y.Z` tag/release. No other packages are bumped or published.
 
+Desktop automatic releases are suspended until artifact building and finalization
+workflows are restored together. It is not currently a Release Please component;
+existing `desktop-v*` releases remain available. The desktop package, Cargo and
+Tauri versions remain `0.1.0`, not the former manifest baseline of `0.34.0`.
+
+## Production web promotion
+
+`release.yml` deploys compatible backend functions and stages the web artifact
+without moving production domains. Health readiness alone never promotes it.
+Verify sign-in, send, refresh and persisted responses on the exact staged URL,
+then manually dispatch **Production Deploy** with `promote_deployment` set to that
+URL and `acknowledge_user_journeys` enabled. That promotion does not rebuild or
+redeploy backend functions. Promotion and rollback both use the
+`production-deploy` concurrency group without cancellation.
+
 ## Publishing to npm
 
 Publishing is tag-driven:
@@ -35,4 +50,3 @@ Key constraints:
 
 - npm rejects `workspace:*` ranges. Before publish we rewrite workspace dependency ranges using `scripts/prepare-npm-publish.ts` (ephemeral in CI checkout).
 - Each package must include `README.md` and publish config. CI enforces this via `scripts/check-package-docs.ts`.
-

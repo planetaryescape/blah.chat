@@ -1,15 +1,13 @@
 import type { ReactNode } from "react";
 import {
+  type GestureResponderEvent,
   Pressable,
   type PressableProps,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
+import { usePressScale } from "@/lib/hooks/animated/usePressScale";
 
 const AnimatedPressableBase = Animated.createAnimatedComponent(Pressable);
 
@@ -28,19 +26,19 @@ export function AnimatedPressable({
   onPressOut,
   ...props
 }: AnimatedPressableProps) {
-  const scale = useSharedValue(1);
+  const {
+    animatedStyle,
+    onPressIn: pressIn,
+    onPressOut: pressOut,
+  } = usePressScale({ pressedScale });
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handlePressIn = (event: any) => {
-    scale.value = withSpring(pressedScale, { damping: 15, stiffness: 400 });
+  const handlePressIn = (event: GestureResponderEvent) => {
+    pressIn();
     onPressIn?.(event);
   };
 
-  const handlePressOut = (event: any) => {
-    scale.value = withSpring(1, { damping: 12, stiffness: 300 });
+  const handlePressOut = (event: GestureResponderEvent) => {
+    pressOut();
     onPressOut?.(event);
   };
 

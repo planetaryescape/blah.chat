@@ -3,6 +3,7 @@ import { useMutation } from "convex/react";
 import { useCallback, useState } from "react";
 import type { Id } from "@/lib/convex";
 import { api } from "@/lib/convex";
+import { getMobileTransportMode } from "@/lib/transport/mode";
 
 export type UploadedAttachment = {
   type: "file" | "image" | "audio";
@@ -36,6 +37,7 @@ function mapAttachmentType(mimeType: string): UploadedAttachment["type"] {
 }
 
 export function useChatAttachmentUpload(conversationId?: Id<"conversations">) {
+  getMobileTransportMode();
   // @ts-ignore - Type depth exceeded with complex Convex mutation modules
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   // @ts-ignore - Type depth exceeded with complex Convex mutation modules

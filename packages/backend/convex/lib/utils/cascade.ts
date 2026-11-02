@@ -28,6 +28,7 @@ export async function cascadeDeleteConversation(
     toolCalls,
     sources,
     canvasDocs,
+    integrationSelections,
   ] = await Promise.all([
     ctx.db
       .query("bookmarks")
@@ -93,6 +94,12 @@ export async function cascadeDeleteConversation(
         q.eq("conversationId", conversationId),
       )
       .collect(),
+    ctx.db
+      .query("conversationIntegrations")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", conversationId),
+      )
+      .collect(),
   ]);
 
   // Parallel deletions for independent tables
@@ -105,6 +112,7 @@ export async function cascadeDeleteConversation(
     ...attachments.map((a) => ctx.db.delete(a._id)),
     ...toolCalls.map((tc) => ctx.db.delete(tc._id)),
     ...sources.map((src) => ctx.db.delete(src._id)),
+    ...integrationSelections.map((selection) => ctx.db.delete(selection._id)),
   ]);
 
   // Nullify files/memories (can exist independently)

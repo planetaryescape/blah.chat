@@ -420,8 +420,8 @@ export const generateResponse = internalAction({
         // Get active Composio connections for external service tools (use internal query with userId)
         (ctx.runQuery as any)(
           // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-          internal.composio.connections.getActiveConnectionsInternal,
-          { userId: args.userId },
+          internal.composio.selection.getSelectedConnectionsInternal,
+          { userId: args.userId, conversationId: args.conversationId },
         ) as Promise<Doc<"composioConnections">[]>,
       ]);
 

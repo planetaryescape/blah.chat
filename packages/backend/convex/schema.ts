@@ -1704,6 +1704,16 @@ export default defineSchema({
     .index("by_conversation", ["conversationId"])
     .index("by_user", ["userId"]),
 
+  // Per-user, per-chat allowlist; no rows means no external integration tools.
+  conversationIntegrations: defineTable({
+    conversationId: v.id("conversations"),
+    userId: v.id("users"),
+    connectionId: v.id("composioConnections"),
+  })
+    .index("by_conversation", ["conversationId"])
+    .index("by_user", ["userId"])
+    .index("by_user_conversation", ["userId", "conversationId"]),
+
   // Composio integrations - external service connections (OAuth)
   composioConnections: defineTable({
     userId: v.id("users"),

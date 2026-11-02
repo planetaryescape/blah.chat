@@ -214,6 +214,14 @@ reject generation rather than silently disabling enforcement.
 
 ## Expected conversion limits
 
+External integrations are opt-in per user and chat. In the composer, open the
+tools selector and select only the connections that chat may use. Connected
+services are not automatically enabled. The normalized `conversationIntegrations`
+rows are checked against the initiating user's active connections before building
+tools; incognito chats cannot enable them. Changes wait until any active response
+finishes. Old Postgres integration-event history remains in the rollback stores
+and does not silently grant tool access in Convex.
+
 - External object-storage keys are not Convex `_storage` IDs. File-backed knowledge
   sources, TTS cache entries, and any nonempty unsupported file/document tables
   are blocked individually pending a separate transfer. Empty tables need no writes.

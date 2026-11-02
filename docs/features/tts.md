@@ -95,15 +95,15 @@ private speech text into diagnostic logs.
 New audio cache rows include the authenticated owner's user ID as well as an
 owner/configuration-scoped hash. Valid legacy cache hits acquire ownership on
 replay without another provider charge; a conflicting stored owner is rejected.
-The `ttsCache.by_user` index lets account cleanup collect owned rows and their
-MP3 storage IDs. Cleanup must retain any blob still referenced by a surviving
+Account cleanup collects owned rows and their MP3 storage IDs through the
+`ttsCache.by_user` index. It retains any blob still referenced by a surviving
 file, attachment, or cache row, including an unowned legacy row.
 
 Unread legacy rows have no reliable owner mapping and remain untouched; this
 change does not claim that historical unowned audio has been erased. Internal
-legacy cache writers can still omit ownership for compatibility. The account
-deletion cascade must integrate the owner index and blob-reference check before
-owned-cache deletion is considered end-to-end verified.
+legacy cache writers can still omit ownership for compatibility. Synthetic
+account-deletion tests verify owned row/blob removal and preservation of shared
+foreign and legacy blobs; this is not proof of a real Clerk account deletion.
 
 Preparation accepts at most 40,000 UTF-16 source units and 500 blocks. It produces
 at most 1,500 segments and 120,000 output units, with no segment over 1,800 units.

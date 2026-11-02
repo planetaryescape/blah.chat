@@ -11,15 +11,20 @@ async function handler(
   _req: NextRequest,
   {
     userId,
+    sessionToken,
     params,
-  }: { userId: string; params: Promise<Record<string, string | string[]>> },
+  }: {
+    userId: string;
+    sessionToken: string;
+    params: Promise<Record<string, string | string[]>>;
+  },
 ) {
   const startTime = Date.now();
   const { id } = (await params) as { id: string };
 
   logger.info({ userId, jobId: id }, "GET /api/v1/actions/jobs/:id");
 
-  const job = await getJobById(fetchQuery, id as Id<"jobs">);
+  const job = await getJobById(fetchQuery, id as Id<"jobs">, sessionToken);
 
   if (!job) {
     logger.warn({ userId, jobId: id }, "Job not found");

@@ -12,6 +12,7 @@ import { useAuth } from "@clerk/nextjs";
 import { useMutation } from "convex/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
+import { isCliCallback } from "@/lib/api/cliCallback";
 
 function CLILoginContent() {
   const { isLoaded, isSignedIn } = useAuth();
@@ -36,15 +37,8 @@ function CLILoginContent() {
         return;
       }
 
-      // Only allow localhost callbacks for security
-      try {
-        const url = new URL(callbackUrl);
-        if (url.hostname !== "localhost" && url.hostname !== "127.0.0.1") {
-          setError("Invalid callback URL - must be localhost");
-          return;
-        }
-      } catch {
-        setError("Invalid callback URL format");
+      if (!isCliCallback(callbackUrl)) {
+        setError("Invalid CLI callback URL");
         return;
       }
 

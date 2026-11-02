@@ -1,6 +1,6 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import type { NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedConvexClient } from "@/lib/api/convex";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
@@ -10,7 +10,9 @@ import {
   createSSEResponse,
   setupSSECleanup,
 } from "@/lib/api/sse/utils";
+import { parseListLimit } from "@/lib/api/utils";
 import logger from "@/lib/logger";
+import { formatEntity, formatErrorEntity } from "@/lib/utils/formatEntity";
 
 async function getHandler(
   req: NextRequest,
@@ -28,13 +30,11 @@ async function getHandler(
 
   // Parse query parameters
   const searchQuery = searchParams.get("search") || undefined;
-  const limit = searchParams.get("limit")
-    ? Number.parseInt(searchParams.get("limit")!, 10)
-    : undefined;
+  const limit = parseListLimit(searchParams.get("limit"));
   const projectId = searchParams.get("projectId") || undefined;
 
   logger.info(
-    { userId, searchQuery, limit, projectId },
+    { userId, limit, projectId },
     "GET /api/v1/conversations/stream - SSE stream started",
   );
 
@@ -61,7 +61,9 @@ async function getHandler(
     )) as any[];
 
     await send("snapshot", {
-      conversations: initialData,
+      conversations: initialData.map((item) =>
+        formatEntity(item, "conversation", item._id),
+      ),
     });
 
     logger.info(
@@ -89,7 +91,11 @@ async function getHandler(
           },
         )) as any[];
 
-        return { conversations };
+        return {
+          conversations: conversations.map((item) =>
+            formatEntity(item, "conversation", item._id),
+          ),
+        };
       },
       send,
       5000, // 5s polling for conversation list
@@ -111,7 +117,9 @@ async function getHandler(
     await sendError(error instanceof Error ? error : new Error(String(error)));
     await close();
 
-    return new Response("Internal server error", { status: 500 });
+    return NextResponse.json(formatErrorEntity("Internal server error"), {
+      status: 500,
+    });
   }
 }
 

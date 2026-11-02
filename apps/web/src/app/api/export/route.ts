@@ -3,7 +3,7 @@ import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { auth } from "@clerk/nextjs/server";
 import type { ConvexHttpClient } from "convex/browser";
 import { NextResponse } from "next/server";
-import { getConvexClient } from "@/lib/api/convex";
+import { getAuthenticatedConvexClient } from "@/lib/api/convex";
 import {
   exportToChatGPTFormat,
   generateChatGPTFilename,
@@ -15,11 +15,20 @@ import {
   generateMarkdownFilename,
 } from "@/lib/export/markdown";
 import logger from "@/lib/logger";
+import { formatErrorEntity } from "@/lib/utils/formatEntity";
+
+function exportError(message: string, status: number) {
+  return NextResponse.json(formatErrorEntity(message), {
+    status,
+    headers: { "Cache-Control": "private, no-store" },
+  });
+}
 
 export async function GET(request: Request) {
-  const { userId } = await auth();
-  if (!userId) {
-    return new NextResponse("Unauthorized", { status: 401 });
+  const { userId, getToken } = await auth();
+  const token = userId ? await getToken({ template: "convex" }) : null;
+  if (!userId || !token) {
+    return exportError("Unauthorized", 401);
   }
 
   const { searchParams } = new URL(request.url);
@@ -29,17 +38,17 @@ export async function GET(request: Request) {
   try {
     let convex: ConvexHttpClient;
     try {
-      convex = getConvexClient();
+      convex = getAuthenticatedConvexClient(token);
     } catch (error) {
       logger.error({ error }, "Missing NEXT_PUBLIC_CONVEX_URL");
-      return new NextResponse("Internal Server Error", { status: 500 });
+      return exportError("Internal Server Error", 500);
     }
 
     // Get user from Convex
     // @ts-ignore - Type depth exceeded with 94+ Convex modules
     const user: any = await (convex.query as any)(api.users.getCurrentUser, {});
     if (!user) {
-      return new NextResponse("User not found", { status: 404 });
+      return exportError("User not found", 404);
     }
 
     let content: string;
@@ -52,7 +61,7 @@ export async function GET(request: Request) {
         conversationId: conversationId as Id<"conversations">,
       });
       if (!conversation) {
-        return new NextResponse("Conversation not found", { status: 404 });
+        return exportError("Conversation not found", 404);
       }
 
       const messages = await convex.query(api.messages.list, {
@@ -120,11 +129,15 @@ export async function GET(request: Request) {
     return new NextResponse(content, {
       headers: {
         "Content-Type": contentType,
+        "Cache-Control": "private, no-store",
         "Content-Disposition": `attachment; filename="${filename}"`,
       },
     });
   } catch (error) {
-    console.error("Export error:", error);
-    return new NextResponse("Export failed", { status: 500 });
+    logger.error(
+      { errorName: error instanceof Error ? error.name : "UnknownError" },
+      "Export failed",
+    );
+    return exportError("Export failed", 500);
   }
 }

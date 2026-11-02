@@ -1,5 +1,5 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedConvexClient } from "@/lib/api/convex";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
@@ -10,6 +10,7 @@ import {
   setupSSECleanup,
 } from "@/lib/api/sse/utils";
 import logger from "@/lib/logger";
+import { formatErrorEntity } from "@/lib/utils/formatEntity";
 
 async function getHandler(
   req: NextRequest,
@@ -42,6 +43,7 @@ async function getHandler(
       {},
     )) as any;
 
+    if (initialData === null) throw new Error("User not found");
     await send("snapshot", {
       preferences: initialData,
     });
@@ -59,6 +61,7 @@ async function getHandler(
           {},
         )) as any;
 
+        if (preferences === null) throw new Error("User not found");
         return { preferences };
       },
       send,
@@ -81,7 +84,9 @@ async function getHandler(
     await sendError(error instanceof Error ? error : new Error(String(error)));
     await close();
 
-    return new Response("Internal server error", { status: 500 });
+    return NextResponse.json(formatErrorEntity("Internal server error"), {
+      status: 500,
+    });
   }
 }
 

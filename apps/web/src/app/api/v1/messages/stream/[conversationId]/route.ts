@@ -1,6 +1,6 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import type { NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedConvexClient } from "@/lib/api/convex";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
@@ -11,6 +11,7 @@ import {
   setupSSECleanup,
 } from "@/lib/api/sse/utils";
 import logger from "@/lib/logger";
+import { formatEntity, formatErrorEntity } from "@/lib/utils/formatEntity";
 
 async function getHandler(
   req: NextRequest,
@@ -49,7 +50,7 @@ async function getHandler(
       { userId, conversationId },
       "SSE denied: conversation not found",
     );
-    return new Response("Not found", { status: 404 });
+    return NextResponse.json(formatErrorEntity("Not found"), { status: 404 });
   }
 
   // Create SSE connection
@@ -66,7 +67,9 @@ async function getHandler(
     )) as any[];
 
     await send("snapshot", {
-      messages: initialMessages,
+      messages: initialMessages.map((item) =>
+        formatEntity(item, "message", item._id),
+      ),
       hasMore: false,
       cursor: null,
     });
@@ -89,7 +92,11 @@ async function getHandler(
           },
         )) as any[];
 
-        return { messages };
+        return {
+          messages: messages.map((item) =>
+            formatEntity(item, "message", item._id),
+          ),
+        };
       },
       send,
       3000, // 3s polling for active chat
@@ -111,7 +118,9 @@ async function getHandler(
     await sendError(error instanceof Error ? error : new Error(String(error)));
     await close();
 
-    return new Response("Internal server error", { status: 500 });
+    return NextResponse.json(formatErrorEntity("Internal server error"), {
+      status: 500,
+    });
   }
 }
 

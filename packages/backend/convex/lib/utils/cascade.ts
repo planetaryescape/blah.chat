@@ -152,6 +152,44 @@ export async function cascadeDeleteUserData(
   ctx: MutationCtx,
   userId: Id<"users">,
 ): Promise<void> {
+  // Remove children of owned conversations before deleting their parent rows.
+  // Membership in someone else's conversation never authorizes deleting it.
+  const ownedBlobs = new Set<Id<"_storage">>();
+  for (const row of await ctx.db
+    .query("files")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect())
+    ownedBlobs.add(row.storageId);
+  for (const row of await ctx.db
+    .query("attachments")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect())
+    ownedBlobs.add(row.storageId);
+  const ownedConversations = await ctx.db
+    .query("conversations")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+  for (const conversation of ownedConversations) {
+    await cascadeDeleteConversation(ctx, conversation._id);
+  }
+
+  const extraTables = [
+    "jobs",
+    "activityEvents",
+    "chatSuggestionsCache",
+    "feedbackTagJunctions",
+    "generationLocks",
+    "composioConnections",
+    "templates",
+  ] as const;
+  for (const table of extraTables) {
+    const rows = await ctx.db
+      .query(table)
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    for (const row of rows) await ctx.db.delete(row._id);
+  }
+
   // Phase 1: Delete junction tables (many-to-many relationships)
   const [
     bookmarkTags,
@@ -433,4 +471,17 @@ export async function cascadeDeleteUserData(
     ...userDatabaseConfig.map((r) => ctx.db.delete(r._id)),
     ...byodMigrations.map((r) => ctx.db.delete(r._id)),
   ]);
+
+  // A shared blob is retained while another user's record still references it.
+  for (const storageId of ownedBlobs) {
+    const attachment = await ctx.db
+      .query("attachments")
+      .withIndex("by_storage", (q) => q.eq("storageId", storageId))
+      .first();
+    const file = await ctx.db
+      .query("files")
+      .filter((q) => q.eq(q.field("storageId"), storageId))
+      .first();
+    if (!attachment && !file) await ctx.storage.delete(storageId);
+  }
 }

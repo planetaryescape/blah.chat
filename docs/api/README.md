@@ -88,6 +88,27 @@ blah.chat uses **dual architecture**:
 
 ## API Response Format
 
+### Restored Convex v1 contracts
+
+Use a Clerk session with the `convex` JWT template configured. The server forwards
+that token to Convex; a Clerk subject is not a Convex user document ID.
+Authenticated REST and SSE responses use `private, no-store` so account changes
+and message polling cannot reuse another session's HTTP cache.
+
+- Conversation DELETE returns a JSON deletion envelope with HTTP 200, not an empty 204.
+- Pin and star return the updated conversation envelope, including `sys.id` and state.
+- Conversation list and list SSE accept limits from 1 to 100 (default 50).
+- SSE snapshots and updates contain formatted conversation/message entities.
+- Regeneration accepts an optional JSON body with `modelId`; an omitted body is valid.
+- Preference values must be JSON and at most 16,000 serialized characters.
+- Transcription accepts only a recorded, owned upload or restored attachment, up to
+  24 MiB. Creation and scheduling are atomic. Poll the returned job URL with the
+  same authenticated session; foreign jobs return 404. Transcription job creation
+  is limited to 30 requests per user per rolling hour, including failed jobs.
+
+The Bible endpoint uses the shared cache only for the default WEB translation.
+Other translations bypass that cache; cache failures do not prevent provider reads.
+
 All responses use **envelope pattern**:
 
 ```typescript

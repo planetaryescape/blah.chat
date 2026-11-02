@@ -17,26 +17,32 @@ const searchSchema = z.object({
   messageType: z.enum(["user", "assistant"]).optional(),
 });
 
-async function handler(req: NextRequest, { userId }: { userId: string }) {
+async function handler(
+  req: NextRequest,
+  { userId, sessionToken }: { userId: string; sessionToken: string },
+) {
   const startTime = Date.now();
   const body = await req.json();
   const validated = searchSchema.parse(body);
 
-  logger.info(
-    { userId, query: validated.query, limit: validated.limit },
-    "POST /api/v1/search/hybrid",
-  );
+  logger.info({ userId, limit: validated.limit }, "POST /api/v1/search/hybrid");
 
   // Direct Convex action call - completes in ~200-500ms
   // @ts-ignore - Type depth exceeded with complex Convex action
-  const results = await fetchAction(api.search.hybridSearch, {
-    query: validated.query,
-    conversationId: validated.conversationId as Id<"conversations"> | undefined,
-    limit: validated.limit,
-    dateFrom: validated.dateFrom,
-    dateTo: validated.dateTo,
-    messageType: validated.messageType,
-  });
+  const results = await fetchAction(
+    api.search.hybridSearch,
+    {
+      query: validated.query,
+      conversationId: validated.conversationId as
+        | Id<"conversations">
+        | undefined,
+      limit: validated.limit,
+      dateFrom: validated.dateFrom,
+      dateTo: validated.dateTo,
+      messageType: validated.messageType,
+    },
+    { token: sessionToken },
+  );
 
   const duration = Date.now() - startTime;
   logger.info(

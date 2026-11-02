@@ -3,7 +3,8 @@
 import { MODEL_CONFIG } from "@blah-chat/ai/models";
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useAction, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
+import { makeFunctionReference } from "convex/server";
 import { ImageIcon, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -48,7 +49,10 @@ export function ImageGenerateButton({
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState(initialPrompt);
   const [selectedModel, setSelectedModel] = useState(
-    "google:gemini-3-pro-image",
+    () =>
+      Object.values(MODEL_CONFIG).find((model) =>
+        model.capabilities.includes("image-generation"),
+      )?.id ?? "",
   );
   const [thinkingEffort, setThinkingEffort] = useState<
     "none" | "low" | "medium" | "high"
@@ -70,8 +74,8 @@ export function ImageGenerateButton({
   const supportsThinking = !!selectedModelConfig?.reasoning;
   const sendMessage = useMutation(api.chat.sendMessage as any);
 
-  const generateImage = useAction(
-    (api as any)["generation/image"].generateImage,
+  const generateImage = useMutation(
+    makeFunctionReference<"mutation">("imageGeneration:generate"),
   );
 
   const handleGenerate = async () => {

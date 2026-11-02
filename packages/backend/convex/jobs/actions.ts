@@ -43,8 +43,8 @@ async function executeJobAction<TInput, TOutput>(
         jobId,
         status: "failed" as const,
         error: {
-          message: error instanceof Error ? error.message : String(error),
-          details: error instanceof Error ? { stack: error.stack } : undefined,
+          message: "Job execution failed. Please retry.",
+          code: "JOB_FAILED",
         },
       },
     )) as Promise<void>;
@@ -128,6 +128,14 @@ export const executeTranscribe = internalAction({
     ctx,
     { jobId, storageId, mimeType },
   ): Promise<{ text: string }> => {
+    const job = await ctx.runQuery(internal.jobs.crud.getInternal, { jobId });
+    if (
+      !job ||
+      job.type !== "transcribe" ||
+      job.input.storageId !== storageId
+    ) {
+      throw new Error("Transcription job not found");
+    }
     return executeJobAction(
       ctx,
       jobId,
@@ -135,7 +143,7 @@ export const executeTranscribe = internalAction({
         const text = (await (ctx.runAction as any)(
           // @ts-ignore - TypeScript recursion limit
           internal.transcription.transcribeAudioInternal,
-          { storageId, mimeType: mimeType ?? "audio/webm" },
+          { userId: job.userId, storageId, mimeType: mimeType ?? "audio/webm" },
         )) as string;
         return { text };
       },

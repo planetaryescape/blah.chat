@@ -1,8 +1,17 @@
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
-import { action, internalAction } from "./_generated/server";
+import { action, internalAction, internalQuery } from "./_generated/server";
 import { logger } from "./lib/logger";
+import { requireOwnedAudio } from "./lib/transcriptionOwnership";
+
+export const verifyAudioOwnership = internalQuery({
+  args: { userId: v.id("users"), storageId: v.id("_storage") },
+  handler: async (ctx, { userId, storageId }) => {
+    if (!(await ctx.db.get(userId))) throw new Error("User not found");
+    await requireOwnedAudio(ctx, userId, storageId);
+  },
+});
 
 /**
  * Wrap promise with timeout to prevent infinite hangs
@@ -54,6 +63,10 @@ export const transcribeAudio = action({
     }
 
     logger.info("User authorized", { tag: "Transcription", userId: user._id });
+    await ctx.runQuery(internal.transcription.verifyAudioOwnership, {
+      userId: user._id,
+      storageId: args.storageId,
+    });
 
     // Phase 4: Get STT enabled preference from user
     const sttEnabled = await (
@@ -188,13 +201,13 @@ export const transcribeAudio = action({
           clearTimeout(timeoutId);
 
           if (!response.ok) {
-            const error = await response.text();
             logger.error("API returned error", {
               tag: "Transcription",
               status: response.status,
-              error,
             });
-            throw new Error(`OpenAI Whisper failed: ${error}`);
+            throw new Error(
+              `Transcription provider failed (${response.status})`,
+            );
           }
 
           logger.info("Parsing response JSON", { tag: "Transcription" });
@@ -208,9 +221,7 @@ export const transcribeAudio = action({
         } catch (err: any) {
           logger.error("Error in OpenAI call", {
             tag: "Transcription",
-            error: String(err),
             errorName: err?.name,
-            errorMessage: err?.message,
           });
           clearTimeout(timeoutId);
 
@@ -261,8 +272,9 @@ export const transcribeAudio = action({
           clearTimeout(timeoutId);
 
           if (!response.ok) {
-            const error = await response.text();
-            throw new Error(`Groq Whisper failed: ${error}`);
+            throw new Error(
+              `Transcription provider failed (${response.status})`,
+            );
           }
 
           const result = (await response.json()) as { text: string };
@@ -312,10 +324,15 @@ export const transcribeAudio = action({
  */
 export const transcribeAudioInternal = internalAction({
   args: {
+    userId: v.id("users"),
     storageId: v.id("_storage"),
     mimeType: v.string(),
   },
   handler: async (ctx, args) => {
+    await ctx.runQuery(internal.transcription.verifyAudioOwnership, {
+      userId: args.userId,
+      storageId: args.storageId,
+    });
     // Get transcript provider from admin settings
     const adminSettings = await (
       ctx.runQuery as (ref: any, args: any) => Promise<any>
@@ -377,8 +394,7 @@ export const transcribeAudioInternal = internalAction({
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          const error = await response.text();
-          throw new Error(`Groq Whisper failed: ${error}`);
+          throw new Error(`Transcription provider failed (${response.status})`);
         }
 
         result = await response.json();
@@ -403,13 +419,21 @@ export const transcribeAudioInternal = internalAction({
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          const error = await response.text();
-          throw new Error(`OpenAI Whisper failed: ${error}`);
+          throw new Error(`Transcription provider failed (${response.status})`);
         }
 
         result = await response.json();
       }
 
+      const durationMinutes = bytes.length / (16000 * 60 * 2);
+      await ctx.runMutation(internal.usage.mutations.recordTranscription, {
+        userId: args.userId,
+        model: `${provider}:stt`,
+        durationMinutes,
+        cost:
+          durationMinutes * (adminSettings?.transcriptCostPerMinute ?? 0.0067),
+        feature: "chat",
+      });
       return result.text;
     } catch (err: any) {
       clearTimeout(timeoutId);

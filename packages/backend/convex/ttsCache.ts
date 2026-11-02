@@ -119,7 +119,7 @@ export async function isAudioCacheBlobReferenced(
 ): Promise<boolean> {
   return !!(await ctx.db
     .query("ttsCache")
-    .filter((q) => q.eq(q.field("storageId"), storageId))
+    .withIndex("by_storage", (q) => q.eq("storageId", storageId))
     .first());
 }
 

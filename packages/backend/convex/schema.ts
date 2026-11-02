@@ -1156,6 +1156,7 @@ export default defineSchema({
     lastAccessedAt: v.number(),
   })
     .index("by_hash", ["hash"])
+    .index("by_storage", ["storageId"])
     .index("by_user", ["userId"]),
 
   speechPreparationSessions: defineTable({

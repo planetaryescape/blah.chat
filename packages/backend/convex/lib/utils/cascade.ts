@@ -1,5 +1,9 @@
 import type { Id } from "../../_generated/dataModel";
 import type { MutationCtx } from "../../_generated/server";
+import {
+  isAudioCacheBlobReferenced,
+  listOwnedAudioCache,
+} from "../../ttsCache";
 
 /**
  * Cascade delete all related records for a conversation.
@@ -154,12 +158,16 @@ export async function cascadeDeleteUserData(
 ): Promise<void> {
   // Remove children of owned conversations before deleting their parent rows.
   // Membership in someone else's conversation never authorizes deleting it.
-  const ownedBlobs = new Set<Id<"_storage">>();
+  const ownedAudio = await listOwnedAudioCache(ctx, userId);
+  const ownedBlobs = new Set<Id<"_storage">>(
+    ownedAudio.map((row) => row.storageId),
+  );
   for (const row of await ctx.db
     .query("files")
     .withIndex("by_user", (q) => q.eq("userId", userId))
     .collect())
     ownedBlobs.add(row.storageId);
+  for (const row of ownedAudio) await ctx.db.delete(row._id);
   for (const row of await ctx.db
     .query("attachments")
     .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -486,7 +494,11 @@ export async function cascadeDeleteUserData(
       .query("attachments")
       .withIndex("by_storage", (q) => q.eq("storageId", storageId))
       .first();
-    if (!attachment && !remainingFileIds.has(storageId))
+    if (
+      !attachment &&
+      !remainingFileIds.has(storageId) &&
+      !(await isAudioCacheBlobReferenced(ctx, storageId))
+    )
       await ctx.storage.delete(storageId);
   }
 }

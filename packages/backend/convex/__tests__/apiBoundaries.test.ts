@@ -2,6 +2,7 @@ import { makeFunctionReference } from "convex/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { convexTest } from "../../__tests__/testSetup";
 import { api, internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import {
   createMockIdentity,
   createTestConversationData,
@@ -170,6 +171,105 @@ describe("API transcription boundary", () => {
 });
 
 describe("Clerk lifecycle", () => {
+  it("deletes owned cached speech and private blobs, retaining foreign and unidentified legacy references", async () => {
+    const { t, owner, foreign } = await fixture();
+    const secret = "synthetic-webhook-test-secret-32-characters";
+    vi.stubEnv("INTERNAL_API_SECRET", secret);
+    const audio = await t.run(async (ctx) => {
+      const rows = [];
+      for (const kind of [
+        "private",
+        "foreign-cache",
+        "legacy-cache",
+        "foreign-file",
+        "foreign-attachment",
+      ] as const) {
+        const storageId = await ctx.storage.store(new Blob([kind]));
+        const cache = {
+          storageId,
+          text: "Synthetic private speech",
+          voice: "test-voice",
+          speed: 1,
+          format: "mp3",
+          createdAt: Date.now(),
+          lastAccessedAt: Date.now(),
+        };
+        const id = await ctx.db.insert("ttsCache", {
+          ...cache,
+          userId: owner,
+          hash: `owner-${kind}`,
+        });
+        let survivor: Id<"ttsCache"> | undefined;
+        if (kind === "foreign-cache" || kind === "legacy-cache") {
+          survivor = await ctx.db.insert("ttsCache", {
+            ...cache,
+            hash: `surviving-${kind}`,
+            userId: kind === "foreign-cache" ? foreign : undefined,
+          });
+        } else if (kind === "foreign-file") {
+          await ctx.db.insert("files", {
+            userId: foreign,
+            storageId,
+            name: "retained.mp3",
+            mimeType: "audio/mpeg",
+            size: kind.length,
+            createdAt: Date.now(),
+          });
+        } else if (kind === "foreign-attachment") {
+          const conversationId = await ctx.db.insert(
+            "conversations",
+            createTestConversationData(foreign),
+          );
+          const messageId = await ctx.db.insert(
+            "messages",
+            createTestMessageData(conversationId, foreign),
+          );
+          await ctx.db.insert("attachments", {
+            userId: foreign,
+            messageId,
+            conversationId,
+            type: "audio",
+            storageId,
+            name: "retained.mp3",
+            mimeType: "audio/mpeg",
+            size: kind.length,
+            createdAt: Date.now(),
+          });
+        }
+        rows.push({ kind, storageId, id, survivor });
+      }
+      return rows;
+    });
+    await t.mutation(api.users.deleteUser, {
+      internalSecret: secret,
+      clerkId: "owner",
+    });
+    for (const row of audio) {
+      expect(await t.run((ctx) => ctx.db.get(row.id))).toBeNull();
+      expect(
+        await t.run(async (ctx) => !!(await ctx.storage.get(row.storageId))),
+      ).toBe(row.kind !== "private");
+      const survivor = row.survivor;
+      if (survivor)
+        expect(await t.run((ctx) => ctx.db.get(survivor))).not.toBeNull();
+    }
+    expect(
+      await t.run((ctx) =>
+        ctx.db
+          .query("ttsCache")
+          .withIndex("by_user", (q) => q.eq("userId", owner))
+          .collect(),
+      ),
+    ).toEqual([]);
+    expect(await t.run((ctx) => ctx.db.get(foreign))).not.toBeNull();
+    await expect(
+      t.mutation(api.users.deleteUser, {
+        internalSecret: secret,
+        clerkId: "owner",
+      }),
+    ).resolves.toBeNull();
+  });
+
   it("fails closed without the configured webhook secret, upserts authoritative fields, and deletes idempotently", async () => {
     const { t, owner, foreign } = await fixture();
     await expect(

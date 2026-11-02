@@ -305,7 +305,7 @@ Override default limits via env vars:
 |----------|---------|-------------|
 | `DEFAULT_DAILY_MESSAGE_LIMIT` | `50` | Messages per user per day |
 | `DEFAULT_MONTHLY_BUDGET` | `10` | USD monthly budget per user |
-| `BUDGET_HARD_LIMIT_ENABLED` | `true` | Block requests when budget exceeded |
+| `BUDGET_HARD_LIMIT_ENABLED` | `false` | Opt in to blocking chat generation once recorded monthly spend reaches the budget |
 | `BUDGET_ALERT_THRESHOLD` | `0.8` | Send email at 80% budget usage |
 | `ALERT_EMAIL` | (your email) | Admin email for budget alerts |
 

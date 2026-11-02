@@ -206,6 +206,11 @@ blocks paid chat scheduling once the initiating user's recorded monthly cost
 reaches the configured positive budget. Without persisted settings, enforcement
 defaults off. This checks recorded usage; it does not reserve unknown costs for
 already-running requests. Budget reads are restricted to the authenticated owner.
+Parallel chats and a final request can exceed the remaining amount before usage
+is recorded. Do not treat this setting as a guaranteed provider billing ceiling.
+Budget overrides must be finite non-negative numbers (`0` means unlimited), and
+`BUDGET_HARD_LIMIT_ENABLED` must be exactly `true` or `false`; malformed overrides
+reject generation rather than silently disabling enforcement.
 
 ## Expected conversion limits
 

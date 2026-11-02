@@ -769,9 +769,9 @@ describe("faithful structural narration", () => {
       ],
       ['{"lines":', "stop"],
     ]) {
-      expect(() =>
-        applyCodeOutline(narration, block, output, finish),
-      ).toThrow();
+      expect(() => {
+        applyCodeOutline(narration, block, output, finish);
+      }).toThrow();
       expect(narration).toEqual(before);
     }
     applyCodeOutline(narration, block, JSON.stringify(valid), "stop");

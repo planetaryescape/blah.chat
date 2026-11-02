@@ -35,6 +35,8 @@ const mocks = vi.hoisted(() => {
     warning: vi.fn(),
     info: vi.fn(),
     track: vi.fn(),
+    createObjectURL: vi.fn(() => "blob:uninitialized"),
+    revokeObjectURL: vi.fn(),
     auth,
   };
 });
@@ -69,7 +71,7 @@ vi.mock("@/lib/hooks/useApiKeyValidation", () => ({
 
 class MockAudio {
   static instances: MockAudio[] = [];
-  static playImplementation: () => Promise<void> = async () => {};
+  static playImplementation: () => Promise<void> = () => Promise.resolve();
   src = "";
   duration = 2;
   currentTime = 0;
@@ -146,7 +148,11 @@ function speak(
 }
 async function endAudio(index: number, gap: number) {
   act(() => {
-    MockAudio.instances[index].onended?.();
+    if (!Number.isInteger(index) || index < 0)
+      throw new Error(`Invalid audio fixture index ${index}`);
+    const audio = MockAudio.instances.at(index);
+    if (!audio) throw new Error(`Expected audio fixture ${index}`);
+    audio.onended?.();
   });
   await flush();
   await act(async () => {
@@ -163,20 +169,21 @@ beforeEach(() => {
   mocks.getToken.mockResolvedValue("user-convex-jwt");
   mocks.prepare.mockResolvedValue(narration());
   mocks.cancel.mockResolvedValue(null);
-  mocks.fetch.mockImplementation(
-    async () => new Response(new Blob(["audio"], { type: "audio/mpeg" })),
+  mocks.fetch.mockImplementation(() =>
+    Promise.resolve(new Response(new Blob(["audio"], { type: "audio/mpeg" }))),
   );
   MockAudio.instances = [];
-  MockAudio.playImplementation = async () => {};
+  MockAudio.playImplementation = () => Promise.resolve();
+  mocks.createObjectURL.mockImplementation(
+    () => `blob:${MockAudio.instances.length}`,
+  );
   vi.stubGlobal("Audio", MockAudio);
   vi.stubGlobal("fetch", mocks.fetch);
   vi.stubGlobal(
     "URL",
     class extends URL {
-      static createObjectURL = vi.fn(
-        () => `blob:${MockAudio.instances.length}`,
-      );
-      static revokeObjectURL = vi.fn();
+      static createObjectURL = mocks.createObjectURL;
+      static revokeObjectURL = mocks.revokeObjectURL;
     },
   );
 });
@@ -318,7 +325,7 @@ describe("prepared private narration", () => {
     });
     await flush();
     expect(mocks.fetch).toHaveBeenCalledTimes(2);
-    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(1);
+    expect(mocks.revokeObjectURL).toHaveBeenCalledTimes(1);
     await endAudio(1, 200);
     expect(result.current.state.activeSegment?.id).toBe("ending");
     expect(
@@ -329,7 +336,7 @@ describe("prepared private narration", () => {
       "tts_playback_completed",
       expect.anything(),
     );
-    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(3);
+    expect(mocks.revokeObjectURL).toHaveBeenCalledTimes(3);
     expect(result.current.state.canResume).toBe(false);
   });
 
@@ -344,7 +351,9 @@ describe("prepared private narration", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(100);
     });
-    act(() => result.current.pause());
+    act(() => {
+      result.current.pause();
+    });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(10_000);
     });
@@ -369,7 +378,9 @@ describe("prepared private narration", () => {
     const { result } = setup();
     speak(result);
     await flush();
-    act(() => result.current.pause());
+    act(() => {
+      result.current.pause();
+    });
     response.resolve(new Response("audio"));
     await flush();
     expect(MockAudio.instances[0].play).not.toHaveBeenCalled();
@@ -383,12 +394,16 @@ describe("prepared private narration", () => {
     const { result } = setup();
     speak(result);
     await flush();
-    act(() => result.current.seekTo(100));
+    act(() => {
+      result.current.seekTo(100);
+    });
     expect(MockAudio.instances[0].currentTime).toBe(0);
     expect(mocks.info).toHaveBeenCalledWith(
       expect.stringContaining("current loaded section"),
     );
-    act(() => result.current.seekTo(1));
+    act(() => {
+      result.current.seekTo(1);
+    });
     expect(MockAudio.instances[0].currentTime).toBe(1);
     expect(mocks.fetch).toHaveBeenCalledTimes(1);
   });
@@ -428,7 +443,9 @@ describe("session cancellation", () => {
     mocks.getToken.mockResolvedValue("other-account-jwt");
     mocks.auth.userId = "other";
     mocks.cancel.mockRejectedValue(new Error("Offline"));
-    act(() => rerender());
+    act(() => {
+      rerender();
+    });
     await flush();
     expect(mocks.cancel).toHaveBeenLastCalledWith(
       { requestId: newId },
@@ -441,7 +458,9 @@ describe("session cancellation", () => {
     mocks.getToken.mockReturnValue(token.promise);
     const { result } = setup();
     speak(result);
-    act(() => result.current.stop());
+    act(() => {
+      result.current.stop();
+    });
     token.resolve("late-jwt");
     await flush();
     expect(mocks.prepare).not.toHaveBeenCalled();
@@ -462,23 +481,25 @@ describe("session cancellation", () => {
     expect(MockAudio.instances).toHaveLength(1);
     expect(result.current.state.sourceMessageId).toBe("b");
     expect(result.current.state.activeSegment).toBe(liveSegment);
-    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+    expect(mocks.createObjectURL).toHaveBeenCalledTimes(1);
   });
 
   it("stop while browser play is pending prevents a late play promise from reviving audio", async () => {
-    const playing = deferred<void>();
+    const playing = deferred<undefined>();
     MockAudio.playImplementation = () => playing.promise;
     const { result } = setup();
     speak(result);
     await flush();
     const audio = MockAudio.instances[0];
-    act(() => result.current.stop());
-    playing.resolve();
+    act(() => {
+      result.current.stop();
+    });
+    playing.resolve(undefined);
     await flush();
     expect(audio.pause).toHaveBeenCalledTimes(2);
     expect(result.current.state.isPlaying).toBe(false);
     expect(result.current.state.canResume).toBe(false);
-    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(1);
+    expect(mocks.revokeObjectURL).toHaveBeenCalledTimes(1);
   });
 
   it("late preparation A cannot replace playback B", async () => {
@@ -530,7 +551,7 @@ describe("session cancellation", () => {
     expect(vi.getTimerCount()).toBe(0);
     response.resolve(new Response("late audio"));
     await flush();
-    expect(URL.createObjectURL).not.toHaveBeenCalled();
+    expect(mocks.createObjectURL).not.toHaveBeenCalled();
     expect(MockAudio.instances).toHaveLength(0);
     expect(mocks.error).not.toHaveBeenCalled();
   });
@@ -541,7 +562,9 @@ describe("session cancellation", () => {
     const { result } = setup();
     speak(result);
     await flush();
-    act(() => result.current.stop());
+    act(() => {
+      result.current.stop();
+    });
     prepare.resolve(narration());
     await flush();
     expect(mocks.fetch).not.toHaveBeenCalled();
@@ -561,7 +584,9 @@ describe("session cancellation", () => {
       oldEnded?.();
     });
     await flush();
-    act(() => result.current.stop());
+    act(() => {
+      result.current.stop();
+    });
     act(() => {
       oldEnded?.();
     });
@@ -570,7 +595,7 @@ describe("session cancellation", () => {
     });
     expect(mocks.fetch).toHaveBeenCalledTimes(1);
     expect(vi.getTimerCount()).toBe(0);
-    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(1);
+    expect(mocks.revokeObjectURL).toHaveBeenCalledTimes(1);
   });
 
   it("unmount revokes owned audio and nulls listeners", async () => {
@@ -582,7 +607,7 @@ describe("session cancellation", () => {
     expect(audio.pause).toHaveBeenCalled();
     expect(audio.onended).toBeNull();
     expect(audio.onerror).toBeNull();
-    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(1);
+    expect(mocks.revokeObjectURL).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -631,9 +656,8 @@ describe("failure and controls", () => {
   it("hides section zero while loading, then exposes an accessible gesture-bound Resume", async () => {
     const response = deferred<Response>();
     mocks.fetch.mockReturnValue(response.promise);
-    MockAudio.playImplementation = async () => {
-      throw new DOMException("Gesture required", "NotAllowedError");
-    };
+    MockAudio.playImplementation = () =>
+      Promise.reject(new DOMException("Gesture required", "NotAllowedError"));
     function Begin() {
       const { playFromText } = useTTSPlayer();
       return (
@@ -663,15 +687,14 @@ describe("failure and controls", () => {
       screen.getByText("Paused. Choose Resume to play this section."),
     ).toBeTruthy();
     expect(resume).not.toBeDisabled();
-    MockAudio.playImplementation = async () => {};
+    MockAudio.playImplementation = () => Promise.resolve();
     fireEvent.click(resume);
     expect(MockAudio.instances[0].play).toHaveBeenCalledTimes(2);
     await flush();
   });
   it("retains autoplay-denied audio for an immediate explicit Resume gesture", async () => {
-    MockAudio.playImplementation = async () => {
-      throw new DOMException("Gesture required", "NotAllowedError");
-    };
+    MockAudio.playImplementation = () =>
+      Promise.reject(new DOMException("Gesture required", "NotAllowedError"));
     const { result } = setup();
     speak(result);
     await flush();
@@ -679,10 +702,10 @@ describe("failure and controls", () => {
     expect(result.current.state.isPlaying).toBe(false);
     expect(result.current.state.canResume).toBe(true);
     expect(result.current.state.isLoading).toBe(false);
-    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+    expect(mocks.revokeObjectURL).not.toHaveBeenCalled();
     expect(audio.removeAttribute).not.toHaveBeenCalled();
     expect(mocks.error).not.toHaveBeenCalled();
-    MockAudio.playImplementation = async () => {};
+    MockAudio.playImplementation = () => Promise.resolve();
     act(() => {
       void result.current.resume();
       expect(audio.play).toHaveBeenCalledTimes(2);
@@ -695,13 +718,17 @@ describe("failure and controls", () => {
     const { result } = setup();
     speak(result);
     await flush();
-    act(() => MockAudio.instances[0].onended?.());
+    act(() => {
+      MockAudio.instances[0].onended?.();
+    });
     await flush();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(100);
     });
     expect(result.current.state.currentTime).toBeCloseTo(2.1, 6);
-    act(() => result.current.pause());
+    act(() => {
+      result.current.pause();
+    });
     const paused = result.current.state.currentTime;
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000);
@@ -714,7 +741,9 @@ describe("failure and controls", () => {
       await vi.advanceTimersByTimeAsync(100);
     });
     expect(result.current.state.currentTime).toBeCloseTo(2.2, 6);
-    act(() => result.current.stop());
+    act(() => {
+      result.current.stop();
+    });
     expect(vi.getTimerCount()).toBe(0);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000);
@@ -723,7 +752,7 @@ describe("failure and controls", () => {
     expect(result.current.state.currentTime).toBe(0);
   });
   it("an older play rejection cannot stop a newer explicit resume", async () => {
-    const oldPlay = deferred<void>();
+    const oldPlay = deferred<undefined>();
     MockAudio.playImplementation = vi
       .fn()
       .mockReturnValueOnce(oldPlay.promise)
@@ -731,7 +760,9 @@ describe("failure and controls", () => {
     const { result } = setup();
     speak(result);
     await flush();
-    act(() => result.current.pause());
+    act(() => {
+      result.current.pause();
+    });
     await act(async () => {
       await result.current.resume();
     });
@@ -743,18 +774,20 @@ describe("failure and controls", () => {
   });
 
   it("a deliberate pause while play is pending is not treated as an audio failure", async () => {
-    const playing = deferred<void>();
+    const playing = deferred<undefined>();
     MockAudio.playImplementation = () => playing.promise;
     const { result } = setup();
     speak(result);
     await flush();
-    act(() => result.current.pause());
+    act(() => {
+      result.current.pause();
+    });
     playing.reject(new DOMException("Interrupted by pause", "AbortError"));
     await flush();
     expect(result.current.state.canResume).toBe(true);
     expect(result.current.state.isPlaying).toBe(false);
     expect(mocks.error).not.toHaveBeenCalled();
-    MockAudio.playImplementation = async () => {};
+    MockAudio.playImplementation = () => Promise.resolve();
     await act(async () => {
       await result.current.resume();
     });
@@ -770,14 +803,14 @@ describe("failure and controls", () => {
     if (mode === "empty") mocks.fetch.mockResolvedValue(new Response(""));
     if (mode === "network") mocks.fetch.mockRejectedValue(new Error("Offline"));
     if (mode === "play")
-      MockAudio.playImplementation = async () => {
-        throw new Error("Blocked");
-      };
+      MockAudio.playImplementation = () => Promise.reject(new Error("Blocked"));
     const { result } = setup();
     speak(result);
     await flush();
     if (mode === "decoder") {
-      act(() => MockAudio.instances[0].onerror?.());
+      act(() => {
+        MockAudio.instances[0].onerror?.();
+      });
       await flush();
     }
     expect(mocks.error).toHaveBeenCalledTimes(1);
@@ -797,7 +830,9 @@ describe("failure and controls", () => {
         new Promise((_resolve, reject) => {
           init.signal.addEventListener(
             "abort",
-            () => reject(new DOMException("Aborted", "AbortError")),
+            () => {
+              reject(new DOMException("Aborted", "AbortError"));
+            },
             { once: true },
           );
         }),
@@ -839,10 +874,14 @@ describe("failure and controls", () => {
     speak(result);
     await flush();
     const audio = MockAudio.instances[0];
-    act(() => result.current.pause());
+    act(() => {
+      result.current.pause();
+    });
     expect(audio.pause).toHaveBeenCalledTimes(1);
     expect(result.current.state.isPlaying).toBe(false);
-    act(() => result.current.setSpeed(2));
+    act(() => {
+      result.current.setSpeed(2);
+    });
     expect(audio.playbackRate).toBe(2);
     await act(async () => {
       await result.current.resume();

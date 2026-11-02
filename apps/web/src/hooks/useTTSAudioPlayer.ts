@@ -178,8 +178,7 @@ export function useTTSAudioPlayer(options: UseTTSAudioPlayerOptions = {}) {
       const signal = session.controller.signal;
       const active = () => sessionRef.current === session && !signal.aborted;
       try {
-        for (let i = 0; i < segments.length; i++) {
-          const segment = segments[i];
+        for (const [i, segment] of segments.entries()) {
           const blob = await loadSegment(segment, signal);
           if (!active()) return;
           if (!blob.size)
@@ -192,8 +191,9 @@ export function useTTSAudioPlayer(options: UseTTSAudioPlayerOptions = {}) {
           audio.preservesPitch = true;
           callbacks.current.onSegment?.(segment, i);
           await new Promise<void>((resolve, reject) => {
-            const abort = () =>
+            const abort = () => {
               reject(new DOMException("Cancelled", "AbortError"));
+            };
             signal.addEventListener("abort", abort, { once: true });
             audio.onloadedmetadata = () => {
               if (!active()) return;
@@ -202,7 +202,9 @@ export function useTTSAudioPlayer(options: UseTTSAudioPlayerOptions = {}) {
               }
               reportTime(session);
             };
-            audio.ontimeupdate = () => reportTime(session);
+            audio.ontimeupdate = () => {
+              reportTime(session);
+            };
             audio.onended = () => {
               if (!active()) return;
               signal.removeEventListener("abort", abort);
@@ -238,8 +240,9 @@ export function useTTSAudioPlayer(options: UseTTSAudioPlayerOptions = {}) {
           reportTime(session);
           // A gap starts only after the actual audio ended, never from an estimate.
           await new Promise<void>((resolve, reject) => {
-            const abort = () =>
+            const abort = () => {
               reject(new DOMException("Cancelled", "AbortError"));
+            };
             signal.addEventListener("abort", abort, { once: true });
             const gap: NonNullable<PlaybackSession["gap"]> = {
               remaining: segment.pauseAfterMs,
@@ -249,7 +252,9 @@ export function useTTSAudioPlayer(options: UseTTSAudioPlayerOptions = {}) {
               resume: () => {
                 if (!active() || session.paused || gap.timer) return;
                 gap.started = Date.now();
-                gap.progressTimer = setInterval(() => reportTime(session), 50);
+                gap.progressTimer = setInterval(() => {
+                  reportTime(session);
+                }, 50);
                 gap.timer = setTimeout(() => {
                   clearInterval(gap.progressTimer);
                   if (!active()) return;

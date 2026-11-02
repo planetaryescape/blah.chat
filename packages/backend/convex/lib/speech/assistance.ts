@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { type CodeBlock, splitSpeech, validateNarration } from "./prepare";
+import { readQuantities } from "./quantities";
 import type { PreparedNarration, SpeechSegment } from "./types";
 
 const codeOutline = z
@@ -67,7 +68,9 @@ export function applyCodeOutline(
     );
   }
   const segments: SpeechSegment[] = splitSpeech(
-    `Code explanation. Source-grounded outline; not execution results. ${outline.join(". ")}`,
+    readQuantities(
+      `Code explanation. Source-grounded outline; not execution results. ${outline.join(". ")}`,
+    ),
   ).map((text, index) => ({
     ...block,
     id: `${block.blockId}:explanation:${index}`,

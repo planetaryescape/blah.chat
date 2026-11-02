@@ -30,7 +30,7 @@ Feature-specific documentation.
 - [Memory System](./features/memory-system.md) - RAG memory
 - [Math/LaTeX](./features/math-latex-rendering.md) - Equation rendering
 - [Incognito Mode](./features/incognito-mode.md) - Privacy mode
-- [TTS](./features/tts.md) - Text-to-speech
+- [TTS](./features/tts.md) - Structured spoken narration and playback
 
 ---
 

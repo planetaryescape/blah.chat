@@ -259,9 +259,9 @@ export function TTSProvider({
           throw new Error("This message has no speech to play.");
         const warning =
           narration.coverage === "partial"
-            ? "Partial narration: some visual or structural content could not be fully read."
+            ? `Partial narration: ${narration.warnings.join(" ") || "Some visual or structural content could not be fully read."}`
             : narration.warnings.length
-              ? "Narration has limitations. Check the source for details."
+              ? narration.warnings.join(" ")
               : undefined;
         setState((prev) => ({
           ...prev,
@@ -301,7 +301,8 @@ export function TTSProvider({
               body: JSON.stringify({
                 text: segment.text,
                 voice,
-                speed: sessionSpeed,
+                // Rate is applied by the browser once, not again by synthesis.
+                speed: 1,
               }),
               signal: request.signal,
             });

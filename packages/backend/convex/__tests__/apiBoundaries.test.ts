@@ -214,6 +214,18 @@ describe("Clerk lifecycle", () => {
         conversationId: foreignConversation,
         connectionId,
       });
+      await ctx.db.insert("speechPreparationSessions", {
+        userId: owner,
+        requestId: "00000000-0000-4000-8000-000000000001",
+        cancelled: true,
+        expiresAt: Date.now() + 600_000,
+      });
+      await ctx.db.insert("ttsSynthesisClaims", {
+        userId: owner,
+        hash: "synthetic-speech-hash",
+        claimToken: "synthetic-claim",
+        expiresAt: Date.now() + 90_000,
+      });
       return foreignConversation;
     });
     await t.mutation(api.users.deleteUser, {
@@ -224,6 +236,12 @@ describe("Clerk lifecycle", () => {
     expect(await t.run((ctx) => ctx.db.query("jobs").collect())).toEqual([]);
     expect(
       await t.run((ctx) => ctx.db.query("conversationIntegrations").collect()),
+    ).toEqual([]);
+    expect(
+      await t.run((ctx) => ctx.db.query("speechPreparationSessions").collect()),
+    ).toEqual([]);
+    expect(
+      await t.run((ctx) => ctx.db.query("ttsSynthesisClaims").collect()),
     ).toEqual([]);
     expect(await t.run((ctx) => ctx.db.get(conversation))).not.toBeNull();
     expect(await t.run((ctx) => ctx.db.get(foreign))).not.toBeNull();

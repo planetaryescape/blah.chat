@@ -58,7 +58,11 @@ async function llmFallbackClassify(
   });
 
   if (response.usage) {
-    const cost = calculateCost(ROUTER_TIEBREAK_MODEL.id, response.usage);
+    const cost = calculateCost(ROUTER_TIEBREAK_MODEL.id, {
+      ...response.usage,
+      inputTokens: response.usage.inputTokens ?? 0,
+      outputTokens: response.usage.outputTokens ?? 0,
+    });
     await ctx.runMutation(
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
       internal.usage.mutations.recordTextGeneration,
@@ -68,7 +72,7 @@ async function llmFallbackClassify(
         inputTokens: response.usage.inputTokens ?? 0,
         outputTokens: response.usage.outputTokens ?? 0,
         cost,
-        feature: "classifier_router_fallback",
+        feature: "chat",
       },
     );
   }

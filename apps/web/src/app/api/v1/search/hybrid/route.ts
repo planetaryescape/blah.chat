@@ -3,8 +3,10 @@ import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { fetchAction } from "convex/nextjs";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
+import { getAuthenticatedConvexClient } from "@/lib/api/convex";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
+import { consumeApiRateLimit } from "@/lib/api/rateLimits";
 import logger from "@/lib/logger";
 import { formatEntityList } from "@/lib/utils/formatEntity";
 
@@ -24,6 +26,10 @@ async function handler(
   const startTime = Date.now();
   const body = await req.json();
   const validated = searchSchema.parse(body);
+  await consumeApiRateLimit(
+    getAuthenticatedConvexClient(sessionToken),
+    "hybrid-search",
+  );
 
   logger.info({ userId, limit: validated.limit }, "POST /api/v1/search/hybrid");
 

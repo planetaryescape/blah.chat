@@ -1,5 +1,6 @@
 /** @vitest-environment node */
 
+import { getFunctionName } from "convex/server";
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -30,6 +31,7 @@ vi.mock("convex/nextjs", () => ({
 }));
 
 import { isCliCallback } from "@/lib/api/cliCallback";
+import { getAuthenticatedConvexClient } from "@/lib/api/convex";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { createSSEResponse } from "@/lib/api/sse/utils";
 import { parseListLimit } from "@/lib/api/utils";
@@ -55,7 +57,11 @@ beforeEach(() => {
     getToken: vi.fn().mockResolvedValue("convex-token"),
   });
   mocks.query.mockResolvedValue({ _id: "test-id", pinned: true });
-  mocks.mutation.mockResolvedValue("new-id");
+  mocks.mutation.mockImplementation(async (ref) =>
+    getFunctionName(ref) === "apiRateLimits:consume"
+      ? { allowed: true }
+      : "new-id",
+  );
   mocks.fetchMutation.mockResolvedValue("job-id");
   mocks.fetchQuery.mockResolvedValue({ _id: "job-id", status: "pending" });
   mocks.fetchAction.mockResolvedValue([]);
@@ -84,6 +90,9 @@ describe("v1 boundary compatibility", () => {
       (await regenerate(req({ modelId: "chosen-model" }), context)).status,
     ).toBe(202);
     expect(mocks.mutation.mock.calls[0][1]).toEqual({
+      operation: "regenerate",
+    });
+    expect(mocks.mutation.mock.calls[1][1]).toEqual({
       messageId: "test-id",
       modelId: "chosen-model",
     });
@@ -99,6 +108,53 @@ describe("v1 boundary compatibility", () => {
         )
       ).status,
     ).toBe(400);
+  });
+  it("consumes each operation with the authenticated client before paid work", async () => {
+    await regenerate(req(), context);
+    expect(getAuthenticatedConvexClient).toHaveBeenCalledWith("convex-token");
+    expect(getFunctionName(mocks.mutation.mock.calls[0][0])).toBe(
+      "apiRateLimits:consume",
+    );
+    expect(mocks.mutation.mock.calls[0][1]).toEqual({
+      operation: "regenerate",
+    });
+    expect(getFunctionName(mocks.mutation.mock.calls[1][0])).toBe(
+      "chat:regenerate",
+    );
+    await search(req({ query: "synthetic search" }), context);
+    expect(mocks.mutation.mock.calls[2][1]).toEqual({
+      operation: "hybrid-search",
+    });
+    expect(mocks.mutation.mock.invocationCallOrder[2]).toBeLessThan(
+      mocks.fetchAction.mock.invocationCallOrder[0],
+    );
+    expect(mocks.fetchAction.mock.calls[0][2]).toEqual({
+      token: "convex-token",
+    });
+  });
+  it.each([
+    "regenerate",
+    "hybrid-search",
+  ])("returns a 429 envelope and never starts paid %s when exhausted", async (operation) => {
+    mocks.mutation.mockResolvedValue({ allowed: false });
+    const response =
+      operation === "regenerate"
+        ? await regenerate(req(), context)
+        : await search(req({ query: "synthetic search" }), context);
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    const envelope = await response.json();
+    expect(envelope.status).toBe("error");
+    expect(envelope.error.code).toBe("RATE_LIMIT_EXCEEDED");
+    expect(mocks.mutation).toHaveBeenCalledTimes(1);
+    expect(mocks.mutation.mock.calls[0][1]).toEqual({ operation });
+    expect(mocks.fetchAction).not.toHaveBeenCalled();
+  });
+  it("rejects invalid request bodies before consuming quota", async () => {
+    expect((await regenerate(req({ modelId: 42 }), context)).status).toBe(400);
+    expect((await search(req({ query: "" }), context)).status).toBe(400);
+    expect(mocks.mutation).not.toHaveBeenCalled();
+    expect(mocks.fetchAction).not.toHaveBeenCalled();
   });
   it("bounds preferences and rejects missing values before persistence", async () => {
     for (const body of [{ key: "x" }, { key: "x", value: "x".repeat(16001) }]) {

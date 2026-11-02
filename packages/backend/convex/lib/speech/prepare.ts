@@ -397,9 +397,10 @@ export async function prepareDeterministic(
       if (token.type === "table") {
         // SAFETY: Marked's GFM lexer emits Table for the checked table discriminator.
         const table = token as Tokens.Table;
+        // Spaced subtraction needs single-letter/numeric operands, not prose hyphens.
         if (
           [...table.header, ...table.rows.flat()].some((cell) =>
-            /\\[a-zA-Z]+|\\[()[\]]|\$[^$\n]+\$|\b\w+\s*[+*/^=]\s*\w+/.test(
+            /\\[a-zA-Z]+|\\[()[\]]|\$[^$\n]+\$|\b\w+\s*[+*/^=]\s*\w+|\b(?:[A-Za-z]|\d+(?:\.\d+)?)\s+-\s+(?:[A-Za-z]|\d+(?:\.\d+)?)\b/.test(
               cell.text,
             ),
           )

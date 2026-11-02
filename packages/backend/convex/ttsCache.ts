@@ -38,6 +38,7 @@ export const claimSynthesis = internalMutation({
         await ctx.db
           .query("ttsSynthesisClaims")
           .withIndex("by_user", (q) => q.eq("userId", args.userId))
+          .filter((q) => q.gt(q.field("expiresAt"), Date.now()))
           .take(100)
       ).length >= 100
     )

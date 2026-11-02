@@ -20,7 +20,7 @@
     "package-docs:check": "bun run scripts/check-package-docs.ts",
     "convex": "bun --filter=@blah-chat/backend run dev",
     "convex:deploy": "bun --filter=@blah-chat/backend run deploy",
-    "prepare": "lefthook install",
+    "prepare": "node scripts/prepare.mjs",
     "byod:sync": "bun run scripts/sync-byod-schema.ts",
     "api-client:generate": "bun --filter=@blah-chat/api-client run generate",
     "api-client:check": "bun run api-client:generate && git diff --exit-code packages/api-client/src/generated/openapi.ts",

@@ -201,7 +201,7 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
             ) : (
               <p className="text-sm text-muted-foreground">
                 Anyone with this link can view the conversation
-                {existingShare?.password && " (password required)"}
+                {existingShare?.requiresPassword && " (password required)"}
                 {existingShare?.expiresAt &&
                   ` (expires ${new Date(existingShare.expiresAt).toLocaleDateString()})`}
                 .

@@ -4,7 +4,11 @@ import { api } from "../_generated/api";
 import { hasInternalAuthorization } from "../lib/internalAuth";
 import { logger } from "../lib/logger";
 import { readBoundedBody, verifyUploadToken } from "../lib/ownedUploads";
-import { createMockIdentity, createTestUserData } from "../lib/test/factories";
+import {
+  createMockIdentity,
+  createTestConversationData,
+  createTestUserData,
+} from "../lib/test/factories";
 import {
   assertPublicHttpUrl,
   fetchPublicUrl,
@@ -16,6 +20,53 @@ afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+});
+
+describe("share management responses", () => {
+  it("exposes password presence, never the stored hash, even to the owner", async () => {
+    const t = convexTest(schema);
+    const conversationId = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert(
+        "users",
+        createTestUserData({ clerkId: "share-owner" }),
+      );
+      const id = await ctx.db.insert(
+        "conversations",
+        createTestConversationData(userId),
+      );
+      await ctx.db.insert("shares", {
+        conversationId: id,
+        userId,
+        shareId: "fixture-share",
+        title: "Private fixture",
+        password: "stored-secret-hash",
+        anonymizeUsernames: false,
+        isPublic: true,
+        isActive: true,
+        viewCount: 0,
+        createdAt: Date.now(),
+      });
+      return id;
+    });
+    const owner = t.withIdentity(
+      createMockIdentity({ subject: "share-owner" }),
+    );
+    const share = await owner.query(api.shares.getByConversation, {
+      conversationId,
+    });
+    expect(share).toMatchObject({
+      shareId: "fixture-share",
+      requiresPassword: true,
+    });
+    expect(share).not.toHaveProperty("password");
+    const list = await owner.query(api.shares.list, {});
+    expect(list).toHaveLength(1);
+    expect(list[0]).not.toHaveProperty("password");
+    expect(JSON.stringify(list)).not.toContain("stored-secret-hash");
+    expect(
+      await t.query(api.shares.getByConversation, { conversationId }),
+    ).toBeNull();
+  });
 });
 
 describe("internal service and upload credentials", () => {

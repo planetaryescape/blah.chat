@@ -11,7 +11,7 @@ const { mockCreateShare, mockToggleShare, mockExistingShare } = vi.hoisted(
       current: null as {
         shareId: string;
         isActive: boolean;
-        password?: string;
+        requiresPassword?: boolean;
         expiresAt?: number;
       } | null,
     },

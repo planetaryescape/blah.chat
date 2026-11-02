@@ -20,9 +20,9 @@ bun run test:e2e           # Playwright E2E
 
 ## Critical Rules
 
-- **Resilient generation**: Messages must survive page refresh. Generation runs server-side via Trigger.dev tasks (`packages/jobs`) writing to Postgres; clients attach over SSE and reconcile — no client-only streaming. See `apps/web/src/lib/generation-v2/`.
+- **Resilient generation**: Messages must survive page refresh. Generation runs in server-side Convex actions and persists partial responses; clients subscribe to durable messages. See `packages/backend/convex/generation.ts`.
 - **API envelopes**: Every response wrapped via `formatEntity`/`formatEntityList`/`formatErrorEntity` from `src/lib/utils/formatEntity.ts`.
-- **Normalized schema**: Postgres + Drizzle (`packages/persistence-postgres/src/schema.ts`). No nested documents. Junction tables for M:N. Schema changes require a generated migration (`bun run db:generate` in the package).
+- **Normalized schema**: Convex schema in `packages/backend/convex/schema.ts`. Use junction tables for M:N relationships. Validate schema changes against the deployed Convex backend.
 - **Cost tracking**: Log tokens/cost on every LLM call.
 - **Pino logging**: Structured JSON in API routes.
 - **One component per file** unless tightly coupled helper.
@@ -30,7 +30,7 @@ bun run test:e2e           # Playwright E2E
 
 ## Centralization Rules
 
-- **Prompts**: All LLM prompts in `packages/shared/src/prompts/` (or `@blah-chat/ai` prompt modules). Don't hardcode them in jobs/routes/UI.
+- **Prompts**: Keep LLM prompts in `packages/backend/convex/lib/prompts/` or existing dedicated prompt modules. Don't hardcode them in routes/UI.
 - **Models**: Import from `packages/ai/src/models.ts` / `apps/web/src/lib/ai/models.ts`. Don't hardcode model ID strings.
 
 ## Design Philosophy

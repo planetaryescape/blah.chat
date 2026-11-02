@@ -1,6 +1,6 @@
 {
   "name": "@blah-chat/ai",
-  "version": "0.8.0",
+  "version": "0.1.2",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -48,10 +48,6 @@
     "./prompts/triage": {
       "types": "./dist/prompts/triage.d.ts",
       "import": "./dist/prompts/triage.js"
-    },
-    "./benchmarks": {
-      "types": "./dist/benchmarks.d.ts",
-      "import": "./dist/benchmarks.js"
     }
   },
   "files": [
@@ -63,7 +59,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup src/index.ts src/models.ts src/benchmarks.ts src/utils.ts src/gateway.ts src/registry.ts src/operational-models.ts src/reasoning/index.ts src/prompts/taskExtraction.ts src/prompts/meetingExtraction.ts src/prompts/modelTriage.ts src/prompts/triage.ts --format esm --dts --clean",
+    "build": "tsup src/index.ts src/models.ts src/utils.ts src/gateway.ts src/registry.ts src/operational-models.ts src/reasoning/index.ts src/prompts/taskExtraction.ts src/prompts/meetingExtraction.ts src/prompts/modelTriage.ts src/prompts/triage.ts --format esm --dts --clean",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "bun run build"
   },
@@ -76,7 +72,7 @@
     "@ai-sdk/openai": "^3.0.1",
     "@openrouter/ai-sdk-provider": "^2.1.1",
     "ai": "^6.0.3",
-    "lucide-react": "^1.14.0"
+    "lucide-react": "^0.563.0"
   },
   "devDependencies": {
     "@blah-chat/config": "workspace:*",

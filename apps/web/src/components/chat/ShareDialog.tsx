@@ -1,8 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { Check, Clock, Copy, Share2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,17 +26,12 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { analytics } from "@/lib/analytics";
-import { isLegacyConversationId } from "@/lib/utils/chatRouteIds";
 
 interface ShareDialogProps {
-  conversationId: string;
+  conversationId: Id<"conversations">;
 }
 
 export function ShareDialog({ conversationId }: ShareDialogProps) {
-  const validConversationId = isLegacyConversationId(conversationId)
-    ? (conversationId as string)
-    : null;
-
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [expiresIn, setExpiresIn] = useState<number | undefined>(7);
@@ -43,54 +40,17 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
   const [copied, setCopied] = useState(false);
   const [extendExpiresIn, setExtendExpiresIn] = useState<number | undefined>(7);
 
-  const { data: existingShare } = useQuery({
-    queryKey: ["share", validConversationId],
-    enabled: !!validConversationId,
-    queryFn: async () => {
-      const res = await fetch(
-        `/api/v1/shares/by-conversation?conversationId=${validConversationId}`,
-      );
-      if (!res.ok) return null;
-      const json = await res.json();
-      return json.data ?? null;
-    },
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const existingShare = useQuery(api.shares.getByConversation, {
+    conversationId,
   });
-  const createShare = async (args: Record<string, unknown>) => {
-    const res = await fetch("/api/v1/shares", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(args),
-    });
-    if (!res.ok) throw new Error("Failed");
-    const json = await res.json();
-    return json.data?.shareId;
-  };
-  const toggleShare = async (args: { shareId: string; isActive: boolean }) => {
-    const res = await fetch(`/api/v1/shares/${args.shareId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isActive: args.isActive }),
-    });
-    if (!res.ok) throw new Error("Failed to toggle share");
-  };
-  const extendExpiration = async (args: {
-    shareId: string;
-    expiresAt: number;
-  }) => {
-    const res = await fetch(`/api/v1/shares/${args.shareId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ expiresAt: args.expiresAt }),
-    });
-    if (!res.ok) throw new Error("Failed to extend expiration");
-  };
+  const createShare = useAction(api.shares.create);
+  const toggleShare = useMutation(api.shares.toggle);
+  const extendExpiration = useMutation(api.shares.extendExpiration);
 
   // Check if share is expired
-  const isExpired = useMemo(
-    () =>
-      existingShare?.expiresAt ? existingShare.expiresAt < Date.now() : false,
-    [existingShare?.expiresAt],
-  );
+  const isExpired =
+    existingShare?.expiresAt && existingShare.expiresAt < Date.now();
 
   // Set share URL if exists
   useEffect(() => {
@@ -99,14 +59,10 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
     }
   }, [existingShare]);
 
-  if (!validConversationId) {
-    return null;
-  }
-
   const handleShare = async () => {
     try {
       const shareId = await createShare({
-        conversationId: validConversationId,
+        conversationId,
         password: password || undefined,
         expiresIn,
         anonymizeUsernames: anonymize,
@@ -135,21 +91,18 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
   };
 
   const handleToggle = async (isActive: boolean) => {
-    if (!existingShare?.shareId) return;
     try {
-      await toggleShare({ shareId: existingShare.shareId, isActive });
+      await toggleShare({ conversationId, isActive });
     } catch (error) {
       console.error("Failed to toggle share:", error);
     }
   };
 
   const handleExtendExpiration = async () => {
-    if (!existingShare?.shareId || !extendExpiresIn) return;
     try {
-      const expiresAt = Date.now() + extendExpiresIn * 24 * 60 * 60 * 1000;
       await extendExpiration({
-        shareId: existingShare.shareId,
-        expiresAt,
+        conversationId,
+        expiresIn: extendExpiresIn,
       });
       analytics.track("share_expiration_extended", {
         expiresIn: extendExpiresIn,

@@ -1,29 +1,15 @@
-import { act, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mockDeleteConversation = vi.fn();
-const mockTogglePin = vi.fn();
-const mockToggleStar = vi.fn();
-const mockArchiveConversation = vi.fn();
-const mockAutoRenameConversation = vi.fn();
+// Mock convex/react BEFORE importing component
+const mockMutation = vi.fn();
+const mockAction = vi.fn();
 
-vi.mock("@/lib/hooks/mutations", () => ({
-  useDeleteConversation: () => ({
-    mutateAsync: mockDeleteConversation,
-  }),
-  useTogglePin: () => ({
-    mutateAsync: mockTogglePin,
-  }),
-  useToggleStar: () => ({
-    mutateAsync: mockToggleStar,
-  }),
-  useArchiveConversation: () => ({
-    mutateAsync: mockArchiveConversation,
-  }),
-  useAutoRenameConversation: () => ({
-    mutateAsync: mockAutoRenameConversation,
-  }),
+vi.mock("convex/react", () => ({
+  useQuery: vi.fn(() => null),
+  useMutation: vi.fn(() => mockMutation),
+  useAction: vi.fn(() => mockAction),
 }));
 
 // Mock nuqs
@@ -66,6 +52,7 @@ vi.mock("@/components/ui/sidebar", () => ({
   useSidebar: () => ({ setOpenMobile: vi.fn(), isMobile: false }),
 }));
 
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 // Import AFTER mocks
 import { ConversationItem } from "../ConversationItem";
 
@@ -79,11 +66,13 @@ vi.mock("next/navigation", async () => {
   };
 });
 
-const createConversation = (overrides: Partial<any> = {}): any =>
+const createConversation = (
+  overrides: Partial<Doc<"conversations">> = {},
+): Doc<"conversations"> =>
   ({
-    _id: "conv-123" as string,
+    _id: "conv-123" as Id<"conversations">,
     _creationTime: Date.now(),
-    userId: "user-123" as string,
+    userId: "user-123" as Id<"users">,
     title: "Test Conversation",
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -92,15 +81,11 @@ const createConversation = (overrides: Partial<any> = {}): any =>
     starred: false,
     archived: false,
     ...overrides,
-  }) as any;
+  }) as Doc<"conversations">;
 
 describe("ConversationItem", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockAutoRenameConversation.mockResolvedValue({
-      _id: "conv-123",
-      title: "Renamed",
-    });
   });
 
   it("navigates to conversation on click", async () => {
@@ -183,7 +168,7 @@ describe("ConversationItem", () => {
     const pinButton = screen.getByRole("button", { name: /pin/i });
     await user.click(pinButton);
 
-    expect(mockTogglePin).toHaveBeenCalledWith({ conversationId: "conv-123" });
+    expect(mockMutation).toHaveBeenCalledWith({ conversationId: "conv-123" });
   });
 
   it("shows delete dialog and calls mutation on confirm", async () => {
@@ -204,7 +189,7 @@ describe("ConversationItem", () => {
 
     // Confirm delete
     await user.click(screen.getByText("Confirm Delete"));
-    expect(mockDeleteConversation).toHaveBeenCalledWith({
+    expect(mockMutation).toHaveBeenCalledWith({
       conversationId: "conv-123",
     });
   });
@@ -216,25 +201,9 @@ describe("ConversationItem", () => {
     render(<ConversationItem conversation={conversation} />);
 
     const item = screen.getByRole("option");
-    await act(async () => {
-      item.focus();
-    });
+    item.focus();
     await user.keyboard("{Enter}");
 
     expect(mockRouterPush).toHaveBeenCalledWith("/chat/conv-123");
-  });
-
-  it("calls REST auto-rename mutation from the menu", async () => {
-    const user = userEvent.setup();
-    const conversation = createConversation();
-
-    render(<ConversationItem conversation={conversation} />);
-
-    await user.click(screen.getByRole("button", { name: /options/i }));
-    await user.click(screen.getByText(/auto-rename/i));
-
-    expect(mockAutoRenameConversation).toHaveBeenCalledWith({
-      conversationId: "conv-123",
-    });
   });
 });

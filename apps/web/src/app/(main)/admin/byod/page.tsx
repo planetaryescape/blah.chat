@@ -1,8 +1,9 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import { useAction, useQuery } from "convex/react";
 import { Loader2, Mail, Play, RefreshCw } from "lucide-react";
-import { notFound } from "next/navigation";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,79 +22,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useFeatureFlag } from "@/hooks/usePostHogFeatureFlag";
-import { featureFlags } from "@/lib/featureFlags";
 
 export default function BYODAdminPage() {
-  if (!featureFlags.adminFull) notFound();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRunningMigrations, setIsRunningMigrations] = useState(false);
+  const [isSendingNotifications, setIsSendingNotifications] = useState(false);
   const isBYODEnabled = useFeatureFlag("byod");
 
-  const { data: stats, isError: isStatsError } = useQuery({
-    queryKey: ["admin", "byod", "stats"],
-    queryFn: async () => {
-      const res = await fetch("/api/v1/admin/byod/stats");
-      if (!res.ok)
-        throw new Error(`Failed to fetch BYOD stats (${res.status})`);
-      const json = await res.json();
-      return json.data ?? null;
-    },
-  });
-
-  const { data: instances, isError: isInstancesError } = useQuery({
-    queryKey: ["admin", "byod", "instances"],
-    queryFn: async () => {
-      const res = await fetch("/api/v1/admin/byod/instances");
-      if (!res.ok)
-        throw new Error(`Failed to fetch BYOD instances (${res.status})`);
-      const json = await res.json();
-      return json.data ?? null;
-    },
-  });
-
-  const { run: handleRefresh, isPending: isRefreshing } = useAsyncAction(
-    async () => {
-      const res = await fetch("/api/v1/admin/byod/health-check", {
-        method: "POST",
-      });
-      if (!res.ok) throw new Error("Failed");
-      const result = (await res.json()).data;
-      toast.success(
-        `Health check: ${result.healthy} healthy, ${result.unhealthy} unhealthy, ${result.outdated} outdated`,
-      );
-    },
-    { onError: () => toast.error("Health check failed") },
-  );
-
-  const { run: handleRunMigrations, isPending: isRunningMigrations } =
-    useAsyncAction(
-      async () => {
-        const res = await fetch("/api/v1/admin/byod/run-migrations", {
-          method: "POST",
-        });
-        if (!res.ok) throw new Error("Failed");
-        const result = (await res.json()).data;
-        toast.success(
-          `Migrations: ${result.succeeded} succeeded, ${result.failed} failed`,
-        );
-      },
-      { onError: () => toast.error("Migrations failed") },
-    );
-
-  const { run: handleSendNotifications, isPending: isSendingNotifications } =
-    useAsyncAction(
-      async () => {
-        const res = await fetch("/api/v1/admin/byod/send-notifications", {
-          method: "POST",
-        });
-        if (!res.ok) throw new Error("Failed");
-        const result = (await res.json()).data;
-        toast.success(
-          `Emails: ${result.sent} sent, ${result.skipped} skipped, ${result.failed} failed`,
-        );
-      },
-      { onError: () => toast.error("Failed to send notifications") },
-    );
+  // @ts-ignore - Type depth exceeded with complex Convex query (94+ modules)
+  const stats = useQuery(api.admin.byod.getStats);
+  // @ts-ignore - Type depth exceeded with complex Convex query (94+ modules)
+  const instances = useQuery(api.admin.byod.listInstances);
 
   // Feature flag check
   if (isBYODEnabled === undefined) {
@@ -117,16 +57,54 @@ export default function BYODAdminPage() {
     );
   }
 
-  if (isStatsError || isInstancesError) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 gap-2">
-        <p className="text-destructive font-medium">Failed to load BYOD data</p>
-        <p className="text-sm text-muted-foreground">
-          The admin API endpoints may not be available yet.
-        </p>
-      </div>
-    );
-  }
+  // @ts-ignore - Type depth exceeded with complex Convex action (94+ modules)
+  const checkAllHealth = useAction(api.byod.healthCheck.checkAllHealth);
+  // @ts-ignore - Type depth exceeded with complex Convex action (94+ modules)
+  const runMigrations = useAction(api.byod.migrationRunner.runMigrationsForAll);
+  // @ts-ignore - Type depth exceeded with complex Convex action (94+ modules)
+  const sendNotifications = useAction(api.admin.byod.sendUpdateNotifications);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      const result = await checkAllHealth({});
+      toast.success(
+        `Health check: ${result.healthy} healthy, ${result.unhealthy} unhealthy, ${result.outdated} outdated`,
+      );
+    } catch (_error) {
+      toast.error("Health check failed");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleRunMigrations = async () => {
+    setIsRunningMigrations(true);
+    try {
+      const result = await runMigrations({});
+      toast.success(
+        `Migrations: ${result.succeeded} succeeded, ${result.failed} failed`,
+      );
+    } catch (_error) {
+      toast.error("Migrations failed");
+    } finally {
+      setIsRunningMigrations(false);
+    }
+  };
+
+  const handleSendNotifications = async () => {
+    setIsSendingNotifications(true);
+    try {
+      const result = await sendNotifications({});
+      toast.success(
+        `Emails: ${result.sent} sent, ${result.skipped} skipped, ${result.failed} failed`,
+      );
+    } catch (_error) {
+      toast.error("Failed to send notifications");
+    } finally {
+      setIsSendingNotifications(false);
+    }
+  };
 
   if (!stats || !instances) {
     return (
@@ -238,7 +216,7 @@ export default function BYODAdminPage() {
             <div className="flex flex-wrap gap-1">
               {Object.entries(stats.versionDistribution || {})
                 .sort(([a], [b]) => b.localeCompare(a))
-                .map(([version, count]: [string, any]) => (
+                .map(([version, count]) => (
                   <Badge
                     key={version}
                     variant={
@@ -280,7 +258,7 @@ export default function BYODAdminPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {instances.map((instance: any) => {
+                {instances.map((instance) => {
                   const isOutdated =
                     instance.schemaVersion < stats.latestVersion;
                   return (

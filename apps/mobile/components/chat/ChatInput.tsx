@@ -117,14 +117,10 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
     const prefs = usePreferences();
     const sttEnabled = prefs?.sttEnabled ?? true;
 
-    const {
-      isUploading,
-      isAvailable: attachmentsAvailable,
-      uploadAsset,
-    } = useChatAttachmentUpload(conversationId);
+    const { isUploading, uploadAsset } =
+      useChatAttachmentUpload(conversationId);
     const {
       state: sttState,
-      isAvailable: sttAvailable,
       startRecording,
       stopRecording,
     } = useChatSTT(sttEnabled);
@@ -146,8 +142,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
     const isTranscribing = sttState === "transcribing";
     const isBusy = disabled || isSending || isUploading || isTranscribing;
 
-    const showMic =
-      !hasText && sttState === "idle" && sttEnabled && sttAvailable;
+    const showMic = !hasText && sttState === "idle" && sttEnabled;
     const showSend = hasText || isRecording || isSending;
     const showRightAction = showMic || showSend || isTranscribing;
 
@@ -526,17 +521,10 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
           >
             <AnimatedPressable
               onPress={handleLeftActionPress}
-              disabled={
-                (isBusy && !isRecording) ||
-                (!attachmentsAvailable && !isRecording)
-              }
+              disabled={isBusy && !isRecording}
               accessibilityRole="button"
               accessibilityLabel={
-                isRecording
-                  ? "Stop recording and insert text"
-                  : attachmentsAvailable
-                    ? "Attach files"
-                    : "Attachments unavailable"
+                isRecording ? "Stop recording and insert text" : "Attach files"
               }
               style={{
                 width: 44,
@@ -548,7 +536,6 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
                 alignItems: "center",
                 justifyContent: "center",
                 marginBottom: 2,
-                opacity: !attachmentsAvailable && !isRecording ? 0.45 : 1,
               }}
             >
               {isRecording ? (
@@ -645,14 +632,6 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
                   placeholder={placeholder}
                   placeholderTextColor={palette.starlightDim}
                   multiline
-                  submitBehavior={
-                    prefs?.sendOnEnter ? "blurAndSubmit" : "newline"
-                  }
-                  onSubmitEditing={() => {
-                    if (prefs?.sendOnEnter) {
-                      void sendPayload(value);
-                    }
-                  }}
                   style={{
                     flex: 1,
                     height: inputHeight,
@@ -764,7 +743,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
           onTakePhoto={handleTakePhoto}
           onChoosePhoto={handleChoosePhoto}
           onChooseFile={handleChooseFile}
-          disabled={isBusy || !attachmentsAvailable}
+          disabled={isBusy}
         />
       </>
     );

@@ -1,12 +1,13 @@
 "use client";
 
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMemo } from "react";
 import { useCachedToolCalls } from "@/hooks/useCacheSync";
 import { cn } from "@/lib/utils";
 import { ArtifactCard } from "./ArtifactCard";
 
 interface ArtifactListProps {
-  messageId: string;
+  messageId: Id<"messages">;
   className?: string;
 }
 
@@ -44,7 +45,7 @@ export function ArtifactList({ messageId, className }: ArtifactListProps) {
         return {
           id: tc.id,
           toolName: tc.name,
-          documentId: result.documentId as string,
+          documentId: result.documentId as Id<"canvasDocuments">,
           title: args.title ?? "Document",
           documentType: args.documentType ?? "prose",
           language: args.language,

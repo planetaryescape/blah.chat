@@ -1,6 +1,6 @@
 import { DesktopUpdateNotifier } from "@/components/desktop/DesktopUpdateNotifier";
 import { AnalyticsProvider } from "@/components/providers/AnalyticsProvider";
-import { AppProviders } from "@/components/providers/app-providers";
+import { ConvexClerkProvider } from "@/components/providers/convex-clerk-provider";
 import { MotionProvider } from "@/components/providers/motion-provider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -162,6 +162,9 @@ export default function RootLayout({
         {/* Preconnect to Clerk for faster auth - improves LCP */}
         <link rel="preconnect" href="https://clerk.accounts.dev" />
         <link rel="dns-prefetch" href="https://clerk.accounts.dev" />
+        {/* Preconnect to Convex for faster data */}
+        <link rel="preconnect" href="https://convex.cloud" />
+        <link rel="dns-prefetch" href="https://convex.cloud" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -170,8 +173,8 @@ export default function RootLayout({
       <body
         className={`${syne.variable} ${manrope.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
-        <QueryProvider>
-          <AppProviders>
+        <ConvexClerkProvider>
+          <QueryProvider>
             <ThemeProvider
               attribute="class"
               defaultTheme="dark"
@@ -188,8 +191,8 @@ export default function RootLayout({
                 </TooltipProvider>
               </MotionProvider>
             </ThemeProvider>
-          </AppProviders>
-        </QueryProvider>
+          </QueryProvider>
+        </ConvexClerkProvider>
       </body>
     </html>
   );

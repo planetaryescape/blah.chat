@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { CachePresets, getCacheControl } from "@/lib/api/cache";
 import { conversationsDAL } from "@/lib/api/dal/conversations";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
@@ -11,8 +12,6 @@ const updateSchema = z
   .object({
     title: z.string().optional(),
     model: z.string().optional(),
-    selectedIntegrationIds: z.array(z.string()).optional(),
-    thinkingEffort: z.enum(["none", "low", "medium", "high"]).optional(),
   })
   .partial();
 
@@ -39,10 +38,9 @@ async function getHandler(
   });
   logger.info({ userId, conversationId: id, duration }, "Conversation fetched");
 
-  // Live data: a cached conversation makes model switches and settings
-  // appear stuck for the cache TTL.
+  const cacheControl = getCacheControl(CachePresets.ITEM);
   return NextResponse.json(result, {
-    headers: { "Cache-Control": "private, no-store" },
+    headers: { "Cache-Control": cacheControl },
   });
 }
 
@@ -74,9 +72,11 @@ async function deleteHandler(
   {
     params,
     userId,
+    sessionToken,
   }: {
     params: Promise<Record<string, string | string[]>>;
     userId: string;
+    sessionToken: string;
   },
 ) {
   const { id } = (await params) as { id: string };
@@ -86,12 +86,12 @@ async function deleteHandler(
     "DELETE /api/v1/conversations/:id",
   );
 
-  const result = await conversationsDAL.delete(userId, id);
+  await conversationsDAL.delete(userId, id, sessionToken);
 
   const duration = Date.now() - startTime;
   logger.info({ userId, conversationId: id, duration }, "Conversation deleted");
 
-  return NextResponse.json(result);
+  return new NextResponse(null, { status: 204 });
 }
 
 export const GET = withErrorHandling(withAuth(getHandler));

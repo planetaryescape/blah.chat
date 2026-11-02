@@ -1,5 +1,7 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import { useAction } from "convex/react";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -11,8 +13,8 @@ import {
   DialogFooter,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useAsyncAction } from "@/hooks/useAsyncAction";
 
+// Constants
 const MAX_TEXT_LENGTH = 10000;
 
 interface SummarizePopoverProps {
@@ -23,35 +25,24 @@ interface SummarizePopoverProps {
   onSaveAsNote: (summary: string) => void;
 }
 
-async function summarizeText(text: string): Promise<{ summary: string }> {
-  const response = await fetch("/api/v1/actions/summarize", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
-  });
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(
-      (err as { error?: string }).error || "Failed to generate summary",
-    );
-  }
-
-  const payload = (await response.json()) as { data?: { summary: string } };
-  return payload.data ?? { summary: "" };
-}
-
 export function SummarizePopover({
   open,
   onOpenChange,
   selectedText,
   onSaveAsNote,
 }: SummarizePopoverProps) {
+  const summarizeSelectionAction = useAction(api.generation.summarizeSelection);
+
   const [summary, setSummary] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { run: generateSummary, isPending: isLoading } = useAsyncAction(
-    async () => {
+  // Auto-generate summary when popover opens
+  useEffect(() => {
+    if (!open || !selectedText) return;
+
+    const generateSummary = async () => {
+      // Validate text length
       if (selectedText.length > MAX_TEXT_LENGTH) {
         setError(
           `Selection too long. Please select less than ${MAX_TEXT_LENGTH.toLocaleString()} characters.`,
@@ -59,37 +50,65 @@ export function SummarizePopover({
         return;
       }
 
+      setIsLoading(true);
       setError(null);
       setSummary("");
 
-      const result = await summarizeText(selectedText);
-      setSummary(result.summary);
-    },
-    {
-      onError: (err) => {
+      try {
+        const result = (await (summarizeSelectionAction as any)({
+          text: selectedText,
+        })) as { summary: string };
+        setSummary(result.summary);
+      } catch (err) {
         console.error("Failed to generate summary:", err);
         const errorMessage =
           err instanceof Error ? err.message : "Failed to generate summary";
         setError(errorMessage);
-      },
-    },
-  );
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  useEffect(() => {
-    if (!open || !selectedText) return;
     generateSummary();
-  }, [open, selectedText]);
+  }, [open, selectedText, summarizeSelectionAction]);
 
   const handleSaveAsNote = () => {
     onSaveAsNote(summary);
+    // Don't call onOpenChange(false) - let parent handle closing
   };
 
   const handleRetry = () => {
-    generateSummary();
+    setError(null);
+    // Re-trigger the effect by toggling state
+    setIsLoading(true);
+    setError(null);
+    setSummary("");
+
+    const retry = async () => {
+      try {
+        const result = (await (summarizeSelectionAction as any)({
+          text: selectedText,
+        })) as { summary: string };
+        setSummary(result.summary);
+      } catch (err) {
+        console.error("Failed to generate summary:", err);
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to generate summary";
+        setError(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    retry();
   };
 
   const handleClose = () => {
     onOpenChange(false);
+    clearSelection();
+  };
+
+  const clearSelection = () => {
     window.getSelection()?.removeAllRanges();
   };
 
@@ -101,8 +120,10 @@ export function SummarizePopover({
         onInteractOutside={handleClose}
         showCloseButton={false}
       >
+        {/* Screen reader title */}
         <DialogTitle className="sr-only">Text Summary</DialogTitle>
 
+        {/* Loading State */}
         {isLoading && (
           <div className="flex flex-col items-center justify-center gap-3 py-4">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -112,6 +133,7 @@ export function SummarizePopover({
           </div>
         )}
 
+        {/* Error State */}
         {error && (
           <div className="space-y-3">
             <Alert variant="destructive">
@@ -124,6 +146,7 @@ export function SummarizePopover({
           </div>
         )}
 
+        {/* Success State - Show Summary */}
         {!isLoading && !error && summary && (
           <>
             <DialogDescription className="text-sm text-muted-foreground select-text">

@@ -303,7 +303,6 @@ export function DrawerContentV2({ navigation }: DrawerContentComponentProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const segments = useSegments();
-  const routeSegments = segments as string[];
   const drawerStatus = useDrawerStatus();
   const { user } = useUser();
 
@@ -338,12 +337,10 @@ export function DrawerContentV2({ navigation }: DrawerContentComponentProps) {
   const deleteConversation = useDeleteConversation();
   const renameConversation = useRenameConversation();
 
-  const activeSection = routeSegments[1];
+  const activeSection = segments[1];
   const activeConversationFromRoute =
-    routeSegments[1] === "chat" &&
-    routeSegments[2] &&
-    routeSegments[2] !== "new"
-      ? routeSegments[2]
+    segments[1] === "chat" && segments[2] && segments[2] !== "new"
+      ? segments[2]
       : null;
 
   useEffect(() => {
@@ -502,27 +499,6 @@ export function DrawerContentV2({ navigation }: DrawerContentComponentProps) {
   const isLoading = conversations === undefined;
   const isActionSheetOpen = !!actionConversation;
 
-  const renderConversationItem = useCallback(
-    ({ item }: { item: GroupedConversationItem }) => {
-      if (item.kind === "header") {
-        return <ConversationSectionHeader label={item.label} />;
-      }
-      return (
-        <ConversationRow
-          conversation={item.conversation}
-          isActive={selectedConversationId === item.conversation._id}
-          onPress={() => handleConversationPress(item.conversation._id)}
-          onLongPress={() => handleConversationLongPress(item.conversation)}
-        />
-      );
-    },
-    [
-      selectedConversationId,
-      handleConversationPress,
-      handleConversationLongPress,
-    ],
-  );
-
   return (
     <View
       style={{
@@ -636,7 +612,22 @@ export function DrawerContentV2({ navigation }: DrawerContentComponentProps) {
           <FlashList<GroupedConversationItem>
             data={groupedConversationItems}
             keyExtractor={(item) => item.id}
-            renderItem={renderConversationItem}
+            renderItem={({ item }) => {
+              if (item.kind === "header") {
+                return <ConversationSectionHeader label={item.label} />;
+              }
+
+              return (
+                <ConversationRow
+                  conversation={item.conversation}
+                  isActive={selectedConversationId === item.conversation._id}
+                  onPress={() => handleConversationPress(item.conversation._id)}
+                  onLongPress={() =>
+                    handleConversationLongPress(item.conversation)
+                  }
+                />
+              );
+            }}
           />
         )}
       </View>

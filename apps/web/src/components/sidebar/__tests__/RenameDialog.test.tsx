@@ -2,22 +2,24 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mockRenameConversation = vi.fn();
+// Mock convex/react BEFORE importing component
+const mockMutation = vi.fn();
 
-vi.mock("@/lib/hooks/mutations/useRenameConversation", () => ({
-  useRenameConversation: () => ({
-    mutateAsync: mockRenameConversation,
-  }),
+vi.mock("convex/react", () => ({
+  useMutation: vi.fn(() => mockMutation),
 }));
 
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 // Import AFTER mocks
 import { RenameDialog } from "../RenameDialog";
 
-const createConversation = (overrides: Partial<any> = {}): any =>
+const createConversation = (
+  overrides: Partial<Doc<"conversations">> = {},
+): Doc<"conversations"> =>
   ({
-    _id: "conv-123" as string,
+    _id: "conv-123" as Id<"conversations">,
     _creationTime: Date.now(),
-    userId: "user-123" as string,
+    userId: "user-123" as Id<"users">,
     title: "Original Title",
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -26,7 +28,7 @@ const createConversation = (overrides: Partial<any> = {}): any =>
     starred: false,
     archived: false,
     ...overrides,
-  }) as any;
+  }) as Doc<"conversations">;
 
 describe("RenameDialog", () => {
   const defaultProps = {
@@ -58,7 +60,7 @@ describe("RenameDialog", () => {
 
     await user.click(screen.getByRole("button", { name: /save/i }));
 
-    expect(mockRenameConversation).toHaveBeenCalledWith({
+    expect(mockMutation).toHaveBeenCalledWith({
       conversationId: "conv-123",
       title: "New Title",
     });
@@ -75,7 +77,7 @@ describe("RenameDialog", () => {
     await user.clear(input);
     await user.type(input, "Enter Title{Enter}");
 
-    expect(mockRenameConversation).toHaveBeenCalledWith({
+    expect(mockMutation).toHaveBeenCalledWith({
       conversationId: "conv-123",
       title: "Enter Title",
     });
@@ -90,7 +92,7 @@ describe("RenameDialog", () => {
 
     await user.click(screen.getByRole("button", { name: /cancel/i }));
 
-    expect(mockRenameConversation).not.toHaveBeenCalled();
+    expect(mockMutation).not.toHaveBeenCalled();
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

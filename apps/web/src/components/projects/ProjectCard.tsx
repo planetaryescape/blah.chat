@@ -1,5 +1,6 @@
 "use client";
 
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { formatDistanceToNow } from "date-fns";
 import {
   ArrowUpRight,
@@ -22,7 +23,7 @@ import { ProjectStats } from "./ProjectStats";
 
 interface ProjectCardProps {
   project: {
-    _id: string;
+    _id: Id<"projects">;
     name: string;
     description?: string;
     systemPrompt?: string;
@@ -30,8 +31,8 @@ interface ProjectCardProps {
     updatedAt: number;
   };
   onEdit?: (project: any) => void;
-  onDelete?: (id: string) => void;
-  onManage?: (id: string, name: string) => void;
+  onDelete?: (id: Id<"projects">) => void;
+  onManage?: (id: Id<"projects">, name: string) => void;
 }
 
 export function ProjectCard({
@@ -44,16 +45,8 @@ export function ProjectCard({
 
   return (
     <div
-      role="button"
-      tabIndex={0}
       className="group relative flex flex-col h-full bg-card hover:bg-muted/10 border border-border/40 hover:border-border/80 rounded-xl overflow-hidden shadow-sm transition-all duration-300 cursor-pointer"
       onClick={() => router.push(`/projects/${project._id}`)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          router.push(`/projects/${project._id}`);
-        }
-      }}
     >
       <div className="flex flex-col flex-1 p-5">
         {/* Header */}

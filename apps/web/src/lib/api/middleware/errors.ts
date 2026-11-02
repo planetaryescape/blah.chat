@@ -4,70 +4,6 @@ import { ApiError } from "@/lib/api/errors";
 import logger from "@/lib/logger";
 import { formatErrorEntity } from "@/lib/utils/formatEntity";
 
-const CONFIGURATION_ENV_KEYS = new Set([
-  "DATABASE_URL",
-  "UPSTASH_REDIS_REST_URL",
-  "UPSTASH_REDIS_REST_TOKEN",
-  "R2_ACCOUNT_ID",
-  "R2_ACCESS_KEY_ID",
-  "R2_SECRET_ACCESS_KEY",
-  "R2_BUCKET",
-  "R2_BUCKET_NAME",
-  "R2_ENDPOINT",
-  "R2_ENDPOINT_URL",
-  "R2_REGION",
-  "R2_FORCE_PATH_STYLE",
-  "R2_PUBLIC_BASE_URL",
-  "TRIGGER_SECRET_KEY",
-  "TRIGGER_API_URL",
-]);
-
-type ZodLikeIssue = {
-  path: PropertyKey[];
-};
-
-function isZodLikeIssue(issue: unknown): issue is ZodLikeIssue {
-  return (
-    typeof issue === "object" &&
-    issue !== null &&
-    "path" in issue &&
-    Array.isArray(issue.path)
-  );
-}
-
-function isZodLikeError(error: unknown): error is { issues: ZodLikeIssue[] } {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "issues" in error &&
-    Array.isArray(error.issues) &&
-    error.issues.every(isZodLikeIssue)
-  );
-}
-
-function isConfigurationZodError(error: { issues: ZodLikeIssue[] }): boolean {
-  return error.issues.some((issue) =>
-    issue.path.some(
-      (segment) =>
-        typeof segment === "string" && CONFIGURATION_ENV_KEYS.has(segment),
-    ),
-  );
-}
-
-function isDependencyFetchError(error: Error): boolean {
-  const message = error.message.toLowerCase();
-  const causeMessage =
-    error.cause instanceof Error
-      ? error.cause.message.toLowerCase()
-      : typeof error.cause === "string"
-        ? error.cause.toLowerCase()
-        : "";
-
-  return (
-    message.includes("fetch failed") || causeMessage.includes("fetch failed")
-  );
-}
-
 export function withErrorHandling(
   handler: (req: NextRequest, context: any) => Promise<Response>,
 ) {
@@ -91,18 +27,7 @@ export function withErrorHandling(
       }
 
       // Handle Zod validation errors
-      if (error instanceof z.ZodError || isZodLikeError(error)) {
-        if (isConfigurationZodError(error)) {
-          logger.error({ issues: error.issues, url: req.url }, "Config error");
-          return NextResponse.json(
-            formatErrorEntity({
-              message: "Service configuration error",
-              code: "CONFIGURATION_ERROR",
-            }),
-            { status: 503 },
-          );
-        }
-
+      if (error instanceof z.ZodError) {
         logger.warn({ issues: error.issues, url: req.url }, "Validation error");
         return NextResponse.json(
           formatErrorEntity({
@@ -114,34 +39,11 @@ export function withErrorHandling(
         );
       }
 
-      // Handle API errors
+      // Handle Convex errors
       if (error instanceof Error) {
         const message = error.message;
 
-        if (isDependencyFetchError(error)) {
-          logger.error(
-            {
-              error: message,
-              cause:
-                error.cause instanceof Error
-                  ? error.cause.message
-                  : error.cause,
-              stack: error.stack,
-              url: req.url,
-            },
-            "Dependency fetch failed",
-          );
-          return NextResponse.json(
-            formatErrorEntity({
-              message:
-                "A backend service is temporarily unavailable. Please try again shortly.",
-              code: "DEPENDENCY_UNAVAILABLE",
-            }),
-            { status: 503 },
-          );
-        }
-
-        // Parse common API error patterns
+        // Parse common Convex error patterns
         if (message.includes("not found")) {
           logger.warn({ error: message, url: req.url }, "Resource not found");
           return NextResponse.json(formatErrorEntity("Resource not found"), {

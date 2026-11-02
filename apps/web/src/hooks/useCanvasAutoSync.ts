@@ -1,11 +1,12 @@
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useCallback, useEffect, useRef } from "react";
 
 interface UseCanvasAutoSyncOptions {
-  conversationId: string | undefined;
+  conversationId: Id<"conversations"> | undefined;
   isDocumentMode: boolean;
-  documentId: string | null;
-  activeCanvasDocumentId: string | undefined;
-  setDocumentId: (id: string | null) => void;
+  documentId: Id<"canvasDocuments"> | null;
+  activeCanvasDocumentId: Id<"canvasDocuments"> | undefined;
+  setDocumentId: (id: Id<"canvasDocuments"> | null) => void;
 }
 
 interface UseCanvasAutoSyncReturn {

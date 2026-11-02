@@ -1,5 +1,6 @@
 "use client";
 
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { ExternalLink, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ export function ProjectConversations({
   projectId,
   conversations,
 }: {
-  projectId: string;
+  projectId: Id<"projects">;
   conversations: any[];
 }) {
   if (conversations.length === 0) {

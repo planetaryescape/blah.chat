@@ -1,12 +1,14 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useQuery } from "convex/react";
 import { FolderOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useProject } from "@/lib/hooks/queries/useProjects";
 import { cn } from "@/lib/utils";
 
 interface ProjectBadgeProps {
-  projectId: string;
+  projectId: Id<"projects">;
   onClick?: () => void;
   onKeyDown?: (e: React.KeyboardEvent) => void;
   collapsed?: boolean;
@@ -18,7 +20,7 @@ export function ProjectBadge({
   onKeyDown,
   collapsed,
 }: ProjectBadgeProps) {
-  const { data: project } = useProject(projectId);
+  const project = useQuery(api.projects.get, { id: projectId });
 
   if (!project) {
     return (

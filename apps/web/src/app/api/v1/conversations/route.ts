@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { CachePresets, getCacheControl } from "@/lib/api/cache";
 import { conversationsDAL } from "@/lib/api/dal/conversations";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
@@ -11,25 +12,18 @@ import { formatEntity } from "@/lib/utils/formatEntity";
 const createSchema = z.object({
   title: z.string().optional(),
   model: z.string(),
-  selectedIntegrationIds: z.array(z.string()).optional(),
   systemPrompt: z.string().optional(),
-  projectId: z.string().nullable().optional(),
-  isIncognito: z.boolean().optional(),
-  incognitoSettings: z
-    .object({
-      enableReadTools: z.boolean().optional(),
-      applyCustomInstructions: z.boolean().optional(),
-      inactivityTimeoutMinutes: z.number().optional(),
-    })
-    .optional(),
 });
 
-async function postHandler(req: NextRequest, { userId }: { userId: string }) {
+async function postHandler(
+  req: NextRequest,
+  { userId, sessionToken }: { userId: string; sessionToken: string },
+) {
   const startTime = performance.now();
   logger.info({ userId }, "POST /api/v1/conversations");
 
   const body = await parseBody(req, createSchema);
-  const result = await conversationsDAL.create(userId, body);
+  const result = await conversationsDAL.create(userId, body, sessionToken);
 
   const duration = performance.now() - startTime;
 
@@ -45,14 +39,14 @@ async function postHandler(req: NextRequest, { userId }: { userId: string }) {
   return NextResponse.json(result, { status: 201 });
 }
 
-async function getHandler(req: NextRequest, { userId }: { userId: string }) {
+async function getHandler(
+  req: NextRequest,
+  { userId, sessionToken }: { userId: string; sessionToken: string },
+) {
   const startTime = performance.now();
   logger.info({ userId }, "GET /api/v1/conversations");
 
-  const parsedLimit = Number.parseInt(getQueryParam(req, "limit") || "50", 10);
-  const limit = Number.isFinite(parsedLimit)
-    ? Math.min(100, Math.max(1, parsedLimit))
-    : 50;
+  const limit = Number.parseInt(getQueryParam(req, "limit") || "50", 10);
   const archived = getQueryParam(req, "archived") === "true";
   const projectId = getQueryParam(req, "projectId");
 
@@ -60,7 +54,7 @@ async function getHandler(req: NextRequest, { userId }: { userId: string }) {
     userId,
     limit,
     archived,
-    undefined,
+    sessionToken,
     projectId,
   );
 
@@ -75,7 +69,9 @@ async function getHandler(req: NextRequest, { userId }: { userId: string }) {
     userId,
   });
 
-  // Live data: caching makes new conversations/titles lag in the sidebar.
+  // Add cache headers (30s cache for conversation lists)
+  const cacheControl = getCacheControl(CachePresets.LIST);
+
   return NextResponse.json(
     formatEntity(
       {
@@ -86,7 +82,7 @@ async function getHandler(req: NextRequest, { userId }: { userId: string }) {
     ),
     {
       headers: {
-        "Cache-Control": "private, no-store",
+        "Cache-Control": cacheControl,
       },
     },
   );

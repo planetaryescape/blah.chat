@@ -1,26 +1,24 @@
 "use client";
 
-import { useLiveQuery } from "dexie-react-hooks";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useQuery } from "convex/react";
 import { useCallback } from "react";
-import { cache } from "@/lib/cache";
 
 /**
  * Hook to detect and find reusable empty conversations
  *
  * Behavior:
  * - Checks ALL conversations (pinned and unpinned)
- * - Uses cached query (not cached messageCount)
+ * - Uses real-time Convex query (not cached messageCount)
  * - No age limit - always reuses most recent empty
  * - Returns null if no empty conversations found
  */
 export function useEmptyConversationReuse() {
-  const conversations = useLiveQuery(
-    () => cache.conversations.toArray(),
-    [],
-    [],
-  );
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const conversations = useQuery(api.conversations.list, {});
 
-  const findEmptyConversation = useCallback((): any | null => {
+  const findEmptyConversation = useCallback((): Doc<"conversations"> | null => {
     if (!conversations?.length) return null;
 
     // Sort by lastMessageAt (most recent first)

@@ -1,5 +1,7 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import { useMutation } from "convex/react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -13,7 +15,6 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useAsyncAction } from "@/hooks/useAsyncAction";
 import {
   type ImportData,
   parseImportFile,
@@ -25,41 +26,10 @@ export default function ImportPage() {
   const [file, setFile] = useState<File | null>(null);
   const [importData, setImportData] = useState<ImportData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const importConversations = async (args: any) => {
-    const res = await fetch("/api/v1/import/conversations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(args),
-    });
-    if (!res.ok) throw new Error("Import failed");
-    const json = await res.json();
-    return json.data;
-  };
-
-  const { run: processFile, isPending: isFileProcessing } = useAsyncAction(
-    async (selectedFile: File) => {
-      // Read file content
-      const content = await selectedFile.text();
-
-      // Parse file
-      const result = parseImportFile(content);
-
-      if (!result.success) {
-        setError(result.error || "Failed to parse file");
-        return;
-      }
-
-      setImportData(result.data!);
-      toast.success(
-        `Found ${result.conversationsCount} conversations with ${result.messagesCount} messages`,
-      );
-    },
-    {
-      onError: (err) =>
-        setError(err instanceof Error ? err.message : "Failed to process file"),
-    },
-  );
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const importConversations = useMutation(api.import.importConversations);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -76,13 +46,37 @@ export default function ImportPage() {
       return;
     }
 
-    await processFile(selectedFile);
+    setIsProcessing(true);
+
+    try {
+      // Read file content
+      const content = await selectedFile.text();
+
+      // Parse file
+      const result = parseImportFile(content);
+
+      if (!result.success) {
+        setError(result.error || "Failed to parse file");
+        return;
+      }
+
+      setImportData(result.data!);
+      toast.success(
+        `Found ${result.conversationsCount} conversations with ${result.messagesCount} messages`,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to process file");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  const { run: handleImport, isPending: isImporting } = useAsyncAction(
-    async () => {
-      if (!importData) return;
+  const handleImport = async () => {
+    if (!importData) return;
 
+    setIsProcessing(true);
+
+    try {
       const result = await importConversations({
         conversations: importData.conversations,
       });
@@ -101,20 +95,17 @@ export default function ImportPage() {
       } else {
         router.push("/");
       }
-    },
-    {
-      onError: (err) => {
-        toast.error(
-          err instanceof Error ? err.message : "Failed to import conversations",
-        );
-        setError(
-          err instanceof Error ? err.message : "Failed to import conversations",
-        );
-      },
-    },
-  );
-
-  const isProcessing = isFileProcessing || isImporting;
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to import conversations",
+      );
+      setError(
+        err instanceof Error ? err.message : "Failed to import conversations",
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <div className="container max-w-4xl mx-auto p-6">

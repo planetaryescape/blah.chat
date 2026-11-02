@@ -1,23 +1,17 @@
-import { after, type NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { CachePresets, getCacheControl } from "@/lib/api/cache";
 import { messagesDAL } from "@/lib/api/dal/messages";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { trackAPIPerformance } from "@/lib/api/monitoring";
-import { applyRateLimit, getLimiter } from "@/lib/api/rate-limit";
 import { parseBody } from "@/lib/api/utils";
-import { generateConversationAck } from "@/lib/conversations/ackGeneration";
-import {
-  getEnqueueGenerationProcessing,
-  getGenerationV2Service,
-} from "@/lib/generation-v2/runtime";
 import logger from "@/lib/logger";
 
 const sendSchema = z.object({
-  content: z.string().min(1).max(64_000),
+  content: z.string().min(1),
   modelId: z.string().optional(),
-  models: z.array(z.string()).max(8).optional(),
-  parentMessageId: z.string().optional(),
+  models: z.array(z.string()).optional(),
   clientMessageId: z.string().optional(),
   thinkingEffort: z.enum(["none", "low", "medium", "high"]).optional(),
   attachments: z
@@ -30,7 +24,6 @@ const sendSchema = z.object({
         size: z.number(),
       }),
     )
-    .max(20)
     .optional(),
 });
 
@@ -61,10 +54,9 @@ async function getHandler(
   });
   logger.info({ userId, conversationId, duration }, "Messages listed");
 
-  // Live data: any HTTP caching lets a stale snapshot overwrite in-flight
-  // streaming state on the client (messages visibly disappear mid-generation).
+  const cacheControl = getCacheControl(CachePresets.LIST);
   return NextResponse.json(result, {
-    headers: { "Cache-Control": "private, no-store" },
+    headers: { "Cache-Control": cacheControl },
   });
 }
 
@@ -73,21 +65,13 @@ async function postHandler(
   {
     params,
     userId,
+    sessionToken,
   }: {
     params: Promise<Record<string, string | string[]>>;
     userId: string;
+    sessionToken: string;
   },
 ) {
-  const limiter = getLimiter({
-    prefix: "messages",
-    limit: 60,
-    window: "1 h",
-  });
-  if (limiter) {
-    const limited = await applyRateLimit(limiter, userId);
-    if (limited) return limited;
-  }
-
   const { id: conversationId } = (await params) as { id: string };
   const startTime = Date.now();
   logger.info(
@@ -96,43 +80,12 @@ async function postHandler(
   );
 
   const body = await parseBody(req, sendSchema);
-  const result = await messagesDAL.send(userId, conversationId, body);
-
-  const requestId =
-    typeof result.data === "object" && result.data && "requestId" in result.data
-      ? (result.data.requestId as string | undefined)
-      : undefined;
-  if (requestId) {
-    try {
-      await getEnqueueGenerationProcessing()(requestId);
-    } catch (error) {
-      logger.error(
-        { error, requestId },
-        "failed to enqueue message generation processing",
-      );
-      throw error;
-    }
-
-    // Fast ack from a small model while the heavy generation spins up.
-    // after() keeps the work alive past the 202 response on serverless.
-    const assistantMessageId = result.data.assistantMessageId;
-    if (typeof assistantMessageId === "string") {
-      after(async () => {
-        try {
-          const ack = await generateConversationAck(body.content);
-          if (!ack) return;
-          await getGenerationV2Service().dispatchAck({
-            requestId,
-            assistantMessageId,
-            modelId: ack.modelId,
-            text: ack.text,
-          });
-        } catch (error) {
-          logger.warn({ error, requestId }, "ack generation failed");
-        }
-      });
-    }
-  }
+  const result = await messagesDAL.send(
+    userId,
+    conversationId,
+    body,
+    sessionToken,
+  );
 
   const duration = Date.now() - startTime;
   logger.info(

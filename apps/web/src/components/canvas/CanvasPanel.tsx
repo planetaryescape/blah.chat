@@ -1,6 +1,8 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useMutation, useQuery } from "convex/react";
 import { X } from "lucide-react";
 import type { editor } from "monaco-editor";
 import { useCallback, useRef } from "react";
@@ -11,77 +13,19 @@ import { ConflictDialog, mergeContents } from "./ConflictDialog";
 import { VersionHistoryPanel } from "./VersionHistoryPanel";
 
 interface CanvasPanelProps {
-  documentId: string;
+  documentId: Id<"canvasDocuments">;
   onClose: () => void;
-}
-
-interface CanvasDocument {
-  _id: string;
-  title: string;
-  content: string;
-  documentType: "code" | "prose";
-  language?: string;
-  version: number;
 }
 
 export function CanvasPanel({ documentId, onClose }: CanvasPanelProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-  const queryClient = useQueryClient();
   const { pendingConflict, setPendingConflict, showHistoryPanel } =
     useCanvasContext();
 
-  const { data: document } = useQuery<CanvasDocument | null>({
-    queryKey: ["canvas-document", documentId],
-    enabled: !!documentId,
-    queryFn: async () => {
-      const res = await fetch(
-        `/api/v1/documents/${encodeURIComponent(documentId)}`,
-      );
-      if (!res.ok) return null;
-      const json = await res.json();
-      return json.data ?? null;
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async (args: {
-      documentId: string;
-      content?: string;
-      title?: string;
-      expectedVersion?: number;
-      source?: "user_edit" | "ai_edit" | "conflict_resolution" | "restore";
-      diff?: string;
-      messageId?: string;
-    }) => {
-      const res = await fetch(
-        `/api/v1/documents/${encodeURIComponent(args.documentId)}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            content: args.content,
-            title: args.title,
-            expectedVersion: args.expectedVersion,
-            source: args.source,
-            diffSummary: args.diff,
-            messageId: args.messageId,
-          }),
-        },
-      );
-      if (!res.ok) throw await res.json().catch(() => ({ status: res.status }));
-      return res.json();
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: ["canvas-document", documentId],
-      });
-      void queryClient.invalidateQueries({
-        queryKey: ["canvas-history", documentId],
-      });
-    },
-  });
-
-  const updateContent = updateMutation.mutateAsync;
+  // @ts-ignore - Type depth exceeded
+  const document = useQuery(api.canvas.documents.get, { documentId });
+  // @ts-ignore - Type depth exceeded
+  const updateContent = useMutation(api.canvas.documents.updateContent);
 
   const handleConflictResolve = useCallback(
     async (choice: "user" | "ai" | "merge") => {
@@ -110,7 +54,7 @@ export function CanvasPanel({ documentId, onClose }: CanvasPanelProps) {
       await updateContent({
         documentId: pendingConflict.documentId,
         content: resolvedContent,
-        source: "conflict_resolution",
+        source: "user_edit",
         diff: `Conflict resolved: ${choice}`,
       });
 
@@ -170,7 +114,7 @@ export function CanvasPanel({ documentId, onClose }: CanvasPanelProps) {
       {/* Version History Panel (conditional) */}
       {showHistoryPanel && (
         <div className="w-64 shrink-0">
-          <VersionHistoryPanel documentId={documentId as any} />
+          <VersionHistoryPanel documentId={documentId} />
         </div>
       )}
 

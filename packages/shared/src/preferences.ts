@@ -4,37 +4,11 @@
  * Centralized defaults and category mappings for the flattened user preferences system.
  */
 
-export type NotificationChimeEvent =
-  | "emailReceived"
-  | "emailSent"
-  | "emailArchived"
-  | "messageSent"
-  | "conversationArchived"
-  | "notification";
-
-export type NotificationChimeId =
-  | "none"
-  | "arrival"
-  | "sent"
-  | "archive"
-  | "notify";
-
-export type NotificationChimeSounds = Record<
-  NotificationChimeEvent,
-  NotificationChimeId
->;
-
-export const DEFAULT_NOTIFICATION_CHIME_SOUNDS = {
-  emailReceived: "arrival",
-  emailSent: "sent",
-  emailArchived: "archive",
-  messageSent: "sent",
-  conversationArchived: "archive",
-  notification: "notify",
-} as const satisfies NotificationChimeSounds;
-
 export const PREFERENCE_DEFAULTS = {
   // Appearance
+  theme: "dark" as const,
+  fontSize: "medium" as const,
+  codeTheme: "rose-pine" as const,
   chatWidth: "standard" as const,
 
   // Models
@@ -52,8 +26,10 @@ export const PREFERENCE_DEFAULTS = {
   // Chat
   sendOnEnter: true,
   alwaysShowMessageActions: true,
+  minimalAssistantStyle: false,
   showMessageStatistics: true,
   showComparisonStatistics: true,
+  enableHybridSearch: false,
   showModelNamesDuringComparison: false,
   showModelProvider: false,
   autoCompressContext: false,
@@ -63,11 +39,10 @@ export const PREFERENCE_DEFAULTS = {
   sttEnabled: true,
   sttProvider: "openai" as const, // DEPRECATED (2025-12-18): Moved to adminSettings.transcriptProvider - kept for rollback safety only
   ttsEnabled: false,
+  ttsProvider: "deepgram",
   ttsVoice: "aura-asteria-en",
   ttsSpeed: 1.0,
   ttsAutoRead: false,
-  notificationChimesEnabled: false,
-  notificationChimeSounds: DEFAULT_NOTIFICATION_CHIME_SOUNDS,
 
   // Advanced
   showNotes: true,
@@ -75,6 +50,7 @@ export const PREFERENCE_DEFAULTS = {
   showProjects: true,
   showBookmarks: true,
   showTasks: true,
+  showSlides: true as boolean,
   showSmartAssistant: true,
 
   // Smart Assistant
@@ -115,6 +91,9 @@ export const PREFERENCE_DEFAULTS = {
 
 export const PREFERENCE_CATEGORIES: Record<string, string> = {
   // Appearance
+  theme: "appearance",
+  fontSize: "appearance",
+  codeTheme: "appearance",
   chatWidth: "appearance",
 
   // Models
@@ -132,8 +111,10 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   // Chat
   sendOnEnter: "chat",
   alwaysShowMessageActions: "chat",
+  minimalAssistantStyle: "chat",
   showMessageStatistics: "chat",
   showComparisonStatistics: "chat",
+  enableHybridSearch: "chat",
   showModelNamesDuringComparison: "chat",
   showModelProvider: "chat",
   autoCompressContext: "chat",
@@ -143,11 +124,10 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   sttEnabled: "audio",
   sttProvider: "audio",
   ttsEnabled: "audio",
+  ttsProvider: "audio",
   ttsVoice: "audio",
   ttsSpeed: "audio",
   ttsAutoRead: "audio",
-  notificationChimesEnabled: "audio",
-  notificationChimeSounds: "audio",
 
   // Advanced
   showNotes: "advanced",
@@ -155,6 +135,7 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   showProjects: "advanced",
   showBookmarks: "advanced",
   showTasks: "advanced",
+  showSlides: "advanced",
   showSmartAssistant: "advanced",
 
   // Smart Assistant

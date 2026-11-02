@@ -1,13 +1,9 @@
 "use client";
 
-import { BookOpen, FileText, Globe, X } from "lucide-react";
-import type { ComponentType, SVGProps } from "react";
+import { BookOpen, FileText, Globe, X, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Youtube } from "@/components/ui/svgs/youtube";
 import { cn } from "@/lib/utils";
 import type { SourceStatus, SourceType } from "./types";
-
-type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
 interface KnowledgeFiltersProps {
   typeFilter: SourceType | "all";
@@ -19,7 +15,7 @@ interface KnowledgeFiltersProps {
 const TYPE_OPTIONS: {
   value: SourceType | "all";
   label: string;
-  icon?: IconComponent;
+  icon?: typeof FileText;
 }[] = [
   { value: "all", label: "All Types" },
   { value: "file", label: "Files", icon: FileText },

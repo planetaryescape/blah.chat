@@ -1,4 +1,8 @@
 "use client";
+
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useMutation } from "convex/react";
 import {
   Bookmark,
   Copy,
@@ -23,15 +27,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { requestMessagesRefetch } from "@/hooks/useRestMessageSync";
-import { useApiClient } from "@/lib/api/client";
 import { cache } from "@/lib/cache";
-import { useRegenerateMessage } from "@/lib/hooks/mutations/useRegenerateMessage";
 import type { OptimisticMessage } from "@/types/optimistic";
 import { QuickModelSwitcher } from "./QuickModelSwitcher";
 
 interface MessageActionsMenuMobileProps {
-  message: any | OptimisticMessage;
+  message: Doc<"messages"> | OptimisticMessage;
   isGenerating: boolean;
   isUser: boolean;
   onCopy: () => void;
@@ -49,87 +50,91 @@ export function MessageActionsMenuMobile({
 }: MessageActionsMenuMobileProps) {
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
   const router = useRouter();
-  const apiClient = useApiClient();
-  const regenerate = useRegenerateMessage();
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const regenerate = useMutation(api.chat.regenerate);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const deleteMsg = useMutation(api.chat.deleteMessage);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const branchFromMessage = useMutation(api.chat.branchFromMessage);
 
   // Check if this is a temporary optimistic message (not yet persisted)
   const isTempMessage =
     typeof message._id === "string" && message._id.startsWith("temp-");
 
-  const handleRegenerate = (modelId?: string) => {
+  const handleRegenerate = async (modelId?: string) => {
     if (isTempMessage) return;
-    void regenerate
-      .mutateAsync({
-        messageId: message._id as string,
-        conversationId: message.conversationId,
+    try {
+      await regenerate({
+        messageId: message._id as Id<"messages">,
         modelId,
-      })
-      .catch((error) => {
-        console.error("Failed to regenerate:", error);
       });
+    } catch (error) {
+      console.error("Failed to regenerate:", error);
+    }
   };
 
-  const handleBranch = () => {
+  const handleBranch = async () => {
     if (isTempMessage) return;
-    void apiClient
-      .post(`/api/v1/conversations/${message.conversationId}/switch-branch`, {
-        targetMessageId: message._id,
-      })
-      .then(() => {
-        requestMessagesRefetch(message.conversationId as string);
-        router.push(`/chat/${message.conversationId}`);
-      })
-      .catch((error) => {
-        console.error("Failed to branch:", error);
+
+    try {
+      const newConversationId = await branchFromMessage({
+        messageId: message._id as Id<"messages">,
       });
+      router.push(`/chat/${newConversationId}`);
+    } catch (error) {
+      console.error("Failed to branch:", error);
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (isTempMessage) return;
-    const messageId = message._id as string;
-    const messageElement = document.querySelector(
-      `[data-message-id="${messageId}"]`,
-    );
-    const currentGroup = messageElement?.closest("[id^='message-group-']");
-    const nextGroup = currentGroup?.nextElementSibling as HTMLElement | null;
-    const prevGroup =
-      currentGroup?.previousElementSibling as HTMLElement | null;
 
-    void apiClient
-      .delete(`/api/v1/messages/${messageId}`)
-      .then(() =>
-        Promise.all([
-          cache.messages.delete(messageId),
-          cache.attachments.where("messageId").equals(messageId).delete(),
-          cache.toolCalls.where("messageId").equals(messageId).delete(),
-          cache.sources.where("messageId").equals(messageId).delete(),
-        ]).catch(console.error),
-      )
-      .then(() => {
-        requestAnimationFrame(() => {
-          let targetElement: HTMLElement | null = null;
+    try {
+      const messageId = message._id as Id<"messages">;
 
-          if (nextGroup && document.body.contains(nextGroup)) {
-            targetElement = nextGroup;
-          } else if (prevGroup && document.body.contains(prevGroup)) {
-            targetElement = prevGroup;
-          }
+      // Find message group before deleting for focus management
+      const messageElement = document.querySelector(
+        `[data-message-id="${messageId}"]`,
+      );
+      const currentGroup = messageElement?.closest("[id^='message-group-']");
+      const nextGroup = currentGroup?.nextElementSibling as HTMLElement | null;
+      const prevGroup =
+        currentGroup?.previousElementSibling as HTMLElement | null;
 
-          if (targetElement) {
-            targetElement.setAttribute("tabindex", "-1");
-            targetElement.focus();
-            return;
-          }
+      await deleteMsg({ messageId });
 
+      // Clear from local cache (prevents stale data)
+      await Promise.all([
+        cache.messages.delete(messageId),
+        cache.attachments.where("messageId").equals(messageId).delete(),
+        cache.toolCalls.where("messageId").equals(messageId).delete(),
+        cache.sources.where("messageId").equals(messageId).delete(),
+      ]).catch(console.error);
+
+      // Focus next, or prev, or chat input as fallback (WCAG 2.4.3)
+      requestAnimationFrame(() => {
+        let targetElement: HTMLElement | null = null;
+
+        if (nextGroup && document.body.contains(nextGroup)) {
+          targetElement = nextGroup;
+        } else if (prevGroup && document.body.contains(prevGroup)) {
+          targetElement = prevGroup;
+        }
+
+        if (targetElement) {
+          targetElement.setAttribute("tabindex", "-1");
+          targetElement.focus();
+        } else {
+          // Fallback to chat input
           const chatInput = document.getElementById(
             "chat-input",
           ) as HTMLElement | null;
           chatInput?.focus();
-        });
-      })
-      .catch((error) => {
-        console.error("Failed to delete:", error);
+        }
       });
+    } catch (error) {
+      console.error("Failed to delete:", error);
+    }
   };
 
   return (
@@ -218,7 +223,7 @@ export function MessageActionsMenuMobile({
         onOpenChange={setModelSelectorOpen}
         currentModel={message.model || ""}
         onSelectModel={(modelId) => {
-          void handleRegenerate(modelId);
+          handleRegenerate(modelId);
         }}
         mode="single"
         showTrigger={false}

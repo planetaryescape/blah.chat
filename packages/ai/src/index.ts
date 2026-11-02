@@ -22,16 +22,11 @@ export {
 } from "./models";
 export * from "./operational-models";
 export * from "./reasoning";
-export {
-  getModel,
-  getModelWithApiKey,
-  getModelWithGateway,
-} from "./registry";
+export { getModel, getModelWithGateway } from "./registry";
 export type { BenchmarkScores, ComputedMetrics, ModelCategory } from "./types";
 export {
   calculateCost,
   getModelConfig,
   getModelsByProvider,
   isValidModel,
-  normalizeUsageTokens,
 } from "./utils";

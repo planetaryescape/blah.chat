@@ -1,5 +1,8 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useMutation, useQuery } from "convex/react";
 import {
   Check,
   Copy,
@@ -18,14 +21,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useCachedSources } from "@/hooks/useCacheSync";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useHaptic } from "@/hooks/useHaptic";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
-import { requestMessagesRefetch } from "@/hooks/useRestMessageSync";
 import { useUserPreference } from "@/hooks/useUserPreference";
-import { useApiClient } from "@/lib/api/client";
-import { useRegenerateMessage } from "@/lib/hooks/mutations/useRegenerateMessage";
 import { cn } from "@/lib/utils";
 import type { OptimisticMessage } from "@/types/optimistic";
 import { BookmarkButton } from "./BookmarkButton";
@@ -35,8 +34,8 @@ import { QuickModelSwitcher } from "./QuickModelSwitcher";
 import { TTSButton } from "./TTSButton";
 
 interface MessageActionsProps {
-  message: any | OptimisticMessage;
-  nextMessage?: any | OptimisticMessage;
+  message: Doc<"messages"> | OptimisticMessage;
+  nextMessage?: Doc<"messages"> | OptimisticMessage;
   readOnly?: boolean;
   onEdit?: () => void;
 }
@@ -51,9 +50,19 @@ export function MessageActions({
   const [showCreateNote, setShowCreateNote] = useState(false);
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
   const router = useRouter();
-  const apiClient = useApiClient();
-  const regenerate = useRegenerateMessage();
-  const sources = useCachedSources(message._id);
+  const retryMessage = useMutation(api.chat.retryMessage);
+  const stop = useMutation(api.chat.stopGeneration);
+  const regenerate = useMutation(api.chat.regenerate);
+  const branchFromMessage = useMutation(api.chat.branchFromMessage);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const recordAction = useMutation(api.usage.mutations.recordAction);
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const sources = useQuery(
+    api.sources.operations.getSources,
+    message.role === "assistant" && !message._id.startsWith("temp_")
+      ? { messageId: message._id as Id<"messages"> }
+      : "skip",
+  );
   const { isMobile } = useMobileDetect();
   const { haptic } = useHaptic();
   const features = useFeatureToggles();
@@ -120,18 +129,16 @@ export function MessageActions({
     setCopied(true);
     haptic("SUCCESS");
     setTimeout(() => setCopied(false), 2000);
+    recordAction({ actionType: "copy_message", resourceId: message._id });
   };
 
   const handleBranch = async () => {
     try {
-      await apiClient.post(
-        `/api/v1/conversations/${message.conversationId}/switch-branch`,
-        {
-          targetMessageId: message._id,
-        },
-      );
-      requestMessagesRefetch(message.conversationId);
-      router.push(`/chat/${message.conversationId}`);
+      const result = await branchFromMessage({
+        messageId: message._id as Id<"messages">,
+      });
+      recordAction({ actionType: "branch_message", resourceId: message._id });
+      router.push(`/chat/${result.conversationId}`);
     } catch (error) {
       console.error("Failed to branch:", error);
     }
@@ -139,10 +146,13 @@ export function MessageActions({
 
   const handleRegenerate = async (modelId?: string) => {
     try {
-      await regenerate.mutateAsync({
-        messageId: message._id as string,
-        conversationId: message.conversationId,
+      await regenerate({
+        messageId: message._id as Id<"messages">,
         modelId,
+      });
+      recordAction({
+        actionType: "regenerate_message",
+        resourceId: message._id,
       });
     } catch (error) {
       console.error("Failed to regenerate:", error);
@@ -156,6 +166,7 @@ export function MessageActions({
   };
 
   const handleSaveAsNoteClick = () => {
+    recordAction({ actionType: "save_as_note", resourceId: message._id });
     setShowCreateNote(true);
   };
 
@@ -180,13 +191,13 @@ export function MessageActions({
           open={showCreateNote}
           onOpenChange={setShowCreateNote}
           initialContent={message.content || message.partialContent || ""}
-          sourceMessageId={message._id as string}
+          sourceMessageId={message._id as Id<"messages">}
           sourceConversationId={message.conversationId}
         />
 
         {features.showBookmarks && (
           <BookmarkButton
-            messageId={message._id as string}
+            messageId={message._id as Id<"messages">}
             conversationId={message.conversationId}
           />
         )}
@@ -252,16 +263,9 @@ export function MessageActions({
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
-                    onClick={() => {
-                      if (!nextMessage) {
-                        return;
-                      }
-
-                      void regenerate.mutateAsync({
-                        messageId: nextMessage._id as string,
-                        conversationId: message.conversationId,
-                      });
-                    }}
+                    onClick={() =>
+                      retryMessage({ messageId: message._id as Id<"messages"> })
+                    }
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span className="sr-only">Retry</span>
@@ -281,9 +285,7 @@ export function MessageActions({
                     size="sm"
                     className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
                     onClick={() =>
-                      apiClient.post(
-                        `/api/v1/conversations/${message.conversationId}/stop`,
-                      )
+                      stop({ conversationId: message.conversationId })
                     }
                   >
                     <Square className="w-3.5 h-3.5" />
@@ -299,7 +301,7 @@ export function MessageActions({
             {/* Bookmark Button */}
             {features.showBookmarks && (
               <BookmarkButton
-                messageId={message._id as string}
+                messageId={message._id as Id<"messages">}
                 conversationId={message.conversationId}
               />
             )}
@@ -407,7 +409,7 @@ export function MessageActions({
         open={showCreateNote}
         onOpenChange={setShowCreateNote}
         initialContent={message.content || message.partialContent || ""}
-        sourceMessageId={message._id as string}
+        sourceMessageId={message._id as Id<"messages">}
         sourceConversationId={message.conversationId}
       />
     </>

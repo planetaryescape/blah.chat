@@ -1,10 +1,11 @@
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useApiClient } from "@/lib/api/client";
 import { queryKeys } from "@/lib/query/keys";
 
 interface ToggleStarArgs {
-  conversationId: string;
+  conversationId: Id<"conversations">;
 }
 
 export function useToggleStar() {
@@ -13,7 +14,7 @@ export function useToggleStar() {
 
   return useMutation({
     mutationFn: async ({ conversationId }: ToggleStarArgs) => {
-      return api.post(`/api/v1/conversations/${conversationId}/star`);
+      return api.patch(`/api/v1/conversations/${conversationId}/star`);
     },
 
     onMutate: async ({ conversationId }) => {

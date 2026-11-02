@@ -1,6 +1,5 @@
-import { useAuth } from "@clerk/clerk-expo";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "convex/react";
 import {
   FileText,
   Globe,
@@ -24,11 +23,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
 import { FluidButton } from "@/components/ui/FluidButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { queryClient } from "@/lib/cache/queryClient";
+import { api } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
-import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { palette, spacing, typography } from "@/lib/theme/designSystem";
-import { createMobileSdkClient } from "@/lib/transport/httpClient";
 import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
 
 const TYPE_ICONS: Record<string, typeof FileText> = {
@@ -46,85 +43,41 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function KnowledgeBankScreen() {
-  const { getToken } = useAuth();
-  const sourcesQuery = useQuery({
-    queryKey: ["mobile", "knowledge-sources"],
-    queryFn: async () => {
-      const client = createMobileSdkClient(() => getToken());
-      return client.listKnowledgeSources();
-    },
-  });
-  const createSourceMutation = useMutation({
-    mutationFn: async (
-      args:
-        | {
-            type: "text";
-            title: string;
-            content: string;
-          }
-        | {
-            type: "web";
-            title: string;
-            url: string;
-          },
-    ) => {
-      const client = createMobileSdkClient(() => getToken());
-      if (args.type === "text") {
-        return client.createKnowledgeSource(args);
-      }
-
-      return client.createKnowledgeSource(args);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["mobile", "knowledge-sources"],
-      });
-    },
-  });
-  const removeSourceMutation = useMutation({
-    mutationFn: async (sourceId: string) => {
-      const client = createMobileSdkClient(() => getToken());
-      return client.deleteKnowledgeSource(sourceId);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["mobile", "knowledge-sources"],
-      });
-    },
-  });
-  const sources = sourcesQuery.data;
+  const sources = useQuery(api.knowledgeBank.index.list);
+  const createTextSource = useMutation(
+    api.knowledgeBank.index.createTextSource,
+  );
+  const createWebSource = useMutation(api.knowledgeBank.index.createWebSource);
+  const removeSource = useMutation(api.knowledgeBank.index.remove);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [addType, setAddType] = useState<"text" | "url">("text");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const { run: handleAdd, isPending: saving } = useAsyncAction(
-    async () => {
-      if (!title.trim()) return;
-      haptic.medium();
+  const handleAdd = useCallback(async () => {
+    if (!title.trim()) return;
+    setSaving(true);
+    haptic.medium();
+    try {
       if (addType === "text") {
-        await createSourceMutation.mutateAsync({
-          type: "text",
+        await createTextSource({
           title: title.trim(),
           content: content.trim(),
         });
       } else {
-        await createSourceMutation.mutateAsync({
-          type: "web",
-          url: content.trim(),
-          title: title.trim(),
-        });
+        await createWebSource({ url: content.trim(), title: title.trim() });
       }
       setTitle("");
       setContent("");
       setSheetOpen(false);
-    },
-    {
-      onError: () =>
-        Alert.alert("Error", "Failed to add source. Please try again."),
-    },
-  );
+    } catch {
+      Alert.alert("Error", "Failed to add source. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }, [addType, title, content, createTextSource, createWebSource]);
 
   const handleDelete = useCallback(
     (sourceId: string) => {
@@ -136,7 +89,7 @@ export default function KnowledgeBankScreen() {
           onPress: async () => {
             haptic.medium();
             try {
-              await removeSourceMutation.mutateAsync(sourceId);
+              await removeSource({ sourceId });
             } catch {
               Alert.alert("Error", "Failed to delete source.");
             }
@@ -144,7 +97,7 @@ export default function KnowledgeBankScreen() {
         },
       ]);
     },
-    [removeSourceMutation],
+    [removeSource],
   );
 
   const rightAction = (
@@ -157,78 +110,6 @@ export default function KnowledgeBankScreen() {
     >
       <Plus size={22} color={palette.roseQuartz} />
     </TouchableOpacity>
-  );
-
-  const renderSourceItem = useCallback(
-    ({ item }: { item: NonNullable<typeof sources>[number] }) => {
-      const Icon = TYPE_ICONS[item.type] || FileText;
-      const statusColor = STATUS_COLORS[item.status] || palette.starlightDim;
-      return (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: palette.glassLow,
-            borderRadius: 12,
-            padding: spacing.md,
-            marginBottom: spacing.sm,
-            gap: spacing.sm,
-          }}
-        >
-          <Icon size={20} color={palette.starlightDim} />
-          <View style={{ flex: 1 }}>
-            <Text
-              style={{
-                fontFamily: typography.bodyMedium,
-                fontSize: 14,
-                color: palette.starlight,
-              }}
-              numberOfLines={1}
-            >
-              {item.title}
-            </Text>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: spacing.xs,
-                marginTop: 2,
-              }}
-            >
-              <View
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor: statusColor,
-                }}
-              />
-              <Text
-                style={{
-                  fontFamily: typography.body,
-                  fontSize: 11,
-                  color: palette.starlightDim,
-                }}
-              >
-                {item.status}
-                {item.chunkCount ? ` · ${item.chunkCount} chunks` : ""}
-              </Text>
-            </View>
-          </View>
-          {item.status === "processing" ? (
-            <Loader2 size={18} color={palette.roseQuartz} />
-          ) : (
-            <TouchableOpacity
-              onPress={() => handleDelete(item._id)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Trash2 size={18} color={palette.error} />
-            </TouchableOpacity>
-          )}
-        </View>
-      );
-    },
-    [handleDelete],
   );
 
   return (
@@ -287,7 +168,75 @@ export default function KnowledgeBankScreen() {
           data={sources}
           keyExtractor={(item) => item._id}
           contentContainerStyle={{ padding: spacing.md }}
-          renderItem={renderSourceItem}
+          renderItem={({ item }) => {
+            const Icon = TYPE_ICONS[item.type] || FileText;
+            const statusColor =
+              STATUS_COLORS[item.status] || palette.starlightDim;
+            return (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: palette.glassLow,
+                  borderRadius: 12,
+                  padding: spacing.md,
+                  marginBottom: spacing.sm,
+                  gap: spacing.sm,
+                }}
+              >
+                <Icon size={20} color={palette.starlightDim} />
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontFamily: typography.bodyMedium,
+                      fontSize: 14,
+                      color: palette.starlight,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {item.title}
+                  </Text>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: spacing.xs,
+                      marginTop: 2,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: 3,
+                        backgroundColor: statusColor,
+                      }}
+                    />
+                    <Text
+                      style={{
+                        fontFamily: typography.body,
+                        fontSize: 11,
+                        color: palette.starlightDim,
+                      }}
+                    >
+                      {item.status}
+                      {item.chunkCount ? ` · ${item.chunkCount} chunks` : ""}
+                    </Text>
+                  </View>
+                </View>
+                {item.status === "processing" ? (
+                  <Loader2 size={18} color={palette.roseQuartz} />
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => handleDelete(item._id)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Trash2 size={18} color={palette.error} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            );
+          }}
         />
       )}
 

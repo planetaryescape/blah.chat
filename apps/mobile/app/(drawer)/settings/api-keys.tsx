@@ -1,6 +1,5 @@
-import { useAuth } from "@clerk/clerk-expo";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "convex/react";
 import * as Clipboard from "expo-clipboard";
 import { Copy, Key, Plus, Trash2 } from "lucide-react-native";
 import { useCallback, useState } from "react";
@@ -16,56 +15,35 @@ import { TouchableOpacity } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FluidButton } from "@/components/ui/FluidButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { queryClient } from "@/lib/cache/queryClient";
+import { api } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
-import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { palette, spacing, typography } from "@/lib/theme/designSystem";
-import { createMobileSdkClient } from "@/lib/transport/httpClient";
 import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
 
 export default function ApiKeysScreen() {
-  const { getToken } = useAuth();
-
-  const keysQuery = useQuery({
-    queryKey: ["mobile", "cli-api-keys"],
-    queryFn: async () => {
-      const client = createMobileSdkClient(() => getToken());
-      return client.listCliApiKeys();
-    },
-  });
-  const createKeyMutation = useMutation({
-    mutationFn: async (name: string) => {
-      const client = createMobileSdkClient(() => getToken());
-      return client.createCliApiKey({ name });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["mobile", "cli-api-keys"] });
-    },
-  });
-  const revokeKeyMutation = useMutation({
-    mutationFn: async (keyId: string) => {
-      const client = createMobileSdkClient(() => getToken());
-      return client.revokeCliApiKey(keyId);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["mobile", "cli-api-keys"] });
-    },
-  });
+  const keys = useQuery(api.cliAuth.list);
+  const createKey = useMutation(api.cliAuth.create);
+  const revokeKey = useMutation(api.cliAuth.revoke);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [keyName, setKeyName] = useState("");
+  const [creating, setCreating] = useState(false);
   const [newKey, setNewKey] = useState<string | null>(null);
 
-  const { run: handleCreate, isPending: creating } = useAsyncAction(
-    async () => {
-      if (!keyName.trim()) return;
-      haptic.medium();
-      const result = await createKeyMutation.mutateAsync(keyName.trim());
+  const handleCreate = useCallback(async () => {
+    if (!keyName.trim()) return;
+    setCreating(true);
+    haptic.medium();
+    try {
+      const result = await createKey({ name: keyName.trim() });
       setNewKey(result.key);
       setKeyName("");
-    },
-    { onError: () => Alert.alert("Error", "Failed to create API key.") },
-  );
+    } catch {
+      Alert.alert("Error", "Failed to create API key.");
+    } finally {
+      setCreating(false);
+    }
+  }, [keyName, createKey]);
 
   const handleRevoke = useCallback(
     (keyId: string, prefix: string) => {
@@ -80,7 +58,7 @@ export default function ApiKeysScreen() {
             onPress: async () => {
               haptic.medium();
               try {
-                await revokeKeyMutation.mutateAsync(keyId);
+                await revokeKey({ keyId });
               } catch {
                 Alert.alert("Error", "Failed to revoke key.");
               }
@@ -89,7 +67,7 @@ export default function ApiKeysScreen() {
         ],
       );
     },
-    [revokeKeyMutation],
+    [revokeKey],
   );
 
   const handleCopy = useCallback(async (text: string) => {
@@ -118,67 +96,6 @@ export default function ApiKeysScreen() {
     </TouchableOpacity>
   );
 
-  const renderApiKeyItem = useCallback(
-    ({ item }: { item: NonNullable<typeof keysQuery.data>[number] }) => (
-      <View
-        style={{
-          backgroundColor: palette.glassLow,
-          borderRadius: 12,
-          padding: spacing.md,
-          marginBottom: spacing.sm,
-        }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <Text
-            style={{
-              fontFamily: typography.bodyMedium,
-              fontSize: 14,
-              color: palette.starlight,
-            }}
-          >
-            {item.name || "Unnamed Key"}
-          </Text>
-          <TouchableOpacity
-            onPress={() => handleRevoke(item._id, item.keyPrefix)}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Trash2 size={16} color={palette.error} />
-          </TouchableOpacity>
-        </View>
-        <Text
-          style={{
-            fontFamily: typography.mono || typography.body,
-            fontSize: 12,
-            color: palette.starlightDim,
-            marginTop: 4,
-          }}
-        >
-          {item.keyPrefix}...
-        </Text>
-        <Text
-          style={{
-            fontFamily: typography.body,
-            fontSize: 11,
-            color: palette.starlightDim,
-            marginTop: 2,
-          }}
-        >
-          Created {formatDate(item.createdAt)}
-          {item.lastUsedAt
-            ? ` · Last used ${formatDate(item.lastUsedAt)}`
-            : " · Never used"}
-        </Text>
-      </View>
-    ),
-    [handleRevoke],
-  );
-
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: "transparent" }}
@@ -191,13 +108,13 @@ export default function ApiKeysScreen() {
       />
 
       {/* Key List */}
-      {keysQuery.data === undefined ? (
+      {keys === undefined ? (
         <View
           style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
         >
           <ActivityIndicator size="large" color={palette.roseQuartz} />
         </View>
-      ) : keysQuery.data.length === 0 ? (
+      ) : keys.length === 0 ? (
         <View
           style={{
             flex: 1,
@@ -232,10 +149,66 @@ export default function ApiKeysScreen() {
         </View>
       ) : (
         <FlatList
-          data={keysQuery.data}
+          data={keys}
           keyExtractor={(item) => item._id}
           contentContainerStyle={{ padding: spacing.md }}
-          renderItem={renderApiKeyItem}
+          renderItem={({ item }) => (
+            <View
+              style={{
+                backgroundColor: palette.glassLow,
+                borderRadius: 12,
+                padding: spacing.md,
+                marginBottom: spacing.sm,
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: typography.bodyMedium,
+                    fontSize: 14,
+                    color: palette.starlight,
+                  }}
+                >
+                  {item.name || "Unnamed Key"}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => handleRevoke(item._id, item.keyPrefix)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Trash2 size={16} color={palette.error} />
+                </TouchableOpacity>
+              </View>
+              <Text
+                style={{
+                  fontFamily: typography.mono || typography.body,
+                  fontSize: 12,
+                  color: palette.starlightDim,
+                  marginTop: 4,
+                }}
+              >
+                {item.keyPrefix}...
+              </Text>
+              <Text
+                style={{
+                  fontFamily: typography.body,
+                  fontSize: 11,
+                  color: palette.starlightDim,
+                  marginTop: 2,
+                }}
+              >
+                Created {formatDate(item.createdAt)}
+                {item.lastUsedAt
+                  ? ` · Last used ${formatDate(item.lastUsedAt)}`
+                  : " · Never used"}
+              </Text>
+            </View>
+          )}
         />
       )}
 

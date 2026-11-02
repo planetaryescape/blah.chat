@@ -1,7 +1,10 @@
 import { Pressable, StyleSheet, Text } from "react-native";
-import Animated from "react-native-reanimated";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 import { haptic } from "@/lib/haptics";
-import { usePressScale } from "@/lib/hooks/animated/usePressScale";
 import { layout, palette, typography } from "@/lib/theme/designSystem";
 
 interface FluidButtonProps {
@@ -19,17 +22,19 @@ export function FluidButton({
   variant = "primary",
   disabled,
 }: FluidButtonProps) {
-  const {
-    animatedStyle,
-    onPressIn: handlePressIn,
-    onPressOut: handlePressOut,
-  } = usePressScale({
-    pressedScale: 0.96,
-    pressInDamping: 15,
-    pressInStiffness: 100,
-    pressOutDamping: 15,
-    pressOutStiffness: 100,
-  });
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.96, { damping: 15 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 15 });
+  };
 
   return (
     <Pressable

@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
-import { useApiClient } from "@/lib/api/client";
-import { useSDKClient } from "@/lib/api/sdkClient";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import { useAction, useQuery } from "convex/react";
+import { useEffect, useState } from "react";
 
 type AvailabilityData = {
   stt: {
@@ -16,30 +16,6 @@ type AvailabilityData = {
     deepgram: boolean;
   };
   isProduction: boolean;
-};
-
-interface ByokConfig {
-  byokEnabled: boolean;
-  hasVercelGatewayKey: boolean;
-  hasOpenRouterKey: boolean;
-  hasGroqKey: boolean;
-  hasDeepgramKey: boolean;
-}
-
-const UNAVAILABLE_AVAILABILITY: AvailabilityData = {
-  stt: {
-    groq: false,
-    openai: false,
-    deepgram: false,
-    assemblyai: false,
-    currentProvider: "groq",
-    currentProviderKeyName: "GROQ_API_KEY",
-    hasCurrentProviderKey: false,
-  },
-  tts: {
-    deepgram: false,
-  },
-  isProduction: process.env.NODE_ENV === "production",
 };
 
 // Gateway to BYOK key field mapping
@@ -64,39 +40,30 @@ const GATEWAY_MESSAGES: Record<string, string> = {
 };
 
 export function useApiKeyValidation() {
-  const apiClient = useApiClient();
-  const sdk = useSDKClient();
+  // @ts-ignore - Type depth exceeded with complex Convex action (94+ modules)
+  const getAvailability = useAction(api.settings.apiKeys.getApiKeyAvailability);
+  // @ts-ignore - Type depth exceeded with complex Convex query (94+ modules)
+  const byokConfig = useQuery(api.byok.credentials.getConfig);
 
-  // Fetch BYOK config via SDK
-  const { data: byokConfig, isLoading: byokLoading } =
-    useQuery<ByokConfig | null>({
-      queryKey: ["byok-config"],
-      queryFn: async () => {
-        try {
-          return await sdk.getByokConfig();
-        } catch {
-          return null;
-        }
-      },
-      staleTime: 30_000,
-    });
+  const [availability, setAvailability] = useState<AvailabilityData | null>(
+    null,
+  );
+  const [loading, setLoading] = useState(true);
 
-  const {
-    data: availability,
-    error: availabilityError,
-    isLoading: availabilityLoading,
-  } = useQuery<AvailabilityData>({
-    queryKey: ["api-key-availability"],
-    queryFn: async () => {
-      return await apiClient.get<AvailabilityData>(
-        "/api/v1/settings/api-key-availability",
-      );
-    },
-    staleTime: 5 * 60_000,
-    retry: false,
-  });
-  const resolvedAvailability = availability ?? UNAVAILABLE_AVAILABILITY;
-  const loading = byokLoading || availabilityLoading;
+  useEffect(() => {
+    const fetchAvailability = async () => {
+      try {
+        const result = await getAvailability({});
+        setAvailability(result);
+      } catch (error) {
+        console.error("Failed to fetch API key availability:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAvailability();
+  }, [getAvailability]);
 
   // BYOK helper: check if a gateway is disabled due to missing BYOK key
   const isModelDisabledByByok = (gateway: string): boolean => {
@@ -117,7 +84,7 @@ export function useApiKeyValidation() {
     return null;
   };
 
-  if (loading) {
+  if (loading || !availability) {
     return {
       loading: true,
       stt: { enabled: false },
@@ -136,7 +103,7 @@ export function useApiKeyValidation() {
     };
   }
 
-  const { isProduction, stt, tts } = resolvedAvailability;
+  const { isProduction, stt, tts } = availability;
 
   return {
     loading: false,
@@ -163,10 +130,6 @@ export function useApiKeyValidation() {
 
     // Helper functions for error messages
     getSTTErrorMessage: () => {
-      if (availabilityError) {
-        return "Speech-to-text is currently unavailable. Please try again shortly.";
-      }
-
       // Check BYOK first
       if (byokConfig?.byokEnabled && !byokConfig.hasGroqKey) {
         return "Voice input requires Groq API key. Add it in Settings → Advanced.";
@@ -182,10 +145,6 @@ export function useApiKeyValidation() {
     },
 
     getTTSErrorMessage: () => {
-      if (availabilityError) {
-        return "Text-to-speech is currently unavailable. Please try again shortly.";
-      }
-
       // Check BYOK first
       if (byokConfig?.byokEnabled && !byokConfig.hasDeepgramKey) {
         return "Text-to-speech requires Deepgram API key. Add it in Settings → Advanced.";

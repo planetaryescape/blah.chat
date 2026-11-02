@@ -1,8 +1,13 @@
-import { screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-// eslint-disable-next-line -- needed for test wrapper
-import { renderWithProviders } from "@/lib/test/render-helpers";
+
+// Mock Convex hooks BEFORE importing component
+vi.mock("convex/react", () => ({
+  useQuery: vi.fn(() => null),
+  useMutation: vi.fn(() => vi.fn()),
+  useAction: vi.fn(() => vi.fn()),
+}));
 
 // Mock the send message hook
 const mockSendMessage = vi.fn();
@@ -28,54 +33,16 @@ vi.mock("@/hooks/useChatInputEvents", () => ({
   useChatInputEvents: () => {},
 }));
 
-vi.mock("@/hooks/useUserPreference", () => ({
-  useUserPreference: vi.fn((key: string) => {
-    if (key === "sendOnEnter") return true;
-    if (key === "sttEnabled") return true;
-    if (key === "sttProvider") return "openai";
-    return undefined;
-  }),
-}));
-
-vi.mock("@/hooks/useFeatureToggles", () => ({
-  useFeatureToggles: () => ({
-    isLoading: false,
-    showNotes: true,
-    showTemplates: true,
-    showProjects: true,
-    showBookmarks: true,
-  }),
-}));
-
-vi.mock("dexie-react-hooks", () => ({
-  useLiveQuery: vi.fn(() => null),
-}));
-
 vi.mock("@/lib/analytics", () => ({
   analytics: { track: vi.fn() },
 }));
 
-vi.mock("@/lib/api/client", () => ({
-  useApiClient: () => ({
-    post: vi.fn(),
-    get: vi.fn(),
-  }),
-}));
-
-vi.mock("@/lib/api/sdkClient", () => ({
-  useSDKClient: () => ({
-    transcribeAudio: vi.fn(),
-    waitForJob: vi.fn(),
-    extractMemories: vi.fn(),
-    generateImage: vi.fn(),
-  }),
-}));
-
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 // Import component AFTER mocks
 import { ChatInput } from "../ChatInput";
 
 const defaultProps = {
-  conversationId: "test-conversation-id" as string,
+  conversationId: "test-conversation-id" as Id<"conversations">,
   isGenerating: false,
   selectedModel: "openai:gpt-4o",
   onModelChange: vi.fn(),
@@ -91,7 +58,7 @@ describe("ChatInput", () => {
 
   it("displays input value when user types", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<ChatInput {...defaultProps} />);
+    render(<ChatInput {...defaultProps} />);
 
     const input = screen.getByLabelText("Message input");
     await user.type(input, "Hello world");
@@ -101,9 +68,7 @@ describe("ChatInput", () => {
 
   it("calls sendMessage when user types and presses Enter", async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <ChatInput {...defaultProps} parentMessageId="msg-parent-1" />,
-    );
+    render(<ChatInput {...defaultProps} />);
 
     const input = screen.getByLabelText("Message input");
     await user.type(input, "Hello world{Enter}");
@@ -112,15 +77,15 @@ describe("ChatInput", () => {
       expect.objectContaining({
         content: "Hello world",
         conversationId: "test-conversation-id",
-        parentMessageId: "msg-parent-1",
         modelId: "openai:gpt-4o",
       }),
+      expect.any(Object),
     );
   });
 
   it("inserts newline when Shift+Enter is pressed", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<ChatInput {...defaultProps} />);
+    render(<ChatInput {...defaultProps} />);
 
     const input = screen.getByLabelText("Message input");
     await user.type(input, "Line 1{Shift>}{Enter}{/Shift}Line 2");
@@ -131,7 +96,7 @@ describe("ChatInput", () => {
 
   it("blocks submit when input is empty", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<ChatInput {...defaultProps} />);
+    render(<ChatInput {...defaultProps} />);
 
     const button = screen.getByRole("button", { name: /send message/i });
     expect(button).toBeDisabled();
@@ -142,7 +107,7 @@ describe("ChatInput", () => {
 
   it("blocks submit when isGenerating is true", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<ChatInput {...defaultProps} isGenerating={true} />);
+    render(<ChatInput {...defaultProps} isGenerating={true} />);
 
     const input = screen.getByLabelText("Message input");
     await user.type(input, "Hello world{Enter}");
@@ -161,9 +126,7 @@ describe("ChatInput", () => {
       },
     ];
 
-    renderWithProviders(
-      <ChatInput {...defaultProps} attachments={attachments} />,
-    );
+    render(<ChatInput {...defaultProps} attachments={attachments} />);
 
     expect(screen.getByText("test.pdf")).toBeInTheDocument();
   });
@@ -171,7 +134,7 @@ describe("ChatInput", () => {
   it("keeps focus and input value stable on mobile touch typing", async () => {
     mobileDetectState = { isMobile: true, isTouchDevice: true };
     const user = userEvent.setup();
-    renderWithProviders(<ChatInput {...defaultProps} />);
+    render(<ChatInput {...defaultProps} />);
 
     const input = screen.getByLabelText("Message input");
     await user.click(input);
@@ -195,7 +158,7 @@ describe("ChatInput", () => {
       },
     ];
 
-    renderWithProviders(
+    render(
       <ChatInput
         {...defaultProps}
         attachments={attachments}
@@ -207,33 +170,5 @@ describe("ChatInput", () => {
     await user.click(removeButton);
 
     expect(onAttachmentsChange).toHaveBeenCalledWith([]);
-  });
-
-  it("does not exit comparison mode when props update after starting comparison", async () => {
-    const onExitComparison = vi.fn();
-
-    const { rerender } = renderWithProviders(
-      <ChatInput
-        {...defaultProps}
-        isComparisonMode={false}
-        selectedModels={[]}
-        onStartComparison={vi.fn()}
-        onExitComparison={onExitComparison}
-      />,
-    );
-
-    rerender(
-      <ChatInput
-        {...defaultProps}
-        isComparisonMode={true}
-        selectedModels={["openai:gpt-4o", "openai:gpt-4o-mini"]}
-        onStartComparison={vi.fn()}
-        onExitComparison={onExitComparison}
-      />,
-    );
-
-    await new Promise((resolve) => setTimeout(resolve, 20));
-
-    expect(onExitComparison).not.toHaveBeenCalled();
   });
 });

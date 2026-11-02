@@ -1,6 +1,7 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -14,48 +15,24 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
 export function AdminSearchSettings() {
-  const queryClient = useQueryClient();
-  const { data: settings } = useQuery({
-    queryKey: ["admin", "settings"],
-    queryFn: async () => {
-      const res = await fetch("/api/v1/admin/settings");
-      if (!res.ok) return null;
-      const json = await res.json();
-      return json.data ?? null;
-    },
-  });
-
-  const updateSettingsMut = useMutation({
-    mutationFn: async (data: Record<string, any>) => {
-      const res = await fetch("/api/v1/admin/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
-    },
-  });
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const settings = useQuery(api.adminSettings.get);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const updateSettings = useMutation(api.adminSettings.update);
 
   const [hybridSearchEnabled, setHybridSearchEnabled] = useState(false);
 
   // Load settings from query
   useEffect(() => {
-    const search = settings?.search;
-    if (search) {
-      setHybridSearchEnabled(search.hybridEnabled ?? false);
+    if (settings) {
+      setHybridSearchEnabled(settings.enableHybridSearch ?? false);
     }
   }, [settings]);
 
   const handleToggleChange = async (checked: boolean) => {
     setHybridSearchEnabled(checked);
     try {
-      await updateSettingsMut.mutateAsync({
-        search: { hybridEnabled: checked },
-      });
+      await updateSettings({ enableHybridSearch: checked });
       toast.success(`Hybrid search ${checked ? "enabled" : "disabled"}`);
     } catch (_error) {
       toast.error("Failed to update settings");

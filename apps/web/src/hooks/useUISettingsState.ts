@@ -1,17 +1,11 @@
 "use client";
 
-import {
-  DEFAULT_NOTIFICATION_CHIME_SOUNDS,
-  type NotificationChimeEvent,
-  type NotificationChimeId,
-  type NotificationChimeSounds,
-} from "@blah-chat/shared/preferences";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { analytics } from "@/lib/analytics";
-import { useSDKClient } from "@/lib/api/sdkClient";
-import { useCurrentUser } from "@/lib/hooks/queries/useCurrentUser";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
 
 interface ReasoningSettings {
@@ -26,8 +20,6 @@ export interface UISettingsState {
   alwaysShowMessageActions: boolean;
   autoCompressContext: boolean;
   hapticFeedbackEnabled: boolean;
-  notificationChimesEnabled: boolean;
-  notificationChimeSounds: NotificationChimeSounds;
   showModelNamesDuringComparison: boolean;
   showMessageStats: boolean;
   showComparisonStats: boolean;
@@ -59,11 +51,6 @@ export interface UISettingsHandlers {
   handleAlwaysShowActionsChange: (checked: boolean) => Promise<void>;
   handleAutoCompressContextChange: (checked: boolean) => Promise<void>;
   handleHapticFeedbackChange: (checked: boolean) => Promise<void>;
-  handleNotificationChimesEnabledChange: (checked: boolean) => Promise<void>;
-  handleNotificationChimeSoundChange: (
-    event: NotificationChimeEvent,
-    sound: NotificationChimeId,
-  ) => Promise<void>;
   handleShowModelNamesChange: (checked: boolean) => Promise<void>;
   handleMessageStatsChange: (checked: boolean) => Promise<void>;
   handleComparisonStatsChange: (checked: boolean) => Promise<void>;
@@ -93,33 +80,20 @@ export interface UISettingsHandlers {
   handleTextScaleChange: (scale: TextScale) => Promise<void>;
 }
 
-function mergeNotificationChimeSounds(
-  sounds: Partial<NotificationChimeSounds> | null | undefined,
-): NotificationChimeSounds {
-  return {
-    ...DEFAULT_NOTIFICATION_CHIME_SOUNDS,
-    ...(sounds ?? {}),
-  };
-}
-
 /**
  * Hook for managing UI Settings state and handlers.
  * Centralizes all preference management for the UISettings component.
  */
 export function useUISettingsState() {
-  const { data: user } = useCurrentUser();
-  const sdk = useSDKClient();
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const user = useQuery(api.users.getCurrentUser);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const updatePreferences = useMutation(api.users.updatePreferences);
 
   // Get preference values from hooks
   const prefAlwaysShowActions = useUserPreference("alwaysShowMessageActions");
   const prefAutoCompressContext = useUserPreference("autoCompressContext");
   const _prefHapticFeedbackEnabled = useUserPreference("hapticFeedbackEnabled");
-  const prefNotificationChimesEnabled = useUserPreference(
-    "notificationChimesEnabled",
-  );
-  const prefNotificationChimeSounds = useUserPreference(
-    "notificationChimeSounds",
-  );
   const prefShowModelNames = useUserPreference(
     "showModelNamesDuringComparison",
   );
@@ -154,12 +128,6 @@ export function useUISettingsState() {
   const [_hapticFeedbackEnabled, _setHapticFeedbackEnabled] = useState<boolean>(
     _prefHapticFeedbackEnabled,
   );
-  const [notificationChimesEnabled, setNotificationChimesEnabled] =
-    useState<boolean>(prefNotificationChimesEnabled);
-  const [notificationChimeSounds, setNotificationChimeSounds] =
-    useState<NotificationChimeSounds>(() =>
-      mergeNotificationChimeSounds(prefNotificationChimeSounds),
-    );
   const [showModelNamesDuringComparison, setShowModelNamesDuringComparison] =
     useState<boolean>(prefShowModelNames);
   const [showMessageStats, setShowMessageStats] =
@@ -228,17 +196,6 @@ export function useUISettingsState() {
     [_prefHapticFeedbackEnabled],
   );
   useEffect(
-    () => setNotificationChimesEnabled(prefNotificationChimesEnabled),
-    [prefNotificationChimesEnabled],
-  );
-  useEffect(
-    () =>
-      setNotificationChimeSounds(
-        mergeNotificationChimeSounds(prefNotificationChimeSounds),
-      ),
-    [prefNotificationChimeSounds],
-  );
-  useEffect(
     () => setShowModelNamesDuringComparison(prefShowModelNames),
     [prefShowModelNames],
   );
@@ -303,10 +260,6 @@ export function useUISettingsState() {
     [prefTextScale],
   );
 
-  const updatePreference = async (key: string, value: unknown) => {
-    await sdk.updatePreference(key, value);
-  };
-
   // Generic handler for simple boolean preferences
   const createBooleanHandler = (
     key: string,
@@ -317,7 +270,9 @@ export function useUISettingsState() {
     return async (checked: boolean) => {
       setter(checked);
       try {
-        await updatePreference(key, checked);
+        await updatePreferences({
+          preferences: { [key]: checked } as any,
+        });
         toast.success(successMessage);
         analytics.track("ui_preference_changed", {
           setting: analyticsEvent,
@@ -339,11 +294,16 @@ export function useUISettingsState() {
     return async (checked: boolean) => {
       setter(checked);
       try {
-        await updatePreference("reasoning", {
-          showByDefault: field === "showByDefault" ? checked : showByDefault,
-          autoExpand: field === "autoExpand" ? checked : autoExpand,
-          showDuringStreaming:
-            field === "showDuringStreaming" ? checked : showDuringStreaming,
+        await updatePreferences({
+          preferences: {
+            reasoning: {
+              showByDefault:
+                field === "showByDefault" ? checked : showByDefault,
+              autoExpand: field === "autoExpand" ? checked : autoExpand,
+              showDuringStreaming:
+                field === "showDuringStreaming" ? checked : showDuringStreaming,
+            },
+          } as any,
         });
         toast.success("Reasoning settings saved!");
         analytics.track("reasoning_display_changed", {
@@ -361,7 +321,9 @@ export function useUISettingsState() {
     const previousWidth = chatWidth;
     setChatWidth(width);
     try {
-      await updatePreference("chatWidth", width);
+      await updatePreferences({
+        preferences: { chatWidth: width },
+      });
       toast.success("Chat width updated!");
       analytics.track("chat_width_changed", { newWidth: width });
     } catch (error) {
@@ -374,7 +336,9 @@ export function useUISettingsState() {
     const previous = autoRouterEnabled;
     setAutoRouterEnabled(checked);
     try {
-      await updatePreference("autoRouterEnabled", checked);
+      await updatePreferences({
+        preferences: { autoRouterEnabled: checked },
+      });
       toast.success(checked ? "Auto Router enabled" : "Auto Router disabled");
       analytics.track("auto_router_enabled_changed", {
         enabled: checked,
@@ -388,7 +352,9 @@ export function useUISettingsState() {
     const previous = autoRouterCostBias;
     setAutoRouterCostBias(value);
     try {
-      await updatePreference("autoRouterCostBias", value);
+      await updatePreferences({
+        preferences: { autoRouterCostBias: value },
+      });
       toast.success("Cost preference updated!");
       analytics.track("auto_router_cost_bias_changed", { value });
     } catch (error) {
@@ -401,7 +367,9 @@ export function useUISettingsState() {
     const previous = autoRouterSpeedBias;
     setAutoRouterSpeedBias(value);
     try {
-      await updatePreference("autoRouterSpeedBias", value);
+      await updatePreferences({
+        preferences: { autoRouterSpeedBias: value },
+      });
       toast.success("Speed preference updated!");
       analytics.track("auto_router_speed_bias_changed", { value });
     } catch (error) {
@@ -414,7 +382,9 @@ export function useUISettingsState() {
     const previous = enableModelRecommendations;
     setEnableModelRecommendations(checked);
     try {
-      await updatePreference("enableModelRecommendations", checked);
+      await updatePreferences({
+        preferences: { enableModelRecommendations: checked },
+      });
       toast.success(
         checked ? "Recommendations enabled!" : "Recommendations disabled",
       );
@@ -433,7 +403,9 @@ export function useUISettingsState() {
     const previous = noteCategoryMode;
     setNoteCategoryMode(mode);
     try {
-      await updatePreference("noteCategoryMode", mode);
+      await updatePreferences({
+        preferences: { noteCategoryMode: mode },
+      });
       toast.success("Note category mode updated!");
       analytics.track("note_category_mode_changed", { mode });
     } catch (error) {
@@ -446,7 +418,9 @@ export function useUISettingsState() {
     const previous = customNoteCategories;
     setCustomNoteCategories(categories);
     try {
-      await updatePreference("customNoteCategories", categories);
+      await updatePreferences({
+        preferences: { customNoteCategories: categories },
+      });
       toast.success("Note categories updated!");
       analytics.track("custom_note_categories_changed", {
         count: categories.length,
@@ -461,7 +435,9 @@ export function useUISettingsState() {
     const previous = highContrastMode;
     setHighContrastMode(checked);
     try {
-      await updatePreference("highContrastMode", checked);
+      await updatePreferences({
+        preferences: { highContrastMode: checked },
+      });
       toast.success("High contrast mode updated!");
       analytics.track("accessibility_high_contrast_changed", {
         enabled: checked,
@@ -476,35 +452,14 @@ export function useUISettingsState() {
     const previous = textScale;
     setTextScale(scale);
     try {
-      await updatePreference("textScale", scale);
+      await updatePreferences({
+        preferences: { textScale: scale },
+      });
       toast.success("Text scale updated!");
       analytics.track("accessibility_text_scale_changed", { scale });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save");
       setTextScale(previous);
-    }
-  };
-
-  const handleNotificationChimeSoundChange = async (
-    event: NotificationChimeEvent,
-    sound: NotificationChimeId,
-  ) => {
-    const previous = notificationChimeSounds;
-    const next = mergeNotificationChimeSounds({
-      ...notificationChimeSounds,
-      [event]: sound,
-    });
-    setNotificationChimeSounds(next);
-    try {
-      await updatePreference("notificationChimeSounds", next);
-      toast.success("Chime updated!");
-      analytics.track("notification_chime_changed", {
-        event,
-        sound,
-      });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save");
-      setNotificationChimeSounds(previous);
     }
   };
 
@@ -527,13 +482,6 @@ export function useUISettingsState() {
       "haptic_feedback_enabled",
       "Haptic feedback setting saved!",
     ),
-    handleNotificationChimesEnabledChange: createBooleanHandler(
-      "notificationChimesEnabled",
-      setNotificationChimesEnabled,
-      "notification_chimes_enabled",
-      "Notification chimes setting saved!",
-    ),
-    handleNotificationChimeSoundChange,
     handleShowModelNamesChange: createBooleanHandler(
       "showModelNamesDuringComparison",
       setShowModelNamesDuringComparison,
@@ -612,8 +560,6 @@ export function useUISettingsState() {
     alwaysShowMessageActions,
     autoCompressContext,
     hapticFeedbackEnabled: _hapticFeedbackEnabled,
-    notificationChimesEnabled,
-    notificationChimeSounds,
     showModelNamesDuringComparison,
     showMessageStats,
     showComparisonStats,

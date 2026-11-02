@@ -1,15 +1,21 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createWrapper } from "@/lib/test/render-helpers";
 
-const mockGetStarterSuggestions = vi.fn();
-const mockRefreshStarterSuggestions = vi.fn();
+const useQueryMock = vi.fn();
+const useActionMock = vi.fn();
 
-vi.mock("@/lib/api/sdkClient", () => ({
-  useSDKClient: () => ({
-    getStarterSuggestions: mockGetStarterSuggestions,
-    refreshStarterSuggestions: mockRefreshStarterSuggestions,
-  }),
+vi.mock("@blah-chat/backend/convex/_generated/api", () => ({
+  api: {
+    chatSuggestions: {
+      getForCurrentUser: {},
+      refreshForCurrentUser: {},
+    },
+  },
+}));
+
+vi.mock("convex/react", () => ({
+  useQuery: (...args: unknown[]) => useQueryMock(...args),
+  useAction: (...args: unknown[]) => useActionMock(...args),
 }));
 
 import { useStarterSuggestions } from "../useStarterSuggestions";
@@ -20,7 +26,10 @@ describe("useStarterSuggestions", () => {
   });
 
   it("triggers refresh exactly once when needsRefresh is true", async () => {
-    mockGetStarterSuggestions.mockResolvedValue({
+    const refreshMock = vi.fn().mockResolvedValue(undefined);
+
+    useActionMock.mockReturnValue(refreshMock);
+    useQueryMock.mockReturnValue({
       suggestions: [
         { id: "1", text: "First prompt", icon: "sparkles" },
         { id: "2", text: "Second prompt", icon: "brain" },
@@ -32,17 +41,14 @@ describe("useStarterSuggestions", () => {
       generatedAt: 123,
       source: "cache",
     });
-    mockRefreshStarterSuggestions.mockResolvedValue(undefined);
 
-    const { rerender } = renderHook(() => useStarterSuggestions(), {
-      wrapper: createWrapper(),
-    });
+    const { rerender } = renderHook(() => useStarterSuggestions());
 
     await waitFor(() => {
-      expect(mockRefreshStarterSuggestions).toHaveBeenCalledTimes(1);
+      expect(refreshMock).toHaveBeenCalledTimes(1);
     });
 
     rerender();
-    expect(mockRefreshStarterSuggestions).toHaveBeenCalledTimes(1);
+    expect(refreshMock).toHaveBeenCalledTimes(1);
   });
 });

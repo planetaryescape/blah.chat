@@ -1,12 +1,7 @@
 /**
  * @vitest-environment node
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-const process = vi.fn();
-const { enqueueProcessing } = vi.hoisted(() => ({
-  enqueueProcessing: vi.fn().mockResolvedValue(undefined),
-}));
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // 1. Mocks MUST be defined before imports
 vi.mock("@/lib/api/dal/messages", () => ({
@@ -27,6 +22,7 @@ vi.mock("@/lib/api/middleware/auth", () => ({
       return handler(req, {
         params: context?.params ?? Promise.resolve({}),
         userId: "test-user-id",
+        sessionToken: "test-session-token",
       });
     },
 }));
@@ -49,163 +45,45 @@ vi.mock("@/lib/api/monitoring", () => ({
   trackAPIPerformance: vi.fn(),
 }));
 
-vi.mock("@/lib/generation-v2/runtime", () => ({
-  getGenerationV2Service: () => ({
-    process,
-  }),
-  getEnqueueGenerationProcessing: () => enqueueProcessing,
-}));
-
-vi.mock("next/server", async () => {
-  const actual =
-    await vi.importActual<typeof import("next/server")>("next/server");
-  return {
-    ...actual,
-    after: (callback: () => Promise<void> | void) => {
-      void callback();
-    },
-  };
-});
-
 // 2. Imports AFTER mocks
 import { messagesDAL } from "@/lib/api/dal/messages";
-import { ApiError } from "@/lib/api/errors";
 import {
   assertEnvelopeError,
   assertEnvelopeSuccess,
   createMockRequest,
 } from "@/lib/test/api-helpers";
 
-function createMessageEnvelope(
-  overrides?: Partial<{
-    _id: string;
-    conversationId: string;
-    role: "user" | "assistant" | "system";
-    content: string;
-    clientMessageId: string | undefined;
-    partialContent: string | undefined;
-    status: "pending" | "generating" | "complete" | "stopped" | "error";
-    model: string | null;
-    comparisonGroupId: string | undefined;
-    consolidatedMessageId: string | undefined;
-    isConsolidation: boolean;
-    rootMessageId: string | undefined;
-    siblingIndex: number;
-    forkReason: string | undefined;
-    attachments:
-      | Array<{
-          id: string;
-          type: "file" | "image" | "audio";
-          storageId: string;
-          name: string;
-          mimeType: string;
-          size: number;
-          url?: string;
-        }>
-      | undefined;
-    parentMessageId: string | undefined;
-    parentMessageIds: string[] | undefined;
-    isActiveBranch: boolean;
-    createdAt: number;
-    updatedAt: number;
-    _creationTime: number;
-  }>,
-) {
-  const timestamp = Date.now();
-
-  return {
-    status: "success" as const,
-    sys: { entity: "message", id: overrides?._id ?? "msg-1" },
-    data: {
-      _id: overrides?._id ?? "msg-1",
-      conversationId: overrides?.conversationId ?? "conv-123",
-      role: overrides?.role ?? "user",
-      content: overrides?.content ?? "Hello",
-      clientMessageId: overrides?.clientMessageId,
-      partialContent: overrides?.partialContent,
-      status: overrides?.status ?? "complete",
-      model: overrides?.model ?? null,
-      comparisonGroupId: overrides?.comparisonGroupId,
-      consolidatedMessageId: overrides?.consolidatedMessageId,
-      isConsolidation: overrides?.isConsolidation ?? false,
-      rootMessageId: overrides?.rootMessageId,
-      siblingIndex: overrides?.siblingIndex ?? 0,
-      forkReason: overrides?.forkReason,
-      attachments: overrides?.attachments,
-      parentMessageId: overrides?.parentMessageId,
-      parentMessageIds: overrides?.parentMessageIds,
-      isActiveBranch: overrides?.isActiveBranch ?? true,
-      createdAt: overrides?.createdAt ?? timestamp,
-      updatedAt: overrides?.updatedAt ?? timestamp,
-      _creationTime: overrides?._creationTime ?? timestamp,
-    },
-  };
-}
-
-function createSendEnvelope(
-  overrides?: Partial<{
-    requestId: string;
-    conversationId: string;
-    messageId: string;
-    assistantMessageId: string;
-    assistantMessageIds: string[];
-    assistantModelId: string;
-    modelIds: string[];
-    status: "pending";
-    pollUrl: string;
-    streamUrl: string;
-    stopUrl: string;
-  }>,
-) {
-  return {
-    status: "success" as const,
-    sys: { entity: "message", async: true },
-    data: {
-      requestId: overrides?.requestId ?? "req-1",
-      conversationId: overrides?.conversationId ?? "conv-123",
-      messageId: overrides?.messageId ?? "msg-user",
-      assistantMessageId: overrides?.assistantMessageId ?? "msg-assistant",
-      assistantMessageIds: overrides?.assistantMessageIds ?? [
-        overrides?.assistantMessageId ?? "msg-assistant",
-      ],
-      assistantModelId:
-        overrides?.assistantModelId ?? overrides?.modelIds?.[0] ?? "gpt-4o",
-      modelIds: overrides?.modelIds ?? [
-        overrides?.assistantModelId ?? "gpt-4o",
-      ],
-      status: overrides?.status ?? "pending",
-      pollUrl:
-        overrides?.pollUrl ??
-        `/api/v1/messages/${overrides?.assistantMessageId ?? "msg-assistant"}`,
-      streamUrl:
-        overrides?.streamUrl ??
-        `/api/v1/generations/${overrides?.requestId ?? "req-1"}/stream`,
-      stopUrl:
-        overrides?.stopUrl ??
-        `/api/v1/generations/${overrides?.requestId ?? "req-1"}/stop`,
-    },
-  };
-}
-
 describe("/api/v1/conversations/[id]/messages", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  afterEach(() => {
-    vi.resetModules();
-  });
-
   describe("GET /api/v1/conversations/:id/messages", () => {
     it("returns messages with envelope structure", async () => {
       const mockMessages = [
-        createMessageEnvelope({ _id: "msg1", content: "Hello" }),
-        createMessageEnvelope({
-          _id: "msg2",
-          role: "assistant",
-          content: "Hi there!",
-          model: "gpt-4o",
-        }),
+        {
+          status: "success" as const,
+          sys: { entity: "message", id: "msg1" },
+          data: {
+            _id: "msg1",
+            content: "Hello",
+            role: "user",
+            status: "complete",
+            _creationTime: Date.now(),
+          },
+        },
+        {
+          status: "success" as const,
+          sys: { entity: "message", id: "msg2" },
+          data: {
+            _id: "msg2",
+            content: "Hi there!",
+            role: "assistant",
+            status: "complete",
+            model: "gpt-4o",
+            _creationTime: Date.now(),
+          },
+        },
       ];
       vi.mocked(messagesDAL.list).mockResolvedValue(mockMessages);
 
@@ -246,7 +124,17 @@ describe("/api/v1/conversations/[id]/messages", () => {
 
   describe("POST /api/v1/conversations/:id/messages", () => {
     it("sends message and returns 202 Accepted", async () => {
-      const mockResult = createSendEnvelope();
+      const mockResult = {
+        status: "success" as const,
+        sys: { entity: "message", async: true },
+        data: {
+          conversationId: "conv-123",
+          messageId: "msg-user" as any,
+          assistantMessageId: "msg-assistant" as any,
+          status: "pending",
+          pollUrl: "/api/v1/messages/msg-assistant",
+        },
+      };
       vi.mocked(messagesDAL.send).mockResolvedValue(mockResult);
 
       const { POST } = await import("../conversations/[id]/messages/route");
@@ -266,12 +154,18 @@ describe("/api/v1/conversations/[id]/messages", () => {
       expect(json.data.pollUrl).toBeDefined();
     });
 
-    it("calls DAL with content", async () => {
-      const mockResult = createSendEnvelope({
-        assistantMessageId: "msg-2",
-        assistantMessageIds: ["msg-2"],
-        messageId: "msg-1",
-      });
+    it("calls DAL with content and sessionToken", async () => {
+      const mockResult = {
+        status: "success" as const,
+        sys: { entity: "message", async: true },
+        data: {
+          conversationId: "conv-123",
+          messageId: "msg-1" as any,
+          assistantMessageId: "msg-2" as any,
+          status: "pending",
+          pollUrl: "/api/v1/messages/msg-2",
+        },
+      };
       vi.mocked(messagesDAL.send).mockResolvedValue(mockResult);
 
       const { POST } = await import("../conversations/[id]/messages/route");
@@ -295,6 +189,7 @@ describe("/api/v1/conversations/[id]/messages", () => {
           clientMessageId: "client-abc123",
           thinkingEffort: "medium",
         },
+        "test-session-token",
       );
     });
 
@@ -329,11 +224,17 @@ describe("/api/v1/conversations/[id]/messages", () => {
     });
 
     it("accepts optional attachments", async () => {
-      const mockResult = createSendEnvelope({
-        assistantMessageId: "msg-2",
-        assistantMessageIds: ["msg-2"],
-        messageId: "msg-1",
-      });
+      const mockResult = {
+        status: "success" as const,
+        sys: { entity: "message", async: true },
+        data: {
+          conversationId: "conv-123",
+          messageId: "msg-1" as any,
+          assistantMessageId: "msg-2" as any,
+          status: "pending",
+          pollUrl: "/api/v1/messages/msg-2",
+        },
+      };
       vi.mocked(messagesDAL.send).mockResolvedValue(mockResult);
 
       const { POST } = await import("../conversations/[id]/messages/route");
@@ -357,51 +258,6 @@ describe("/api/v1/conversations/[id]/messages", () => {
       });
 
       expect(response.status).toBe(202);
-    });
-
-    it("surfaces a 403 pro_models_disabled denial from the DAL", async () => {
-      vi.mocked(messagesDAL.send).mockRejectedValue(
-        new ApiError(
-          403,
-          "Pro models are currently disabled by the administrator",
-          "pro_models_disabled",
-        ),
-      );
-
-      const { POST } = await import("../conversations/[id]/messages/route");
-      const req = createMockRequest("/api/v1/conversations/conv-123/messages", {
-        method: "POST",
-        body: { content: "Hello", modelId: "anthropic:claude-opus-4.5" },
-      });
-      const response = await POST(req, {
-        params: Promise.resolve({ id: "conv-123" }),
-      });
-      const json = await response.json();
-
-      expect(response.status).toBe(403);
-      assertEnvelopeError(json);
-      expect(json.error.code).toBe("pro_models_disabled");
-      expect(json.error.message).toContain("disabled by the administrator");
-    });
-
-    it("surfaces a 403 budget_exceeded denial from the DAL", async () => {
-      vi.mocked(messagesDAL.send).mockRejectedValue(
-        new ApiError(403, "Monthly budget exceeded", "budget_exceeded"),
-      );
-
-      const { POST } = await import("../conversations/[id]/messages/route");
-      const req = createMockRequest("/api/v1/conversations/conv-123/messages", {
-        method: "POST",
-        body: { content: "Hello" },
-      });
-      const response = await POST(req, {
-        params: Promise.resolve({ id: "conv-123" }),
-      });
-      const json = await response.json();
-
-      expect(response.status).toBe(403);
-      assertEnvelopeError(json);
-      expect(json.error.code).toBe("budget_exceeded");
     });
 
     it("rejects invalid thinkingEffort value", async () => {

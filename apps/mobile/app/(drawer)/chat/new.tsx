@@ -24,11 +24,6 @@ import {
 } from "@/components/chat";
 import { ModelPicker } from "@/components/chat/ModelPicker";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { queryClient } from "@/lib/cache/queryClient";
-import {
-  buildLocalConversation,
-  insertConversationIntoCache,
-} from "@/lib/chat/conversationCache";
 import {
   clearChatDraft,
   readChatDraft,
@@ -36,9 +31,11 @@ import {
 } from "@/lib/chat/drafts";
 import type { Doc, Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
-import { useSendMessage, useStarterSuggestions } from "@/lib/hooks";
-import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
-import { createLocalConversationId } from "@/lib/hooks/useMessages";
+import {
+  useCreateConversation,
+  useSendMessage,
+  useStarterSuggestions,
+} from "@/lib/hooks";
 import { usePreferences } from "@/lib/hooks/usePreferences";
 import {
   getTimeGreeting,
@@ -58,6 +55,7 @@ const PROMPT_ICON_MAP: Record<SuggestionIcon, typeof Sparkles> = {
 
 export default function NewChatScreen() {
   const router = useRouter();
+  const createConversation = useCreateConversation();
   const sendMessage = useSendMessage();
   const { visibleSuggestions: starterSuggestions } = useStarterSuggestions();
   const prefs = usePreferences();
@@ -84,6 +82,7 @@ export default function NewChatScreen() {
   const [isThinkingPickerOpen, setIsThinkingPickerOpen] = useState(false);
   const [isTemplatePickerOpen, setIsTemplatePickerOpen] = useState(false);
   const [isComparePickerOpen, setIsComparePickerOpen] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [draftText, setDraftText] = useState("");
   const [draftAttachments, setDraftAttachments] = useState<AttachmentInput[]>(
     [],
@@ -181,64 +180,57 @@ export default function NewChatScreen() {
     return () => clearTimeout(timer);
   }, []);
 
-  const { run: handleSend, isPending: isSending } = useAsyncAction(
+  const handleSend = useCallback(
     async ({ content, attachments }: ChatInputSendPayload) => {
+      if (isSending) return;
+      setIsSending(true);
       setScrollToBottomKey((current) => current + 1);
 
       haptic.medium();
 
       const now = Date.now();
 
-      const optimisticUserMessage: Message = {
-        _id: `optimistic-user-${now}` as Id<"messages">,
-        _creationTime: now,
-        conversationId: "new" as Id<"conversations">,
-        userId: "me" as Id<"users">,
-        role: "user",
-        content,
-        status: "complete",
-        createdAt: now,
-        updatedAt: now,
-        siblingIndex: 0,
-        isActiveBranch: true,
-      };
-
-      const optimisticAssistantMessage: Message = {
-        _id: `optimistic-assistant-${now}` as Id<"messages">,
-        _creationTime: now + 1,
-        conversationId: "new" as Id<"conversations">,
-        userId: "assistant" as Id<"users">,
-        role: "assistant",
-        content: "",
-        status: "pending",
-        model: selectedModel,
-        createdAt: now + 1,
-        updatedAt: now + 1,
-        siblingIndex: 0,
-        isActiveBranch: true,
-      };
-
-      setOptimisticMessages([
-        optimisticUserMessage,
-        optimisticAssistantMessage,
-      ]);
-
-      const localConversationId = createLocalConversationId();
-      insertConversationIntoCache(
-        queryClient,
-        buildLocalConversation({
-          conversationId: localConversationId,
-          model: selectedModel,
-          createdAt: now,
-        }),
-      );
-
       try {
-        const result = await sendMessage({
-          localConversationId,
-          createConversation: {
-            model: selectedModel,
-          },
+        const optimisticUserMessage: Message = {
+          _id: `optimistic-user-${now}` as Id<"messages">,
+          _creationTime: now,
+          conversationId: "new" as Id<"conversations">,
+          userId: "me" as Id<"users">,
+          role: "user",
+          content,
+          status: "complete",
+          createdAt: now,
+          updatedAt: now,
+          siblingIndex: 0,
+          isActiveBranch: true,
+        };
+
+        const optimisticAssistantMessage: Message = {
+          _id: `optimistic-assistant-${now}` as Id<"messages">,
+          _creationTime: now + 1,
+          conversationId: "new" as Id<"conversations">,
+          userId: "assistant" as Id<"users">,
+          role: "assistant",
+          content: "",
+          status: "pending",
+          model: selectedModel,
+          createdAt: now + 1,
+          updatedAt: now + 1,
+          siblingIndex: 0,
+          isActiveBranch: true,
+        };
+
+        setOptimisticMessages([
+          optimisticUserMessage,
+          optimisticAssistantMessage,
+        ]);
+
+        const conversationId = await createConversation({
+          model: selectedModel,
+        });
+
+        await sendMessage({
+          conversationId,
           content,
           ...(isComparisonMode
             ? { models: selectedModels }
@@ -251,28 +243,25 @@ export default function NewChatScreen() {
         setDraftText("");
         setDraftAttachments([]);
 
-        router.replace(`/(drawer)/chat/${result.conversationId}`);
-      } catch (_sendError) {
-        queryClient.removeQueries({
-          queryKey: ["mobile", "conversation", localConversationId],
-          exact: true,
-        });
-        queryClient.removeQueries({
-          queryKey: ["mobile", "messages", localConversationId],
-          exact: true,
-        });
-        await queryClient.invalidateQueries({
-          queryKey: ["mobile", "conversations"],
-        });
-        throw _sendError;
-      }
-    },
-    {
-      onError: () => {
+        router.replace(`/(drawer)/chat/${conversationId}`);
+      } catch (_error) {
         haptic.error();
         setOptimisticMessages([]);
-      },
+      } finally {
+        setIsSending(false);
+      }
     },
+    [
+      createConversation,
+      draftKey,
+      isComparisonMode,
+      isSending,
+      router,
+      selectedModel,
+      selectedModels,
+      sendMessage,
+      thinkingEffort,
+    ],
   );
 
   const handleModelSelect = useCallback((modelId: string) => {

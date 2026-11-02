@@ -36,15 +36,32 @@ describe("withAuth middleware", () => {
     expect(res.status).toBe(401);
   });
 
-  it("calls handler with userId only", async () => {
+  it("returns 401 when convex session token is unavailable", async () => {
     authMock.mockResolvedValue({
       userId: "user_123",
-      getToken: vi.fn().mockResolvedValue("unused"),
+      getToken: vi.fn().mockResolvedValue(null),
+    });
+
+    const { withAuth } = await import("../auth");
+    const handler = withAuth(async () => new Response("ok", { status: 200 }));
+
+    const res = await handler(new Request("http://localhost/api") as any, {
+      params: Promise.resolve({}),
+    });
+
+    expect(res.status).toBe(401);
+  });
+
+  it("calls handler with userId and sessionToken", async () => {
+    authMock.mockResolvedValue({
+      userId: "user_123",
+      getToken: vi.fn().mockResolvedValue("convex_token"),
     });
 
     const { withAuth } = await import("../auth");
     const inner = vi.fn(async (_req, ctx) => {
       expect(ctx.userId).toBe("user_123");
+      expect(ctx.sessionToken).toBe("convex_token");
       return new Response("ok", { status: 200 });
     });
 

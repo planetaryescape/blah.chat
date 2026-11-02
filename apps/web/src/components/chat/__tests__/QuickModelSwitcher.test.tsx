@@ -1,7 +1,13 @@
-import { screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders } from "@/lib/test/render-helpers";
+
+// Mock convex/react BEFORE importing component
+vi.mock("convex/react", () => ({
+  useQuery: vi.fn(() => ({ canUse: true })), // Pro access enabled by default
+  useAction: vi.fn(() => vi.fn()), // Mock useAction for useApiKeyValidation
+  useMutation: vi.fn(() => vi.fn()),
+}));
 
 // Mock model hooks
 vi.mock("@/hooks/useFavoriteModels", () => ({
@@ -131,14 +137,14 @@ describe("QuickModelSwitcher", () => {
   });
 
   it("renders dialog when open", () => {
-    renderWithProviders(<QuickModelSwitcher {...defaultProps} />);
+    render(<QuickModelSwitcher {...defaultProps} />);
 
     // Command dialog should be visible
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
   it("shows trigger button when showTrigger is true", () => {
-    renderWithProviders(
+    render(
       <QuickModelSwitcher {...defaultProps} open={false} showTrigger={true} />,
     );
 
@@ -148,7 +154,7 @@ describe("QuickModelSwitcher", () => {
 
   it("filters models by search query", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<QuickModelSwitcher {...defaultProps} />);
+    render(<QuickModelSwitcher {...defaultProps} />);
 
     const searchInput = screen.getByPlaceholderText(/search/i);
     await user.type(searchInput, "gpt");
@@ -159,7 +165,7 @@ describe("QuickModelSwitcher", () => {
 
   it("filters models by category", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<QuickModelSwitcher {...defaultProps} />);
+    render(<QuickModelSwitcher {...defaultProps} />);
 
     const visionButton = screen.getByRole("button", { name: "Vision" });
     await user.click(visionButton);
@@ -172,7 +178,7 @@ describe("QuickModelSwitcher", () => {
     const user = userEvent.setup();
     const onOpenChange = vi.fn();
 
-    renderWithProviders(
+    render(
       <QuickModelSwitcher
         {...defaultProps}
         mode="single"
@@ -190,7 +196,7 @@ describe("QuickModelSwitcher", () => {
     const user = userEvent.setup();
     const onSelectedModelsChange = vi.fn();
 
-    renderWithProviders(
+    render(
       <QuickModelSwitcher
         {...defaultProps}
         mode="multiple"
@@ -207,9 +213,7 @@ describe("QuickModelSwitcher", () => {
   });
 
   it("closes dialog when closed", () => {
-    const { rerender } = renderWithProviders(
-      <QuickModelSwitcher {...defaultProps} />,
-    );
+    const { rerender } = render(<QuickModelSwitcher {...defaultProps} />);
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
 

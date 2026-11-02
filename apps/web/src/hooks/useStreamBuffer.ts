@@ -2,29 +2,11 @@ import { useEffect, useRef, useState } from "react";
 
 export interface StreamBufferOptions {
   /**
-   * Baseline words per second for streaming.
+   * Words per second for streaming.
    * @default 30
    */
   wordsPerSecond?: number;
 }
-
-/**
- * Target time to drain whatever is currently buffered. When the model
- * outputs faster than the baseline reveal rate, the drain rate scales up
- * so the display never lags more than ~this far behind the server —
- * otherwise the backlog would flush as one big jump at stream end.
- */
-const CATCH_UP_WINDOW_MS = 800;
-
-/** Rough average word length (incl. trailing space) for cheap word estimates. */
-const AVG_WORD_CHARS = 6;
-
-/**
- * Cap on elapsed time per tick so a gap (empty buffer waiting on the
- * server, or a partial word holding back release) doesn't accumulate
- * into one large burst when content arrives.
- */
-const MAX_TICK_ELAPSED_MS = 100;
 
 export type BufferState = "filling" | "draining" | "empty" | "complete";
 
@@ -78,10 +60,7 @@ export function useStreamBuffer(
   isStreaming: boolean,
   options?: StreamBufferOptions,
 ): StreamBufferResult {
-  // Initialize to the server content so completed messages render
-  // immediately (no blank-then-fill flash) and a remount mid-stream
-  // doesn't replay the whole message as a catch-up animation.
-  const [displayContent, setDisplayContent] = useState(serverContent);
+  const [displayContent, setDisplayContent] = useState("");
   const [newWordsCount, setNewWordsCount] = useState(0);
 
   // Configuration - 30 words/sec default for smooth reading
@@ -89,7 +68,7 @@ export function useStreamBuffer(
 
   // Internal state (refs to avoid triggering re-renders)
   const bufferRef = useRef("");
-  const lastServerContentRef = useRef(serverContent);
+  const lastServerContentRef = useRef("");
   const rafIdRef = useRef<number | undefined>(undefined);
   const lastTickRef = useRef(Date.now());
 
@@ -142,28 +121,10 @@ export function useStreamBuffer(
     // RAF loop: smoothly release words from buffer
     const tick = () => {
       const now = Date.now();
-
-      // Nothing buffered: keep the clock current so elapsed time spent
-      // waiting on the server doesn't dump the next chunk all at once.
-      if (bufferRef.current.length === 0) {
-        lastTickRef.current = now;
-        rafIdRef.current = requestAnimationFrame(tick);
-        return;
-      }
-
-      const elapsed = Math.min(now - lastTickRef.current, MAX_TICK_ELAPSED_MS);
-
-      // Adaptive rate: at minimum the baseline, but scale up so the
-      // current backlog drains within CATCH_UP_WINDOW_MS. Keeps fast
-      // models smooth instead of lagging then leaping at stream end.
-      const backlogWords = bufferRef.current.length / AVG_WORD_CHARS;
-      const effectiveWps = Math.max(
-        wordsPerSecond,
-        backlogWords * (1000 / CATCH_UP_WINDOW_MS),
-      );
+      const elapsed = now - lastTickRef.current;
 
       // Calculate words to release based on elapsed time
-      const wordsToRelease = Math.floor((elapsed / 1000) * effectiveWps);
+      const wordsToRelease = Math.floor((elapsed / 1000) * wordsPerSecond);
 
       if (wordsToRelease > 0 && bufferRef.current.length > 0) {
         // Extract words from buffer

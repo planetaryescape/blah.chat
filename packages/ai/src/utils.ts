@@ -1,5 +1,4 @@
 import { MODEL_CONFIG, type ModelConfig } from "./models";
-
 export type { ModelConfig };
 
 export type UsageTokenInfo = {

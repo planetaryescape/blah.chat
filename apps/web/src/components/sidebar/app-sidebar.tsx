@@ -1,31 +1,62 @@
-import { useAuth, useUser } from "@clerk/nextjs";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { UserButton, useAuth } from "@clerk/nextjs";
+import { useAction, useMutation, useQuery } from "convex/react";
 import {
   Bookmark,
   CheckSquare,
   FileText,
   FolderKanban,
+  Ghost,
   Mic,
+  MoreHorizontal,
   NotebookPen,
+  Plus,
   Search,
   Settings,
+  Shield,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { Logo } from "@/components/brand/Logo";
 import { NewIncognitoDialog } from "@/components/chat/NewIncognitoDialog";
+import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
+import { ProjectFilter } from "@/components/projects/ProjectFilter";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { PrefetchableLink } from "@/components/ui/prefetchable-link";
 import { Separator } from "@/components/ui/separator";
-import { Sidebar, useSidebar } from "@/components/ui/sidebar";
+import { ShortcutBadge } from "@/components/ui/shortcut-badge";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+} from "@/components/ui/sidebar";
+import { useConversationContext } from "@/contexts/ConversationContext";
+import { useConversationCacheSync } from "@/hooks/useCacheSync";
 import { useListKeyboardNavigation } from "@/hooks/useListKeyboardNavigation";
 import { useNewChat } from "@/hooks/useNewChat";
-import { useRestConversationSync } from "@/hooks/useRestConversationSync";
-import { useUserPreference } from "@/hooks/useUserPreference";
-import { useBulkConversationCrud } from "@/lib/hooks/mutations/useBulkConversationCrud";
+import { cn } from "@/lib/utils";
+import { BulkActionBar } from "./BulkActionBar";
 import { BulkDeleteDialog } from "./BulkDeleteDialog";
+import { ConversationList } from "./ConversationList";
+import { ConversationListSkeleton } from "./ConversationListSkeleton";
 import { ConversationPrefetcher } from "./ConversationPrefetcher";
-import { SidebarConversationSection } from "./SidebarConversationSection";
-import { SidebarHeaderContent } from "./SidebarHeaderContent";
-import { SidebarNavigationFooter } from "./SidebarNavigationFooter";
 
 const MENU_ITEMS = [
   { icon: Search, label: "Search", href: "/search", featureKey: null },
@@ -68,84 +99,98 @@ const MENU_ITEMS = [
   { icon: Settings, label: "Settings", href: "/settings", featureKey: null },
 ];
 
-const RECENT_CONVERSATION_CUTOFF = Date.now() - 7 * 24 * 60 * 60 * 1000;
-type SidebarConversation = {
-  _id: string;
-  updatedAt: number;
-  pinned?: boolean;
-  starred?: boolean;
-};
+export function AppSidebar() {
+  const [projectFilter, setProjectFilter] = useQueryState("project");
 
-interface SidebarFeatures {
-  showNotes: boolean;
-  showTemplates: boolean;
-  showProjects: boolean;
-  showBookmarks: boolean;
-  showTasks: boolean;
-  showSmartAssistant: boolean;
-  isLoading: boolean;
-}
+  // Local-first: Convex syncs to Dexie, reads from cache (instant)
+  const { conversations: rawConversations, isLoading: conversationsLoading } =
+    useConversationCacheSync({
+      projectId:
+        (projectFilter as Id<"projects"> | "none" | undefined) || undefined,
+    });
 
-interface SidebarBulkMutations {
-  bulkDelete: (args: { conversationIds: string[] }) => Promise<unknown>;
-  bulkArchive: (args: { conversationIds: string[] }) => Promise<unknown>;
-  bulkPin: (args: { conversationIds: string[] }) => Promise<unknown>;
-  bulkUnpin: (args: { conversationIds: string[] }) => Promise<unknown>;
-  bulkStar: (args: { conversationIds: string[] }) => Promise<unknown>;
-  bulkUnstar: (args: { conversationIds: string[] }) => Promise<unknown>;
-  bulkAutoRename: (args: {
-    conversationIds: string[];
-  }) => Promise<Array<{ success: boolean }>>;
-}
+  const conversations = rawConversations;
 
-function useSidebarFeatureVisibility(isMobile: boolean) {
-  const showNotes = useUserPreference("showNotes");
-  const showTemplates = useUserPreference("showTemplates");
-  const showProjects = useUserPreference("showProjects");
-  const showBookmarks = useUserPreference("showBookmarks");
-  const showTasks = useUserPreference("showTasks");
-  const showSmartAssistant = useUserPreference("showSmartAssistant");
+  // Prefetch messages for recent conversations (< 7 days) for instant navigation
+  const recentConversationIds = useMemo(() => {
+    if (!conversations) return [];
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return conversations
+      .filter((c) => c.updatedAt > sevenDaysAgo)
+      .slice(0, 20) // Cap at 20 to avoid too many subscriptions
+      .map((c) => c._id);
+  }, [conversations]);
 
-  const sidebarFeatures = useMemo<SidebarFeatures>(() => {
+  // Bulk actions mutations
+  const bulkDelete = useAction(api.conversations.bulk.bulkDelete);
+  const bulkArchive = useMutation(api.conversations.bulkArchive);
+  const bulkPin = useMutation(api.conversations.bulkPin);
+  const bulkUnpin = useMutation(api.conversations.bulkUnpin);
+  const bulkStar = useMutation(api.conversations.bulkStar);
+  const bulkUnstar = useMutation(api.conversations.bulkUnstar);
+  const bulkAutoRename = useAction(api.conversations.actions.bulkAutoRename);
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const { isMobile, setOpenMobile } = useSidebar();
+  const { setFilteredConversations } = useConversationContext();
+  const { startNewChat } = useNewChat();
+  const { isLoaded: isAuthLoaded } = useAuth();
+
+  // Get advanced settings with proper loading state detection
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const rawAdvancedSettings = useQuery(api.users.getUserPreferencesByCategory, {
+    category: "advanced",
+  });
+
+  // Check if current user is admin
+  const isAdmin = useQuery(api.admin.isCurrentUserAdmin);
+
+  // Use advancedSettings for sidebar visibility
+  // Use the raw query state to properly detect loading
+  const sidebarFeatures = useMemo(() => {
+    // rawAdvancedSettings: undefined = loading, null = not authenticated, object = loaded
+    const isLoading = rawAdvancedSettings === undefined;
+    const isNotAuthenticated = rawAdvancedSettings === null;
+
+    if (isLoading || isNotAuthenticated) {
+      // During loading or when not authenticated, don't show any advanced features
+      // This prevents the flicker of items appearing and then disappearing
+      return {
+        showNotes: false,
+        showTemplates: false,
+        showProjects: false,
+        showBookmarks: false,
+        showSlides: false,
+        showTasks: false,
+        showSmartAssistant: false,
+        isLoading: true,
+      };
+    }
+
+    // Settings are loaded - use actual values with defaults from PREFERENCE_DEFAULTS
     return {
-      showNotes: showNotes ?? true,
-      showTemplates: showTemplates ?? true,
-      showProjects: showProjects ?? true,
-      showBookmarks: showBookmarks ?? true,
-      showTasks: showTasks ?? true,
-      showSmartAssistant: showSmartAssistant ?? true,
+      showNotes: rawAdvancedSettings.showNotes ?? true,
+      showTemplates: rawAdvancedSettings.showTemplates ?? true,
+      showProjects: rawAdvancedSettings.showProjects ?? true,
+      showBookmarks: rawAdvancedSettings.showBookmarks ?? true,
+      showSlides: rawAdvancedSettings.showSlides ?? false,
+      showTasks: rawAdvancedSettings.showTasks ?? true,
+      showSmartAssistant: rawAdvancedSettings.showSmartAssistant ?? true,
       isLoading: false,
     };
-  }, [
-    showNotes,
-    showTemplates,
-    showProjects,
-    showBookmarks,
-    showTasks,
-    showSmartAssistant,
-  ]);
+  }, [rawAdvancedSettings]);
 
-  const visibleMenuItems = useMemo(
-    () =>
-      MENU_ITEMS.filter((item) => {
-        if (isMobile && item.href === "/shortcuts") return false;
-        if (!item.featureKey) return true;
-        if (sidebarFeatures.isLoading) return false;
-        return sidebarFeatures[item.featureKey];
-      }),
-    [isMobile, sidebarFeatures],
-  );
-
-  return {
-    sidebarFeatures,
-    displayedItems: isMobile ? visibleMenuItems.slice(0, 3) : visibleMenuItems,
-    overflowItems: isMobile ? visibleMenuItems.slice(3) : [],
-  };
-}
-
-function useIncognitoDialogState() {
+  // Selection state
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [showIncognitoDialog, setShowIncognitoDialog] = useState(false);
 
+  const handleNewChat = () => {
+    startNewChat();
+  };
+
+  // Listen for keyboard shortcut to open incognito dialog
   useEffect(() => {
     const handler = () => setShowIncognitoDialog(true);
     window.addEventListener("open-new-incognito-dialog", handler);
@@ -153,234 +198,12 @@ function useIncognitoDialogState() {
       window.removeEventListener("open-new-incognito-dialog", handler);
   }, []);
 
-  return {
-    showIncognitoDialog,
-    setShowIncognitoDialog,
-    openIncognitoDialog: () => setShowIncognitoDialog(true),
-  };
-}
-
-function useSidebarBulkActions(
-  conversations: SidebarConversation[] | undefined,
-  {
-    bulkArchive,
-    bulkAutoRename,
-    bulkDelete,
-    bulkPin,
-    bulkStar,
-    bulkUnpin,
-    bulkUnstar,
-  }: SidebarBulkMutations,
-) {
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
-
-  const toggleSelection = useCallback((id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
-    );
-  }, []);
-
-  const handleClearSelection = useCallback(() => {
-    setSelectedIds([]);
-  }, []);
-
-  const handleBulkDelete = async () => {
-    try {
-      await bulkDelete({
-        conversationIds: selectedIds as string[],
-      });
-      toast.success(`Deleted ${selectedIds.length} conversations`);
-      setSelectedIds([]);
-      setShowBulkDeleteConfirm(false);
-    } catch (_error) {
-      toast.error("Failed to delete conversations");
-    }
-  };
-
-  const handleBulkArchive = async () => {
-    try {
-      await bulkArchive({
-        conversationIds: selectedIds as string[],
-      });
-      toast.success(`Archived ${selectedIds.length} conversations`);
-      setSelectedIds([]);
-    } catch (_error) {
-      toast.error("Failed to archive conversations");
-    }
-  };
-
-  const handleBulkPin = async () => {
-    const selectedConversations =
-      conversations?.filter((conversation) =>
-        selectedIds.includes(conversation._id),
-      ) || [];
-    const allPinned =
-      selectedConversations.length > 0 &&
-      selectedConversations.every((conversation) => conversation.pinned);
-
-    try {
-      if (allPinned) {
-        await bulkUnpin({
-          conversationIds: selectedIds as string[],
-        });
-        toast.success(`Unpinned ${selectedIds.length} conversations`);
-      } else {
-        await bulkPin({
-          conversationIds: selectedIds as string[],
-        });
-        toast.success(`Pinned ${selectedIds.length} conversations`);
-      }
-      setSelectedIds([]);
-    } catch (_error) {
-      toast.error("Failed to update pin status");
-    }
-  };
-
-  const handleBulkStar = async () => {
-    const selectedConversations =
-      conversations?.filter((conversation) =>
-        selectedIds.includes(conversation._id),
-      ) || [];
-    const allStarred =
-      selectedConversations.length > 0 &&
-      selectedConversations.every((conversation) => conversation.starred);
-
-    try {
-      if (allStarred) {
-        await bulkUnstar({
-          conversationIds: selectedIds as string[],
-        });
-        toast.success(`Unstarred ${selectedIds.length} conversations`);
-      } else {
-        await bulkStar({
-          conversationIds: selectedIds as string[],
-        });
-        toast.success(`Starred ${selectedIds.length} conversations`);
-      }
-      setSelectedIds([]);
-    } catch (_error) {
-      toast.error("Failed to update star status");
-    }
-  };
-
-  const handleBulkAutoRename = async () => {
-    try {
-      toast.info("Generating titles...");
-      const results = await bulkAutoRename({
-        conversationIds: selectedIds as string[],
-      });
-      toast.success(
-        `Renamed ${results.filter((result) => result.success).length} conversations`,
-      );
-      setSelectedIds([]);
-    } catch (_error) {
-      toast.error("Failed to rename conversations");
-    }
-  };
-
-  return {
-    selectedIds,
-    showBulkDeleteConfirm,
-    setShowBulkDeleteConfirm,
-    toggleSelection,
-    handleClearSelection,
-    handleBulkDelete,
-    handleBulkArchive,
-    handleBulkPin,
-    handleBulkStar,
-    handleBulkAutoRename,
-  };
-}
-
-export function AppSidebar() {
-  const [projectFilter, setProjectFilter] = useQueryState("project");
-
-  // Local-first: REST syncs to local cache, reads from cache (instant)
-  const { conversations: rawConversations, isLoading: conversationsLoading } =
-    useRestConversationSync((projectFilter as any) || undefined);
-
-  const conversations = rawConversations;
-  const bulkCrud = useBulkConversationCrud();
-
-  // Prefetch messages for recent conversations (< 7 days) for instant navigation
-  const recentConversationIds = useMemo(() => {
-    if (!conversations) return [];
-    return conversations
-      .filter((c) => c.updatedAt > RECENT_CONVERSATION_CUTOFF)
-      .slice(0, 20) // Cap at 20 to avoid too many subscriptions
-      .map((c) => c._id);
-  }, [conversations]);
-
-  const router = useRouter();
-  const pathname = usePathname();
-  const { isMobile, setOpenMobile } = useSidebar();
-  const { startNewChat } = useNewChat();
-  const { isLoaded: isAuthLoaded } = useAuth();
-
-  const { user: clerkUser } = useUser();
-  const isAdmin =
-    (clerkUser?.publicMetadata as { isAdmin?: boolean })?.isAdmin === true;
-  const { displayedItems, overflowItems, sidebarFeatures } =
-    useSidebarFeatureVisibility(isMobile);
-  const {
-    handleBulkArchive,
-    handleBulkAutoRename,
-    handleBulkDelete,
-    handleBulkPin,
-    handleBulkStar,
-    handleClearSelection,
-    selectedIds,
-    setShowBulkDeleteConfirm,
-    showBulkDeleteConfirm,
-    toggleSelection,
-  } = useSidebarBulkActions(
-    conversations as SidebarConversation[] | undefined,
-    {
-      bulkArchive: ({ conversationIds }) =>
-        bulkCrud.archiveMany({ conversationIds: conversationIds as any }),
-      bulkAutoRename: ({ conversationIds }) =>
-        bulkCrud.autoRenameMany({ conversationIds: conversationIds as any }),
-      bulkDelete: ({ conversationIds }) =>
-        bulkCrud.deleteMany({ conversationIds: conversationIds as any }),
-      bulkPin: ({ conversationIds }) =>
-        bulkCrud.setPinned(
-          (conversations ?? []).filter((conversation) =>
-            conversationIds.includes(conversation._id),
-          ),
-          true,
-        ),
-      bulkStar: ({ conversationIds }) =>
-        bulkCrud.setStarred(
-          (conversations ?? []).filter((conversation) =>
-            conversationIds.includes(conversation._id),
-          ),
-          true,
-        ),
-      bulkUnpin: ({ conversationIds }) =>
-        bulkCrud.setPinned(
-          (conversations ?? []).filter((conversation) =>
-            conversationIds.includes(conversation._id),
-          ),
-          false,
-        ),
-      bulkUnstar: ({ conversationIds }) =>
-        bulkCrud.setStarred(
-          (conversations ?? []).filter((conversation) =>
-            conversationIds.includes(conversation._id),
-          ),
-          false,
-        ),
-    },
-  );
-  const { openIncognitoDialog, setShowIncognitoDialog, showIncognitoDialog } =
-    useIncognitoDialogState();
-
-  const handleNewChat = () => {
-    startNewChat();
-  };
-
   // Keyboard shortcuts removed - now centralized in useKeyboardShortcuts hook
+
+  // Update context whenever conversations change
+  useEffect(() => {
+    setFilteredConversations(conversations);
+  }, [conversations, setFilteredConversations]);
 
   // Arrow key navigation
   const { selectedId, clearSelection } = useListKeyboardNavigation<any>({
@@ -396,6 +219,129 @@ export function AppSidebar() {
     getItemId: (conv: any) => conv._id,
   });
 
+  // Filter menu items based on advanced settings
+  // Don't render any items with featureKeys during loading to prevent flicker
+  const visibleMenuItems = MENU_ITEMS.filter((item) => {
+    // Special case: Hide Shortcuts on mobile
+    if (isMobile && item.href === "/shortcuts") return false;
+
+    if (!item.featureKey) return true; // Always show items without featureKey (Search, Memories, Tasks, etc.)
+
+    // During loading, hide all items with featureKeys to prevent them from showing then disappearing
+    if (sidebarFeatures.isLoading) return false;
+
+    return sidebarFeatures[item.featureKey]; // Show only if feature is enabled in advanced settings
+  });
+
+  const displayedItems = isMobile
+    ? visibleMenuItems.slice(0, 3)
+    : visibleMenuItems;
+  const overflowItems = isMobile ? visibleMenuItems.slice(3) : [];
+
+  // Bulk action handlers - wrapped in useCallback to prevent infinite re-renders
+  const toggleSelection = useCallback((id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+    );
+  }, []);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedIds([]);
+  }, []);
+
+  const handleBulkDelete = async () => {
+    try {
+      await bulkDelete({
+        conversationIds: selectedIds as Id<"conversations">[],
+      });
+      toast.success(`Deleted ${selectedIds.length} conversations`);
+      setSelectedIds([]);
+      setShowBulkDeleteConfirm(false);
+      // If current chat was deleted, redirect home
+      // Checking if pathname is in selectedIds is hard here without pathname hook,
+      // but convex query update will trigger redirect in ConversationItem if needed?
+      // ConversationItem handles redirect if *itself* is deleted.
+    } catch (_error) {
+      toast.error("Failed to delete conversations");
+    }
+  };
+
+  const handleBulkArchive = async () => {
+    try {
+      await bulkArchive({
+        conversationIds: selectedIds as Id<"conversations">[],
+      });
+      toast.success(`Archived ${selectedIds.length} conversations`);
+      setSelectedIds([]);
+    } catch (_error) {
+      toast.error("Failed to archive conversations");
+    }
+  };
+
+  const handleBulkPin = async () => {
+    // Check if all selected are already pinned
+    const selectedConvos =
+      conversations?.filter((c: any) => selectedIds.includes(c._id)) || [];
+    const allPinned =
+      selectedConvos.length > 0 && selectedConvos.every((c: any) => c.pinned);
+
+    try {
+      if (allPinned) {
+        await bulkUnpin({
+          conversationIds: selectedIds as Id<"conversations">[],
+        });
+        toast.success(`Unpinned ${selectedIds.length} conversations`);
+      } else {
+        await bulkPin({
+          conversationIds: selectedIds as Id<"conversations">[],
+        });
+        toast.success(`Pinned ${selectedIds.length} conversations`);
+      }
+      setSelectedIds([]);
+    } catch (_error) {
+      toast.error("Failed to update pin status");
+    }
+  };
+
+  const handleBulkStar = async () => {
+    // Check if all selected are already starred
+    const selectedConvos =
+      conversations?.filter((c: any) => selectedIds.includes(c._id)) || [];
+    const allStarred =
+      selectedConvos.length > 0 && selectedConvos.every((c: any) => c.starred);
+
+    try {
+      if (allStarred) {
+        await bulkUnstar({
+          conversationIds: selectedIds as Id<"conversations">[],
+        });
+        toast.success(`Unstarred ${selectedIds.length} conversations`);
+      } else {
+        await bulkStar({
+          conversationIds: selectedIds as Id<"conversations">[],
+        });
+        toast.success(`Starred ${selectedIds.length} conversations`);
+      }
+      setSelectedIds([]);
+    } catch (_error) {
+      toast.error("Failed to update star status");
+    }
+  };
+
+  const handleBulkAutoRename = async () => {
+    try {
+      toast.info("Generating titles...");
+      const results = await bulkAutoRename({
+        conversationIds: selectedIds as Id<"conversations">[],
+      });
+      const successCount = results.filter((r: any) => r.success).length;
+      toast.success(`Renamed ${successCount} conversations`);
+      setSelectedIds([]);
+    } catch (_error) {
+      toast.error("Failed to rename conversations");
+    }
+  };
+
   return (
     <Sidebar
       id="conversation-list"
@@ -404,44 +350,239 @@ export function AppSidebar() {
       role="navigation"
       aria-label="Main navigation and conversations"
     >
-      <SidebarHeaderContent
-        onNewChat={handleNewChat}
-        onOpenIncognito={openIncognitoDialog}
-      />
+      <SidebarHeader className="pt-6 px-1.5 group-data-[collapsible=icon]:px-2">
+        <div className="flex items-center justify-between px-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
+          <PrefetchableLink
+            href="/app"
+            className="hidden group-data-[collapsible=icon]:hidden sm:block hover:opacity-80 transition-opacity"
+          >
+            <Logo size="md" />
+          </PrefetchableLink>
+          <PrefetchableLink
+            href="/app"
+            className="group-data-[collapsible=icon]:block hidden hover:opacity-80 transition-opacity"
+          >
+            <Logo size="sm" showText={false} />
+          </PrefetchableLink>
+          <div className="sm:hidden">
+            <PrefetchableLink
+              href="/app"
+              className="transition-opacity hover:opacity-80"
+            >
+              <Logo size="sm" />
+            </PrefetchableLink>
+          </div>
+        </div>
 
-      <SidebarConversationSection
-        conversations={conversations || []}
-        conversationsLoading={conversationsLoading}
-        projectFilter={projectFilter}
-        selectedId={selectedId}
-        selectedIds={selectedIds}
-        showProjects={sidebarFeatures.showProjects}
-        onChangeProjectFilter={setProjectFilter}
-        onClearSelection={clearSelection}
-        onClearBulkSelection={handleClearSelection}
-        onDeleteSelection={() => setShowBulkDeleteConfirm(true)}
-        onArchiveSelection={handleBulkArchive}
-        onPinSelection={handleBulkPin}
-        onStarSelection={handleBulkStar}
-        onAutoRenameSelection={handleBulkAutoRename}
-        onToggleSelection={toggleSelection}
-      />
+        <div className="mt-4 group-data-[collapsible=icon]:hidden flex gap-2">
+          <Button
+            onClick={handleNewChat}
+            className="flex-1 px-2.5 py-2.5 bg-sidebar-accent hover:bg-sidebar-accent/80 text-sidebar-foreground border border-sidebar-border shadow-sm transition-all duration-200 justify-between h-9 cursor-pointer"
+            data-tour="new-chat"
+          >
+            <span className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              New Chat
+            </span>
+            <div className="hidden sm:flex">
+              <ShortcutBadge keys={["Alt", "N"]} />
+            </div>
+          </Button>
+          <Button
+            onClick={() => setShowIncognitoDialog(true)}
+            className="p-0 transition-all duration-200 border shadow-sm cursor-pointer h-9 w-9 shrink-0 bg-sidebar-accent hover:bg-sidebar-accent/80 text-violet-400 border-sidebar-border "
+            title="New Incognito Chat (Shift+Alt+N)"
+          >
+            <Ghost className="w-4 h-4" />
+          </Button>
+        </div>
+      </SidebarHeader>
 
+      <SidebarContent className="flex flex-col gap-0">
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden shrink-0 py-0">
+          <SidebarGroupLabel>Conversations</SidebarGroupLabel>
+
+          {/* Project filter - Fixed */}
+          {sidebarFeatures.showProjects && (
+            <ProjectFilter value={projectFilter} onChange={setProjectFilter} />
+          )}
+        </SidebarGroup>
+
+        {/* Scrollable conversations area */}
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <SidebarGroup className="group-data-[collapsible=icon]:hidden h-full pt-0">
+            <SidebarGroupContent className="h-full overflow-y-auto">
+              {conversationsLoading ? (
+                <ConversationListSkeleton />
+              ) : (
+                <>
+                  {/* Bulk Action Bar - Top Position */}
+                  {selectedIds.length > 0 ? (
+                    <div className="sticky top-0 z-10 px-2 pb-2 bg-sidebar">
+                      <BulkActionBar
+                        selectedCount={selectedIds.length}
+                        onClearSelection={handleClearSelection}
+                        onDelete={() => setShowBulkDeleteConfirm(true)}
+                        onArchive={handleBulkArchive}
+                        onPin={handleBulkPin}
+                        onUnpin={() => {}}
+                        onStar={handleBulkStar}
+                        onUnstar={() => {}}
+                        onAutoRename={handleBulkAutoRename}
+                        className="w-full border shadow-sm"
+                      />
+                    </div>
+                  ) : (
+                    <></>
+                  )}
+                  <ConversationList
+                    conversations={conversations || []}
+                    selectedId={selectedId}
+                    onClearSelection={clearSelection}
+                    selectedIds={selectedIds}
+                    onToggleSelection={toggleSelection}
+                  />
+                  <div className="mt-2">
+                    {/* Selection Mode Hint */}
+                    <div className="px-2 pb-2 text-[10px] text-muted-foreground hidden sm:block">
+                      Tip: Right-click to select
+                    </div>
+
+                    {/* Keyboard Shortcut Hint */}
+                    <kbd className="hidden sm:inline-flex px-2 text-[9px] opacity-60">
+                      ⌘1,⌘2... to jump to conversations
+                    </kbd>
+                  </div>
+                </>
+              )}
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </div>
+      </SidebarContent>
+
+      {/* Separator between conversations and tools */}
       <div className="px-2 py-1">
         <Separator />
       </div>
 
-      <SidebarNavigationFooter
-        displayedItems={displayedItems}
-        overflowItems={overflowItems}
-        isAdmin={Boolean(isAdmin)}
-        isAuthLoaded={isAuthLoaded}
-        isMobile={isMobile}
-        pathname={pathname}
-        onNavigate={() => {
-          if (isMobile) setOpenMobile(false);
-        }}
-      />
+      <SidebarFooter className="pb-4">
+        <SidebarMenu>
+          {displayedItems.map((item) => {
+            const isActive =
+              pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton
+                  asChild
+                  tooltip={item.label}
+                  isActive={isActive}
+                  className="p-2.5"
+                  {...(item.href === "/projects" && {
+                    "data-tour": "projects",
+                  })}
+                >
+                  <PrefetchableLink
+                    href={item.href}
+                    onClick={() => {
+                      if (isMobile) setOpenMobile(false);
+                    }}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    <span>{item.label}</span>
+                  </PrefetchableLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
+
+          {isMobile && overflowItems.length > 0 && (
+            <SidebarMenuItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton tooltip="More">
+                    <MoreHorizontal className="w-4 h-4" />
+                    <span>More</span>
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  side="right"
+                  align="end"
+                  className="w-48 bg-sidebar border-sidebar-border"
+                >
+                  {overflowItems.map((item) => {
+                    const isActive =
+                      pathname === item.href ||
+                      pathname.startsWith(`${item.href}/`);
+                    return (
+                      <DropdownMenuItem key={item.href} asChild>
+                        <PrefetchableLink
+                          href={item.href}
+                          className={cn(
+                            "flex items-center gap-2 cursor-pointer",
+                            isActive &&
+                              "bg-sidebar-accent text-sidebar-accent-foreground font-medium",
+                          )}
+                          onClick={() => {
+                            if (isMobile) setOpenMobile(false);
+                          }}
+                        >
+                          <item.icon className="w-4 h-4 text-muted-foreground" />
+                          <span>{item.label}</span>
+                        </PrefetchableLink>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          )}
+
+          {isAdmin && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                tooltip="Admin Dashboard"
+                isActive={pathname.startsWith("/admin")}
+              >
+                <PrefetchableLink
+                  href="/admin/feedback"
+                  className="text-amber-500 hover:text-amber-400"
+                >
+                  <Shield className="w-4 h-4" />
+                  <span>Admin Dashboard</span>
+                </PrefetchableLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
+        </SidebarMenu>
+        <div className="px-2 pt-2 group-data-[collapsible=icon]:hidden min-h-10">
+          <div className="flex items-center justify-between">
+            {isAuthLoaded && (
+              <UserButton
+                afterSignOutUrl="/sign-in"
+                appearance={{
+                  elements: {
+                    userButtonPopoverCard: { pointerEvents: "initial" },
+                  },
+                }}
+              />
+            )}
+            <ThemeSwitcher />
+          </div>
+        </div>
+        <div className="hidden group-data-[collapsible=icon]:flex justify-center pt-2">
+          {isAuthLoaded && (
+            <UserButton
+              afterSignOutUrl="/sign-in"
+              appearance={{
+                elements: {
+                  userButtonPopoverCard: { pointerEvents: "initial" },
+                },
+              }}
+            />
+          )}
+        </div>
+      </SidebarFooter>
 
       <BulkDeleteDialog
         open={showBulkDeleteConfirm}

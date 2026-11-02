@@ -1,6 +1,6 @@
 {
   "name": "@blah-chat/jobs",
-  "version": "0.7.7",
+  "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -20,28 +20,12 @@
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean",
-    "dev": "bunx trigger.dev@latest dev",
-    "deploy:trigger": "bunx trigger.dev@latest deploy",
-    "test": "vitest",
-    "test:run": "vitest run",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "bun run build"
   },
   "devDependencies": {
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.8",
     "@blah-chat/config": "workspace:*"
-  },
-  "dependencies": {
-    "@blah-chat/ai": "workspace:*",
-    "@blah-chat/persistence-postgres": "workspace:*",
-    "@blah-chat/shared": "workspace:*",
-    "@clerk/backend": "3.4.13",
-    "@trigger.dev/sdk": "4.4.6",
-    "ai": "^6.0.3",
-    "drizzle-orm": "0.45.2",
-    "ipaddr.js": "^2.2.0",
-    "zod": "^4.2.1"
   }
 }

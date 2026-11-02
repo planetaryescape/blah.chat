@@ -1,8 +1,6 @@
 # Resilient Generation
 
-> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; file paths and code samples below no longer apply. The resilience principle still holds — generation now runs in server-side Trigger.dev tasks with SSE attach/reconnect (see `apps/web/src/lib/generation-v2/`).
-
-**Status**: Historical design doc (the principle is still core architecture)
+**Status**: Core Architecture
 **Last Updated**: December 2025
 
 ---

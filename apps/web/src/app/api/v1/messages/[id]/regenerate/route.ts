@@ -1,21 +1,15 @@
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { type NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { messagesDAL } from "@/lib/api/dal/messages";
+import { getConvexClient } from "@/lib/api/convex";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { trackAPIPerformance } from "@/lib/api/monitoring";
-import { enforceRateLimit } from "@/lib/api/rate-limit";
-import { getEnqueueGenerationProcessing } from "@/lib/generation-v2/runtime";
 import logger from "@/lib/logger";
-
-const regenerateSchema = z
-  .object({
-    modelId: z.string().optional(),
-  })
-  .optional();
+import { formatEntity } from "@/lib/utils/formatEntity";
 
 async function postHandler(
-  req: NextRequest,
+  _req: NextRequest,
   {
     params,
     userId,
@@ -28,35 +22,12 @@ async function postHandler(
     "POST /api/v1/messages/[id]/regenerate",
   );
 
-  // Shares the send bucket: a regeneration costs the same as a fresh send.
-  const limited = await enforceRateLimit(
-    { prefix: "messages", limit: 60, window: "1 h" },
-    userId,
-  );
-  if (limited) return limited;
+  const convex = getConvexClient();
 
-  const rawBody = await req.text();
-  const body = regenerateSchema.parse(
-    rawBody.length > 0 ? JSON.parse(rawBody) : undefined,
-  );
-  const result = await messagesDAL.regenerate(userId, id, body?.modelId);
-
-  const requestId =
-    typeof result.data === "object" && result.data && "requestId" in result.data
-      ? (result.data.requestId as string | undefined)
-      : undefined;
-
-  if (requestId) {
-    try {
-      await getEnqueueGenerationProcessing()(requestId);
-    } catch (error) {
-      logger.error(
-        { error, requestId },
-        "failed to enqueue regenerate generation processing",
-      );
-      throw error;
-    }
-  }
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
+  const newMessageId = await convex.mutation(api.chat.regenerate, {
+    messageId: id as Id<"messages">,
+  });
 
   const duration = performance.now() - startTime;
   trackAPIPerformance({
@@ -67,11 +38,14 @@ async function postHandler(
     userId,
   });
   logger.info(
-    { userId, messageId: id, requestId, duration },
+    { userId, messageId: id, newMessageId, duration },
     "Message regenerated",
   );
 
-  return NextResponse.json(result, { status: 202 });
+  return NextResponse.json(
+    formatEntity({ messageId: id, newMessageId }, "message"),
+    { status: 202 },
+  );
 }
 
 export const POST = withErrorHandling(withAuth(postHandler));

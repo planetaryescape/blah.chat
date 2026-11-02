@@ -1,5 +1,6 @@
 "use client";
 
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { BranchBadge } from "@/components/chat/BranchBadge";
 import { ContextWindowIndicator } from "@/components/chat/ContextWindowIndicator";
@@ -14,8 +15,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useUserPreference } from "@/hooks/useUserPreference";
 
 interface ChatHeaderProps {
-  conversation: any | null | undefined;
-  conversationId: string;
+  conversation: Doc<"conversations"> | null | undefined;
+  conversationId: Id<"conversations">;
   selectedModel: string;
   modelLoading: boolean;
   hasMessages: boolean;

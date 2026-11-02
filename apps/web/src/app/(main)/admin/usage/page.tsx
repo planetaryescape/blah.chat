@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import { useQuery } from "convex/react";
 import {
   DollarSign,
   Loader2,
@@ -9,11 +10,7 @@ import {
   Users,
   Zap,
 } from "lucide-react";
-import { notFound } from "next/navigation";
 import { useState } from "react";
-// react-doctor: recharts is heavy but its children-shape API breaks when
-// individual primitives are wrapped in next/dynamic. Lazy-loading requires
-// extracting whole chart subtrees into wrapper files — deferred.
 import {
   Bar,
   BarChart,
@@ -67,85 +64,33 @@ const FEATURE_LABELS: Record<string, string> = {
 };
 
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { featureFlags } from "@/lib/featureFlags";
 
 export default function UsagePage() {
-  if (!featureFlags.adminFull) notFound();
   const [dateRange, setDateRange] = useState(() => getLastNDays(30));
 
-  const { data: monthlyTotal } = useQuery({
-    queryKey: ["admin", "usage", "monthly-total"],
-    queryFn: async () => {
-      const res = await fetch("/api/v1/admin/usage/monthly-total");
-      if (!res.ok)
-        throw new Error(`Failed to fetch monthly total: ${res.status}`);
-      const json = await res.json();
-      return json.data ?? null;
-    },
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const monthlyTotal = useQuery(api.usage.queries.getAllUsersMonthlyTotal);
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const dailySpend = useQuery(api.usage.queries.getAllUsersDailySpend, {
+    days: 30,
   });
-
-  const { data: dailySpend } = useQuery({
-    queryKey: ["admin", "usage", "daily-spend"],
-    queryFn: async () => {
-      const res = await fetch("/api/v1/admin/usage/daily-spend?days=30");
-      if (!res.ok)
-        throw new Error(`Failed to fetch daily spend: ${res.status}`);
-      const json = await res.json();
-      return json.data ?? null;
-    },
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const spendByModel = useQuery(api.usage.queries.getAllUsersSpendByModel, {
+    days: 30,
   });
-
-  const { data: spendByModel } = useQuery({
-    queryKey: ["admin", "usage", "spend-by-model"],
-    queryFn: async () => {
-      const res = await fetch("/api/v1/admin/usage/spend-by-model?days=30");
-      if (!res.ok)
-        throw new Error(`Failed to fetch spend by model: ${res.status}`);
-      const json = await res.json();
-      return json.data ?? null;
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const conversationCosts = useQuery(
+    api.usage.queries.getAllUsersConversationCosts,
+    {
+      limit: 10,
     },
-  });
-
-  const { data: conversationCosts } = useQuery({
-    queryKey: ["admin", "usage", "conversation-costs"],
-    queryFn: async () => {
-      const res = await fetch(
-        "/api/v1/admin/usage/conversation-costs?limit=10",
-      );
-      if (!res.ok)
-        throw new Error(`Failed to fetch conversation costs: ${res.status}`);
-      const json = await res.json();
-      return json.data ?? null;
-    },
-  });
-
-  const { data: userCount } = useQuery({
-    queryKey: ["admin", "user-count"],
-    queryFn: async () => {
-      const res = await fetch("/api/v1/admin/usage/user-count");
-      if (!res.ok) return 0;
-      const json = await res.json();
-      return json.data?.count ?? 0;
-    },
-  });
-
-  const { data: costByFeature } = useQuery({
-    queryKey: [
-      "admin",
-      "usage",
-      "cost-by-feature",
-      dateRange.startDate,
-      dateRange.endDate,
-    ],
-    queryFn: async () => {
-      const res = await fetch(
-        `/api/v1/admin/usage/cost-by-feature?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
-      );
-      if (!res.ok)
-        throw new Error(`Failed to fetch cost by feature: ${res.status}`);
-      const json = await res.json();
-      return json.data ?? null;
-    },
+  );
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const userCount = useQuery(api.admin.getUserCount);
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const costByFeature = useQuery(api.usage.queries.getAllUsersCostByFeature, {
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate,
   });
 
   if (
@@ -167,8 +112,8 @@ export default function UsagePage() {
   // Feature breakdown data
   const featureData = costByFeature
     ? Object.entries(costByFeature)
-        .filter(([_, data]: [string, any]) => data.total > 0)
-        .map(([feature, data]: [string, any]) => ({
+        .filter(([_, data]) => data.total > 0)
+        .map(([feature, data]) => ({
           name: FEATURE_LABELS[feature] || feature,
           key: feature,
           value: data.total,
@@ -193,7 +138,7 @@ export default function UsagePage() {
         <div className="container mx-auto max-w-7xl px-4 py-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div className="space-y-1">
-              <h1 className="text-3xl font-bold text-foreground">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
                 Usage & Costs
               </h1>
               <p className="text-muted-foreground">
@@ -364,9 +309,9 @@ export default function UsagePage() {
                         `${entry.model}: $${entry.cost.toFixed(2)}`
                       }
                     >
-                      {spendByModel.map((entry: any, index: number) => (
+                      {spendByModel.map((_entry: any, index: number) => (
                         <Cell
-                          key={entry.model ?? `cell-${index}`}
+                          key={`cell-${index}`}
                           fill={COLORS[index % COLORS.length]}
                         />
                       ))}

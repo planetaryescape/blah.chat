@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 interface DeleteAllMemoriesDialogProps {
   open: boolean;
@@ -34,19 +33,23 @@ export function DeleteAllMemoriesDialog({
   mode = "all",
 }: DeleteAllMemoriesDialogProps) {
   const [confirmText, setConfirmText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const isAllMode = mode === "all";
   const requiresTyping = isAllMode || memoriesCount > 10;
   const canConfirm = requiresTyping ? confirmText === "DELETE" : true;
 
-  const { run: handleConfirm, isPending: isDeleting } = useAsyncAction(
-    async () => {
-      if (!canConfirm) return;
+  const handleConfirm = async () => {
+    if (!canConfirm) return;
+    setIsDeleting(true);
+    try {
       await onConfirm();
       onOpenChange(false);
       setConfirmText("");
-    },
-  );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const handleClose = () => {
     onOpenChange(false);

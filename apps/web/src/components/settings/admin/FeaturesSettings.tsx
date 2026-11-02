@@ -1,6 +1,7 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import { useMutation, useQuery } from "convex/react";
 import { Crown, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -15,61 +16,41 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 export function FeaturesSettings() {
-  const { data: settings } = useQuery({
-    queryKey: ["admin", "settings"],
-    queryFn: async () => {
-      const res = await fetch("/api/v1/admin/settings");
-      if (!res.ok) return null;
-      const json = await res.json();
-      return json.data ?? null;
-    },
-  });
-
-  const queryClient = useQueryClient();
-  const updateSettingsMutation = useMutation({
-    mutationFn: async (data: Record<string, any>) => {
-      const res = await fetch("/api/v1/admin/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed to save settings");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
-    },
-  });
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const settings = useQuery(api.adminSettings.get);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const updateSettings = useMutation(api.adminSettings.update);
 
   const [proModelsEnabled, setProModelsEnabled] = useState(false);
   const [tier1DailyLimit, setTier1DailyLimit] = useState(1);
   const [tier2MonthlyLimit, setTier2MonthlyLimit] = useState(50);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const proTier = settings?.proTier;
-    if (proTier) {
-      setProModelsEnabled(proTier.proModelsEnabled ?? false);
-      setTier1DailyLimit(proTier.tier1DailyProModelLimit ?? 1);
-      setTier2MonthlyLimit(proTier.tier2MonthlyProModelLimit ?? 50);
+    if (settings) {
+      setProModelsEnabled(settings.proModelsEnabled ?? false);
+      setTier1DailyLimit(settings.tier1DailyProModelLimit ?? 1);
+      setTier2MonthlyLimit(settings.tier2MonthlyProModelLimit ?? 50);
     }
   }, [settings]);
 
-  const { run: handleSave, isPending: isLoading } = useAsyncAction(
-    async () => {
-      await updateSettingsMutation.mutateAsync({
-        proTier: {
-          proModelsEnabled,
-          tier1DailyProModelLimit: tier1DailyLimit,
-          tier2MonthlyProModelLimit: tier2MonthlyLimit,
-        },
+  const handleSave = async () => {
+    setIsLoading(true);
+    try {
+      await updateSettings({
+        proModelsEnabled,
+        tier1DailyProModelLimit: tier1DailyLimit,
+        tier2MonthlyProModelLimit: tier2MonthlyLimit,
       });
       toast.success("Pro model settings saved!");
-    },
-    { onError: () => toast.error("Failed to save settings") },
-  );
+    } catch (_error) {
+      toast.error("Failed to save settings");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (!settings) {
     return (

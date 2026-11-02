@@ -2,10 +2,12 @@ import Constants from "expo-constants";
 
 interface ExpoConfigExtra {
   clerkPublishableKey?: string;
+  convexUrl?: string;
 }
 
 export interface RuntimeConfig {
   clerkPublishableKey?: string;
+  convexUrl?: string;
 }
 
 export function getRuntimeConfig(): RuntimeConfig {
@@ -13,13 +15,16 @@ export function getRuntimeConfig(): RuntimeConfig {
 
   const fromExtra = {
     clerkKey: extra.clerkPublishableKey,
+    convexUrl: extra.convexUrl,
   };
   const fromEnv = {
     clerkKey: process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    convexUrl: process.env.EXPO_PUBLIC_CONVEX_URL,
   };
 
   const resolved = {
     clerkPublishableKey: fromExtra.clerkKey || fromEnv.clerkKey,
+    convexUrl: fromExtra.convexUrl || fromEnv.convexUrl,
   };
 
   console.log(
@@ -38,6 +43,15 @@ export function getRuntimeConfig(): RuntimeConfig {
     "[mobile][config] clerkKey prefix:",
     resolved.clerkPublishableKey?.substring(0, 10) ?? "undefined",
   );
+  console.log(
+    "[mobile][config] convexUrl source:",
+    fromExtra.convexUrl
+      ? "expoConfig.extra"
+      : fromEnv.convexUrl
+        ? "process.env"
+        : "MISSING",
+  );
+  console.log("[mobile][config] convexUrl:", resolved.convexUrl ?? "undefined");
 
   return resolved;
 }

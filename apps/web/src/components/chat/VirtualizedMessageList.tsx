@@ -1,5 +1,8 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useQuery } from "convex/react";
 import { ArrowDown } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
@@ -19,40 +22,21 @@ import { scrollToBottom as smoothScrollToBottom } from "@/lib/smooth-scroll";
 import { cn } from "@/lib/utils";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
 import type { OptimisticMessage } from "@/types/optimistic";
-import { ChatMessage, type MessageConversationContext } from "./ChatMessage";
+import { ChatMessage } from "./ChatMessage";
 import { ComparisonView } from "./ComparisonView";
 import { DateSeparator } from "./DateSeparator";
-import { IntegrationTimelineEvent } from "./IntegrationTimelineEvent";
 
 const VIRTUALIZATION_THRESHOLD = 500;
 const NEAR_BOTTOM_THRESHOLD = 64;
 
-type MessageWithUser = (any | OptimisticMessage) & {
+type MessageWithUser = (Doc<"messages"> | OptimisticMessage) & {
   senderUser?: { name?: string; imageUrl?: string } | null;
 };
 
-type IntegrationEventEntry = {
-  _id: string;
-  integrationId: string;
-  integrationName: string;
-  action: "enabled" | "disabled";
-  createdAt: number;
-};
-
-function isIntegrationEventEntry(
-  value: MessageWithUser | IntegrationEventEntry,
-): value is IntegrationEventEntry {
-  return !("role" in value);
-}
-
 interface VirtualizedMessageListProps {
-  messages: Array<MessageWithUser | IntegrationEventEntry>;
-  conversationId: string;
-  conversation?: MessageConversationContext | null;
-  onVote?: (
-    winnerId: string | undefined,
-    outcome: "winner" | "tie" | "both_bad",
-  ) => void | Promise<void>;
+  messages: MessageWithUser[];
+  conversationId: Id<"conversations">;
+  onVote?: (winnerId: string, rating: string) => void;
   onConsolidate?: (model: string, mode: "same-chat" | "new-chat") => void;
   onToggleModelNames?: () => void;
   showModelNames: boolean;
@@ -67,7 +51,6 @@ interface VirtualizedMessageListProps {
 export function VirtualizedMessageList({
   messages,
   conversationId,
-  conversation,
   onVote,
   onConsolidate,
   onToggleModelNames,
@@ -87,18 +70,7 @@ export function VirtualizedMessageList({
   const { escapedFromBottom, autoScrollEnabled, enableAutoScroll } =
     useScrollIntent({ scrollerRef });
 
-  const visibleMessages = useMemo(
-    () =>
-      messages.filter(
-        (message) =>
-          isIntegrationEventEntry(message) ||
-          !!message.comparisonGroupId ||
-          !("isActiveBranch" in message) ||
-          message.isActiveBranch !== false,
-      ),
-    [messages],
-  );
-  const grouped = useMessageGrouping(visibleMessages, conversationId);
+  const grouped = useMessageGrouping(messages ?? [], conversationId);
   const useVirtualization = grouped.length >= VIRTUALIZATION_THRESHOLD;
   const _reducedMotion = usePrefersReducedMotion();
 
@@ -133,6 +105,13 @@ export function VirtualizedMessageList({
     virtuosoRef,
   );
 
+  // Lift conversation query here to avoid N subscriptions in ChatMessage children
+  const conversation = useQuery(
+    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+    api.conversations.get,
+    conversationId ? { conversationId } : "skip",
+  );
+
   // Lift preference here to avoid memo blocking updates in ChatMessage
   const showMessageStats = useUserPreference("showMessageStatistics");
 
@@ -140,11 +119,8 @@ export function VirtualizedMessageList({
   const messageIds = useMemo(
     () =>
       (messages ?? [])
-        .filter(
-          (m) =>
-            !isIntegrationEventEntry(m) && !String(m._id).startsWith("temp-"),
-        )
-        .map((m) => m._id as string),
+        .filter((m) => !String(m._id).startsWith("temp-"))
+        .map((m) => m._id as Id<"messages">),
     [messages],
   );
   useMetadataCacheSync(messageIds);
@@ -221,9 +197,6 @@ export function VirtualizedMessageList({
     const index = grouped.findIndex((item) => {
       if (item.type === "date-separator") return false;
       if (item.type === "message") {
-        return String(item.data._id) === highlightMessageId;
-      }
-      if (item.type === "integration-event") {
         return String(item.data._id) === highlightMessageId;
       }
       return (
@@ -303,9 +276,7 @@ export function VirtualizedMessageList({
                   ? item.id
                   : item.type === "date-separator"
                     ? `date-${item.timestamp}`
-                    : item.type === "integration-event"
-                      ? `integration-event-${item.data._id}`
-                      : String(item.data._id)
+                    : String(item.data._id)
               }
               item={item}
               index={index}
@@ -354,9 +325,7 @@ export function VirtualizedMessageList({
             ? item.id
             : item.type === "date-separator"
               ? `date-${item.timestamp}`
-              : item.type === "integration-event"
-                ? `integration-event-${item.data._id}`
-                : item.data._id
+              : item.data._id
         }
         defaultItemHeight={190}
         increaseViewportBy={{ top: 300, bottom: 300 }}
@@ -388,9 +357,7 @@ export function VirtualizedMessageList({
                 ? item.id
                 : item.type === "date-separator"
                   ? `date-${item.timestamp}`
-                  : item.type === "integration-event"
-                    ? `integration-event-${item.data._id}`
-                    : String(item.data._id)
+                  : String(item.data._id)
             }
             item={item}
             index={index}
@@ -434,13 +401,10 @@ interface MessageItemContentProps {
   isCollaborative?: boolean;
   showModelNames: boolean;
   showMessageStats: boolean;
-  onVote?: (
-    winnerId: string | undefined,
-    outcome: "winner" | "tie" | "both_bad",
-  ) => void | Promise<void>;
+  onVote?: (winnerId: string, rating: string) => void;
   onConsolidate?: (model: string, mode: "same-chat" | "new-chat") => void;
   onToggleModelNames?: () => void;
-  conversation?: MessageConversationContext | null;
+  conversation?: Doc<"conversations"> | null;
 }
 
 const MessageItemContent = memo(function MessageItemContent({
@@ -477,29 +441,6 @@ const MessageItemContent = memo(function MessageItemContent({
       >
         <div className="col-start-2">
           <DateSeparator timestamp={item.timestamp} />
-        </div>
-      </div>
-    );
-  }
-
-  if (item.type === "integration-event") {
-    return (
-      <div
-        id={`message-group-${index}`}
-        className={cn(
-          "grid gap-4 px-4 py-2",
-          chatWidth === "narrow" && "grid-cols-[1fr_min(42rem,100%)_1fr]",
-          chatWidth === "standard" && "grid-cols-[1fr_min(56rem,100%)_1fr]",
-          chatWidth === "wide" && "grid-cols-[1fr_min(72rem,100%)_1fr]",
-          chatWidth === "full" && "grid-cols-[1fr_min(92%,100%)_1fr]",
-          !chatWidth && "grid-cols-[1fr_min(56rem,100%)_1fr]",
-        )}
-      >
-        <div className="col-start-2">
-          <IntegrationTimelineEvent
-            action={item.data.action}
-            integrationName={item.data.integrationName}
-          />
         </div>
       </div>
     );

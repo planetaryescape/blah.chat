@@ -1,7 +1,9 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
-import { AnimatePresence, m } from "framer-motion";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useAction } from "convex/react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Brain,
   Copy,
@@ -16,7 +18,6 @@ import { toast } from "sonner";
 import { CreateNoteDialog } from "@/components/notes/CreateNoteDialog";
 import { SummarizePopover } from "@/components/notes/SummarizePopover";
 import { useSelection } from "@/contexts/SelectionContext";
-import { useSDKClient } from "@/lib/api/sdkClient";
 
 interface MenuAction {
   id: string;
@@ -43,10 +44,13 @@ export function SelectionContextMenu() {
   const [summaryText, setSummaryText] = useState("");
   const [selectedTextForSummary, setSelectedTextForSummary] = useState("");
   const [popoverPosition, setPopoverPosition] = useState({ top: 0, left: 0 });
-  const [currentMessageId, setCurrentMessageId] = useState<string | null>(null);
+  const [currentMessageId, setCurrentMessageId] =
+    useState<Id<"messages"> | null>(null);
 
-  const sdk = useSDKClient();
-  const queryClient = useQueryClient();
+  // @ts-ignore - Type depth exceeded with 94+ Convex modules
+  const createMemoryFromSelection = useAction(
+    api.memories.createMemoryFromSelection,
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -170,7 +174,7 @@ export function SelectionContextMenu() {
     setSelectedTextForSummary(selection.text);
 
     // Store current message ID and open popover
-    setCurrentMessageId(selection.messageId ?? null);
+    setCurrentMessageId(selection.messageId as Id<"messages">);
     setSummaryText("");
     setShowSummarizePopover(true);
 
@@ -211,11 +215,10 @@ export function SelectionContextMenu() {
   const handleAddToMemory = async () => {
     try {
       toast.info("Adding to memory...");
-      await sdk.createMemory({
+      await createMemoryFromSelection({
         content: selection.text,
-        category: "context",
+        sourceMessageId: selection.messageId as Id<"messages">,
       });
-      queryClient.invalidateQueries({ queryKey: ["memories"] });
       toast.success("Added to memory");
       clearSelection();
     } catch (error) {
@@ -322,7 +325,7 @@ export function SelectionContextMenu() {
   const menu = (
     <AnimatePresence>
       {selection.isActive && (
-        <m.div
+        <motion.div
           ref={menuRef}
           className="selection-context-menu fixed z-50"
           style={{
@@ -391,7 +394,7 @@ export function SelectionContextMenu() {
               </p>
             </div>
           </div>
-        </m.div>
+        </motion.div>
       )}
     </AnimatePresence>
   );

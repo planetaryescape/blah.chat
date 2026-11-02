@@ -1,7 +1,9 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useQuery } from "convex/react";
 import {
   ArrowLeft,
   Bookmark,
@@ -17,9 +19,6 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useRef, useState } from "react";
-// react-doctor: recharts is heavy but its children-shape API breaks when
-// individual primitives are wrapped in next/dynamic. Lazy-loading requires
-// extracting whole chart subtrees into wrapper files — deferred.
 import {
   Area,
   AreaChart,
@@ -58,16 +57,14 @@ import {
   formatCurrency,
   getLastNDays,
 } from "@/lib/utils/date";
-import {
-  type AdminActivityStats,
-  type AdminCostByType,
-  type AdminDailySpendRow,
-  type AdminFeatureCostBreakdown,
-  type AdminModelBreakdownRow,
-  type AdminUsageSummary,
-  type AdminUser,
-  unwrapEntityList,
-} from "../types";
+
+type ModelBreakdown = {
+  model: string;
+  totalCost: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  requestCount: number;
+};
 
 const COLORS = [
   "#8b5cf6",
@@ -105,17 +102,10 @@ const FEATURE_LABELS: Record<string, string> = {
   smart_assistant: "Smart Assistant",
 };
 
-interface PieLabelEntry {
-  name?: string;
-  value?: number;
-  model?: string;
-  totalCost?: number;
-}
-
 export default function UserDetailPage({
   params,
 }: {
-  params: Promise<{ userId: string }>;
+  params: Promise<{ userId: Id<"users"> }>;
 }) {
   const unwrappedParams = use(params);
   const userId = unwrappedParams.userId;
@@ -124,122 +114,42 @@ export default function UserDetailPage({
   // Date range state - fresh last 30 days on each page load
   const [dateRange, setDateRange] = useState(() => getLastNDays(30));
 
-  const {
-    data: user,
-    isError: isUserError,
-    error: userError,
-  } = useQuery({
-    queryKey: ["admin", "users", userId],
-    queryFn: async (): Promise<AdminUser | null> => {
-      const res = await fetch(`/api/v1/admin/users/${userId}`);
-      if (!res.ok) throw new Error(`Failed to fetch user (${res.status})`);
-      const json = await res.json();
-      return json.data ?? null;
-    },
+  // Fetch all data
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const users = useQuery(api.admin.listUsers);
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const summary = useQuery(api.usage.queries.getUserUsageSummary, {
+    userId,
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate,
   });
-
-  const { data: summary, isError: isSummaryError } = useQuery({
-    queryKey: [
-      "admin",
-      "user-usage-summary",
-      userId,
-      dateRange.startDate,
-      dateRange.endDate,
-    ],
-    queryFn: async (): Promise<AdminUsageSummary | null> => {
-      const res = await fetch(
-        `/api/v1/admin/users/${userId}/usage-summary?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
-      );
-      if (!res.ok)
-        throw new Error(`Failed to fetch usage summary (${res.status})`);
-      const json = await res.json();
-      return json.data ?? null;
-    },
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const dailySpend = useQuery(api.usage.queries.getUserDailySpend, {
+    userId,
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate,
   });
-
-  const { data: dailySpend, isError: isDailySpendError } = useQuery({
-    queryKey: [
-      "admin",
-      "user-daily-spend",
-      userId,
-      dateRange.startDate,
-      dateRange.endDate,
-    ],
-    queryFn: async (): Promise<AdminDailySpendRow[]> => {
-      const res = await fetch(
-        `/api/v1/admin/users/${userId}/daily-spend?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
-      );
-      if (!res.ok)
-        throw new Error(`Failed to fetch daily spend (${res.status})`);
-      return unwrapEntityList<AdminDailySpendRow>(await res.json());
-    },
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const modelBreakdown = useQuery(api.usage.queries.getUserSpendByModel, {
+    userId,
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate,
   });
-
-  const { data: modelBreakdown, isError: isModelBreakdownError } = useQuery({
-    queryKey: [
-      "admin",
-      "user-model-breakdown",
-      userId,
-      dateRange.startDate,
-      dateRange.endDate,
-    ],
-    queryFn: async (): Promise<AdminModelBreakdownRow[]> => {
-      const res = await fetch(
-        `/api/v1/admin/users/${userId}/spend-by-model?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
-      );
-      if (!res.ok)
-        throw new Error(`Failed to fetch model breakdown (${res.status})`);
-      return unwrapEntityList<AdminModelBreakdownRow>(await res.json());
-    },
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const costByType = useQuery(api.usage.queries.getUserCostByType, {
+    userId,
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate,
   });
-
-  const { data: costByType, isError: isCostByTypeError } = useQuery({
-    queryKey: [
-      "admin",
-      "user-cost-by-type",
-      userId,
-      dateRange.startDate,
-      dateRange.endDate,
-    ],
-    queryFn: async (): Promise<AdminCostByType | null> => {
-      const res = await fetch(
-        `/api/v1/admin/users/${userId}/cost-by-type?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
-      );
-      if (!res.ok)
-        throw new Error(`Failed to fetch cost by type (${res.status})`);
-      const json = await res.json();
-      return json.data ?? null;
-    },
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const costByFeature = useQuery(api.usage.queries.getUserCostByFeature, {
+    userId,
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate,
   });
-
-  const { data: costByFeature, isError: isCostByFeatureError } = useQuery({
-    queryKey: [
-      "admin",
-      "user-cost-by-feature",
-      userId,
-      dateRange.startDate,
-      dateRange.endDate,
-    ],
-    queryFn: async (): Promise<AdminFeatureCostBreakdown | null> => {
-      const res = await fetch(
-        `/api/v1/admin/users/${userId}/cost-by-feature?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
-      );
-      if (!res.ok)
-        throw new Error(`Failed to fetch cost by feature (${res.status})`);
-      const json = await res.json();
-      return json.data ?? null;
-    },
-  });
-
-  const { data: activityStats, isError: isActivityStatsError } = useQuery({
-    queryKey: ["admin", "user-activity-stats", userId],
-    queryFn: async (): Promise<AdminActivityStats | null> => {
-      const res = await fetch(`/api/v1/admin/users/${userId}/activity-stats`);
-      if (!res.ok)
-        throw new Error(`Failed to fetch activity stats (${res.status})`);
-      const json = await res.json();
-      return json.data ?? null;
-    },
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const activityStats = useQuery(api.usage.queries.getUserActivityStats, {
+    userId,
   });
 
   // Virtualization setup - MUST be before early return to maintain hook order
@@ -254,29 +164,7 @@ export default function UserDetailPage({
     enabled: shouldVirtualizeModels,
   });
 
-  const hasError =
-    isUserError ||
-    isSummaryError ||
-    isDailySpendError ||
-    isModelBreakdownError ||
-    isCostByTypeError ||
-    isCostByFeatureError ||
-    isActivityStatsError;
-
-  if (hasError) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen gap-4">
-        <p className="text-destructive font-medium">Failed to load user data</p>
-        <p className="text-sm text-muted-foreground">
-          {userError?.message ?? "One or more API requests failed."}
-        </p>
-        <Button variant="outline" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Go Back
-        </Button>
-      </div>
-    );
-  }
+  const user = users?.find((u: any) => u._id === userId);
 
   // Early return check AFTER all hooks
   if (
@@ -297,7 +185,7 @@ export default function UserDetailPage({
 
   // Feature breakdown data
   const featureData = Object.entries(costByFeature)
-    .filter(([, data]) => data.total > 0)
+    .filter(([_, data]) => data.total > 0)
     .map(([feature, data]) => ({
       name: FEATURE_LABELS[feature] || feature,
       key: feature,
@@ -312,7 +200,7 @@ export default function UserDetailPage({
     .sort((a, b) => b.value - a.value);
 
   // Prepare export data
-  const exportData = modelBreakdown.map((model) => ({
+  const exportData = modelBreakdown.map((model: ModelBreakdown) => ({
     Model: model.model,
     "Total Cost": model.totalCost.toFixed(4),
     "Input Tokens": model.totalInputTokens,
@@ -474,8 +362,8 @@ export default function UserDetailPage({
                   <TableBody>
                     {dailySpend.length > 0 ? (
                       [...dailySpend]
-                        .sort((a, b) => b.date.localeCompare(a.date))
-                        .map((day) => (
+                        .sort((a: any, b: any) => b.date.localeCompare(a.date))
+                        .map((day: any) => (
                           <TableRow key={day.date}>
                             <TableCell className="font-medium">
                               {day.date}
@@ -569,20 +457,21 @@ export default function UserDetailPage({
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={(entry: PieLabelEntry) => {
-                        const modelName = entry.model?.split(":")[1];
-                        return `${modelName}: ${formatCurrency(entry.totalCost ?? 0)}`;
-                      }}
+                      label={(entry: any) =>
+                        `${entry.model.split(":")[1] || entry.model}: ${formatCurrency(entry.totalCost)}`
+                      }
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="totalCost"
                     >
-                      {modelBreakdown.map((entry: any, index: number) => (
-                        <Cell
-                          key={entry.name ?? entry.modelId ?? `cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
+                      {modelBreakdown.map(
+                        (_entry: ModelBreakdown, index: number) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ),
+                      )}
                     </Pie>
                     <Tooltip
                       formatter={(value) =>
@@ -611,8 +500,8 @@ export default function UserDetailPage({
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={(entry: PieLabelEntry) =>
-                          `${entry.name ?? "Unknown"}: ${formatCurrency(entry.value ?? 0)}`
+                        label={(entry: any) =>
+                          `${entry.name}: ${formatCurrency(entry.value)}`
                         }
                         outerRadius={80}
                         fill="#8884d8"
@@ -698,18 +587,15 @@ export default function UserDetailPage({
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={(entry: PieLabelEntry) =>
-                          `${entry.name ?? "Unknown"}: ${formatCurrency(entry.value ?? 0)}`
+                        label={(entry: any) =>
+                          `${entry.name}: ${formatCurrency(entry.value)}`
                         }
                         outerRadius={80}
                         fill="#8884d8"
                         dataKey="value"
                       >
-                        {costTypeData.map((entry) => (
-                          <Cell
-                            key={entry.name ?? entry.color}
-                            fill={entry.color}
-                          />
+                        {costTypeData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
                       <Tooltip
@@ -812,7 +698,7 @@ export default function UserDetailPage({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {modelBreakdown.map((model) => (
+                    {modelBreakdown.map((model: ModelBreakdown) => (
                       <TableRow key={model.model}>
                         <TableCell className="font-medium">
                           {model.model}

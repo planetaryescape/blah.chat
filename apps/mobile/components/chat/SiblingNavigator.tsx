@@ -24,7 +24,7 @@ function SiblingNavigatorComponent({
     typeof message._id === "string" && message._id.startsWith("optimistic-");
   const messageId = isOptimistic ? undefined : (message._id as Id<"messages">);
 
-  const siblings = useSiblings(conversationId, messageId);
+  const siblings = useSiblings(messageId);
   const switchBranch = useSwitchBranch();
 
   // Don't render for optimistic messages or if no siblings data or only one sibling

@@ -3,30 +3,26 @@
 import type { ModelConfig } from "@blah-chat/ai/models";
 import { DEFAULT_MODEL_ID } from "@blah-chat/ai/operational-models";
 import { isValidModel } from "@blah-chat/ai/utils";
-import { useQuery } from "@tanstack/react-query";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useMutation, useQuery } from "convex/react";
 import { useCallback, useEffect, useState } from "react";
-import { useApiClient } from "@/lib/api/client";
 import { useUserPreference } from "./useUserPreference";
 
 interface UseChatModelOptions {
-  conversationId: string | undefined;
+  conversationId: Id<"conversations"> | undefined;
   /** Models record from database (optional - for validation) */
   models?: Record<string, ModelConfig>;
 }
 
 export function useChatModel({ conversationId, models }: UseChatModelOptions) {
-  const apiClient = useApiClient();
-  const { data: conversation } = useQuery({
-    queryKey: ["chat-model", conversationId],
-    queryFn: async () =>
-      conversationId
-        ? apiClient.get<{ model?: string }>(
-            `/api/v1/conversations/${conversationId}`,
-          )
-        : null,
-    enabled: Boolean(conversationId),
-    staleTime: 30_000,
-  });
+  const conversation = useQuery(
+    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+    api.conversations.get,
+    conversationId ? { conversationId } : "skip",
+  );
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const user = useQuery(api.users.getCurrentUser);
   const userDefaultModel = useUserPreference("defaultModel");
 
   const [selectedModel, setSelectedModel] = useState<string>(() => {
@@ -60,6 +56,9 @@ export function useChatModel({ conversationId, models }: UseChatModelOptions) {
     setSelectedModel(DEFAULT_MODEL_ID);
   }, [conversation?.model, userDefaultModel, models]);
 
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const updateModelMutation = useMutation(api.conversations.updateModel);
+
   const handleModelChange = useCallback(
     async (modelId: string) => {
       // Optimistic update
@@ -68,7 +67,8 @@ export function useChatModel({ conversationId, models }: UseChatModelOptions) {
       // Persist to DB if conversation exists
       if (conversationId) {
         try {
-          await apiClient.patch(`/api/v1/conversations/${conversationId}`, {
+          await updateModelMutation({
+            conversationId,
             model: modelId,
           });
         } catch (error) {
@@ -78,7 +78,7 @@ export function useChatModel({ conversationId, models }: UseChatModelOptions) {
       }
       // New conversations: model saved when first message sent (chat.ts:75)
     },
-    [apiClient, conversationId],
+    [conversationId, updateModelMutation],
   );
 
   return {
@@ -86,6 +86,6 @@ export function useChatModel({ conversationId, models }: UseChatModelOptions) {
     setSelectedModel,
     handleModelChange,
     conversation,
-    user: undefined,
+    user,
   };
 }

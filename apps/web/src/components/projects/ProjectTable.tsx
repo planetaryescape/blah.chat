@@ -1,5 +1,6 @@
 "use client";
 
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
   type ColumnDef,
   flexRender,
@@ -39,7 +40,7 @@ import {
 import { ProjectStats } from "./ProjectStats";
 
 interface Project {
-  _id: string;
+  _id: Id<"projects">;
   name: string;
   description?: string;
   createdAt: number;
@@ -48,9 +49,9 @@ interface Project {
 
 interface ProjectTableProps {
   projects: Project[];
-  onDelete: (id: string) => void;
+  onDelete: (id: Id<"projects">) => void;
   onEdit: (project: Project) => void;
-  onManage: (id: string, name: string) => void;
+  onManage: (id: Id<"projects">, name: string) => void;
 }
 
 export function ProjectTable({

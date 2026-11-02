@@ -1,11 +1,7 @@
-import { BookOpen, FileText, Globe } from "lucide-react";
-import type { ComponentType, SVGProps } from "react";
-import { Youtube } from "@/components/ui/svgs/youtube";
+import { BookOpen, FileText, Globe, Youtube } from "lucide-react";
 import type { SourceStatus, SourceType } from "./types";
 
-type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
-
-export const SOURCE_ICONS: Record<SourceType, IconComponent> = {
+export const SOURCE_ICONS: Record<SourceType, typeof FileText> = {
   file: FileText,
   text: BookOpen,
   web: Globe,
@@ -14,7 +10,7 @@ export const SOURCE_ICONS: Record<SourceType, IconComponent> = {
 
 export const TYPE_CONFIG: Record<
   SourceType,
-  { label: string; icon: IconComponent; order: number }
+  { label: string; icon: typeof FileText; order: number }
 > = {
   file: { label: "Files", icon: FileText, order: 0 },
   text: { label: "Text Notes", icon: BookOpen, order: 1 },

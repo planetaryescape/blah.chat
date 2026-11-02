@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { useAsyncAction } from "@/hooks/useAsyncAction";
 import {
   checkDesktopUpdate,
   type DesktopUpdateInfo,
@@ -23,25 +22,7 @@ function updateToast(update: DesktopUpdateInfo, onInstall: () => void) {
 }
 
 export function DesktopUpdateNotifier() {
-  const { run: install, isPending: installing } = useAsyncAction(
-    async () => {
-      const started = await installDesktopUpdate();
-      if (!started) {
-        toast.info("No update available");
-        return;
-      }
-      toast.success("Installing update and restarting...");
-    },
-    {
-      onError: (error) => {
-        const message =
-          error instanceof Error ? error.message : "Failed to install update";
-        toast.error(message);
-      },
-    },
-  );
-  const installingRef = useRef(installing);
-  installingRef.current = installing;
+  const installingRef = useRef(false);
 
   useEffect(() => {
     if (!isDesktopShell()) return;
@@ -49,9 +30,23 @@ export function DesktopUpdateNotifier() {
     let cancelled = false;
     let unlisten: (() => void) | null = null;
 
-    const triggerInstall = () => {
+    const install = async () => {
       if (installingRef.current) return;
-      void install();
+      installingRef.current = true;
+      try {
+        const started = await installDesktopUpdate();
+        if (!started) {
+          toast.info("No update available");
+          return;
+        }
+        toast.success("Installing update and restarting...");
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Failed to install update";
+        toast.error(message);
+      } finally {
+        installingRef.current = false;
+      }
     };
 
     const start = async () => {
@@ -59,7 +54,7 @@ export function DesktopUpdateNotifier() {
         "desktop://update-available",
         (update) => {
           if (cancelled) return;
-          updateToast(update, triggerInstall);
+          updateToast(update, () => void install());
         },
       );
       if (!cancelled) {
@@ -68,7 +63,7 @@ export function DesktopUpdateNotifier() {
 
       const status = await checkDesktopUpdate(false);
       if (cancelled || !status.available || !status.update) return;
-      updateToast(status.update, triggerInstall);
+      updateToast(status.update, () => void install());
     };
 
     void start();
@@ -77,7 +72,7 @@ export function DesktopUpdateNotifier() {
       cancelled = true;
       unlisten?.();
     };
-  }, [install]);
+  }, []);
 
   return null;
 }

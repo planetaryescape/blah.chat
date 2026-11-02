@@ -1,6 +1,6 @@
 {
   "name": "@blah-chat/cognitive-memory",
-  "version": "0.2.1",
+  "version": "0.2.0",
   "description": "Human-like memory for AI agents with Ebbinghaus decay, spaced repetition, and associative linking",
   "type": "module",
   "main": "./dist/index.js",
@@ -53,20 +53,25 @@
     "directory": "packages/cognitive-memory"
   },
   "peerDependencies": {
+    "convex": ">=1.0.0",
     "pg": ">=8.0.0"
   },
   "peerDependenciesMeta": {
+    "convex": {
+      "optional": true
+    },
     "pg": {
       "optional": true
     }
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.1.8",
+    "@vitest/coverage-v8": "^4.0.18",
     "@types/node": "^22.19.0",
     "@types/pg": "^8.15.5",
+    "convex": "^1.0.0",
     "pg": "^8.16.3",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.8"
+    "vitest": "^4.0.18"
   }
 }

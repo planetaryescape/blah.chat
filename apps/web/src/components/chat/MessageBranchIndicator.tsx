@@ -1,6 +1,9 @@
 "use client";
 
-import { AnimatePresence, domAnimation, LazyMotion, m } from "framer-motion";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useMutation } from "convex/react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronDown,
   ChevronLeft,
@@ -21,13 +24,11 @@ import {
   useCachedChildMessages,
   useCachedSiblings,
 } from "@/hooks/useCacheSync";
-import { requestMessagesRefetch } from "@/hooks/useRestMessageSync";
-import { useApiClient } from "@/lib/api/client";
 import { BranchComparisonSheet } from "./BranchComparisonSheet";
 
 interface MessageBranchIndicatorProps {
-  messageId: string;
-  conversationId: string;
+  messageId: Id<"messages">;
+  conversationId: Id<"conversations">;
 }
 
 /**
@@ -41,7 +42,6 @@ export function MessageBranchIndicator({
   conversationId,
 }: MessageBranchIndicatorProps) {
   const router = useRouter();
-  const apiClient = useApiClient();
   const [isExpanded, setIsExpanded] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
 
@@ -53,6 +53,9 @@ export function MessageBranchIndicator({
 
   // P7 Tree: sibling messages (for switching between branches)
   const siblings = useCachedSiblings(messageId);
+
+  // Mutation for branch switching
+  const switchBranch = useMutation(api.chat.switchBranch);
 
   // Combine both types of branches
   const hasLegacyBranches = childConversations && childConversations.length > 0;
@@ -68,15 +71,9 @@ export function MessageBranchIndicator({
     return null;
   }
 
-  const handleSwitchToBranch = async (targetMessageId: string) => {
+  const handleSwitchToBranch = async (targetMessageId: Id<"messages">) => {
     try {
-      await apiClient.post(
-        `/api/v1/conversations/${conversationId}/switch-branch`,
-        {
-          targetMessageId,
-        },
-      );
-      requestMessagesRefetch(conversationId);
+      await switchBranch({ conversationId, targetMessageId });
     } catch (error) {
       console.error("Failed to switch branch:", error);
     }
@@ -183,16 +180,49 @@ export function MessageBranchIndicator({
 
           <AnimatePresence>
             {isExpanded && (
-              <LazyMotion features={domAnimation}>
-                <m.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <div className="mt-2 space-y-1 pl-2">
-                    {/* Legacy conversation branches */}
-                    {childConversations?.map((branch: any) => (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                <div className="mt-2 space-y-1 pl-2">
+                  {/* Legacy conversation branches */}
+                  {childConversations?.map((branch: Doc<"conversations">) => (
+                    <Button
+                      key={branch._id}
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start h-auto py-2 px-2 text-left font-normal hover:bg-accent/50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/chat/${branch._id}`);
+                      }}
+                    >
+                      <div className="flex items-start gap-2 w-full min-w-0">
+                        <GitBranch className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-muted-foreground" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm truncate">{branch.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(branch.createdAt).toLocaleDateString(
+                              undefined,
+                              {
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              },
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </Button>
+                  ))}
+
+                  {/* P7 Tree message branches */}
+                  {childMessages
+                    ?.filter((m) => !m.isActiveBranch)
+                    .map((branch: Doc<"messages">) => (
                       <Button
                         key={branch._id}
                         variant="ghost"
@@ -200,13 +230,21 @@ export function MessageBranchIndicator({
                         className="w-full justify-start h-auto py-2 px-2 text-left font-normal hover:bg-accent/50"
                         onClick={(e) => {
                           e.stopPropagation();
-                          router.push(`/chat/${branch._id}`);
+                          handleSwitchToBranch(branch._id);
                         }}
                       >
                         <div className="flex items-start gap-2 w-full min-w-0">
                           <GitBranch className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-muted-foreground" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm truncate">{branch.title}</p>
+                            <p className="text-sm truncate">
+                              {branch.forkReason === "regenerate"
+                                ? "Regenerated"
+                                : branch.forkReason === "edit"
+                                  ? "Edited"
+                                  : branch.forkReason === "model_compare"
+                                    ? branch.model
+                                    : "Branch"}
+                            </p>
                             <p className="text-xs text-muted-foreground">
                               {new Date(branch.createdAt).toLocaleDateString(
                                 undefined,
@@ -222,51 +260,8 @@ export function MessageBranchIndicator({
                         </div>
                       </Button>
                     ))}
-
-                    {/* P7 Tree message branches */}
-                    {childMessages
-                      ?.filter((m) => !m.isActiveBranch)
-                      .map((branch: any) => (
-                        <Button
-                          key={branch._id}
-                          variant="ghost"
-                          size="sm"
-                          className="w-full justify-start h-auto py-2 px-2 text-left font-normal hover:bg-accent/50"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSwitchToBranch(branch._id);
-                          }}
-                        >
-                          <div className="flex items-start gap-2 w-full min-w-0">
-                            <GitBranch className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-muted-foreground" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm truncate">
-                                {branch.forkReason === "regenerate"
-                                  ? "Regenerated"
-                                  : branch.forkReason === "edit"
-                                    ? "Edited"
-                                    : branch.forkReason === "model_compare"
-                                      ? branch.model
-                                      : "Branch"}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(branch.createdAt).toLocaleDateString(
-                                  undefined,
-                                  {
-                                    month: "short",
-                                    day: "numeric",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  },
-                                )}
-                              </p>
-                            </div>
-                          </div>
-                        </Button>
-                      ))}
-                  </div>
-                </m.div>
-              </LazyMotion>
+                </div>
+              </motion.div>
             )}
           </AnimatePresence>
         </>

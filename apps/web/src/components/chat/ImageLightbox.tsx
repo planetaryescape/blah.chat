@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, m } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronLeft,
   ChevronRight,
@@ -165,7 +165,7 @@ export function ImageLightbox({
         {/* Image container - scrollable when zoomed */}
         <div className="flex items-center justify-center w-full h-full overflow-auto p-4">
           <AnimatePresence mode="wait" custom={direction}>
-            <m.div
+            <motion.div
               key={currentIndex}
               className="flex items-center justify-center min-w-full min-h-full"
               custom={direction}
@@ -183,11 +183,10 @@ export function ImageLightbox({
                   maxHeight: zoomLevel === 0 ? "100%" : "none",
                   width: zoomLevel > 0 ? `${ZOOM_LEVELS[zoomLevel]}%` : "auto",
                   height: zoomLevel > 0 ? "auto" : "auto",
-                  transition:
-                    "max-width 0.2s ease-out, max-height 0.2s ease-out, width 0.2s ease-out",
+                  transition: "all 0.2s ease-out",
                 }}
               />
-            </m.div>
+            </motion.div>
           </AnimatePresence>
         </div>
 

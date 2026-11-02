@@ -1,17 +1,13 @@
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useConversationContext } from "@/contexts/ConversationContext";
 import { useNewChat } from "@/hooks/useNewChat";
-import { useRestConversationSync } from "@/hooks/useRestConversationSync";
 
 export function useKeyboardShortcuts() {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const { filteredConversations } = useConversationContext();
   const { startNewChat } = useNewChat();
-  const projectFilter = searchParams.get("project");
-  const { conversations: filteredConversations } = useRestConversationSync(
-    (projectFilter as string | "none" | null) ?? undefined,
-  );
 
   // Extract conversationId from pathname (e.g., /chat/xyz123)
   const conversationId = pathname?.startsWith("/chat/")

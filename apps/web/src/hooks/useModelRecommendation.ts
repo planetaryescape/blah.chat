@@ -1,22 +1,13 @@
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useMutation } from "convex/react";
 import { useCallback, useEffect, useState } from "react";
-import { useSDKClient } from "@/lib/api/sdkClient";
 import type { OptimisticMessage } from "@/types/optimistic";
 
-interface ConversationLike {
-  model?: string | null;
-}
-
-interface MessageLike {
-  role: string;
-  status?: string;
-  _creationTime?: number;
-  createdAt?: number;
-}
-
-type Message = MessageLike | OptimisticMessage;
+type Message = Doc<"messages"> | OptimisticMessage;
 
 interface UseModelRecommendationOptions {
-  conversation: ConversationLike | null | undefined;
+  conversation: Doc<"conversations"> | null | undefined;
   messages: Message[] | undefined;
   onModelChange: (modelId: string) => Promise<void>;
 }
@@ -26,7 +17,7 @@ export function useModelRecommendation({
   messages,
   onModelChange,
 }: UseModelRecommendationOptions) {
-  // Preview modal state — driven by ModelRecommendationBanner.onPreview.
+  // Preview modal state
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewModelId, setPreviewModelId] = useState<string | null>(null);
 
@@ -35,7 +26,8 @@ export function useModelRecommendation({
   const [switchedModelId, setSwitchedModelId] = useState<string | null>(null);
   const [switchedModelAt, setSwitchedModelAt] = useState<number | null>(null);
 
-  const sdk = useSDKClient();
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const updatePreferences = useMutation(api.users.updatePreferences);
 
   // Switch to recommended model
   const handleSwitchModel = useCallback(
@@ -47,7 +39,7 @@ export function useModelRecommendation({
     [onModelChange],
   );
 
-  // Open preview modal for a model.
+  // Open preview modal for a model
   const handlePreviewModel = useCallback((modelId: string) => {
     setPreviewModelId(modelId);
     setPreviewModalOpen(true);
@@ -57,10 +49,14 @@ export function useModelRecommendation({
   const handleSetAsDefault = useCallback(async () => {
     if (!switchedModelId) return;
 
-    await sdk.updatePreference("defaultModel", switchedModelId);
+    await updatePreferences({
+      preferences: {
+        defaultModel: switchedModelId,
+      },
+    });
 
     setShowSetDefaultPrompt(false);
-  }, [switchedModelId, sdk]);
+  }, [switchedModelId, updatePreferences]);
 
   // Show set-as-default prompt after first successful generation with switched model
   useEffect(() => {
@@ -72,8 +68,7 @@ export function useModelRecommendation({
         lastMessage.role === "assistant" &&
         lastMessage.status === "complete" &&
         conversation?.model === switchedModelId &&
-        (lastMessage as MessageLike).createdAt &&
-        ((lastMessage as MessageLike).createdAt ?? 0) > switchedModelAt
+        lastMessage._creationTime > switchedModelAt
       ) {
         // Show prompt after a brief delay (2 seconds)
         const timer = setTimeout(() => {
@@ -85,11 +80,22 @@ export function useModelRecommendation({
     }
   }, [messages, switchedModelId, switchedModelAt, conversation?.model]);
 
+  // Listen for model preview events (from recommendation banner)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const customEvent = e as CustomEvent<{ modelId: string }>;
+      setPreviewModelId(customEvent.detail.modelId);
+      setPreviewModalOpen(true);
+    };
+    window.addEventListener("open-model-preview", handler);
+    return () => window.removeEventListener("open-model-preview", handler);
+  }, []);
+
   return {
     // Preview modal
     previewModalOpen,
-    previewModelId,
     setPreviewModalOpen,
+    previewModelId,
 
     // Set-as-default prompt
     showSetDefaultPrompt,

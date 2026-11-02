@@ -1,13 +1,14 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useMutation } from "convex/react";
 import { type RefObject, useEffect } from "react";
 import { toast } from "sonner";
-import { useApiClient } from "@/lib/api/client";
-import { useCreateBookmark } from "@/lib/hooks/mutations/useBookmarkMutations";
 
 interface UseMessageKeyboardShortcutsOptions {
-  messageId: string;
-  conversationId: string;
+  messageId: Id<"messages">;
+  conversationId: Id<"conversations">;
   content: string;
   isFocused: boolean;
   isUser: boolean;
@@ -36,8 +37,10 @@ export function useMessageKeyboardShortcuts({
   readOnly,
   messageRef,
 }: UseMessageKeyboardShortcutsOptions) {
-  const apiClient = useApiClient();
-  const createBookmark = useCreateBookmark();
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const deleteMsg = useMutation(api.chat.deleteMessage);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const createBookmark = useMutation(api.bookmarks.create);
 
   useEffect(() => {
     if (!isFocused || readOnly) return;
@@ -72,7 +75,7 @@ export function useMessageKeyboardShortcuts({
           if (!isMod) {
             e.preventDefault();
             try {
-              await createBookmark.mutateAsync({
+              await createBookmark({
                 conversationId,
                 messageId,
               });
@@ -118,7 +121,7 @@ export function useMessageKeyboardShortcuts({
               const prevGroup =
                 currentGroup?.previousElementSibling as HTMLElement | null;
 
-              await apiClient.delete(`/api/v1/messages/${messageId}`);
+              await deleteMsg({ messageId });
 
               // Focus next, or prev, or chat input as fallback
               requestAnimationFrame(() => {
@@ -161,8 +164,8 @@ export function useMessageKeyboardShortcuts({
     messageId,
     conversationId,
     content,
-    apiClient,
     createBookmark,
+    deleteMsg,
     messageRef,
   ]);
 }

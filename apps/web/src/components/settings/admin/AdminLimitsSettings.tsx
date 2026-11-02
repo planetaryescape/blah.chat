@@ -1,6 +1,7 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import { useMutation, useQuery } from "convex/react";
 import { DollarSign, Loader2, MessageCircle, Plug } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -16,68 +17,48 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 export function AdminLimitsSettings() {
-  const queryClient = useQueryClient();
-  const { data: settings } = useQuery({
-    queryKey: ["admin", "settings"],
-    queryFn: async () => {
-      const res = await fetch("/api/v1/admin/settings");
-      if (!res.ok) return null;
-      const json = await res.json();
-      return json.data ?? null;
-    },
-  });
-
-  const updateSettingsMut = useMutation({
-    mutationFn: async (data: Record<string, any>) => {
-      const res = await fetch("/api/v1/admin/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
-    },
-  });
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const settings = useQuery(api.adminSettings.get);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const updateSettings = useMutation(api.adminSettings.update);
 
   const [monthlyBudget, setMonthlyBudget] = useState(10);
   const [alertThreshold, setAlertThreshold] = useState(80);
   const [hardLimitEnabled, setHardLimitEnabled] = useState(true);
   const [dailyLimit, setDailyLimit] = useState(50);
   const [maxIntegrations, setMaxIntegrations] = useState(5);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Load settings from query
   useEffect(() => {
-    const limits = settings?.limits;
-    if (limits) {
-      setMonthlyBudget(limits.defaultMonthlyBudget ?? 10);
-      setAlertThreshold((limits.defaultBudgetAlertThreshold ?? 0.8) * 100);
-      setHardLimitEnabled(limits.budgetHardLimitEnabled ?? true);
-      setDailyLimit(limits.defaultDailyMessageLimit ?? 50);
-      setMaxIntegrations(limits.defaultMaxIntegrations ?? 5);
+    if (settings) {
+      setMonthlyBudget(settings.defaultMonthlyBudget ?? 10);
+      setAlertThreshold((settings.defaultBudgetAlertThreshold ?? 0.8) * 100);
+      setHardLimitEnabled(settings.budgetHardLimitEnabled ?? true);
+      setDailyLimit(settings.defaultDailyMessageLimit ?? 50);
+      setMaxIntegrations(settings.maxActiveIntegrations ?? 5);
     }
   }, [settings]);
 
-  const { run: handleSave, isPending: isLoading } = useAsyncAction(
-    async () => {
-      await updateSettingsMut.mutateAsync({
-        limits: {
-          defaultMonthlyBudget: monthlyBudget,
-          defaultBudgetAlertThreshold: alertThreshold / 100,
-          budgetHardLimitEnabled: hardLimitEnabled,
-          defaultDailyMessageLimit: dailyLimit,
-          defaultMaxIntegrations: maxIntegrations,
-        },
+  const handleSave = async () => {
+    setIsLoading(true);
+    try {
+      await updateSettings({
+        defaultMonthlyBudget: monthlyBudget,
+        defaultBudgetAlertThreshold: alertThreshold / 100,
+        budgetHardLimitEnabled: hardLimitEnabled,
+        defaultDailyMessageLimit: dailyLimit,
+        maxActiveIntegrations: maxIntegrations,
       });
       toast.success("Limits and budget settings saved!");
-    },
-    { onError: () => toast.error("Failed to save settings") },
-  );
+    } catch (_error) {
+      toast.error("Failed to save settings");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (!settings) {
     return (

@@ -1,20 +1,15 @@
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
+
 interface SourceInfo {
   position: number;
   title?: string | null;
   url: string;
 }
 
-type ExportConversation = Pick<any, "title" | "createdAt">;
-type ExportMessage = {
-  _id: string | string;
-  role: any["role"];
-  content: string;
-};
-
 export function exportConversationToMarkdown(
-  conversation: ExportConversation,
-  messages: ExportMessage[],
-  sourcesByMessage?: Map<string | string, SourceInfo[]>,
+  conversation: Doc<"conversations">,
+  messages: Doc<"messages">[],
+  sourcesByMessage?: Map<Id<"messages">, SourceInfo[]>,
 ): string {
   let md = `# ${conversation.title}\n\n`;
   md += `*Created: ${new Date(conversation.createdAt).toLocaleString()}*\n\n`;
@@ -45,7 +40,7 @@ export function exportConversationToMarkdown(
 }
 
 export function exportAllToMarkdown(
-  conversations: Array<any & { messages: any[] }>,
+  conversations: Array<Doc<"conversations"> & { messages: Doc<"messages">[] }>,
 ): string {
   let md = `# blah.chat Export\n\n`;
   md += `**Exported**: ${new Date().toLocaleString()}\n`;

@@ -1,15 +1,15 @@
 import * as Linking from "expo-linking";
 import { ExternalLink, X } from "lucide-react-native";
-import { memo, useMemo, useState } from "react";
+import { memo, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
   Pressable,
+  SafeAreaView,
   ScrollView,
   Text,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 import { getWebView, webViewAvailable } from "@/lib/webview";
 
@@ -226,10 +226,7 @@ function MermaidModalComponent({ visible, code, onClose }: MermaidModalProps) {
   const [cdnFailed, setCdnFailed] = useState(false);
 
   // Check WebView availability
-  const WebViewComponent = useMemo(
-    () => (webViewAvailable ? getWebView() : null),
-    [],
-  );
+  const WebViewComponent = webViewAvailable ? getWebView() : null;
 
   const handleMessage = (event: { nativeEvent: { data: string } }) => {
     const message = event.nativeEvent.data;

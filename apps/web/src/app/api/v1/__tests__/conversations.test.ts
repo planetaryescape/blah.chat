@@ -22,6 +22,7 @@ vi.mock("@/lib/api/middleware/auth", () => ({
       return handler(req, {
         params: context?.params ?? Promise.resolve({}),
         userId: "test-user-id",
+        sessionToken: "test-session-token",
       });
     },
 }));
@@ -52,59 +53,6 @@ import {
   createMockRequest,
 } from "@/lib/test/api-helpers";
 
-function createConversationEnvelope(
-  overrides?: Partial<{
-    _id: string;
-    title: string;
-    model: string;
-    selectedIntegrationIds: string[];
-    projectId: string | undefined;
-    isIncognito: boolean;
-    incognitoSettings:
-      | {
-          enableReadTools: boolean;
-          applyCustomInstructions: boolean;
-          inactivityTimeoutMinutes?: number;
-          lastActivityAt: number;
-        }
-      | undefined;
-    pinned: boolean;
-    archived: boolean;
-    starred: boolean;
-    thinkingEffort: "none" | "low" | "medium" | "high";
-    modelRecommendation: undefined;
-    messageCount: number;
-    lastMessageAt: number;
-    createdAt: number;
-    updatedAt: number;
-  }>,
-) {
-  const timestamp = Date.now();
-
-  return {
-    status: "success" as const,
-    sys: { entity: "conversation", id: overrides?._id ?? "conv-1" },
-    data: {
-      _id: overrides?._id ?? "conv-1",
-      title: overrides?.title ?? "New Chat",
-      model: overrides?.model ?? "gpt-4o",
-      selectedIntegrationIds: overrides?.selectedIntegrationIds ?? [],
-      projectId: overrides?.projectId,
-      isIncognito: overrides?.isIncognito ?? false,
-      incognitoSettings: overrides?.incognitoSettings,
-      pinned: overrides?.pinned ?? false,
-      archived: overrides?.archived ?? false,
-      starred: overrides?.starred ?? false,
-      thinkingEffort: overrides?.thinkingEffort ?? "none",
-      modelRecommendation: overrides?.modelRecommendation,
-      messageCount: overrides?.messageCount ?? 0,
-      lastMessageAt: overrides?.lastMessageAt ?? timestamp,
-      createdAt: overrides?.createdAt ?? timestamp,
-      updatedAt: overrides?.updatedAt ?? timestamp,
-    },
-  };
-}
-
 describe("/api/v1/conversations", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -113,10 +61,16 @@ describe("/api/v1/conversations", () => {
   describe("GET /api/v1/conversations", () => {
     it("returns list with envelope structure", async () => {
       const mockConversations = [
-        createConversationEnvelope({
-          _id: "conv1",
-          title: "Chat 1",
-        }),
+        {
+          status: "success" as const,
+          sys: { entity: "conversation", id: "conv1" },
+          data: {
+            _id: "conv1",
+            title: "Chat 1",
+            model: "gpt-4o",
+            _creationTime: Date.now(),
+          },
+        },
       ];
       vi.mocked(conversationsDAL.list).mockResolvedValue(mockConversations);
 
@@ -142,7 +96,7 @@ describe("/api/v1/conversations", () => {
         "test-user-id",
         25,
         false,
-        undefined,
+        "test-session-token",
         undefined,
       );
     });
@@ -158,7 +112,7 @@ describe("/api/v1/conversations", () => {
         "test-user-id",
         50,
         true,
-        undefined,
+        "test-session-token",
         undefined,
       );
     });
@@ -176,7 +130,7 @@ describe("/api/v1/conversations", () => {
         "test-user-id",
         50,
         false,
-        undefined,
+        "test-session-token",
         "proj_123abc",
       );
     });
@@ -192,7 +146,7 @@ describe("/api/v1/conversations", () => {
         "test-user-id",
         50,
         false,
-        undefined,
+        "test-session-token",
         undefined,
       );
     });
@@ -210,10 +164,16 @@ describe("/api/v1/conversations", () => {
 
   describe("POST /api/v1/conversations", () => {
     it("creates conversation with 201 status", async () => {
-      const mockResult = createConversationEnvelope({
-        _id: "new-conv",
-        title: "New Chat",
-      });
+      const mockResult = {
+        status: "success" as const,
+        sys: { entity: "conversation", id: "new-conv" },
+        data: {
+          _id: "new-conv",
+          title: "New Chat",
+          model: "gpt-4o",
+          _creationTime: Date.now(),
+        },
+      };
       vi.mocked(conversationsDAL.create).mockResolvedValue(mockResult);
 
       const { POST } = await import("../conversations/route");
@@ -230,9 +190,11 @@ describe("/api/v1/conversations", () => {
     });
 
     it("calls DAL with validated data", async () => {
-      const mockResult = createConversationEnvelope({
-        _id: "conv-123",
-      });
+      const mockResult = {
+        status: "success" as const,
+        sys: { entity: "conversation", id: "conv-123" },
+        data: { _id: "conv-123", model: "gpt-4o" },
+      };
       vi.mocked(conversationsDAL.create).mockResolvedValue(mockResult);
 
       const { POST } = await import("../conversations/route");
@@ -246,11 +208,15 @@ describe("/api/v1/conversations", () => {
       });
       await POST(req, { params: Promise.resolve({}) });
 
-      expect(conversationsDAL.create).toHaveBeenCalledWith("test-user-id", {
-        model: "gpt-4o",
-        title: "Test Conversation",
-        systemPrompt: "You are a helpful assistant",
-      });
+      expect(conversationsDAL.create).toHaveBeenCalledWith(
+        "test-user-id",
+        {
+          model: "gpt-4o",
+          title: "Test Conversation",
+          systemPrompt: "You are a helpful assistant",
+        },
+        "test-session-token",
+      );
     });
 
     it("rejects request missing required model field", async () => {
@@ -280,9 +246,11 @@ describe("/api/v1/conversations", () => {
     });
 
     it("accepts minimal valid request (only model)", async () => {
-      const mockResult = createConversationEnvelope({
-        _id: "conv-123",
-      });
+      const mockResult = {
+        status: "success" as const,
+        sys: { entity: "conversation", id: "conv-123" },
+        data: { _id: "conv-123", model: "gpt-4o" },
+      };
       vi.mocked(conversationsDAL.create).mockResolvedValue(mockResult);
 
       const { POST } = await import("../conversations/route");
@@ -293,51 +261,6 @@ describe("/api/v1/conversations", () => {
       const response = await POST(req, { params: Promise.resolve({}) });
 
       expect(response.status).toBe(201);
-    });
-  });
-
-  describe("PATCH /api/v1/conversations/:id", () => {
-    it("forwards thinkingEffort to the DAL and returns it", async () => {
-      const mockResult = createConversationEnvelope({
-        _id: "conv-1",
-        thinkingEffort: "high",
-      });
-      vi.mocked(conversationsDAL.update).mockResolvedValue(mockResult);
-
-      const { PATCH } = await import("../conversations/[id]/route");
-      const req = createMockRequest("/api/v1/conversations/conv-1", {
-        method: "PATCH",
-        body: { thinkingEffort: "high" },
-      });
-      const response = await PATCH(req, {
-        params: Promise.resolve({ id: "conv-1" }),
-      });
-      const json = await response.json();
-
-      expect(response.status).toBe(200);
-      assertEnvelopeSuccess(json);
-      expect(conversationsDAL.update).toHaveBeenCalledWith(
-        "test-user-id",
-        "conv-1",
-        { thinkingEffort: "high" },
-      );
-      expect(json.data.thinkingEffort).toBe("high");
-    });
-
-    it("rejects invalid thinkingEffort values", async () => {
-      const { PATCH } = await import("../conversations/[id]/route");
-      const req = createMockRequest("/api/v1/conversations/conv-1", {
-        method: "PATCH",
-        body: { thinkingEffort: "extreme" },
-      });
-      const response = await PATCH(req, {
-        params: Promise.resolve({ id: "conv-1" }),
-      });
-      const json = await response.json();
-
-      expect(response.status).toBe(400);
-      assertEnvelopeError(json);
-      expect(conversationsDAL.update).not.toHaveBeenCalled();
     });
   });
 });

@@ -1,21 +1,15 @@
 "use client";
 
-import Image from "next/image";
 import { useLazyMathRenderer } from "@/hooks/useLazyMathRenderer";
 import { useMathAccessibility } from "@/hooks/useMathAccessibility";
 import { useMathCopyButtons } from "@/hooks/useMathCopyButtons";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useStreamBuffer } from "@/hooks/useStreamBuffer";
+import { useWorkerMarkdown } from "@/hooks/useWorkerMarkdown";
 import { findAllVerses, parseVerseReference } from "@/lib/bible/parser";
 import { cn } from "@/lib/utils";
 import "katex/dist/contrib/mhchem.mjs"; // Chemistry notation support
-import {
-  Component,
-  memo,
-  type ReactNode,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { Component, memo, type ReactNode, useMemo, useRef } from "react";
 import { harden } from "rehype-harden";
 import rehypeRaw from "rehype-raw";
 import { Streamdown } from "streamdown";
@@ -102,60 +96,6 @@ interface MarkdownContentProps {
   isStreaming?: boolean;
 }
 
-const FALLBACK_MARKDOWN_IMAGE =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='100'%3E%3Crect fill='%23f0f0f0' width='200' height='100'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23666'%3EImage failed to load%3C/text%3E%3C/svg%3E";
-
-function MarkdownImage({ src, alt }: { src?: string; alt?: string }) {
-  const [resolvedSrc, setResolvedSrc] = useState(
-    src || FALLBACK_MARKDOWN_IMAGE,
-  );
-
-  return (
-    <Image
-      src={resolvedSrc}
-      alt={alt || "Image"}
-      width={1200}
-      height={800}
-      unoptimized
-      loading="lazy"
-      sizes="100vw"
-      className="rounded-lg max-w-full h-auto my-4 block"
-      style={{
-        maxHeight: "600px",
-        minHeight: "100px",
-        backgroundColor: "#f5f5f5",
-        objectFit: "contain",
-      }}
-      onError={() => {
-        setResolvedSrc(FALLBACK_MARKDOWN_IMAGE);
-      }}
-    />
-  );
-}
-
-function CitationScrollButton({
-  href,
-  children,
-}: {
-  href: string;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      className="citation-link"
-      onClick={() => {
-        const element = document.querySelector(href);
-        if (element) {
-          element.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
 /**
  * Standard components for Streamdown
  *
@@ -213,14 +153,48 @@ const createMarkdownComponents = (isStreaming?: boolean) => ({
     );
   },
   // Custom image component for proper sizing and error handling
-  img: ({ src, alt }: any) => {
-    return <MarkdownImage src={src} alt={alt} />;
+  img: ({ src, alt, ...props }: any) => {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={alt || "Image"}
+        className="rounded-lg max-w-full my-4 block"
+        style={{
+          maxHeight: "600px",
+          minHeight: "100px", // Reserve space to prevent layout shift
+          backgroundColor: "#f5f5f5",
+          objectFit: "contain",
+        }}
+        loading="lazy"
+        onError={(e) => {
+          console.error("[Markdown] Image failed to load:", src);
+          // Replace with error placeholder
+          (e.target as HTMLImageElement).src =
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='100'%3E%3Crect fill='%23f0f0f0' width='200' height='100'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23666'%3EImage failed to load%3C/text%3E%3C/svg%3E";
+        }}
+        {...props}
+      />
+    );
   },
   a: ({ href, children, ...props }: any) => {
     // Handle citation links [1] -> #source-1
     if (href?.startsWith("#source-")) {
       return (
-        <CitationScrollButton href={href}>{children}</CitationScrollButton>
+        <a
+          href={href}
+          className="citation-link"
+          onClick={(e) => {
+            e.preventDefault();
+            const element = document.querySelector(href);
+            if (element) {
+              element.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          }}
+          {...props}
+        >
+          {children}
+        </a>
       );
     }
 
@@ -347,6 +321,7 @@ export function MarkdownContent({
   isStreaming = false,
 }: MarkdownContentProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   // Create markdown components (including theme-aware Mermaid)
   const markdownComponents = createMarkdownComponents(isStreaming);
@@ -366,12 +341,20 @@ export function MarkdownContent({
     return processBibleVerses(withCitations);
   }, [content]);
 
-  // Decouple network timing (chunky ~250ms server checkpoints) from visual
-  // timing: smoothly reveal buffered words via RAF instead of jumping.
+  // Buffer hook smoothly reveals words from server chunks
+  // Bypass buffering if user prefers reduced motion (instant text display)
   const { displayContent, hasBufferedContent } = useStreamBuffer(
     processedContent,
-    isStreaming,
+    isStreaming && !prefersReducedMotion,
+    {
+      wordsPerSecond: 30, // Smooth word-by-word reveal
+    },
   );
+
+  // Web worker for large completed messages (≥5KB)
+  // Offloads expensive markdown parsing to worker thread to keep UI at 60fps
+  // Returns null during streaming or for small content (not worth overhead)
+  const { html: workerHtml } = useWorkerMarkdown(content, isStreaming);
 
   // Phase 4A: Lazy rendering for mobile performance
   const { observeRef, isRendered, isMobile } = useLazyMathRenderer({
@@ -402,6 +385,18 @@ export function MarkdownContent({
     );
   }
 
+  // Use worker-rendered HTML for large completed messages
+  // XSS-SAFE: HTML sanitized by DOMPurify in worker (see worker.ts parseMarkdown)
+  if (workerHtml && !isStreaming) {
+    return (
+      <div
+        ref={containerRef}
+        className="markdown-content prose"
+        dangerouslySetInnerHTML={{ __html: workerHtml }}
+      />
+    );
+  }
+
   return (
     <div
       ref={containerRef}
@@ -410,7 +405,7 @@ export function MarkdownContent({
       <MathErrorBoundary>
         <Streamdown
           components={markdownComponents}
-          parseIncompleteMarkdown={showCursor}
+          parseIncompleteMarkdown={isStreaming}
           controls={{
             code: false, // We handle code controls via custom CodeBlock component
             mermaid: false, // We handle mermaid controls via custom MermaidRenderer

@@ -3,9 +3,8 @@ import {
   INTEGRATIONS,
   type IntegrationCategory,
 } from "@blah-chat/shared/integrations";
-import { useAuth } from "@clerk/clerk-expo";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useAction, useQuery } from "convex/react";
 import * as WebBrowser from "expo-web-browser";
 import { Link2, Plus, Search, Unlink } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
@@ -22,11 +21,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
 import { FluidButton } from "@/components/ui/FluidButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { queryClient } from "@/lib/cache/queryClient";
+import { api } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
-import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { palette, spacing, typography } from "@/lib/theme/designSystem";
-import { createMobileSdkClient } from "@/lib/transport/httpClient";
 import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -41,40 +38,9 @@ const SORTED_CATEGORIES = Object.entries(INTEGRATION_CATEGORIES)
   .map(([key, val]) => ({ key: key as IntegrationCategory, label: val.label }));
 
 export default function IntegrationsScreen() {
-  const { getToken } = useAuth();
-  const connectionsQuery = useQuery({
-    queryKey: ["mobile", "composio-connections"],
-    queryFn: async () => {
-      const client = createMobileSdkClient(() => getToken());
-      return client.listComposioConnections();
-    },
-  });
-  const initiateConnectionMutation = useMutation({
-    mutationFn: async (integrationId: string) => {
-      const client = createMobileSdkClient(() => getToken());
-      return client.initiateComposioConnection({
-        integrationId,
-        redirectUrl: "blahchat://composio/callback",
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["mobile", "composio-connections"],
-      });
-    },
-  });
-  const revokeConnectionMutation = useMutation({
-    mutationFn: async (integrationId: string) => {
-      const client = createMobileSdkClient(() => getToken());
-      return client.revokeComposioConnection({ integrationId });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["mobile", "composio-connections"],
-      });
-    },
-  });
-  const connections = connectionsQuery.data;
+  const connections = useQuery(api.composio.connections.listConnections);
+  const initiateConnection = useAction(api.composio.oauth.initiateConnection);
+  const revokeConnection = useAction(api.composio.oauth.revokeConnection);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -106,35 +72,29 @@ export default function IntegrationsScreen() {
     return filtered;
   }, [activeCategory, searchQuery]);
 
-  const { run: runConnect } = useAsyncAction(
-    async (integrationId: string) => {
-      const result =
-        await initiateConnectionMutation.mutateAsync(integrationId);
-      if (result.redirectUrl) {
-        await WebBrowser.openAuthSessionAsync(
-          result.redirectUrl,
-          "blahchat://composio/callback",
-        );
-      }
-      await queryClient.invalidateQueries({
-        queryKey: ["mobile", "composio-connections"],
-      });
-      setSheetOpen(false);
-    },
-    {
-      onError: () =>
-        Alert.alert("Error", "Failed to start connection. Please try again."),
-    },
-  );
-
   const handleConnect = useCallback(
     async (integrationId: string) => {
       haptic.medium();
       setConnectingId(integrationId);
-      await runConnect(integrationId);
-      setConnectingId(null);
+      try {
+        const result = await initiateConnection({
+          integrationId,
+          redirectUrl: "blahchat://composio/callback",
+        });
+        if (result.redirectUrl) {
+          await WebBrowser.openAuthSessionAsync(
+            result.redirectUrl,
+            "blahchat://composio/callback",
+          );
+        }
+        setSheetOpen(false);
+      } catch {
+        Alert.alert("Error", "Failed to start connection. Please try again.");
+      } finally {
+        setConnectingId(null);
+      }
     },
-    [runConnect],
+    [initiateConnection],
   );
 
   const handleDisconnect = useCallback(
@@ -147,7 +107,7 @@ export default function IntegrationsScreen() {
           onPress: async () => {
             haptic.medium();
             try {
-              await revokeConnectionMutation.mutateAsync(integrationId);
+              await revokeConnection({ integrationId });
             } catch {
               Alert.alert("Error", "Failed to disconnect.");
             }
@@ -155,7 +115,7 @@ export default function IntegrationsScreen() {
         },
       ]);
     },
-    [revokeConnectionMutation],
+    [revokeConnection],
   );
 
   const rightAction = (
@@ -168,128 +128,6 @@ export default function IntegrationsScreen() {
     >
       <Plus size={22} color={palette.roseQuartz} />
     </TouchableOpacity>
-  );
-
-  const renderConnectionItem = useCallback(
-    ({ item }: { item: NonNullable<typeof connections>[number] }) => {
-      const statusColor = STATUS_COLORS[item.status] || palette.starlightDim;
-      const isActive = item.status === "active";
-      return (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: palette.glassLow,
-            borderRadius: 12,
-            padding: spacing.md,
-            marginBottom: spacing.sm,
-            gap: spacing.sm,
-          }}
-        >
-          <Link2 size={20} color={palette.starlightDim} />
-          <View style={{ flex: 1 }}>
-            <Text
-              style={{
-                fontFamily: typography.bodyMedium,
-                fontSize: 14,
-                color: palette.starlight,
-              }}
-            >
-              {item.integrationName || item.integrationId}
-            </Text>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: spacing.xs,
-                marginTop: 2,
-              }}
-            >
-              <View
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor: statusColor,
-                }}
-              />
-              <Text
-                style={{
-                  fontFamily: typography.body,
-                  fontSize: 11,
-                  color: palette.starlightDim,
-                }}
-              >
-                {item.status}
-              </Text>
-            </View>
-          </View>
-          {isActive ? (
-            <AnimatedPressable
-              onPress={() =>
-                handleDisconnect(
-                  item.integrationId,
-                  item.integrationName || item.integrationId,
-                )
-              }
-            >
-              <Unlink size={18} color={palette.error} />
-            </AnimatedPressable>
-          ) : (
-            <AnimatedPressable
-              onPress={() => handleConnect(item.integrationId)}
-            >
-              <Text
-                style={{
-                  fontFamily: typography.bodyMedium,
-                  fontSize: 12,
-                  color: palette.roseQuartz,
-                }}
-              >
-                {item.status === "expired" ? "Reconnect" : "Connect"}
-              </Text>
-            </AnimatedPressable>
-          )}
-        </View>
-      );
-    },
-    [handleConnect, handleDisconnect],
-  );
-
-  type CategoryItem = { key: "all" | IntegrationCategory; label: string };
-
-  const renderCategoryItem = useCallback(
-    ({ item }: { item: CategoryItem }) => (
-      <AnimatedPressable
-        onPress={() => {
-          haptic.selection();
-          setActiveCategory(item.key);
-        }}
-        style={{
-          paddingHorizontal: spacing.sm,
-          paddingVertical: 6,
-          borderRadius: 16,
-          backgroundColor:
-            activeCategory === item.key
-              ? palette.roseQuartzDim
-              : palette.glassLow,
-        }}
-      >
-        <Text
-          style={{
-            fontFamily: typography.bodyMedium,
-            fontSize: 12,
-            color:
-              activeCategory === item.key
-                ? palette.starlight
-                : palette.starlightDim,
-          }}
-        >
-          {item.label}
-        </Text>
-      </AnimatedPressable>
-    ),
-    [activeCategory],
   );
 
   return (
@@ -356,7 +194,89 @@ export default function IntegrationsScreen() {
           data={connections}
           keyExtractor={(item) => item._id}
           contentContainerStyle={{ padding: spacing.md }}
-          renderItem={renderConnectionItem}
+          renderItem={({ item }) => {
+            const statusColor =
+              STATUS_COLORS[item.status] || palette.starlightDim;
+            const isActive = item.status === "active";
+            return (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: palette.glassLow,
+                  borderRadius: 12,
+                  padding: spacing.md,
+                  marginBottom: spacing.sm,
+                  gap: spacing.sm,
+                }}
+              >
+                <Link2 size={20} color={palette.starlightDim} />
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontFamily: typography.bodyMedium,
+                      fontSize: 14,
+                      color: palette.starlight,
+                    }}
+                  >
+                    {item.integrationName || item.integrationId}
+                  </Text>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: spacing.xs,
+                      marginTop: 2,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: 3,
+                        backgroundColor: statusColor,
+                      }}
+                    />
+                    <Text
+                      style={{
+                        fontFamily: typography.body,
+                        fontSize: 11,
+                        color: palette.starlightDim,
+                      }}
+                    >
+                      {item.status}
+                    </Text>
+                  </View>
+                </View>
+                {isActive ? (
+                  <AnimatedPressable
+                    onPress={() =>
+                      handleDisconnect(
+                        item.integrationId,
+                        item.integrationName || item.integrationId,
+                      )
+                    }
+                  >
+                    <Unlink size={18} color={palette.error} />
+                  </AnimatedPressable>
+                ) : (
+                  <AnimatedPressable
+                    onPress={() => handleConnect(item.integrationId)}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: typography.bodyMedium,
+                        fontSize: 12,
+                        color: palette.roseQuartz,
+                      }}
+                    >
+                      {item.status === "expired" ? "Reconnect" : "Connect"}
+                    </Text>
+                  </AnimatedPressable>
+                )}
+              </View>
+            );
+          }}
         />
       )}
 
@@ -428,7 +348,36 @@ export default function IntegrationsScreen() {
               keyExtractor={(item) => item.key}
               style={{ marginBottom: spacing.md }}
               contentContainerStyle={{ gap: spacing.xs }}
-              renderItem={renderCategoryItem}
+              renderItem={({ item }) => (
+                <AnimatedPressable
+                  onPress={() => {
+                    haptic.selection();
+                    setActiveCategory(item.key);
+                  }}
+                  style={{
+                    paddingHorizontal: spacing.sm,
+                    paddingVertical: 6,
+                    borderRadius: 16,
+                    backgroundColor:
+                      activeCategory === item.key
+                        ? palette.roseQuartzDim
+                        : palette.glassLow,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: typography.bodyMedium,
+                      fontSize: 12,
+                      color:
+                        activeCategory === item.key
+                          ? palette.starlight
+                          : palette.starlightDim,
+                    }}
+                  >
+                    {item.label}
+                  </Text>
+                </AnimatedPressable>
+              )}
             />
 
             {/* Integration list */}

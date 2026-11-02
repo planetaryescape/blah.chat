@@ -1,5 +1,7 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import { useAction } from "convex/react";
 import {
   AlertTriangle,
   ExternalLink,
@@ -18,33 +20,30 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useBYOD } from "@/lib/hooks/queries/useBYODConfig";
 
 interface ConnectionBlockerProps {
   children: React.ReactNode;
 }
 
+/**
+ * Wraps app content and blocks UI when BYOD connection fails.
+ * This protects data integrity by preventing operations when user's DB is unreachable.
+ */
 export function ConnectionBlocker({ children }: ConnectionBlockerProps) {
-  const { isEnabled, isLoading, config, error, mutate } = useBYOD();
+  const { isEnabled, isLoading, config, error } = useBYOD();
+  const [isRetrying, setIsRetrying] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
-  const { run: handleRetry, isPending: isRetrying } = useAsyncAction(
-    async () => {
-      await fetch("/api/v1/byod/test", { method: "POST" });
-      mutate();
-      setRetryCount((c) => c + 1);
-    },
-    {
-      // Error handled via mutate re-fetch
-      onError: () => {},
-    },
-  );
+  // @ts-ignore - Type depth exceeded with complex Convex action (94+ modules)
+  const testConnection = useAction(api.byod.testConnection.testConnection);
 
+  // If BYOD not enabled, just render children (using main DB)
   if (!isEnabled && !isLoading) {
     return <>{children}</>;
   }
 
+  // If loading BYOD config, show loading state
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -58,12 +57,28 @@ export function ConnectionBlocker({ children }: ConnectionBlockerProps) {
     );
   }
 
-  if (
-    config?.connectionStatus === "connected" ||
-    config?.connectionStatus === "pending"
-  ) {
+  // If connected, render children normally
+  if (config?.connectionStatus === "connected") {
     return <>{children}</>;
   }
+
+  // If pending (setup in progress), render children
+  if (config?.connectionStatus === "pending") {
+    return <>{children}</>;
+  }
+
+  // Connection error or disconnected - block UI
+  const handleRetry = async () => {
+    setIsRetrying(true);
+    try {
+      await testConnection({});
+      setRetryCount((c) => c + 1);
+    } catch (err) {
+      console.error("Retry failed:", err);
+    } finally {
+      setIsRetrying(false);
+    }
+  };
 
   return (
     <div className="flex items-center justify-center min-h-screen p-4">
@@ -74,7 +89,7 @@ export function ConnectionBlocker({ children }: ConnectionBlockerProps) {
             <CardTitle>Database Connection Error</CardTitle>
           </div>
           <CardDescription>
-            Unable to connect to your Neon database. The app is blocked to
+            Unable to connect to your Convex database. The app is blocked to
             protect your data.
           </CardDescription>
         </CardHeader>
@@ -88,10 +103,10 @@ export function ConnectionBlocker({ children }: ConnectionBlockerProps) {
           <div className="rounded-lg bg-muted p-4 space-y-2">
             <p className="text-sm font-medium">Possible causes:</p>
             <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
-              <li>Your Neon project is suspended or deleted</li>
-              <li>Connection string credentials changed</li>
+              <li>Your Convex project is paused or deleted</li>
+              <li>Deploy key has expired or been revoked</li>
               <li>Network connectivity issues</li>
-              <li>Neon service outage</li>
+              <li>Convex service outage</li>
             </ul>
           </div>
 
@@ -118,20 +133,20 @@ export function ConnectionBlocker({ children }: ConnectionBlockerProps) {
 
             <Button variant="ghost" asChild className="w-full">
               <a
-                href="https://console.neon.tech"
+                href="https://dashboard.convex.dev"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
-                Neon Console
+                Convex Dashboard
               </a>
             </Button>
           </div>
 
           {retryCount > 2 && (
             <p className="text-xs text-muted-foreground text-center">
-              Still having issues? Try updating your connection string in
-              Settings.
+              Still having issues? Try updating your credentials in Settings or
+              contact support.
             </p>
           )}
         </CardContent>

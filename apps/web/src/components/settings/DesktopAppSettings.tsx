@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { useAsyncAction } from "@/hooks/useAsyncAction";
 import {
   checkDesktopUpdate,
   type DesktopUpdateStatus,
@@ -27,6 +26,10 @@ import {
 
 export function DesktopAppSettings() {
   const defaults = useMemo(() => getDesktopSettingsDefaults(), []);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [isInstallingUpdate, setIsInstallingUpdate] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<DesktopUpdateStatus | null>(
     null,
   );
@@ -51,35 +54,36 @@ export function DesktopAppSettings() {
     defaults.companionAlwaysOnTop,
   );
 
-  const { run: load, isPending: isLoading } = useAsyncAction(
-    async () => {
-      if (!isDesktopShell()) return;
+  const load = useCallback(async () => {
+    if (!isDesktopShell()) return;
+    setIsLoading(true);
+    try {
       const settings = await getDesktopSettings();
       if (!settings) return;
       setCompanionEnabled(settings.companionEnabled);
       setCompanionShortcut(settings.companionShortcut);
       setCompanionAlwaysOnTop(settings.companionAlwaysOnTop);
-    },
-    {
-      onError: (error) => {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Failed to load desktop settings";
-        toast.error(message);
-      },
-    },
-  );
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to load desktop settings";
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const { run: refreshUpdateStatus, isPending: isCheckingUpdate } =
-    useAsyncAction(
-      async (force: boolean, notify: boolean) => {
-        if (!isDesktopShell()) return;
+  const refreshUpdateStatus = useCallback(
+    async (force: boolean, notify: boolean) => {
+      if (!isDesktopShell()) return;
 
+      setIsCheckingUpdate(true);
+      try {
         const status = await checkDesktopUpdate(force);
         setUpdateStatus(status);
 
@@ -101,31 +105,33 @@ export function DesktopAppSettings() {
         }
 
         toast.success("Desktop app is up to date");
-      },
-      {
-        onError: (error) => {
-          const message =
-            error instanceof Error
-              ? error.message
-              : "Failed to check for updates";
-          toast.error(message);
-        },
-      },
-    );
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to check for updates";
+        toast.error(message);
+      } finally {
+        setIsCheckingUpdate(false);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     void refreshUpdateStatus(false, false);
   }, [refreshUpdateStatus]);
 
-  const onReset = useCallback(() => {
+  const onReset = useCallback(async () => {
     setCompanionEnabled(defaults.companionEnabled);
     setCompanionShortcut(defaults.companionShortcut);
     setCompanionAlwaysOnTop(defaults.companionAlwaysOnTop);
   }, [defaults]);
 
-  const { run: onSave, isPending: isSaving } = useAsyncAction(
-    async () => {
-      if (!isDesktopShell()) return;
+  const onSave = useCallback(async () => {
+    if (!isDesktopShell()) return;
+    setIsSaving(true);
+    try {
       const result = await setDesktopSettings({
         companionEnabled,
         companionShortcut,
@@ -137,38 +143,36 @@ export function DesktopAppSettings() {
         setCompanionAlwaysOnTop(result.companionAlwaysOnTop);
       }
       toast.success("Desktop settings saved");
-    },
-    {
-      onError: (error) => {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Failed to save desktop settings";
-        toast.error(message);
-      },
-    },
-  );
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to save desktop settings";
+      toast.error(message);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [companionAlwaysOnTop, companionEnabled, companionShortcut]);
 
-  const { run: onInstallUpdate, isPending: isInstallingUpdate } =
-    useAsyncAction(
-      async () => {
-        if (!isDesktopShell()) return;
-        const started = await installDesktopUpdate();
-        if (!started) {
-          toast.info("No update available");
-          await refreshUpdateStatus(true, false);
-          return;
-        }
-        toast.success("Installing update and restarting...");
-      },
-      {
-        onError: (error) => {
-          const message =
-            error instanceof Error ? error.message : "Failed to install update";
-          toast.error(message);
-        },
-      },
-    );
+  const onInstallUpdate = useCallback(async () => {
+    if (!isDesktopShell()) return;
+    setIsInstallingUpdate(true);
+    try {
+      const started = await installDesktopUpdate();
+      if (!started) {
+        toast.info("No update available");
+        await refreshUpdateStatus(true, false);
+        return;
+      }
+      toast.success("Installing update and restarting...");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to install update";
+      toast.error(message);
+    } finally {
+      setIsInstallingUpdate(false);
+    }
+  }, [refreshUpdateStatus]);
 
   return (
     <Card>

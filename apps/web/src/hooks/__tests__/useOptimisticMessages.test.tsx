@@ -1,15 +1,18 @@
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { OptimisticMessage } from "@/types/optimistic";
 import { useOptimisticMessages } from "../useOptimisticMessages";
 
-function createServerMessage(overrides: Partial<any> = {}): any {
+function createServerMessage(
+  overrides: Partial<Doc<"messages">> = {},
+): Doc<"messages"> {
   const now = Date.now();
   return {
-    _id: `msg-${crypto.randomUUID()}` as string,
+    _id: `msg-${crypto.randomUUID()}` as Id<"messages">,
     _creationTime: now,
-    conversationId: "conv-1" as string,
-    userId: "user-1" as string,
+    conversationId: "conv-1" as Id<"conversations">,
+    userId: "user-1" as Id<"users">,
     role: "user",
     content: "Test message",
     status: "complete",
@@ -23,13 +26,13 @@ describe("useOptimisticMessages", () => {
   it("orders user before assistant when createdAt timestamps tie", () => {
     const timestamp = 1_700_000_000_000;
     const userMessage = createServerMessage({
-      _id: "msg-user" as string,
+      _id: "msg-user" as Id<"messages">,
       role: "user",
       createdAt: timestamp,
       content: "Hello",
     });
     const assistantMessage = createServerMessage({
-      _id: "msg-assistant" as string,
+      _id: "msg-assistant" as Id<"messages">,
       role: "assistant",
       status: "pending",
       createdAt: timestamp,
@@ -42,7 +45,7 @@ describe("useOptimisticMessages", () => {
     const serverMessages = [assistantMessage, userMessage];
 
     const { result } = renderHook(() =>
-      useOptimisticMessages({ serverMessages, conversationId: "conv-1" }),
+      useOptimisticMessages({ serverMessages }),
     );
 
     expect(result.current.messages?.map((m) => m.role)).toEqual([
@@ -55,8 +58,8 @@ describe("useOptimisticMessages", () => {
     const timestamp = 1_700_000_100_000;
     const optimisticUserMessage: OptimisticMessage = {
       _id: "temp-user-1",
-      conversationId: "conv-1" as string,
-      userId: "user-1" as string,
+      conversationId: "conv-1" as Id<"conversations">,
+      userId: "user-1" as Id<"users">,
       role: "user",
       content: "Skew test",
       status: "optimistic",
@@ -67,9 +70,8 @@ describe("useOptimisticMessages", () => {
     };
 
     const { result, rerender } = renderHook(
-      ({ serverMessages }) =>
-        useOptimisticMessages({ serverMessages, conversationId: "conv-1" }),
-      { initialProps: { serverMessages: [] as any[] } },
+      ({ serverMessages }) => useOptimisticMessages({ serverMessages }),
+      { initialProps: { serverMessages: [] as Doc<"messages">[] } },
     );
 
     act(() => {
@@ -77,14 +79,14 @@ describe("useOptimisticMessages", () => {
     });
 
     const serverUserMessage = createServerMessage({
-      _id: "msg-server-user" as string,
+      _id: "msg-server-user" as Id<"messages">,
       role: "user",
       content: "Skew test",
       // Server slightly behind optimistic timestamp (clock skew)
       createdAt: timestamp - 500,
     });
     const serverAssistantMessage = createServerMessage({
-      _id: "msg-server-assistant" as string,
+      _id: "msg-server-assistant" as Id<"messages">,
       role: "assistant",
       status: "pending",
       content: "",
@@ -111,8 +113,8 @@ describe("useOptimisticMessages", () => {
     const timestamp = 1_700_000_200_000;
     const optimisticUserMessage: OptimisticMessage = {
       _id: "temp-user-client-id",
-      conversationId: "conv-1" as string,
-      userId: "user-1" as string,
+      conversationId: "conv-1" as Id<"conversations">,
+      userId: "user-1" as Id<"users">,
       role: "user",
       content: "Client id test",
       clientMessageId: "client-123",
@@ -124,9 +126,8 @@ describe("useOptimisticMessages", () => {
     };
 
     const { result, rerender } = renderHook(
-      ({ serverMessages }) =>
-        useOptimisticMessages({ serverMessages, conversationId: "conv-1" }),
-      { initialProps: { serverMessages: [] as any[] } },
+      ({ serverMessages }) => useOptimisticMessages({ serverMessages }),
+      { initialProps: { serverMessages: [] as Doc<"messages">[] } },
     );
 
     act(() => {
@@ -134,14 +135,14 @@ describe("useOptimisticMessages", () => {
     });
 
     const serverUserMessage = createServerMessage({
-      _id: "msg-server-client-id" as string,
+      _id: "msg-server-client-id" as Id<"messages">,
       role: "user",
       content: "Client id test",
       clientMessageId: "client-123",
       createdAt: timestamp + 60_000,
     });
     const serverAssistantMessage = createServerMessage({
-      _id: "msg-server-assistant-client-id" as string,
+      _id: "msg-server-assistant-client-id" as Id<"messages">,
       role: "assistant",
       status: "pending",
       content: "",
@@ -161,74 +162,5 @@ describe("useOptimisticMessages", () => {
     expect(
       result.current.messages?.some((m) => String(m._id).startsWith("temp-")),
     ).toBe(false);
-  });
-
-  it("does not leak optimistic messages into another conversation", () => {
-    const timestamp = 1_700_000_300_000;
-    const optimisticUserMessage: OptimisticMessage = {
-      _id: "temp-user-leak",
-      conversationId: "conv-1" as string,
-      userId: "user-1" as string,
-      role: "user",
-      content: "Leak test",
-      status: "optimistic",
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      _creationTime: timestamp,
-      _optimistic: true,
-    };
-
-    const { result, rerender } = renderHook(
-      ({ serverMessages, conversationId }) =>
-        useOptimisticMessages({ serverMessages, conversationId }),
-      {
-        initialProps: {
-          // New/empty conversation: no server messages to derive an id from.
-          serverMessages: [] as any[],
-          conversationId: "conv-1" as string | undefined,
-        },
-      },
-    );
-
-    act(() => {
-      result.current.addOptimisticMessages([optimisticUserMessage]);
-    });
-    expect(result.current.messages?.map((m) => m._id)).toEqual([
-      "temp-user-leak",
-    ]);
-
-    // Switch to another (also empty) conversation.
-    rerender({ serverMessages: [] as any[], conversationId: "conv-2" });
-
-    expect(result.current.messages).toEqual([]);
-  });
-
-  it("filters optimistic messages stamped for a different conversation", () => {
-    const timestamp = 1_700_000_400_000;
-    const foreignOptimistic: OptimisticMessage = {
-      _id: "temp-user-foreign",
-      conversationId: "conv-other" as string,
-      userId: "user-1" as string,
-      role: "user",
-      content: "Wrong conversation",
-      status: "optimistic",
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      _creationTime: timestamp,
-      _optimistic: true,
-    };
-
-    const { result } = renderHook(() =>
-      useOptimisticMessages({
-        serverMessages: [] as any[],
-        conversationId: "conv-1",
-      }),
-    );
-
-    act(() => {
-      result.current.addOptimisticMessages([foreignOptimistic]);
-    });
-
-    expect(result.current.messages).toEqual([]);
   });
 });

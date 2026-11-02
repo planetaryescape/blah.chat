@@ -1,8 +1,4 @@
 import {
-  computeModelMetrics,
-  getBenchmarkScores,
-} from "@blah-chat/ai/benchmarks";
-import {
   Brain,
   Code,
   DollarSign,
@@ -12,6 +8,7 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
+import { computeModelMetrics, getBenchmarkScores } from "./benchmarks";
 import type { ModelConfig } from "./models";
 import type { ModelCategory } from "./types";
 

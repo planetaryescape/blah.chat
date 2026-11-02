@@ -13,20 +13,7 @@ export {
 } from "./core";
 export { type EmbeddingProvider, singleToProvider } from "./embedding";
 export { SEED_EXAMPLES } from "./examples";
-export {
-  type ExplorationOptions,
-  type ExplorationResult,
-  explore,
-} from "./exploration";
 export { runHardRules } from "./hard-rules";
-export {
-  buildComparisonStats,
-  buildLatestHealthMap,
-  buildOutcomeStats,
-  scoreCandidate,
-  scoreCandidates,
-  selectCandidate,
-} from "./policy-engine";
 export {
   type HighStakesDomain,
   MODEL_CONFIG,
@@ -41,7 +28,6 @@ export {
 } from "./profiles";
 export {
   buildClassificationPrompt,
-  buildFallbackTiebreakPrompt,
   type PreviousModelContext,
   ROUTER_CLASSIFICATION_PROMPT,
   ROUTER_REASONING_TEMPLATE,
@@ -57,7 +43,6 @@ export {
 export {
   type ClassifyInput,
   createRouter,
-  type LlmFallbackFn,
   type RouteInput,
   type Router,
   type RouterConfig,
@@ -65,37 +50,15 @@ export {
   type SelectModelResult,
 } from "./router";
 export {
-  adjustExplorationRate,
-  evaluateShadowDecisions,
-  type ModelHistoricalStats,
-  type ShadowDecisionInput,
-  type ShadowEvaluation,
-  type ShadowModelSummary,
-  summarizeShadowPerformance,
-} from "./shadow-evaluator";
-export {
-  type CandidateFeatures,
-  type CandidateInput,
   type ClassifierConfig,
   type ClassifierResult,
   type ClassifierRouterResult,
-  type ComparisonStats,
   DEFAULT_CLASSIFIER_CONFIG,
-  DEFAULT_POLICY_WEIGHTS,
   type DecisionTrace,
   type ModelBin,
-  type OutcomeStats,
-  type PolicyEngineResult,
-  type PolicyWeights,
-  type ProviderHealth,
-  type ProviderHealthStatus,
   ROUTE_LABELS,
   ROUTER_MODES,
   type RouteLabel,
   type RouterMode,
   type RoutingExample,
-  type ScoreComponent,
-  type ScoredCandidate,
-  type ScoreExplanation,
-  type ScoringContext,
 } from "./types";

@@ -1,18 +1,20 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useAction, useMutation } from "convex/react";
 import { Archive, Bookmark, Copy, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useSDKClient } from "@/lib/api/sdkClient";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 interface BulkActionToolbarProps {
   selectedCount: number;
   selectedMessages: Array<{
-    _id: string;
-    conversationId: string;
+    _id: Id<"messages">;
+    conversationId: Id<"conversations">;
     content: string;
     role: "user" | "assistant" | "system";
   }>;
@@ -26,7 +28,9 @@ export function BulkActionToolbar({
   onClearSelection,
   onActionComplete,
 }: BulkActionToolbarProps) {
-  const sdk = useSDKClient();
+  const deleteConversations = useAction(api.conversations.bulk.bulkDelete);
+  const archiveConversations = useMutation(api.conversations.bulkArchive);
+  const createBookmarks = useMutation(api.bookmarks.bulkCreate);
 
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -36,9 +40,7 @@ export function BulkActionToolbar({
   // Group messages by conversation
   const conversationIds = useMemo(
     () =>
-      Array.from(
-        new Set(selectedMessages.map((message) => message.conversationId)),
-      ),
+      Array.from(new Set(selectedMessages.map((m: any) => m.conversationId))),
     [selectedMessages],
   );
 
@@ -48,73 +50,58 @@ export function BulkActionToolbar({
 
   const confirmDelete = async () => {
     setIsDeleting(true);
-    return Promise.all(
-      conversationIds.map((conversationId) =>
-        sdk.deleteConversation(conversationId),
-      ),
-    )
-      .then(() => {
-        // Clear drafts for all deleted conversations
-        for (const id of conversationIds) {
-          sessionStorage.removeItem(`draft-${id}`);
-        }
-        toast.success(`Deleted ${conversationIds.length} conversation(s)`);
-        onActionComplete();
-        onClearSelection();
-      })
-      .catch((error) => {
-        toast.error("Failed to delete conversations");
-        console.error(error);
-      })
-      .finally(() => {
-        setIsDeleting(false);
-        setShowDeleteDialog(false);
-      });
+    try {
+      await deleteConversations({ conversationIds });
+      // Clear drafts for all deleted conversations
+      for (const id of conversationIds) {
+        sessionStorage.removeItem(`draft-${id}`);
+      }
+      toast.success(`Deleted ${conversationIds.length} conversation(s)`);
+      onActionComplete();
+      onClearSelection();
+    } catch (error) {
+      toast.error("Failed to delete conversations");
+      console.error(error);
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
   };
 
   const handleArchive = async () => {
     setIsArchiving(true);
-    return Promise.all(
-      conversationIds.map((conversationId) =>
-        sdk.archiveConversation(conversationId),
-      ),
-    )
-      .then(() => {
-        toast.success(`Archived ${conversationIds.length} conversation(s)`);
-        onActionComplete();
-        onClearSelection();
-      })
-      .catch((error) => {
-        toast.error("Failed to archive conversations");
-        console.error(error);
-      })
-      .finally(() => {
-        setIsArchiving(false);
-      });
+    try {
+      await archiveConversations({ conversationIds });
+      toast.success(`Archived ${conversationIds.length} conversation(s)`);
+      onActionComplete();
+      onClearSelection();
+    } catch (error) {
+      toast.error("Failed to archive conversations");
+      console.error(error);
+    } finally {
+      setIsArchiving(false);
+    }
   };
 
   const handleBookmark = async () => {
     setIsBookmarking(true);
-    return sdk
-      .bulkCreateBookmarks({
-        messageIds: selectedMessages.map((message) => message._id),
-      })
-      .then((result) => {
-        toast.success(`Bookmarked ${result.bookmarkedCount} message(s)`);
-        onClearSelection();
-      })
-      .catch((error) => {
-        toast.error("Failed to bookmark messages");
-        console.error(error);
-      })
-      .finally(() => {
-        setIsBookmarking(false);
+    try {
+      const result = await createBookmarks({
+        messageIds: selectedMessages.map((m: any) => m._id),
       });
+      toast.success(`Bookmarked ${result.bookmarkedCount} message(s)`);
+      onClearSelection();
+    } catch (error) {
+      toast.error("Failed to bookmark messages");
+      console.error(error);
+    } finally {
+      setIsBookmarking(false);
+    }
   };
 
   const handleCopy = () => {
     const text = selectedMessages
-      .map((message) => `[${message.role}] ${message.content}`)
+      .map((m: any) => `[${m.role}] ${m.content}`)
       .join("\n\n---\n\n");
     navigator.clipboard.writeText(text);
     toast.success(`Copied ${selectedCount} message(s) to clipboard`);

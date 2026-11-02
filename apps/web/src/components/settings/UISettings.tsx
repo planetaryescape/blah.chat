@@ -1,5 +1,7 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import { useMutation } from "convex/react";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -20,7 +22,6 @@ import {
   ComparisonSettingsSection,
   DisplayLayoutSection,
   MessageBehaviorSection,
-  NotificationChimesSection,
   ReasoningDisplaySection,
   SidebarFeaturesSection,
   StatisticsSection,
@@ -46,8 +47,6 @@ const SETTING_TO_SECTION: Record<string, string> = {
   alwaysShowMessageActions: "messages",
   autoCompressContext: "messages",
   hapticFeedbackEnabled: "messages",
-  notificationChimesEnabled: "audio-feedback",
-  notificationChimeSounds: "audio-feedback",
   // Reasoning
   showByDefault: "reasoning",
   autoExpand: "reasoning",
@@ -71,7 +70,6 @@ const DEFAULT_EXPANDED = [
   "display",
   "stats",
   "messages",
-  "audio-feedback",
   "reasoning",
   "comparison",
   "sidebar-features",
@@ -86,6 +84,9 @@ interface UISettingsProps {
 
 export function UISettings({ focusSettingKey }: UISettingsProps) {
   const { state, handlers, isLoading } = useUISettingsState();
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const resetOnboarding = useMutation(api.onboarding.resetOnboarding);
+
   // Controlled accordion state for deep linking
   const [expandedSections, setExpandedSections] =
     useState<string[]>(DEFAULT_EXPANDED);
@@ -168,13 +169,6 @@ export function UISettings({ focusSettingKey }: UISettingsProps) {
             onHapticFeedbackChange={handlers.handleHapticFeedbackChange}
           />
 
-          <NotificationChimesSection
-            enabled={state.notificationChimesEnabled}
-            sounds={state.notificationChimeSounds}
-            onEnabledChange={handlers.handleNotificationChimesEnabledChange}
-            onSoundChange={handlers.handleNotificationChimeSoundChange}
-          />
-
           <ReasoningDisplaySection
             showByDefault={state.showByDefault}
             autoExpand={state.autoExpand}
@@ -250,7 +244,7 @@ export function UISettings({ focusSettingKey }: UISettingsProps) {
             variant="outline"
             onClick={async () => {
               try {
-                await fetch("/api/v1/onboarding/reset", { method: "POST" });
+                await resetOnboarding();
                 toast.success("Tour reset! Reload to see it again.");
                 setTimeout(() => {
                   window.location.reload();

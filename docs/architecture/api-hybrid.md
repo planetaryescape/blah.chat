@@ -1,9 +1,5 @@
 # API Architecture Guide
 
-> **Historical (Convex era).** The app now runs on Postgres + Drizzle (packages/persistence-postgres) with Trigger.dev jobs (packages/jobs). Kept for design rationale; file paths and code samples below no longer apply.
-
-**Current transport**: All clients (web and mobile) use the REST API plus SSE. Generation runs server-side via Trigger.dev tasks, with clients attaching to a live SSE stream that survives refresh and supports reconnect/resume. There is no WebSocket reactive layer anymore.
-
 > **Documentation for Future Maintainers**
 >
 > This document captures the design philosophy, architectural decisions, and implementation patterns for blah.chat's hybrid API layer. Read this to understand **why** the system works this way and **how to extend** it without breaking core principles.
@@ -901,7 +897,7 @@ posthog.capture("api_error", {
 **Architecture**:
 - `docs/API_ARCHITECTURE.md` (this file) - Design philosophy
 - `docs/SCHEMA_NORMALIZATION_GUIDE.md` - DB design patterns
-- `AGENTS.md` - Project conventions + API patterns
+- `CLAUDE.md` - Project conventions + API patterns
 
 **Implementation**:
 - `src/lib/api/dal/*` - Data access layer (start here)

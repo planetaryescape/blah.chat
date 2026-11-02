@@ -6,8 +6,9 @@
 
 import type { ModelConfig } from "@blah-chat/ai/models";
 import type { ReasoningConfig } from "@blah-chat/ai/reasoning";
+import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 
-type DbModel = any;
+type DbModel = Doc<"models">;
 
 /**
  * Safely parse JSON with fallback to undefined
@@ -52,7 +53,6 @@ export function dbToModelConfig(dbModel: DbModel): ModelConfig {
     speedTier: dbModel.speedTier as ModelConfig["speedTier"],
     isPro: dbModel.isPro,
     isInternalOnly: dbModel.isInternalOnly,
-    isDeprecated: dbModel.status === "deprecated",
   };
 }
 
@@ -98,7 +98,7 @@ export function modelConfigToDb(
     speedTier: config.speedTier as DbModel["speedTier"],
     isPro: config.isPro,
     isInternalOnly: config.isInternalOnly,
-    status: config.isDeprecated ? "deprecated" : "active",
+    status: "active",
   };
 }
 

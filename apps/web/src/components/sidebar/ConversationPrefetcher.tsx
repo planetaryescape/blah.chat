@@ -1,116 +1,42 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { usePaginatedQuery, useQuery } from "convex-helpers/react/cache";
 import { useEffect } from "react";
-import {
-  type PrefetchableRow,
-  prefetchConversationIntoCache,
-  prefetchMessagesIntoCache,
-} from "@/lib/cache";
-
-function extractConversation(payload: unknown): PrefetchableRow | undefined {
-  if (
-    payload &&
-    typeof payload === "object" &&
-    "data" in payload &&
-    payload.data
-  ) {
-    return payload.data as PrefetchableRow;
-  }
-
-  return undefined;
-}
-
-function extractMessages(payload: unknown): PrefetchableRow[] {
-  if (!Array.isArray(payload)) {
-    return [];
-  }
-
-  return payload.flatMap((item) =>
-    item && typeof item === "object" && "data" in item && item.data
-      ? [item.data as PrefetchableRow]
-      : [],
-  );
-}
+import { cache } from "@/lib/cache";
 
 /**
- * Best-effort REST prefetch to warm the local cache ahead of navigation.
- * Writes go through the prefetch merge guards so a stale snapshot can never
- * clobber rows the active sync already streamed or persisted.
+ * Invisible component that mounts Convex subscriptions to warm the cache.
+ * ConvexQueryCacheProvider keeps subscriptions alive for 60s after unmount,
+ * so the data will be ready when the user navigates to the conversation.
+ * Also syncs messages to Dexie for instant local access.
  */
 export function ConversationPrefetcher({
   conversationId,
 }: {
-  conversationId: string;
+  conversationId: Id<"conversations">;
 }) {
-  const params = useParams<{ conversationId?: string }>();
-  const activeConversationId = params?.conversationId;
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  useQuery(
+    // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+    api.conversations.get,
+    { conversationId },
+  );
 
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const { results } = usePaginatedQuery(
+    api.messages.listPaginated,
+    { conversationId },
+    { initialNumItems: 50 },
+  );
+
+  // Sync prefetched messages to Dexie for instant access
   useEffect(() => {
-    // The open conversation is owned by the live message sync; prefetching it
-    // is wasted work and risks racing the sync's writes.
-    if (conversationId === activeConversationId) {
-      return;
+    if (results?.length) {
+      cache.messages.bulkPut(results).catch(console.error);
     }
-
-    const controller = new AbortController();
-    let cancelled = false;
-
-    const prefetch = async () => {
-      try {
-        const [conversationResponse, messagesResponse] = await Promise.all([
-          fetch(`/api/v1/conversations/${conversationId}`, {
-            credentials: "include",
-            headers: {
-              Accept: "application/json",
-            },
-            signal: controller.signal,
-          }),
-          fetch(`/api/v1/conversations/${conversationId}/messages`, {
-            credentials: "include",
-            headers: {
-              Accept: "application/json",
-            },
-            signal: controller.signal,
-          }),
-        ]);
-
-        if (!conversationResponse.ok || !messagesResponse.ok || cancelled) {
-          return;
-        }
-
-        const [conversationPayload, messagesPayload] = await Promise.all([
-          conversationResponse.json(),
-          messagesResponse.json(),
-        ]);
-
-        if (cancelled) {
-          return;
-        }
-
-        const conversation = extractConversation(conversationPayload);
-        const messages = extractMessages(messagesPayload);
-
-        if (conversation) {
-          await prefetchConversationIntoCache(conversation);
-        }
-        if (messages.length > 0) {
-          await prefetchMessagesIntoCache(messages);
-        }
-      } catch (error) {
-        if (!controller.signal.aborted) {
-          console.error("Conversation prefetch failed:", error);
-        }
-      }
-    };
-
-    void prefetch();
-
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
-  }, [conversationId, activeConversationId]);
+  }, [results]);
 
   return null;
 }

@@ -1,22 +1,14 @@
 "use client";
 
-import { Loader2, Square } from "lucide-react";
+import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { forwardRef } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import type { OptimisticMessage } from "@/types/optimistic";
 import { MarkdownContent } from "./MarkdownContent";
 import { VotingControls } from "./VotingControls";
 
-type MessageWithUser = {
-  _id: string;
-  role: "user" | "assistant" | "system";
-  content: string;
-  partialContent?: string;
-  status: string;
-  model?: string;
-  inputTokens?: number;
-  outputTokens?: number;
-  cost?: number;
+type MessageWithUser = (Doc<"messages"> | OptimisticMessage) & {
+  senderUser?: { name?: string; imageUrl?: string } | null;
 };
 
 interface ComparisonPanelProps {
@@ -28,11 +20,6 @@ interface ComparisonPanelProps {
   isVoted?: boolean;
   hasVoted?: boolean;
   duration?: number | null;
-  showVoteControls?: boolean;
-  canStop?: boolean;
-  isStopping?: boolean;
-  onStop?: () => void;
-  stopLabel?: string;
 }
 
 export const ComparisonPanel = forwardRef<HTMLDivElement, ComparisonPanelProps>(
@@ -46,11 +33,6 @@ export const ComparisonPanel = forwardRef<HTMLDivElement, ComparisonPanelProps>(
       isVoted,
       hasVoted,
       duration,
-      showVoteControls,
-      canStop,
-      isStopping,
-      onStop,
-      stopLabel,
     },
     ref,
   ) => {
@@ -72,29 +54,11 @@ export const ComparisonPanel = forwardRef<HTMLDivElement, ComparisonPanelProps>(
       >
         {/* Header */}
         <div className="flex flex-col items-start gap-2 p-3 border-b bg-muted/30">
-          <div className="flex items-start justify-between gap-2 w-full">
-            <div>
-              {showModelName ? (
-                <Badge variant="secondary">{modelName}</Badge>
-              ) : (
-                <Badge variant="outline">Model {index + 1}</Badge>
-              )}
-            </div>
-            {(canStop || isStopping) && onStop && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={onStop}
-                disabled={isStopping}
-                aria-label={`Stop ${stopLabel || modelName || `model ${index + 1}`}`}
-                data-testid="comparison-stop-session"
-              >
-                {isStopping ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Square className="w-4 h-4 fill-current" />
-                )}
-              </Button>
+          <div>
+            {showModelName ? (
+              <Badge variant="secondary">{modelName}</Badge>
+            ) : (
+              <Badge variant="outline">Model {index + 1}</Badge>
             )}
           </div>
           {showStats && (
@@ -125,21 +89,21 @@ export const ComparisonPanel = forwardRef<HTMLDivElement, ComparisonPanelProps>(
             />
           ) : (
             <div className="flex gap-1 items-center h-6">
-              <span className="w-2 h-2 bg-primary/40 rounded-full animate-pulse" />
-              <span className="w-2 h-2 bg-primary/40 rounded-full animate-pulse delay-150" />
-              <span className="w-2 h-2 bg-primary/40 rounded-full animate-pulse delay-300" />
+              <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" />
+              <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce delay-150" />
+              <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce delay-300" />
             </div>
           )}
         </div>
 
         {/* Footer - Voting */}
-        {message.status === "complete" && showVoteControls && (
+        {message.status === "complete" && (
           <div className="p-3 border-t">
             <VotingControls
               onVote={onVote}
               isVoted={isVoted}
               hasVoted={hasVoted}
-              label="Choose winner"
+              label="This is better"
             />
           </div>
         )}

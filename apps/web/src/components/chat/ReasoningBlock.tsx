@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, m } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Brain, ChevronDown, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useUserPreference } from "@/hooks/useUserPreference";
@@ -95,7 +95,7 @@ export function ReasoningBlock({
       {/* Expanded reasoning */}
       <AnimatePresence>
         {isExpanded && displayReasoning && (
-          <m.div
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -125,7 +125,7 @@ export function ReasoningBlock({
                 </p>
               )}
             </div>
-          </m.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

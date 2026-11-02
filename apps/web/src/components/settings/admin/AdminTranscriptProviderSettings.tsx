@@ -1,6 +1,7 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 const TRANSCRIPT_PROVIDERS = [
   {
@@ -49,50 +49,21 @@ const TRANSCRIPT_PROVIDERS = [
   },
 ];
 
-function useAdminSettings() {
-  return useQuery({
-    queryKey: ["admin", "settings"],
-    queryFn: async () => {
-      const res = await fetch("/api/v1/admin/settings");
-      if (!res.ok) return null;
-      const json = await res.json();
-      return json.data ?? null;
-    },
-  });
-}
-
-function useUpdateAdminSettings() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (data: Record<string, any>) => {
-      const res = await fetch("/api/v1/admin/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed to save settings");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
-    },
-  });
-}
-
 export function AdminTranscriptProviderSettings() {
-  const { data: settings } = useAdminSettings();
-
-  const updateSettingsMutation = useUpdateAdminSettings();
+  // @ts-ignore - Type depth exceeded with complex Convex query (94+ modules)
+  const settings = useQuery(api.adminSettings.get);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
+  const updateSettings = useMutation(api.adminSettings.update);
 
   const [provider, setProvider] = useState("groq");
   const [costPerMinute, setCostPerMinute] = useState(0.0067);
+  const [saving, setSaving] = useState(false);
 
   // Load settings from query
   useEffect(() => {
-    const tp = settings?.transcriptProvider;
-    if (tp) {
-      setProvider(tp.provider ?? "groq");
-      setCostPerMinute(tp.costPerMinute ?? 0.0067);
+    if (settings) {
+      setProvider(settings.transcriptProvider ?? "groq");
+      setCostPerMinute(settings.transcriptCostPerMinute ?? 0.0067);
     }
   }, [settings]);
 
@@ -107,33 +78,31 @@ export function AdminTranscriptProviderSettings() {
     }
   };
 
-  const { run: handleSave, isPending: saving } = useAsyncAction(
-    async () => {
-      await updateSettingsMutation.mutateAsync({
-        transcriptProvider: {
-          provider,
-          costPerMinute,
-        },
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await updateSettings({
+        transcriptProvider: provider,
+        transcriptCostPerMinute: costPerMinute,
       });
       toast.success(
         `Transcript provider updated to ${TRANSCRIPT_PROVIDERS.find((p) => p.value === provider)?.label}`,
       );
-    },
-    {
-      onError: (error) => {
-        // Backend throws environment-aware errors (dev: specific key, prod: generic)
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "Failed to update transcript provider",
-        );
-      },
-    },
-  );
+    } catch (error) {
+      // Backend throws environment-aware errors (dev: specific key, prod: generic)
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to update transcript provider",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const hasChanges =
-    provider !== settings?.transcriptProvider?.provider ||
-    costPerMinute !== settings?.transcriptProvider?.costPerMinute;
+    provider !== settings?.transcriptProvider ||
+    costPerMinute !== settings?.transcriptCostPerMinute;
 
   if (!settings) {
     return (

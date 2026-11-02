@@ -1,5 +1,6 @@
 "use client";
 
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { Check, Copy, RefreshCw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useMediaQuery } from "usehooks-ts";
@@ -27,8 +28,8 @@ import { cn } from "@/lib/utils";
 import { MarkdownContent } from "./MarkdownContent";
 
 interface BranchComparisonSheetProps {
-  messageId: string;
-  conversationId: string;
+  messageId: Id<"messages">;
+  conversationId: Id<"conversations">;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -63,13 +64,13 @@ export function BranchComparisonSheet({
   const displayedSiblings = sortedSiblings.slice(0, 4);
   const hasMoreSiblings = sortedSiblings.length > 4;
 
-  const handleSelectBranch = async (targetId: string) => {
+  const handleSelectBranch = async (targetId: Id<"messages">) => {
     if (targetId === activeSiblingId) return;
     await switchToBranch(targetId);
     onOpenChange(false);
   };
 
-  const handleRegenerate = async (msgId: string) => {
+  const handleRegenerate = async (msgId: Id<"messages">) => {
     await regenerate(msgId);
     onOpenChange(false);
   };
@@ -263,9 +264,9 @@ function BranchPanel({
           />
         ) : (
           <div className="flex gap-1 items-center h-6">
-            <span className="w-2 h-2 bg-primary/40 rounded-full animate-pulse" />
-            <span className="w-2 h-2 bg-primary/40 rounded-full animate-pulse delay-150" />
-            <span className="w-2 h-2 bg-primary/40 rounded-full animate-pulse delay-300" />
+            <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" />
+            <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce delay-150" />
+            <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce delay-300" />
           </div>
         )}
       </div>

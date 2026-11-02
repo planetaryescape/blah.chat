@@ -1,19 +1,5 @@
-import { timingSafeEqual } from "node:crypto";
-import {
-  buildCodeExecutionObjectKey,
-  conversations,
-  uploadObject,
-} from "@blah-chat/persistence-postgres";
 import { auth } from "@clerk/nextjs/server";
-import { and, eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
-import { applyRateLimit, getLimiter } from "@/lib/api/rate-limit";
-import { ensureCurrentPersistenceUser } from "@/lib/persistence/current-user";
-import { getPersistenceDb } from "@/lib/persistence/server";
-import {
-  getPersistenceEnv,
-  getPersistenceR2Client,
-} from "@/lib/persistence/storage";
 
 // Types for E2B execution results
 interface E2BResult {
@@ -24,103 +10,23 @@ interface E2BResult {
   [key: string]: any;
 }
 
-function buildFileAccessUrl(storageId: string) {
-  return `/api/v1/files/${storageId
-    .split("/")
-    .map((segment) => encodeURIComponent(segment))
-    .join("/")}`;
-}
-
-function getImagePayload(result: E2BResult) {
-  if (result.png) {
-    return {
-      bytes: Buffer.from(result.png, "base64"),
-      contentType: "image/png",
-      fileName: "plot.png",
-    };
-  }
-
-  if (result.jpeg) {
-    return {
-      bytes: Buffer.from(result.jpeg, "base64"),
-      contentType: "image/jpeg",
-      fileName: "plot.jpg",
-    };
-  }
-
-  if (result.svg) {
-    return {
-      bytes: Buffer.from(result.svg),
-      contentType: "image/svg+xml",
-      fileName: "plot.svg",
-    };
-  }
-
-  return null;
-}
-
-function getBearerToken(request: NextRequest) {
-  const authorization = request.headers.get("Authorization");
-  if (!authorization?.startsWith("Bearer ")) {
-    return null;
-  }
-  return authorization.slice("Bearer ".length).trim();
-}
-
-function secretsMatch(candidate: string, expected: string) {
-  const candidateBuffer = Buffer.from(candidate);
-  const expectedBuffer = Buffer.from(expected);
-  return (
-    candidateBuffer.length === expectedBuffer.length &&
-    timingSafeEqual(candidateBuffer, expectedBuffer)
-  );
-}
-
-function isAuthorizedInternalCall(request: NextRequest) {
-  const token = getBearerToken(request);
-  if (!token) {
-    return false;
-  }
-
-  const expected = process.env.INTERNAL_TASK_SECRET;
-  return Boolean(expected && secretsMatch(token, expected));
-}
-
 /**
  * API Route for code execution using E2B
- * Standalone route to avoid ESM/CommonJS bundling conflicts
+ * This is outside Convex to avoid ESM/CommonJS bundling conflicts
  */
 export async function POST(request: NextRequest) {
-  const isInternalCall = isAuthorizedInternalCall(request);
-  let authenticatedUserId: string | null = null;
+  // Check for internal Convex call header or verify user authentication
+  const isInternalCall = request.headers.get("X-Convex-Internal") === "true";
 
   if (!isInternalCall) {
-    const { userId } = (await auth()) ?? {};
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    authenticatedUserId = userId;
-
-    const limiter = getLimiter({
-      prefix: "code-execution",
-      limit: 20,
-      window: "1 h",
-    });
-    if (limiter) {
-      const limited = await applyRateLimit(limiter, authenticatedUserId);
-      if (limited) return limited;
     }
   }
 
   try {
-    const {
-      code,
-      language,
-      timeout = 30,
-      userId: requestUserId,
-      conversationId,
-    } = await request.json();
+    const { code, language, timeout = 30 } = await request.json();
 
     if (!code || !language) {
       return NextResponse.json(
@@ -137,42 +43,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let effectiveUserId =
-      isInternalCall && typeof requestUserId === "string"
-        ? requestUserId
-        : null;
-
-    if (!isInternalCall && authenticatedUserId && conversationId) {
-      const user = await ensureCurrentPersistenceUser(authenticatedUserId);
-      effectiveUserId = user.id;
-    }
-
-    if (conversationId) {
-      if (!effectiveUserId) {
-        return NextResponse.json(
-          { error: "Missing userId for conversation-scoped execution" },
-          { status: 400 },
-        );
-      }
-
-      const conversation =
-        await getPersistenceDb().query.conversations.findFirst({
-          where: and(
-            eq(conversations.id, conversationId),
-            eq(conversations.userId, effectiveUserId),
-          ),
-        });
-
-      if (!conversation) {
-        return NextResponse.json(
-          { error: "Conversation not found" },
-          { status: 403 },
-        );
-      }
-    }
-
-    const persistenceEnv = getPersistenceEnv();
-    const r2 = getPersistenceR2Client();
+    // Get Convex site URL for storing images
+    const convexSiteUrl = process.env.NEXT_PUBLIC_CONVEX_URL?.replace(
+      ".cloud",
+      ".site",
+    );
 
     // Dynamic import E2B (works correctly in Next.js runtime)
     const { Sandbox } = await import("@e2b/code-interpreter");
@@ -198,28 +73,45 @@ export async function POST(request: NextRequest) {
       // E2B returns results array with display outputs (including plots)
       if (execution.results && Array.isArray(execution.results)) {
         for (const result of execution.results as E2BResult[]) {
-          const imagePayload = getImagePayload(result);
-          if (imagePayload && effectiveUserId && conversationId) {
+          // Check for PNG image (matplotlib plots)
+          if (result.png && convexSiteUrl) {
             try {
-              const storageId = buildCodeExecutionObjectKey({
-                userId: effectiveUserId,
-                conversationId,
-                fileName: imagePayload.fileName,
-              });
+              // Decode base64 to binary
+              const imageBuffer = Buffer.from(result.png, "base64");
 
-              await uploadObject({
-                client: r2,
-                bucket: persistenceEnv.r2.bucket,
-                key: storageId,
-                body: new Uint8Array(imagePayload.bytes),
-                contentType: imagePayload.contentType,
-                cacheControl: "private, max-age=31536000, immutable",
-              });
+              // Convert to Uint8Array for proper fetch body handling
+              const uint8Array = new Uint8Array(imageBuffer);
 
-              images.push({
-                storageId,
-                url: buildFileAccessUrl(storageId),
-              });
+              console.log(
+                "[CodeExecution] Uploading image, size:",
+                uint8Array.length,
+                "bytes",
+              );
+
+              // Store in Convex
+              const storeResponse = await fetch(
+                `${convexSiteUrl}/store-code-execution-image`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "image/png",
+                    "Content-Length": uint8Array.length.toString(),
+                    "X-Convex-Internal": "true",
+                  },
+                  body: uint8Array,
+                },
+              );
+
+              if (storeResponse.ok) {
+                const { url, storageId } = await storeResponse.json();
+                console.log("[CodeExecution] Image stored successfully:", url);
+                images.push({ url, storageId });
+              } else {
+                console.error(
+                  "[CodeExecution] Failed to store image:",
+                  await storeResponse.text(),
+                );
+              }
             } catch (imgError) {
               console.error("[CodeExecution] Image storage error:", imgError);
             }

@@ -81,9 +81,9 @@ export function KeyboardHelp({ open, onOpenChange }: KeyboardHelpProps) {
                   {category}
                 </h3>
                 <div className="space-y-2">
-                  {items.map((item) => (
+                  {items.map((item, i) => (
                     <div
-                      key={`${item.description}-${item.keys.join("+")}`}
+                      key={i}
                       className="flex items-center justify-between py-1.5"
                     >
                       <span className="text-sm">{item.description}</span>

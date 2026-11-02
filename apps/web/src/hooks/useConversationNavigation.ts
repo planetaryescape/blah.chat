@@ -1,11 +1,12 @@
 "use client";
 
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";
 
 interface UseConversationNavigationOptions {
-  conversationId: string | undefined;
-  filteredConversations: any[] | undefined;
+  conversationId: Id<"conversations"> | undefined;
+  filteredConversations: Doc<"conversations">[] | undefined;
 }
 
 interface UseConversationNavigationReturn {

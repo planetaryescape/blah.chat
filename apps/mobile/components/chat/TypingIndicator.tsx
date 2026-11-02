@@ -1,13 +1,38 @@
+import { useEffect } from "react";
 import { View } from "react-native";
-import Animated from "react-native-reanimated";
-import { usePulse } from "@/lib/hooks/animated/usePulse";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { palette, spacing } from "@/lib/theme/designSystem";
 
 const DOT_SIZE = 6;
 const DOT_GAP = 4;
 
 function Dot({ delay }: { delay: number }) {
-  const animatedStyle = usePulse({ min: 0.3, max: 1, duration: 400, delay });
+  const opacity = useSharedValue(0.3);
+
+  useEffect(() => {
+    opacity.value = withDelay(
+      delay,
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: 400 }),
+          withTiming(0.3, { duration: 400 }),
+        ),
+        -1,
+        false,
+      ),
+    );
+  }, [delay, opacity]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
 
   return (
     <Animated.View

@@ -1,7 +1,9 @@
 "use client";
 
-import { useAuth, useUser } from "@clerk/nextjs";
-import { redirect } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
+import { useConvexAuth } from "convex/react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import { AdminSidebar } from "@/components/sidebar/admin-sidebar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -11,13 +13,24 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isSignedIn, isLoaded: authLoaded } = useAuth();
+  const { isAuthenticated, isLoading } = useConvexAuth();
   const { user, isLoaded: userLoaded } = useUser();
   const isAdmin =
     (user?.publicMetadata as { isAdmin?: boolean })?.isAdmin === true;
-  const isLoading = !authLoaded || !userLoaded;
+  const router = useRouter();
 
-  if (isLoading) {
+  useEffect(() => {
+    if (isLoading || !userLoaded) return;
+    if (!isAuthenticated) {
+      router.push("/sign-in");
+      return;
+    }
+    if (!isAdmin) {
+      router.push("/");
+    }
+  }, [isAuthenticated, isLoading, userLoaded, isAdmin, router]);
+
+  if (isLoading || !userLoaded) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -25,12 +38,8 @@ export default function AdminLayout({
     );
   }
 
-  if (!isSignedIn) {
-    redirect("/sign-in");
-  }
-
-  if (!isAdmin) {
-    redirect("/");
+  if (!isAuthenticated || !isAdmin) {
+    return null;
   }
 
   return (

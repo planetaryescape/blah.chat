@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComposioConnection } from "@blah-chat/api-client";
+import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
   INTEGRATION_CATEGORIES,
   INTEGRATIONS,
@@ -50,6 +50,7 @@ import {
 import { useComposioOAuth } from "@/hooks/useComposioOAuth";
 import { cn } from "@/lib/utils";
 
+type ComposioConnection = Doc<"composioConnections">;
 type StatusFilter = "all" | "connected" | "needs_attention";
 
 export function ComposioSettings() {
@@ -131,18 +132,14 @@ export function ComposioSettings() {
     pendingConnections,
   ]);
 
-  // Handle connect — clear the connecting marker via the action body itself
-  // (success path) and via .catch (failure path) so we don't need an onError
-  // option that Codacy mis-reports as a 66-line method.
-  const handleConnect = (integrationId: string) => {
+  // Handle connect
+  const handleConnect = async (integrationId: string) => {
     setConnectingId(integrationId);
-    return connect(integrationId)
-      .catch((err) => {
-        console.error("connect failed", err);
-      })
-      .finally(() => {
-        setConnectingId(null);
-      });
+    try {
+      await connect(integrationId);
+    } finally {
+      setConnectingId(null);
+    }
   };
 
   // Handle disconnect/cancel

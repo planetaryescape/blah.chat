@@ -1,3 +1,5 @@
+import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
+
 interface ChatGPTMessage {
   id: string;
   author: {
@@ -20,7 +22,7 @@ interface ChatGPTConversation {
 }
 
 export function exportToChatGPTFormat(
-  conversations: Array<any & { messages: any[] }>,
+  conversations: Array<Doc<"conversations"> & { messages: Doc<"messages">[] }>,
 ): ChatGPTConversation[] {
   return conversations.map((conv: any) => {
     const mapping: Record<string, ChatGPTMessage> = {};

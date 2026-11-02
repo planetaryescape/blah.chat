@@ -1,11 +1,13 @@
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+
 /**
  * Optimistic message shown immediately when user sends message
  * Replaced by real server message when confirmed
  */
 export interface OptimisticMessage {
-  _id: string | `temp-${string}`; // Support both real IDs and temp IDs
-  conversationId: string;
-  userId?: string;
+  _id: Id<"messages"> | `temp-${string}`; // Support both real IDs and temp IDs
+  conversationId: Id<"conversations">;
+  userId?: Id<"users">;
   role: "user" | "assistant";
   content: string;
   clientMessageId?: string;
@@ -13,21 +15,16 @@ export interface OptimisticMessage {
   model?: string;
   attachments?: Array<{
     id: string;
-    type: "file" | "image" | "audio";
-    name: string;
-    mimeType: string;
-    size: number;
     file?: File;
     preview?: string;
-    url?: string;
-    storageId: string;
+    storageId?: Id<"_storage">;
     uploadStatus?: "pending" | "uploading" | "complete" | "error";
     _optimistic?: boolean;
   }>;
   comparisonGroupId?: string;
   createdAt: number;
   updatedAt: number;
-  _creationTime: number; // Legacy system field - set to match server messages
+  _creationTime: number; // Convex system field - set to match server messages
   _optimistic: true;
   // Optional fields from real messages (for type compatibility)
   partialContent?: string;
@@ -37,8 +34,8 @@ export interface OptimisticMessage {
   thinkingStartedAt?: number;
   thinkingCompletedAt?: number;
   error?: string;
-  parentMessageId?: string;
-  consolidatedMessageId?: string;
+  parentMessageId?: Id<"messages">;
+  consolidatedMessageId?: Id<"messages">;
   isConsolidation?: boolean;
   generationStartedAt?: number;
   generationCompletedAt?: number;
@@ -64,20 +61,13 @@ export interface FailedMessage extends OptimisticMessage {
  */
 export interface QueuedMessage {
   id: string;
-  conversationId: string;
+  conversationId: Id<"conversations">;
   content: string;
   modelId?: string;
   models?: string[];
-  parentMessageId?: string;
-  clientMessageId?: string;
-  thinkingEffort?: "none" | "low" | "medium" | "high";
   attachments?: Array<{
     id: string;
-    type: "file" | "image" | "audio";
-    name: string;
-    storageId: string;
-    mimeType: string;
-    size: number;
+    storageId: Id<"_storage">;
   }>;
   timestamp: number;
   retries: number;

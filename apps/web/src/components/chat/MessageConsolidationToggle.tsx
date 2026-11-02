@@ -1,27 +1,13 @@
 "use client";
 
+import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ComparisonView } from "./ComparisonView";
 
-type OriginalResponse = {
-  _id: string;
-  role: "user" | "assistant" | "system";
-  content: string;
-  partialContent?: string;
-  status: string;
-  model?: string;
-  comparisonGroupId?: string;
-  cost?: number;
-  inputTokens?: number;
-  outputTokens?: number;
-  generationCompletedAt?: number | null;
-  createdAt: number;
-};
-
 interface MessageConsolidationToggleProps {
-  originalResponses: OriginalResponse[];
+  originalResponses: Doc<"messages">[];
   showOriginals: boolean;
   onToggle: () => void;
 }
@@ -44,7 +30,6 @@ export function MessageConsolidationToggle({
         size="sm"
         onClick={onToggle}
         className="gap-2 text-xs"
-        data-testid="original-responses-toggle"
       >
         <ChevronDown
           className={cn(
@@ -66,7 +51,6 @@ export function MessageConsolidationToggle({
             onConsolidate={() => {}}
             onToggleModelNames={() => {}}
             hideConsolidateButton={true}
-            hideVoteControls={true}
           />
         </div>
       )}

@@ -1,11 +1,31 @@
-import { memo } from "react";
+import { memo, useEffect } from "react";
 import { View } from "react-native";
-import Reanimated from "react-native-reanimated";
-import { usePulse } from "@/lib/hooks/animated/usePulse";
+import Reanimated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { palette } from "@/lib/theme/designSystem";
 
 function StreamingCursorComponent() {
-  const animatedStyle = usePulse({ min: 0.3, max: 1, duration: 400 });
+  const opacity = useSharedValue(1);
+
+  useEffect(() => {
+    opacity.value = withRepeat(
+      withSequence(
+        withTiming(0.3, { duration: 400 }),
+        withTiming(1, { duration: 400 }),
+      ),
+      -1,
+      false,
+    );
+  }, [opacity]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
 
   return (
     <Reanimated.View

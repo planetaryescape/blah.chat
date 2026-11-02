@@ -29,7 +29,7 @@
     "@anthropic-ai/sdk": "^0.78.0",
     "@composio/core": "^0.6.3",
     "@composio/vercel": "^0.6.2",
-    "@convex-dev/resend": "^0.2.3",
+    "@convex-dev/resend": "^0.2.10",
     "@e2b/code-interpreter": "^2.3.3",
     "@google/generative-ai": "^0.24.1",
     "@openrouter/ai-sdk-provider": "^2.0.2",
@@ -39,7 +39,7 @@
     "@types/react": "^19.2.13",
     "@types/react-dom": "^19.2.3",
     "ai": "^6.0.3",
-    "convex": "^1.31.2",
+    "convex": "1.48.0",
     "convex-helpers": "^0.1.108",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
@@ -51,8 +51,8 @@
     "posthog-node": "^5.18.0",
     "pptx-content-extractor": "^1.0.3",
     "pptxgenjs": "^4.0.1",
-    "react": "^19.2.4",
-    "react-dom": "^19.1.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
     "remove-markdown": "^0.6.2",
     "svix": "^1.82.0",
     "zod": "^4.2.1"
@@ -64,12 +64,12 @@
     "sharp": "^0.34.5",
     "tiktoken": "^1.0.22",
     "unpdf": "^1.4.0",
-    "xlsx": "^0.18.5"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@types/node": "^25.0.10",
     "convex-test": "^0.0.41",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.16"
+    "vitest": "4.1.8"
   }
 }

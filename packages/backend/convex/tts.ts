@@ -8,6 +8,7 @@ import { action } from "./_generated/server";
 import { decryptByokKey } from "./byok/helpers";
 import {
   audioCacheHash,
+  estimateSpeechCost,
   MAX_AUDIO_BYTES,
   synthesize,
   validateSynthesis,
@@ -91,7 +92,7 @@ export const generateSpeech = action({
       if (!budget.allowed) throw new Error("Speech usage budget exhausted");
     }
     const audio = await synthesize(args.text, voice, speed, apiKey);
-    const cost = args.text.length * 0.000003;
+    const cost = estimateSpeechCost(args.text.length, voice);
     await ctx.runMutation(internal.usage.mutations.recordTTS, {
       userId: user._id,
       model: "deepgram:tts",

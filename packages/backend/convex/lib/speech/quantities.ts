@@ -11,8 +11,7 @@ const DIGITS = [
   "nine",
 ];
 
-/** Typed pronunciation only: never ask a model to infer numeric values or units. */
-export function readQuantities(text: string): string {
+function readPlainQuantities(text: string): string {
   return text
     .replace(
       /\bv(\d+(?:\.\d+)+)\b/g,
@@ -71,4 +70,19 @@ export function readQuantities(text: string): string {
         return `${sign === "-" ? "minus " : sign === "+" ? "plus " : ""}${whole}${decimal}${unit}${percent ? " percent" : ""}`;
       },
     );
+}
+
+/** Typed pronunciation only; dollar-delimited math must never acquire currency units. */
+export function readQuantities(text: string): string {
+  let cursor = 0;
+  let spoken = "";
+  for (const match of text.matchAll(/\$\$[\s\S]+?\$\$|\$[^$\n]+?\$/g)) {
+    const end = match.index + match[0].length;
+    // A dollar directly before another price is a currency opener, not a math closer.
+    if (!match[0].startsWith("$$") && /^[+-]?\d/.test(text.slice(end)))
+      continue;
+    spoken += readPlainQuantities(text.slice(cursor, match.index)) + match[0];
+    cursor = end;
+  }
+  return spoken + readPlainQuantities(text.slice(cursor));
 }

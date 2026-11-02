@@ -3,6 +3,15 @@ import { speechHash } from "./prepare";
 export const MAX_AUDIO_BYTES = 5 * 1024 * 1024;
 export const TTS_TIMEOUT_MS = 30_000;
 
+/** Pay-as-you-go estimate, https://deepgram.com/pricing (verified 2026-11-02). */
+export function estimateSpeechCost(
+  characterCount: number,
+  voice: string,
+): number {
+  const dollarsPerThousand = voice.startsWith("aura-2-") ? 0.03 : 0.015;
+  return (characterCount / 1000) * dollarsPerThousand;
+}
+
 export async function readSpeechBody(
   response: Pick<Response, "headers" | "body">,
   maxBytes: number,

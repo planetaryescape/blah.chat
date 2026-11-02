@@ -12,7 +12,7 @@ import {
 } from "@blah-chat/ai/utils";
 import { generateText, stepCountIs, streamText } from "ai";
 import { v } from "convex/values";
-import { api, internal } from "./_generated/api";
+import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { action, internalAction } from "./_generated/server";
 import { downloadAttachment } from "./generation/attachments";
@@ -129,10 +129,40 @@ export const generateResponse = internalAction({
     /** Models to exclude from auto-router (failed in previous attempts) */
     excludedModels: v.optional(v.array(v.string())),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<void> => {
     // Timing variables for performance metrics
     const generationStartTime = Date.now();
     let firstTokenTime: number | undefined;
+
+    const assistantMessageId: Id<"messages"> =
+      args.existingMessageId ??
+      (await ctx.runMutation(internal.messages.create, {
+        conversationId: args.conversationId,
+        userId: args.userId,
+        role: "assistant",
+        status: "pending",
+        model: args.modelId,
+        comparisonGroupId: args.comparisonGroupId,
+        parentMessageIds: await ctx.runQuery(
+          internal.messages.getGenerationParent,
+          { conversationId: args.conversationId },
+        ),
+      }));
+    const admission = await ctx.runMutation(internal.messages.startGeneration, {
+      conversationId: args.conversationId,
+      messageId: assistantMessageId,
+    });
+    if (!admission.started) return;
+    let lockReleased = false;
+    const releaseGenerationLock = async () => {
+      if (lockReleased) return;
+      lockReleased = true;
+      if (admission.lockId)
+        await ctx.runMutation(internal.lib.generationLock.releaseLock, {
+          conversationId: args.conversationId,
+          lockId: admission.lockId,
+        });
+    };
 
     // AUTO ROUTER: If model is "auto", route to optimal model
     let modelId = args.modelId;
@@ -170,206 +200,200 @@ export const generateResponse = internalAction({
         }
       | undefined;
 
-    if (modelId === "auto") {
-      const autoRouterEnabled = (await (ctx.runQuery as any)(
-        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-        api.users.getUserPreferenceByUserId,
-        { userId: args.userId, key: "autoRouterEnabled" },
-      )) as boolean | null;
-
-      if (autoRouterEnabled === false) {
-        const defaultModel = (await (ctx.runQuery as any)(
-          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-          api.users.getUserPreferenceByUserId,
-          { userId: args.userId, key: "defaultModel" },
-        )) as string | null;
-        const fallbackModelId = DEFAULT_MODEL_ID;
-        const resolvedModelId =
-          defaultModel &&
-          defaultModel !== "auto" &&
-          MODEL_CONFIG[defaultModel as keyof typeof MODEL_CONFIG]
-            ? defaultModel
-            : fallbackModelId;
-
-        modelId = resolvedModelId;
-
-        if (args.existingMessageId) {
-          await (ctx.runMutation as any)(
-            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-            internal.messages.updateModel,
-            {
-              messageId: args.existingMessageId,
-              model: modelId,
-            },
-          );
-        }
-
-        logger.info("Auto router disabled, using manual default model", {
-          conversationId: args.conversationId,
-          selectedModel: modelId,
-          defaultModel,
-          fallbackUsed: resolvedModelId === fallbackModelId,
-        });
-      } else {
-        // Get user's router preferences
-        const [costBias, speedBias] = await Promise.all([
-          (ctx.runQuery as any)(
-            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-            api.users.getUserPreferenceByUserId,
-            { userId: args.userId, key: "autoRouterCostBias" },
-          ) as Promise<number | null>,
-          (ctx.runQuery as any)(
-            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-            api.users.getUserPreferenceByUserId,
-            { userId: args.userId, key: "autoRouterSpeedBias" },
-          ) as Promise<number | null>,
-        ]);
-
-        // Get the last user message for classification
-        const lastUserMessage = args.passedMessages
-          ?.filter((m) => m.role === "user")
-          .pop();
-        const userMessageContent = lastUserMessage?.content ?? "";
-
-        // Check if conversation has any attachments (for routing decision)
-        const recentMessages = await (ctx.runQuery as any)(
-          // @ts-ignore - TypeScript recursion limit with 84+ Convex modules
-          internal.messages.listInternal,
-          { conversationId: args.conversationId, limit: 10 },
-        );
-        const recentMessageIds = recentMessages.map(
-          (m: { _id: Id<"messages"> }) => m._id,
-        );
-        const attachments =
-          recentMessageIds.length > 0
-            ? await ctx.runQuery(
-                internal.lib.helpers.getAttachmentsByMessageIds,
-                {
-                  messageIds: recentMessageIds,
-                },
-              )
-            : [];
-        const hasAttachments = attachments.length > 0;
-
-        // Get previous routing decision for stickiness bias
-        const previousSelectedModel = (
-          recentMessages as Array<{
-            role: string;
-            routingDecision?: { selectedModelId: string };
-          }>
-        )
-          .filter(
-            (m) => m.role === "assistant" && m.routingDecision?.selectedModelId,
-          )
-          .pop()?.routingDecision?.selectedModelId;
-
-        // Route the message
-        const routerResult = (await ctx.runAction(
-          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-          internal.ai.autoRouter.routeMessage,
-          {
-            userMessage: userMessageContent,
-            conversationId: args.conversationId,
-            userId: args.userId,
-            hasAttachments,
-            currentContextTokens: 0, // Will be calculated from messages
-            preferences: {
-              costBias: costBias ?? 50,
-              speedBias: speedBias ?? 50,
-            },
-            previousSelectedModel,
-            excludedModels: args.excludedModels,
-          },
-        )) as {
-          selectedModelId: string;
-          classification: {
-            primaryCategory: string;
-            secondaryCategory?: string;
-            complexity: string;
-            requiresVision: boolean;
-            requiresLongContext: boolean;
-            requiresReasoning: boolean;
-            confidence: number;
-            recommendedAction?: string;
-            changeReason?: string;
-          };
-          reasoning: string;
-          candidatesConsidered: number;
-          isSticky?: boolean;
-          routeLabel?: string;
-          classifierVersion?: string;
-          trace?: {
-            routerMode: string;
-            hardRuleMatched?: string;
-            topSimilarityScore?: number;
-            topRouteLabel?: string;
-            secondRouteLabel?: string;
-            secondSimilarityScore?: number;
-            usedFallbackLlm?: boolean;
-            embeddingLatencyMs?: number;
-            totalLatencyMs?: number;
-            candidateModels?: string[];
-          };
-        };
-
-        // Use the selected model
-        modelId = routerResult.selectedModelId;
-        routingDecision = {
-          selectedModelId: routerResult.selectedModelId,
-          classification: routerResult.classification,
-          reasoning: routerResult.reasoning,
-          isSticky: routerResult.isSticky,
-          routeLabel: routerResult.routeLabel,
-          classifierVersion: routerResult.classifierVersion,
-          trace: routerResult.trace,
-        };
-
-        logger.info("Auto router selected model", {
-          conversationId: args.conversationId,
-          selectedModel: modelId,
-          classification: routerResult.classification.primaryCategory,
-        });
-
-        // Update existing message with routing decision if it was pre-created
-        if (args.existingMessageId) {
-          await (ctx.runMutation as any)(
-            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-            internal.messages.updateRoutingDecision,
-            {
-              messageId: args.existingMessageId,
-              model: modelId,
-              routingDecision,
-            },
-          );
-        }
-      }
-    }
-
-    // 1. Create or reuse assistant message
-    const assistantMessageId = args.existingMessageId
-      ? args.existingMessageId
-      : ((await (ctx.runMutation as any)(
-          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-          internal.messages.create,
-          {
-            conversationId: args.conversationId,
-            userId: args.userId,
-            role: "assistant",
-            status: "generating",
-            model: modelId,
-            comparisonGroupId: args.comparisonGroupId,
-            routingDecision,
-          },
-        )) as string as typeof args.conversationId extends string
-          ? never
-          : any);
-
-    // Declared outside try so they're accessible in catch for wasted cost calculation
     let accumulated = "";
     let inputTokenEstimate = 0;
     let toolNameDebugSnapshot: Array<{ name: string; length: number }> = [];
-
     try {
+      if (modelId === "auto") {
+        const autoRouterEnabled = (await (ctx.runQuery as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.users.getUserPreferenceByUserId,
+          { userId: args.userId, key: "autoRouterEnabled" },
+        )) as boolean | null;
+
+        if (autoRouterEnabled === false) {
+          const defaultModel = (await (ctx.runQuery as any)(
+            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+            internal.users.getUserPreferenceByUserId,
+            { userId: args.userId, key: "defaultModel" },
+          )) as string | null;
+          const fallbackModelId = DEFAULT_MODEL_ID;
+          const resolvedModelId =
+            defaultModel &&
+            defaultModel !== "auto" &&
+            MODEL_CONFIG[defaultModel as keyof typeof MODEL_CONFIG]
+              ? defaultModel
+              : fallbackModelId;
+
+          modelId = resolvedModelId;
+
+          if (args.existingMessageId) {
+            await (ctx.runMutation as any)(
+              // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+              internal.messages.updateModel,
+              {
+                messageId: args.existingMessageId,
+                model: modelId,
+              },
+            );
+          }
+
+          logger.info("Auto router disabled, using manual default model", {
+            conversationId: args.conversationId,
+            selectedModel: modelId,
+            defaultModel,
+            fallbackUsed: resolvedModelId === fallbackModelId,
+          });
+        } else {
+          // Get user's router preferences
+          const [costBias, speedBias] = await Promise.all([
+            (ctx.runQuery as any)(
+              // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+              internal.users.getUserPreferenceByUserId,
+              { userId: args.userId, key: "autoRouterCostBias" },
+            ) as Promise<number | null>,
+            (ctx.runQuery as any)(
+              // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+              internal.users.getUserPreferenceByUserId,
+              { userId: args.userId, key: "autoRouterSpeedBias" },
+            ) as Promise<number | null>,
+          ]);
+
+          // Get the last user message for classification
+          // Check if conversation has any attachments (for routing decision)
+          const recentMessages = await (ctx.runQuery as any)(
+            // @ts-ignore - TypeScript recursion limit with 84+ Convex modules
+            internal.messages.getContextMessages,
+            {
+              conversationId: args.conversationId,
+              messageId: assistantMessageId,
+              limit: 10,
+            },
+          );
+          const userMessageContent =
+            recentMessages
+              .filter((message: Doc<"messages">) => message.role === "user")
+              .at(-1)?.content ?? "";
+          const recentMessageIds = recentMessages.map(
+            (m: { _id: Id<"messages"> }) => m._id,
+          );
+          const attachments =
+            recentMessageIds.length > 0
+              ? await ctx.runQuery(
+                  internal.lib.helpers.getAttachmentsByMessageIds,
+                  {
+                    messageIds: recentMessageIds,
+                  },
+                )
+              : [];
+          const hasAttachments = attachments.length > 0;
+
+          // Get previous routing decision for stickiness bias
+          const previousSelectedModel = (
+            recentMessages as Array<{
+              role: string;
+              routingDecision?: { selectedModelId: string };
+            }>
+          )
+            .filter(
+              (m) =>
+                m.role === "assistant" && m.routingDecision?.selectedModelId,
+            )
+            .pop()?.routingDecision?.selectedModelId;
+
+          // Route the message
+          const routerResult = (await ctx.runAction(
+            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+            internal.ai.autoRouter.routeMessage,
+            {
+              userMessage: userMessageContent,
+              conversationId: args.conversationId,
+              userId: args.userId,
+              hasAttachments,
+              currentContextTokens: 0, // Will be calculated from messages
+              preferences: {
+                costBias: costBias ?? 50,
+                speedBias: speedBias ?? 50,
+              },
+              previousSelectedModel,
+              excludedModels: args.excludedModels,
+            },
+          )) as {
+            selectedModelId: string;
+            classification: {
+              primaryCategory: string;
+              secondaryCategory?: string;
+              complexity: string;
+              requiresVision: boolean;
+              requiresLongContext: boolean;
+              requiresReasoning: boolean;
+              confidence: number;
+              recommendedAction?: string;
+              changeReason?: string;
+            };
+            reasoning: string;
+            candidatesConsidered: number;
+            isSticky?: boolean;
+            routeLabel?: string;
+            classifierVersion?: string;
+            trace?: {
+              routerMode: string;
+              hardRuleMatched?: string;
+              topSimilarityScore?: number;
+              topRouteLabel?: string;
+              secondRouteLabel?: string;
+              secondSimilarityScore?: number;
+              usedFallbackLlm?: boolean;
+              embeddingLatencyMs?: number;
+              totalLatencyMs?: number;
+              candidateModels?: string[];
+            };
+          };
+
+          // Use the selected model
+          modelId = routerResult.selectedModelId;
+          routingDecision = {
+            selectedModelId: routerResult.selectedModelId,
+            classification: routerResult.classification,
+            reasoning: routerResult.reasoning,
+            isSticky: routerResult.isSticky,
+            routeLabel: routerResult.routeLabel,
+            classifierVersion: routerResult.classifierVersion,
+            trace: routerResult.trace,
+          };
+
+          logger.info("Auto router selected model", {
+            conversationId: args.conversationId,
+            selectedModel: modelId,
+            classification: routerResult.classification.primaryCategory,
+          });
+
+          // Update existing message with routing decision if it was pre-created
+          if (args.existingMessageId) {
+            await (ctx.runMutation as any)(
+              // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+              internal.messages.updateRoutingDecision,
+              {
+                messageId: args.existingMessageId,
+                model: modelId,
+                routingDecision,
+              },
+            );
+          }
+        }
+      }
+
+      if (!args.existingMessageId && modelId !== args.modelId)
+        await ctx.runMutation(internal.messages.updateModel, {
+          messageId: assistantMessageId,
+          model: modelId,
+        });
+      if (!args.existingMessageId && routingDecision)
+        await ctx.runMutation(internal.messages.updateRoutingDecision, {
+          messageId: assistantMessageId,
+          model: modelId,
+          routingDecision,
+        });
       // PARALLEL QUERIES: Batch all initial queries for faster TTFT
       const [
         messages,
@@ -377,10 +401,10 @@ export const generateResponse = internalAction({
         memoryExtractionLevelRaw,
         composioConnections,
       ] = await Promise.all([
-        // Get conversation history - limit to recent 30 messages for faster TTFT
-        // (300ms → 50ms improvement for long conversations)
-        ctx.runQuery(internal.messages.listInternal, {
+        // Traverse the target's ancestry before retaining the last 30 ancestors.
+        ctx.runQuery(internal.messages.getContextMessages, {
           conversationId: args.conversationId,
+          messageId: assistantMessageId,
           limit: 30,
         }),
         // Get conversation for tool filtering
@@ -390,7 +414,7 @@ export const generateResponse = internalAction({
         // Get user memory preference
         (ctx.runQuery as any)(
           // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-          api.users.getUserPreferenceByUserId,
+          internal.users.getUserPreferenceByUserId,
           { userId: args.userId, key: "memoryExtractionLevel" },
         ) as Promise<string | null>,
         // Get active Composio connections for external service tools (use internal query with userId)
@@ -417,12 +441,13 @@ export const generateResponse = internalAction({
       const memoryExtractionLevel = (memoryExtractionLevelRaw ??
         "moderate") as MemoryExtractionLevel;
 
-      // 2. Set generation started timestamp
-      await ctx.runMutation(internal.messages.updateStatus, {
+      const currentMessage = await ctx.runQuery(internal.messages.get, {
         messageId: assistantMessageId,
-        status: "generating",
-        generationStartedAt: generationStartTime,
       });
+      if (currentMessage?.status !== "generating") {
+        await releaseGenerationLock();
+        return;
+      }
 
       // 2.5 Check if trying to switch to a Gemini thought-signature model mid-conversation
       const requiresThoughtSignature = modelId.includes("gemini-3-pro-image");
@@ -780,6 +805,13 @@ export const generateResponse = internalAction({
 
       // Stream from LLM - capture exact API call time for true TTFT
       const apiCallStartedAt = Date.now();
+      const beforeProvider = await ctx.runQuery(internal.messages.get, {
+        messageId: assistantMessageId,
+      });
+      if (beforeProvider?.status !== "generating") {
+        await releaseGenerationLock();
+        return;
+      }
       const result = streamText({
         ...options,
         abortSignal: abortController.signal,
@@ -803,7 +835,7 @@ export const generateResponse = internalAction({
             internal.messages.get,
             { messageId: assistantMessageId },
           )) as { status?: string } | null;
-          if (currentMsg?.status === "stopped") {
+          if (!currentMsg || currentMsg.status === "stopped") {
             abortController.abort();
             break;
           }
@@ -992,6 +1024,7 @@ export const generateResponse = internalAction({
           tag: "Generation",
           messageId: assistantMessageId,
         });
+        await releaseGenerationLock();
         return;
       }
 
@@ -1424,11 +1457,7 @@ export const generateResponse = internalAction({
       }
 
       // Release generation lock (decrements pendingCount for comparison mode)
-      await (ctx.runMutation as any)(
-        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-        internal.lib.generationLock.releaseLock,
-        { conversationId: args.conversationId },
-      );
+      await releaseGenerationLock();
 
       // Track streaming completed with performance metrics
       const generationTimeMs = Date.now() - generationStartTime;
@@ -1528,6 +1557,13 @@ export const generateResponse = internalAction({
           : Promise.resolve(),
       ]);
     } catch (error) {
+      const cancelled = await ctx.runQuery(internal.messages.get, {
+        messageId: assistantMessageId,
+      });
+      if (!cancelled || cancelled.status === "stopped") {
+        await releaseGenerationLock();
+        return;
+      }
       // Handle AbortError (user stopped generation) - clean exit
       if (error instanceof Error && error.name === "AbortError") {
         logger.info("Generation stopped by user", {
@@ -1541,11 +1577,7 @@ export const generateResponse = internalAction({
           { messageId: assistantMessageId },
         );
         // Release lock even on stop
-        await (ctx.runMutation as any)(
-          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-          internal.lib.generationLock.releaseLock,
-          { conversationId: args.conversationId },
-        );
+        await releaseGenerationLock();
         return; // Clean exit - message already marked stopped
       }
 
@@ -1687,8 +1719,19 @@ export const generateResponse = internalAction({
           );
 
           // Re-invoke generation with excluded models
-          // Note: We schedule BEFORE marking as retrying to avoid stuck "generating" state
           try {
+            const retryReady = await ctx.runMutation(
+              internal.messages.markRetrying,
+              {
+                messageId: assistantMessageId,
+                failedModels,
+                retryCount,
+              },
+            );
+            if (!retryReady) {
+              await releaseGenerationLock();
+              return;
+            }
             await ctx.scheduler.runAfter(
               0,
               // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
@@ -1703,17 +1746,6 @@ export const generateResponse = internalAction({
                 systemPromptOverride: args.systemPromptOverride,
                 passedMessages: args.passedMessages,
                 excludedModels: failedModels,
-              },
-            );
-
-            // Only mark as retrying after scheduler succeeds
-            await (ctx.runMutation as any)(
-              // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-              internal.messages.markRetrying,
-              {
-                messageId: assistantMessageId,
-                failedModels,
-                retryCount,
               },
             );
 
@@ -1915,11 +1947,7 @@ export const generateResponse = internalAction({
       });
 
       // Release lock on error
-      await (ctx.runMutation as any)(
-        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-        internal.lib.generationLock.releaseLock,
-        { conversationId: args.conversationId },
-      );
+      await releaseGenerationLock();
 
       throw error;
     }

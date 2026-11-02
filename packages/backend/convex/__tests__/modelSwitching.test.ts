@@ -1,3 +1,4 @@
+import { DEFAULT_MODEL_ID, MODEL_CONFIG } from "@blah-chat/ai/models";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { convexTest } from "../../__tests__/testSetup";
 import { api } from "../_generated/api";
@@ -7,6 +8,13 @@ import {
   createTestUserData,
 } from "../lib/test/factories";
 import schema from "../schema";
+
+const secondModel = Object.values(MODEL_CONFIG).filter(
+  (model) =>
+    model.id !== DEFAULT_MODEL_ID &&
+    model.pricing.input < 5 &&
+    model.pricing.output < 15,
+)[0].id;
 
 describe("model switching", () => {
   // Use fake timers to prevent scheduled functions from running
@@ -128,7 +136,7 @@ describe("model switching", () => {
       const result = await asUser.mutation(api.chat.sendMessage, {
         conversationId: convId,
         content: "Test message",
-        modelId: "anthropic:claude-3-5-sonnet",
+        modelId: secondModel,
       });
 
       // Mutation returns conversationId (assistant message created in action, not mutation)
@@ -207,7 +215,7 @@ describe("model switching", () => {
       await asUser.mutation(api.chat.sendMessage, {
         conversationId: convId,
         content: "First message",
-        modelId: "openai:gpt-4o-mini",
+        modelId: DEFAULT_MODEL_ID,
       });
 
       // Release lock (generation action doesn't run in tests due to fake timers)
@@ -223,19 +231,19 @@ describe("model switching", () => {
       // @ts-ignore - Type instantiation too deep with 94+ Convex modules
       await asUser.mutation(api.conversations.updateModel, {
         conversationId: convId,
-        model: "anthropic:claude-3-5-sonnet",
+        model: secondModel,
       });
 
       // Verify conversation model was updated
       const conv = await t.run(async (ctx) => ctx.db.get(convId));
-      expect(conv?.model).toBe("anthropic:claude-3-5-sonnet");
+      expect(conv?.model).toBe(secondModel);
 
       // Send second message with new model
       // @ts-ignore - Type instantiation too deep with 94+ Convex modules
       await asUser.mutation(api.chat.sendMessage, {
         conversationId: convId,
         content: "Second message",
-        modelId: "anthropic:claude-3-5-sonnet",
+        modelId: secondModel,
       });
 
       // Verify user messages were created (assistant messages created in action)
@@ -275,7 +283,7 @@ describe("model switching", () => {
       const result = await asUser.mutation(api.chat.sendMessage, {
         conversationId: convId,
         content: "Compare these models",
-        models: ["openai:gpt-4o-mini", "anthropic:claude-3-5-sonnet"],
+        models: [DEFAULT_MODEL_ID, secondModel],
       });
 
       // Comparison mode returns comparisonGroupId (message IDs created in action)
@@ -298,7 +306,7 @@ describe("model switching", () => {
       // @ts-ignore - Type instantiation too deep with 94+ Convex modules
       const result = await asUser.mutation(api.chat.sendMessage, {
         content: "Single model message",
-        modelId: "openai:gpt-4o-mini",
+        modelId: DEFAULT_MODEL_ID,
       });
 
       // Single mode should not have comparisonGroupId

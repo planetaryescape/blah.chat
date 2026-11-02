@@ -110,6 +110,7 @@ export const acquireLock = internalMutation({
 export const releaseLock = internalMutation({
   args: {
     conversationId: v.id("conversations"),
+    lockId: v.optional(v.id("generationLocks")),
   },
   handler: async (ctx, args): Promise<void> => {
     const lock = await ctx.db
@@ -123,6 +124,7 @@ export const releaseLock = internalMutation({
       // No lock to release - may have been force-released or expired
       return;
     }
+    if (args.lockId && lock._id !== args.lockId) return;
 
     if (lock.pendingCount <= 1) {
       // Last pending generation - delete the lock

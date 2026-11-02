@@ -382,13 +382,21 @@ export const markRetrying = internalMutation({
     retryCount: v.number(),
   },
   handler: async (ctx, args) => {
+    const message = await ctx.db.get(args.messageId);
+    if (
+      !message ||
+      message.status === "stopped" ||
+      message.status === "complete"
+    )
+      return false;
     await ctx.db.patch(args.messageId, {
-      status: "generating",
+      status: "pending",
       failedModels: args.failedModels,
       retryCount: args.retryCount,
       error: undefined,
       updatedAt: Date.now(),
     });
+    return true;
   },
 });
 
@@ -557,6 +565,104 @@ export const listInternal = internalQuery({
   },
 });
 
+// Resolve the actual DAG ancestry before applying any context window limit.
+// Post-order traversal keeps parents before children and deduplicates merges.
+export const getContextMessages = internalQuery({
+  args: {
+    conversationId: v.id("conversations"),
+    messageId: v.id("messages"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { conversationId, messageId, limit = 30 }) => {
+    const ordered: Doc<"messages">[] = [];
+    const visited = new Set<string>();
+    const visiting = new Set<string>();
+    async function visit(id: Id<"messages">) {
+      if (visiting.has(id)) throw new Error("Cyclic message ancestry");
+      if (visited.has(id)) return;
+      const message = await ctx.db.get(id);
+      if (!message || message.conversationId !== conversationId)
+        throw new Error("Invalid message ancestry");
+      visiting.add(id);
+      const parents = message.parentMessageIds?.length
+        ? message.parentMessageIds
+        : message.parentMessageId
+          ? [message.parentMessageId]
+          : [];
+      for (const parentId of parents) await visit(parentId);
+      visiting.delete(id);
+      visited.add(id);
+      if (id !== messageId && message.status === "complete")
+        ordered.push(message);
+    }
+    await visit(messageId);
+    return ordered.slice(-Math.max(1, Math.min(limit, 1000)));
+  },
+});
+
+// Compatibility for old internal callers that do not pre-create a placeholder.
+export const getGenerationParent = internalQuery({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, { conversationId }) => {
+    const conversation = await ctx.db.get(conversationId);
+    if (!conversation) throw new Error("Conversation not found");
+    const leaf = conversation.activeLeafMessageId
+      ? await ctx.db.get(conversation.activeLeafMessageId)
+      : null;
+    if (
+      leaf &&
+      leaf.conversationId === conversationId &&
+      leaf.status === "complete"
+    )
+      return [leaf._id];
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation_created", (q) =>
+        q.eq("conversationId", conversationId),
+      )
+      .order("desc")
+      .collect();
+    const parent = messages.find(
+      (message) =>
+        message.role === "user" &&
+        message.status === "complete" &&
+        message.isActiveBranch !== false,
+    );
+    return parent ? [parent._id] : [];
+  },
+});
+
+export const startGeneration = internalMutation({
+  args: { conversationId: v.id("conversations"), messageId: v.id("messages") },
+  handler: async (ctx, { conversationId, messageId }) => {
+    const message = await ctx.db.get(messageId);
+    if (
+      !message ||
+      message.role !== "assistant" ||
+      message.conversationId !== conversationId ||
+      message.status !== "pending"
+    )
+      return { started: false };
+    const lock = await ctx.db
+      .query("generationLocks")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", conversationId),
+      )
+      .first();
+    const ownsLock =
+      lock &&
+      (lock.messageId === messageId ||
+        (message.comparisonGroupId &&
+          lock.comparisonGroupId === message.comparisonGroupId));
+    await ctx.db.patch(messageId, {
+      status: "generating",
+      generationStartedAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+    return { started: true, lockId: ownsLock ? lock._id : undefined };
+  },
+});
+
 // ===== Status Updates =====
 
 export const updateStatus = internalMutation({
@@ -572,11 +678,14 @@ export const updateStatus = internalMutation({
     generationStartedAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const message = await ctx.db.get(args.messageId);
+    if (!message || message.status === "stopped") return false;
     await ctx.db.patch(args.messageId, {
       status: args.status,
       generationStartedAt: args.generationStartedAt,
       updatedAt: Date.now(),
     });
+    return true;
   },
 });
 

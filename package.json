@@ -30,6 +30,7 @@
     "portable:check": "bun run scripts/check-portable-imports.ts",
     "model:add": "bun run scripts/model-cli.ts add",
     "model:list": "bun run scripts/model-cli.ts list",
+    "model:check": "bun run scripts/check-model-catalog.ts",
     "model:get": "bun run scripts/model-cli.ts get",
     "model:update": "bun run scripts/model-cli.ts update",
     "model:deprecate": "bun run scripts/model-cli.ts deprecate"

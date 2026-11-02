@@ -1,4 +1,5 @@
 import { MODEL_CONFIG, type ModelConfig } from "./models";
+
 export type { ModelConfig };
 
 export type UsageTokenInfo = {
@@ -116,15 +117,30 @@ export function calculateCost(
   const config = source[model];
   if (!config || config.isLocal) return 0;
 
-  const cachedInputTokens = usage.cachedInputTokens ?? usage.cachedTokens ?? 0;
+  const cachedInputTokens = Math.min(
+    usage.inputTokens,
+    Math.max(0, usage.cachedInputTokens ?? usage.cachedTokens ?? 0),
+  );
   const reasoningTokens = usage.reasoningTokens ?? 0;
-
-  const inputCost = (usage.inputTokens / 1_000_000) * config.pricing.input;
-  const outputCost = (usage.outputTokens / 1_000_000) * config.pricing.output;
+  let pricing = config.pricing;
+  let minimum = -1;
+  for (const tier of config.pricing.tiers ?? []) {
+    if (
+      usage.inputTokens >= tier.minInputTokens &&
+      tier.minInputTokens > minimum
+    ) {
+      pricing = { ...config.pricing, ...tier };
+      minimum = tier.minInputTokens;
+    }
+  }
+  // AI SDK inputTokens includes cache hits; don't charge those twice.
+  const inputCost =
+    ((usage.inputTokens - cachedInputTokens) / 1_000_000) * pricing.input;
+  const outputCost = (usage.outputTokens / 1_000_000) * pricing.output;
   const cachedCost =
-    (cachedInputTokens / 1_000_000) * (config.pricing.cached || 0);
+    (cachedInputTokens / 1_000_000) * (pricing.cached ?? pricing.input);
   const reasoningCost =
-    (reasoningTokens / 1_000_000) * (config.pricing.reasoning || 0);
+    (reasoningTokens / 1_000_000) * (pricing.reasoning || 0);
 
   return inputCost + outputCost + cachedCost + reasoningCost;
 }

@@ -57,6 +57,7 @@ React Native app implementation.
 Database-backed model management.
 
 - [Overview](./models/README.md) - Migration from hardcoded to DB
+- [Refresh the catalog](./models/refresh-catalog.md) - Current model checks, backend credentials and safe synchronization
 - [Phase 1-6](./models/) - Implementation guides
 
 ---

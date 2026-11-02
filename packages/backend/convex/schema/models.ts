@@ -92,6 +92,17 @@ export const modelsTable = defineTable({
   outputCost: v.number(),
   cachedInputCost: v.optional(v.number()),
   reasoningCost: v.optional(v.number()),
+  pricingTiers: v.optional(
+    v.array(
+      v.object({
+        minInputTokens: v.number(),
+        input: v.number(),
+        output: v.number(),
+        cached: v.optional(v.number()),
+        reasoning: v.optional(v.number()),
+      }),
+    ),
+  ),
 
   // Capabilities (as array for flexibility)
   capabilities: v.array(capabilityValidator),

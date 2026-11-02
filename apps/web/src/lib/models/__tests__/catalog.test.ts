@@ -54,6 +54,9 @@ describe("restored model catalog", () => {
     ["openrouter:gpt-5.5", "openai/gpt-5.5"],
     ["openrouter:gemini-3.5-flash", "google/gemini-3.5-flash"],
     ["openrouter:nemotron-3-ultra-550b", "nvidia/nemotron-3-ultra-550b-a55b"],
+    ["openrouter:claude-opus-5.5", "anthropic/claude-opus-5.5"],
+    ["openrouter:gpt-6.1-sol", "openai/gpt-6.1-sol"],
+    ["openrouter:gemini-4-argon", "google/gemini-4-argon"],
   ])("routes %s through its configured OpenRouter model", (id, actualModelId) => {
     expect(MODEL_CONFIG[id].gateway).toBe("openrouter");
     expect(getModel(id).modelId).toBe(actualModelId);
@@ -75,8 +78,14 @@ describe("restored model catalog", () => {
     );
     expect(getMobileModels().some((model) => model.isDeprecated)).toBe(false);
     expect(
-      getMobileModels().some((model) => model.id === "openrouter:gpt-5.5"),
+      getMobileModels().some((model) => model.id === "openrouter:gpt-6.1-sol"),
     ).toBe(true);
+    expect(
+      getMobileModels().some((model) => model.id === "openrouter:gpt-5.5"),
+    ).toBe(false);
+    expect(getStaticModel("openrouter:gpt-5.5")?.actualModelId).toBe(
+      "openai/gpt-5.5",
+    );
   });
 
   it("keeps modern token prices for cost tracking", () => {

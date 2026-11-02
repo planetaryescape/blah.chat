@@ -102,7 +102,7 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "babel-plugin-react-compiler": "^1.0.0",
     "babel-preset-expo": "~54.0.9",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.5",
     "tailwindcss": "^4.3.0",
     "typescript": "~5.9.2",
     "vitest": "^4.1.8"

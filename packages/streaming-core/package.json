@@ -26,7 +26,7 @@
     "prepublishOnly": "bun run build"
   },
   "dependencies": {
-    "zod": "^4.2.1"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^25.0.10",

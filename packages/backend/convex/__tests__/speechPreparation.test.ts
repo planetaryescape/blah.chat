@@ -43,6 +43,81 @@ afterEach(() => {
 });
 
 describe("faithful structural narration", () => {
+  it.each([
+    "\n",
+    "\r\n",
+  ])("closes code and quotes before following prose with monotonic end anchors (%j)", async (newline) => {
+    const source = [
+      "```js",
+      "return false;",
+      "```",
+      "",
+      "After code.",
+      "",
+      "> Quoted first",
+      "> quoted continuation",
+      "",
+      "After quote.",
+    ].join(newline);
+    const { narration, codeBlocks } = await prepareDeterministic(source);
+    const texts = narration.segments.map((segment) => segment.text);
+    const codeEnd = narration.segments.find(
+      (segment) => segment.text === "End of code.",
+    );
+    const quoteEnd = narration.segments.find(
+      (segment) => segment.text === "End quote.",
+    );
+    expect(codeEnd).toMatchObject({
+      kind: "notice",
+      role: "notice",
+      sourceStart: codeBlocks[0].sourceEnd,
+      sourceEnd: codeBlocks[0].sourceEnd,
+    });
+    expect(quoteEnd).toMatchObject({
+      kind: "notice",
+      role: "notice",
+      sourceStart:
+        source.indexOf("quoted continuation") + "quoted continuation".length,
+      sourceEnd:
+        source.indexOf("quoted continuation") + "quoted continuation".length,
+    });
+    expect(texts.indexOf("End of code.")).toBeLessThan(
+      texts.indexOf("After code."),
+    );
+    expect(texts.indexOf("End quote.")).toBeLessThan(
+      texts.indexOf("After quote."),
+    );
+    expect(texts.filter((text) => text === "End of code.")).toHaveLength(1);
+    expect(texts.filter((text) => text === "End quote.")).toHaveLength(1);
+    expect(narration.segments.map((segment) => segment.sourceStart)).toEqual(
+      narration.segments
+        .map((segment) => segment.sourceStart)
+        .sort((a, b) => a - b),
+    );
+    const block = codeBlocks[0];
+    applyCodeOutline(
+      narration,
+      block,
+      JSON.stringify({
+        sourceHash: narration.sourceHash,
+        blockId: block.blockId,
+        lines: [{ line: 1, quote: "return false;", kind: "return" }],
+      }),
+      "stop",
+    );
+    expect(
+      narration.segments.findIndex((segment) => segment.role === "explanation"),
+    ).toBeLessThan(
+      narration.segments.findIndex(
+        (segment) => segment.text === "End of code.",
+      ),
+    );
+    expect(narration.segments.map((segment) => segment.sourceStart)).toEqual(
+      narration.segments
+        .map((segment) => segment.sourceStart)
+        .sort((a, b) => a - b),
+    );
+  });
   it("pronounces precision, signs, units and version components without guessing dates or math delimiters", () => {
     expect(
       readQuantities("-1.20 and 3.050; -0.5%; $3.050; $-1.20; v1.2.3; Q1."),
@@ -103,6 +178,9 @@ describe("faithful structural narration", () => {
       expect(segment.sourceEnd).toBeLessThanOrEqual(source.length);
       expect(segment.sourceStart).toBeGreaterThanOrEqual(0);
     }
+    expect(narration.segments.slice(-3).map((segment) => segment.text)).toEqual(
+      ["End of code.", "End quote.", "Final."],
+    );
     expect(narration.coverage).toBe("complete");
   });
   it("keeps heading joins, ordinary prose, exact signs and the distinctive ending", async () => {

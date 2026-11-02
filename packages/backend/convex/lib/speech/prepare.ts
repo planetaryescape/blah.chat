@@ -331,6 +331,17 @@ export async function prepareDeterministic(
         }
         quoteOffsets.push(end);
         walk(marked.lexer(quoteText), start, quoteText, depth, quoteOffsets);
+        add(
+          {
+            blockId: `${mapping.blockId}:end`,
+            sourceStart: end,
+            sourceEnd: end,
+          },
+          "notice",
+          "End quote.",
+          "notice",
+          350,
+        );
         continue;
       }
       const mapping = block(start, end);
@@ -420,6 +431,19 @@ export async function prepareDeterministic(
             150,
           );
         });
+        // A distinct closing anchor keeps optional AI explanation inside the
+        // code boundary and prevents following prose from sounding like code.
+        add(
+          {
+            blockId: `${mapping.blockId}:end`,
+            sourceStart: end,
+            sourceEnd: end,
+          },
+          "notice",
+          "End of code.",
+          "notice",
+          350,
+        );
       } else if (token.type === "html") {
         narration.coverage = "partial";
         warn(

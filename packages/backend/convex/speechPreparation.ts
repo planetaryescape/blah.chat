@@ -1,0 +1,133 @@
+import { SPEECH_PREPARATION_MODEL } from "@blah-chat/ai/operational-models";
+import { getModel } from "@blah-chat/ai/registry";
+import { calculateCost } from "@blah-chat/ai/utils";
+import { generateText } from "ai";
+import { v } from "convex/values";
+import { z } from "zod";
+import { api, internal } from "./_generated/api";
+import type { Doc } from "./_generated/dataModel";
+import { action } from "./_generated/server";
+import { SPEECH_PREPARATION_PROMPT } from "./lib/prompts/operational/speechPreparation";
+import { applyCodeOutline } from "./lib/speech/assistance";
+import { prepareDeterministic, validateNarration } from "./lib/speech/prepare";
+import type { PreparedNarration } from "./lib/speech/types";
+
+const failureUsage = z.object({
+  usage: z.object({
+    inputTokens: z.number().nonnegative().optional(),
+    outputTokens: z.number().nonnegative().optional(),
+  }),
+});
+
+export const prepare = action({
+  args: { text: v.string(), messageId: v.optional(v.id("messages")) },
+  handler: async (ctx, args): Promise<PreparedNarration> => {
+    const deadline = Date.now() + 30_000;
+    if (!(await ctx.auth.getUserIdentity())) throw new Error("Unauthorized");
+    const user: Doc<"users"> | null = await ctx.runQuery(
+      internal.lib.helpers.getCurrentUser,
+      {},
+    );
+    if (!user) throw new Error("Unauthorized");
+    if (
+      !(await ctx.runQuery(api.users.getUserPreference, { key: "ttsEnabled" }))
+    )
+      throw new Error("TTS is disabled in user preferences");
+    let source = args.text;
+    if (args.messageId) {
+      const message: Doc<"messages"> | null = await ctx.runQuery(
+        api.messages.getForCurrentUser,
+        { messageId: args.messageId },
+      );
+      if (!message) throw new Error("Unauthorized source message");
+      if (args.text !== message.content)
+        throw new Error(
+          "Speech source does not match canonical message content",
+        );
+      source = message.content;
+    }
+    const { narration, codeBlocks } = await prepareDeterministic(source);
+    if (!codeBlocks.length) return narration;
+    const byok = await ctx.runQuery(
+      internal.byok.credentials.getConfigByAuth,
+      {},
+    );
+    // This model uses the operational direct-provider registry, not the BYOK gateway.
+    // Until that path supports reader credentials, never send BYOK content to server keys.
+    if (byok?.byokEnabled) {
+      narration.warnings.push(
+        "Optional code explanation unavailable under BYOK; complete deterministic technical detail retained.",
+      );
+      return narration;
+    }
+    const budget = await ctx.runQuery(api.usage.checkBudget.checkBudget, {
+      userId: user._id,
+    });
+    if (!budget.allowed) {
+      narration.warnings.push(
+        "Optional code explanation skipped because the usage budget is exhausted; complete technical detail retained.",
+      );
+      return narration;
+    }
+    let calls = 0;
+    for (const block of codeBlocks) {
+      if (calls >= 4 || Date.now() >= deadline || block.text.length > 6000) {
+        narration.warnings.push(
+          `Optional explanation skipped for ${block.blockId}: preparation limits; technical detail retained.`,
+        );
+        continue;
+      }
+      const prompt = JSON.stringify({
+        sourceHash: narration.sourceHash,
+        blockId: block.blockId,
+        code: block.text,
+      });
+      if (prompt.length + SPEECH_PREPARATION_PROMPT.length > 6000) {
+        narration.warnings.push(
+          `Optional explanation skipped for ${block.blockId}: input limit; technical detail retained.`,
+        );
+        continue;
+      }
+      calls++;
+      let usage: { inputTokens?: number; outputTokens?: number } | undefined;
+      try {
+        const result = await generateText({
+          model: getModel(SPEECH_PREPARATION_MODEL.id),
+          system: SPEECH_PREPARATION_PROMPT,
+          prompt,
+          maxOutputTokens: 2000,
+          maxRetries: 0,
+          abortSignal: AbortSignal.timeout(Math.max(1, deadline - Date.now())),
+        });
+        usage = result.usage;
+        if (Date.now() >= deadline)
+          throw new Error("Preparation deadline exceeded");
+        applyCodeOutline(narration, block, result.text, result.finishReason);
+      } catch (error) {
+        if (!usage) {
+          const parsed = failureUsage.safeParse(error);
+          if (parsed.success) usage = parsed.data.usage;
+        }
+        narration.warnings.push(
+          `Optional explanation unavailable for ${block.blockId}; complete deterministic technical detail retained.`,
+        );
+      } finally {
+        // Usage is recorded even for invalid or truncated output. Never log source or provider errors.
+        const inputTokens = usage?.inputTokens ?? 0;
+        const outputTokens = usage?.outputTokens ?? 0;
+        await ctx.runMutation(internal.usage.mutations.recordTextGeneration, {
+          userId: user._id,
+          model: SPEECH_PREPARATION_MODEL.id,
+          inputTokens,
+          outputTokens,
+          cost: calculateCost(SPEECH_PREPARATION_MODEL.id, {
+            inputTokens,
+            outputTokens,
+          }),
+          feature: "chat",
+        });
+      }
+    }
+    return validateNarration(narration);
+  },
+});

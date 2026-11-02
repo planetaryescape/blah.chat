@@ -1,5 +1,6 @@
 import { httpRouter } from "convex/server";
-import { internal } from "./_generated/api";
+import { z } from "zod";
+import { api, internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";
 import { hasInternalAuthorization } from "./lib/internalAuth";
 import { logger } from "./lib/logger";
@@ -8,6 +9,7 @@ import {
   readBoundedBody,
   verifyUploadToken,
 } from "./lib/ownedUploads";
+import { readSpeechBody } from "./lib/speech/synthesis";
 
 const http = httpRouter();
 
@@ -120,9 +122,15 @@ http.route({
 
 const ttsCors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Authorization",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Authorization, Content-Type",
+  "Cache-Control": "private, no-store",
 };
+const ttsInput = z.object({
+  text: z.string().min(1).max(2000),
+  voice: z.string().optional(),
+  speed: z.number().optional(),
+});
 http.route({
   path: "/tts",
   method: "OPTIONS",
@@ -131,137 +139,40 @@ http.route({
   ),
 });
 
-http.route({
-  path: "/tts",
-  method: "GET",
-  handler: httpAction(async (ctx, request) => {
-    if (!(await ctx.auth.getUserIdentity()))
-      return new Response("Unauthorized", { status: 401, headers: ttsCors });
-    const user = await ctx.runQuery(internal.lib.helpers.getCurrentUser, {});
-    if (!user)
-      return new Response("Unauthorized", { status: 401, headers: ttsCors });
-    const url = new URL(request.url);
-    const text = url.searchParams.get("text");
-    const voice = url.searchParams.get("voice") || "aura-asteria-en";
-    const speed = Number(url.searchParams.get("speed") ?? "1.0");
-
-    if (
-      !text?.trim() ||
-      text.length > 2000 ||
-      !Number.isFinite(speed) ||
-      speed < 0.5 ||
-      speed > 2 ||
-      !/^aura-[a-z0-9-]{1,60}$/.test(voice)
-    ) {
-      return new Response("Invalid text, voice or speed", {
-        status: 400,
-        headers: ttsCors,
+const ttsHandler = httpAction(async (ctx, request) => {
+  if (!(await ctx.auth.getUserIdentity()))
+    return new Response("Unauthorized", { status: 401, headers: ttsCors });
+  try {
+    let input: z.infer<typeof ttsInput>;
+    if (request.method === "POST") {
+      const bytes = await readSpeechBody(request, 16_000, 5000);
+      input = ttsInput.parse(JSON.parse(new TextDecoder().decode(bytes)));
+    } else {
+      const params = new URL(request.url).searchParams;
+      input = ttsInput.parse({
+        text: params.get("text"),
+        voice: params.get("voice") ?? undefined,
+        speed: params.has("speed") ? Number(params.get("speed")) : undefined,
       });
     }
-
-    // Hash params for cache key
-    const hashParams = `${text}:${voice}:${speed}`;
-    // Simple hash (djb2 or similar is fine, or web crypto if available)
-    // Using simple string replacement/encoding for now or web crypto if available
-    const encoder = new TextEncoder();
-    const data = encoder.encode(hashParams);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-
-    // 1. Check Cache
-    // @ts-ignore - TypeScript recursion limit with 85+ Convex modules
-    const cached = await ctx.runQuery(internal.ttsCache.getCache, { hash });
-
-    if (cached) {
-      const storageUrl = await ctx.storage.getUrl(cached.storageId);
-      if (storageUrl) {
-        // Redirect to storage URL (fastest)
-        return new Response(null, {
-          status: 302,
-          headers: {
-            Location: storageUrl,
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET",
-            "Cache-Control": "private, no-store",
-          },
-        });
-      }
-    }
-
-    // 2. Not Cached: Proxy to Deepgram
-    const apiKey = process.env.DEEPGRAM_API_KEY;
-    if (!apiKey) {
-      return new Response("Server misconfigured", {
-        status: 500,
-        headers: { "Access-Control-Allow-Origin": "*" },
-      });
-    }
-
-    const dgUrl = new URL("https://api.deepgram.com/v1/speak");
-    dgUrl.searchParams.set("model", voice);
-    dgUrl.searchParams.set("encoding", "mp3");
-
-    // Deepgram speed: 0.5 to 2.0
-    const clampedSpeed = Math.min(Math.max(speed, 0.5), 2.0);
-    if (clampedSpeed !== 1.0) {
-      dgUrl.searchParams.set("tempo", clampedSpeed.toString());
-    }
-
-    const dgResponse = await fetch(dgUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Token ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ text }),
-      signal: AbortSignal.timeout(30_000),
-    });
-
-    if (!dgResponse.ok) {
-      return new Response(dgResponse.body, {
-        status: dgResponse.status,
-        statusText: dgResponse.statusText,
-        headers: { "Access-Control-Allow-Origin": "*" },
-      });
-    }
-
-    // 3. Streaming Response AND Cache
-    // ... (logic unchanged) ...
-
-    const audioBuffer = await dgResponse.arrayBuffer();
-    await ctx.runMutation(internal.usage.mutations.recordTTS, {
-      userId: user._id,
-      model: "deepgram:tts",
-      characterCount: text.length,
-      cost: text.length * 0.000003,
-      feature: "chat",
-    });
-
-    // Store in background (async)
-    // Yes, we must await.
-    const storageId = await ctx.storage.store(
-      new Blob([audioBuffer], { type: "audio/mpeg" }),
+    const audio = await ctx.runAction(api.tts.generateSpeech, input);
+    const binary = atob(audio.audioBase64);
+    const bytes = Uint8Array.from(binary, (character) =>
+      character.charCodeAt(0),
     );
-
-    await ctx.runMutation(internal.ttsCache.saveCache, {
-      hash,
-      storageId,
-      text,
-      voice,
-      speed: clampedSpeed,
-      format: "mp3",
+    return new Response(bytes, {
+      headers: { ...ttsCors, "Content-Type": "audio/mpeg" },
     });
-
-    return new Response(audioBuffer, {
-      headers: {
-        "Content-Type": "audio/mpeg",
-        "Cache-Control": "private, no-store",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
-  }),
+  } catch {
+    // Do not reflect private text, provider responses, credentials, or storage URLs.
+    return new Response(
+      "Speech request rejected. Check TTS preferences, credentials and usage budget.",
+      { status: 400, headers: ttsCors },
+    );
+  }
 });
+http.route({ path: "/tts", method: "GET", handler: ttsHandler });
+http.route({ path: "/tts", method: "POST", handler: ttsHandler });
 
 /**
  * Return decrypted BYOD credentials for GHA deployment

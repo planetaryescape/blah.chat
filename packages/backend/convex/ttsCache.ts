@@ -27,7 +27,11 @@ export const saveCache = internalMutation({
       .withIndex("by_hash", (q) => q.eq("hash", args.hash))
       .first();
 
-    if (existing) return existing._id;
+    if (existing) {
+      if (args.storageId !== existing.storageId)
+        await ctx.storage.delete(args.storageId);
+      return existing._id;
+    }
 
     return await ctx.db.insert("ttsCache", {
       hash: args.hash,

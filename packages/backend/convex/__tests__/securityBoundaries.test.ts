@@ -99,6 +99,10 @@ describe("internal service and upload credentials", () => {
     expect((await t.fetch("/tts?text=hello")).status).toBe(401);
     expect(outbound).not.toHaveBeenCalled();
     const client = t.withIdentity(createMockIdentity({ subject: "speaker" }));
+    expect((await client.fetch("/tts?text=hello")).status).toBe(400);
+    await client.mutation(api.users.updatePreferences, {
+      preferences: { ttsEnabled: true },
+    });
     expect((await client.fetch(`/tts?text=${"x".repeat(2001)}`)).status).toBe(
       400,
     );

@@ -29,6 +29,9 @@ export const DEFAULT_MODEL = MODEL_CONFIG[DEFAULT_MODEL_ID];
 export const TITLE_GENERATION_MODEL: ModelConfig =
   MODEL_CONFIG["openai:gpt-oss-120b"];
 
+/** Bounded, source-validated code outlines; never rewrites the source rendition. */
+export const SPEECH_PREPARATION_MODEL: ModelConfig = TITLE_GENERATION_MODEL;
+
 /** Cheap classification and tiebreak model for auto routing. */
 export const ROUTER_TIEBREAK_MODEL: ModelConfig =
   MODEL_CONFIG["openai:gpt-oss-120b"];

@@ -74,6 +74,15 @@ export function getModel(modelId: string, gatewayOverride?: GatewayName) {
     return gatewayClient(gatewayModel);
   }
 
+  if (
+    selectedGateway === "openrouter" &&
+    !process.env.OPENROUTER_API_KEY?.trim()
+  ) {
+    throw new Error(
+      "OpenRouter authentication is not configured: OPENROUTER_API_KEY must be set in the generation backend.",
+    );
+  }
+
   if (selectedGateway === "cerebras" && modelId === DEFAULT_MODEL_ID) {
     return gatewayClient(model);
   }

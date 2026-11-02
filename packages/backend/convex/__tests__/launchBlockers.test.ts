@@ -603,6 +603,86 @@ it("cancels an active provider stream without finalizing or releasing a subseque
   ).toMatchObject([{ comparisonGroupId: "new-generation", pendingCount: 1 }]);
 });
 
+it.each([
+  {
+    statusCode: 401,
+    message: "Missing Authentication header",
+    guidance: /authentication|API.*key/i,
+  },
+  {
+    statusCode: 402,
+    message: "Insufficient credits",
+    guidance: /credits|billing/i,
+  },
+  { statusCode: 429, message: "Too many requests", guidance: /rate limit/i },
+])("preserves a streamed provider $statusCode instead of replacing it with NoOutputGenerated", async ({
+  statusCode,
+  message,
+  guidance,
+}) => {
+  const { t, owner, conversationId, left } = await fixture();
+  await t.run(async (ctx) => {
+    await ctx.db.patch(conversationId, {
+      cachedSystemPrompt: JSON.stringify([{ role: "system", content: "Test" }]),
+    });
+    await ctx.db.patch(left, { status: "pending" });
+    await ctx.db.insert("generationLocks", {
+      conversationId,
+      userId: owner,
+      messageId: left,
+      pendingCount: 1,
+      lockedAt: Date.now(),
+    });
+  });
+  vi.stubEnv("TAVILY_API_KEY", "test-key-not-used-for-network");
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => {
+      throw new Error("No live network in this fixture");
+    }),
+  );
+  const providerError = new ai.APICallError({
+    message,
+    statusCode,
+    url: "https://openrouter.ai/api/v1/chat/completions",
+    requestBodyValues: {},
+    isRetryable: false,
+  });
+  const readUsage = vi.fn(() => {
+    throw new ai.NoOutputGeneratedError();
+  });
+  // SAFETY: the action must consume the error chunk before reading any result
+  // property; the getters trap the SDK's later NoOutputGenerated failure.
+  vi.mocked(ai.streamText).mockReturnValue({
+    fullStream: (async function* () {
+      yield { type: "error", error: providerError };
+    })(),
+    get usage() {
+      return readUsage();
+    },
+    get totalUsage() {
+      return readUsage();
+    },
+  } as ReturnType<typeof ai.streamText>);
+
+  await expect(
+    t.action(internal.generation.generateResponse, {
+      conversationId,
+      userId: owner,
+      existingMessageId: left,
+      modelId: cheap,
+    }),
+  ).rejects.toBe(providerError);
+  expect(readUsage).not.toHaveBeenCalled();
+  const stored = await t.run((ctx) => ctx.db.get(left));
+  expect(stored?.status).toBe("error");
+  expect(stored?.error).toMatch(guidance);
+  expect(stored?.error).not.toMatch(/No output generated/);
+  expect(
+    await t.run((ctx) => ctx.db.query("generationLocks").collect()),
+  ).toEqual([]);
+});
+
 it("pre-creates a stoppable CLI placeholder with the actual active parent ancestry", async () => {
   const { t, owner, conversationId, prompt, left } = await fixture();
   await t.run((ctx) =>

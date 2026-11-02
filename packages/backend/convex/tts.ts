@@ -1,133 +1,127 @@
 "use node";
 
 import { v } from "convex/values";
+import { z } from "zod";
 import { api, internal } from "./_generated/api";
-import type { Doc, Id } from "./_generated/dataModel";
+import type { Doc } from "./_generated/dataModel";
 import { action } from "./_generated/server";
+import { decryptByokKey } from "./byok/helpers";
+import {
+  audioCacheHash,
+  MAX_AUDIO_BYTES,
+  synthesize,
+  validateSynthesis,
+} from "./lib/speech/synthesis";
 
-/**
- * Generate speech from text using Deepgram
- *
- * Note: Deepgram has a 2000 character limit per request.
- * For longer texts, the client should chunk the text and call this action multiple times.
- */
+/** Both authenticated HTTP methods and legacy Convex callers use this policy boundary. */
 export const generateSpeech = action({
   args: {
     text: v.string(),
     voice: v.optional(v.string()),
     speed: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    // 1. Get user + check TTS enabled (Phase 4: use new preference system)
-    const user = await (
-      ctx.runQuery as (ref: any, args: any) => Promise<Doc<"users"> | null>
-    )(
-      // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-      api.users.getCurrentUser as any,
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
+    audioBase64: string;
+    provider: "deepgram";
+    mimeType: string;
+    cost: number;
+    characterCount: number;
+  }> => {
+    if (!(await ctx.auth.getUserIdentity())) throw new Error("Unauthorized");
+    const user: Doc<"users"> | null = await ctx.runQuery(
+      internal.lib.helpers.getCurrentUser,
       {},
     );
-
-    if (!user) {
-      throw new Error("Unauthorized");
-    }
-
-    // Get TTS preferences
-    const ttsEnabled = await (
-      ctx.runQuery as (ref: any, args: any) => Promise<boolean | null>
-    )(api.users.getUserPreference as any, { key: "ttsEnabled" });
-
-    if (!ttsEnabled) {
-      throw new Error("TTS is disabled in user preferences");
-    }
-    if (!args.text.trim() || args.text.length > 2000) {
-      throw new Error("TTS requires 1-2000 characters");
-    }
-
-    const provider = "deepgram" as const;
-    const charCount = args.text.length;
-    const cost: number = charCount * 0.000003; // $0.000003/char
-
-    // 2. Setup Deepgram config (Phase 4: load from preferences)
-    const ttsVoice = await (
-      ctx.runQuery as (ref: any, args: any) => Promise<string | null>
-    )(api.users.getUserPreference as any, { key: "ttsVoice" });
-    const ttsSpeed = await (
-      ctx.runQuery as (ref: any, args: any) => Promise<number | null>
-    )(api.users.getUserPreference as any, { key: "ttsSpeed" });
-
-    const voice: string = args.voice ?? ttsVoice ?? "aura-asteria-en";
-    const tempo = args.speed ?? ttsSpeed ?? 1;
+    if (!user) throw new Error("Unauthorized");
     if (
-      !Number.isFinite(tempo) ||
-      tempo < 0.5 ||
-      tempo > 2 ||
-      !/^aura-[a-z0-9-]{1,60}$/.test(voice)
+      !(await ctx.runQuery(api.users.getUserPreference, { key: "ttsEnabled" }))
     )
-      throw new Error("Invalid TTS voice or speed");
-    const apiKey = process.env.DEEPGRAM_API_KEY;
-    if (!apiKey) {
-      throw new Error("DEEPGRAM_API_KEY is not set");
-    }
-
-    // 3. Call Deepgram TTS
-    const url = new URL("https://api.deepgram.com/v1/speak");
-    url.searchParams.set("model", voice);
-    url.searchParams.set("encoding", "mp3");
-    if (tempo && tempo !== 1) {
-      const clampedTempo = Math.min(Math.max(tempo, 0.5), 2);
-      url.searchParams.set("tempo", clampedTempo.toString());
-    }
-
-    const response: Response = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Token ${apiKey}`,
-        "Content-Type": "application/json",
-        Accept: "audio/mpeg",
-      },
-      body: JSON.stringify({ text: args.text }),
+      throw new Error("TTS is disabled in user preferences");
+    const preferredVoice = await ctx.runQuery(api.users.getUserPreference, {
+      key: "ttsVoice",
     });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
-      const detail = errorText
-        ? ` - ${errorText.slice(0, 300)}`
-        : response.statusText;
-      throw new Error(`Deepgram API error ${response.status}: ${detail}`);
-    }
-
-    const audioBuffer = await response.arrayBuffer();
-
-    // 4. Track cost
-    await ctx.runMutation(
-      // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-      internal.usage.mutations.recordTTS,
-      {
-        userId: user._id,
-        model: `${provider}:tts`,
-        characterCount: charCount,
-        cost,
-        feature: "chat",
-      } satisfies {
-        userId: Id<"users">;
-        model: string;
-        characterCount: number;
-        cost: number;
-        feature: "chat";
-      },
+    const preferredSpeed = await ctx.runQuery(api.users.getUserPreference, {
+      key: "ttsSpeed",
+    });
+    const voice =
+      args.voice ?? z.string().catch("aura-asteria-en").parse(preferredVoice);
+    const speed = args.speed ?? z.number().catch(1).parse(preferredSpeed);
+    validateSynthesis(args.text, voice, speed);
+    const config = await ctx.runQuery(
+      internal.byok.credentials.getConfigByAuth,
+      {},
     );
-
-    // 5. Convert to base64 for storage/transfer
-    const audioBase64: string = Buffer.from(
-      new Uint8Array(audioBuffer),
-    ).toString("base64");
-
+    const byok = config?.byokEnabled === true;
+    const apiKey =
+      byok && config
+        ? await decryptByokKey(config, "deepgram")
+        : process.env.DEEPGRAM_API_KEY;
+    if (!apiKey)
+      throw new Error(
+        byok
+          ? "BYOK Deepgram key required for speech; server credentials were not used"
+          : "Speech provider is not configured",
+      );
+    const hash = await audioCacheHash(
+      user._id,
+      args.text,
+      voice,
+      speed,
+      byok ? `byok:${config?.updatedAt}` : "server",
+    );
+    const cached = await ctx.runQuery(internal.ttsCache.getCache, { hash });
+    if (cached) {
+      const blob = await ctx.storage.get(cached.storageId);
+      if (blob && blob.size > 0 && blob.size <= MAX_AUDIO_BYTES)
+        return {
+          audioBase64: Buffer.from(await blob.arrayBuffer()).toString("base64"),
+          provider: "deepgram",
+          mimeType: "audio/mpeg",
+          cost: 0,
+          characterCount: args.text.length,
+        };
+    }
+    if (!byok) {
+      const budget = await ctx.runQuery(api.usage.checkBudget.checkBudget, {
+        userId: user._id,
+      });
+      if (!budget.allowed) throw new Error("Speech usage budget exhausted");
+    }
+    const audio = await synthesize(args.text, voice, speed, apiKey);
+    const cost = args.text.length * 0.000003;
+    await ctx.runMutation(internal.usage.mutations.recordTTS, {
+      userId: user._id,
+      model: "deepgram:tts",
+      characterCount: args.text.length,
+      cost,
+      feature: "chat",
+      isByok: byok,
+    });
+    const storageId = await ctx.storage.store(
+      new Blob([audio], { type: "audio/mpeg" }),
+    );
+    try {
+      await ctx.runMutation(internal.ttsCache.saveCache, {
+        hash,
+        storageId,
+        text: "",
+        voice,
+        speed,
+        format: "mp3",
+      });
+    } catch {
+      await ctx.storage.delete(storageId);
+      // Cache persistence is optional; synthesis itself already succeeded and was charged.
+    }
     return {
-      audioBase64,
-      provider,
+      audioBase64: Buffer.from(audio).toString("base64"),
+      provider: "deepgram",
       mimeType: "audio/mpeg",
       cost,
-      characterCount: charCount,
+      characterCount: args.text.length,
     };
   },
 });

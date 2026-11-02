@@ -7,6 +7,7 @@ const json = async (file: string) =>
   JSON.parse(await readFile(new URL(file, root), "utf8"));
 
 type Workflow = {
+  on: { release?: unknown; workflow_dispatch?: unknown };
   concurrency: unknown;
   jobs: Record<
     string,
@@ -90,6 +91,7 @@ test("rollback and promotion serialize, and health-only staging cannot promote",
   expect(promotion.if).toContain("github.ref_protected");
   expect(promotion.needs).toBe("promotion-preflight");
   const preflight = release.jobs["promotion-preflight"];
+  expect(preflight.if).toBe("github.event_name == 'workflow_dispatch'");
   expect(preflight.environment).toBeUndefined();
   expect(
     preflight.steps.find(
@@ -125,5 +127,27 @@ test("rollback and promotion serialize, and health-only staging cannot promote",
   );
   expect(promotion.steps.at(-1)?.run).toBe(
     "bun apps/desktop/scripts/promote.ts",
+  );
+  const staging = release.jobs["deploy-production"];
+  expect(release.on.release).toBeUndefined();
+  expect(staging.needs).toBe("promotion-preflight");
+  expect(staging.if).toContain("github.ref == 'refs/heads/main'");
+  expect(staging.if).toContain("github.ref_protected");
+  expect(
+    staging.steps.find((step) => step.uses === "actions/checkout@v6")?.with
+      ?.ref,
+  ).toBe(`\${{ needs.promotion-preflight.outputs.sha }}`);
+  expect(staging.env?.PROMOTION_SOURCE_SHA).toBe(
+    `\${{ needs.promotion-preflight.outputs.sha }}`,
+  );
+  const upload =
+    staging.steps.find((step) => step.run?.includes("URL=$(vercel deploy"))
+      ?.run ?? "";
+  expect(upload).toContain(
+    'vercel deploy --prod --skip-domain --yes --meta "sourceCommit=$PROMOTION_SOURCE_SHA"',
+  );
+  expect(upload.indexOf("--verify-stage-source")).toBeGreaterThanOrEqual(0);
+  expect(upload.indexOf("--verify-stage-source")).toBeLessThan(
+    upload.indexOf("URL=$(vercel deploy"),
   );
 });

@@ -31,7 +31,10 @@ Tauri versions remain `0.1.0`, not the former manifest baseline of `0.34.0`.
 
 ## Production web promotion
 
-`release.yml` deploys compatible backend functions and stages the web artifact
+`release.yml` is manually dispatched from protected default branch `main` for both
+staging and promotion. Publishing a release tag no longer triggers staging from
+that tag. A blank `promote_deployment` requests staging; the same secret-free
+source/environment/CI preflight gates both paths. It deploys compatible backend functions and stages the web artifact
 without moving production domains. Health readiness alone never promotes it.
 Verify sign-in, send, refresh and persisted responses on the exact staged URL,
 then manually dispatch **Production Deploy** with `promote_deployment` set to that
@@ -49,7 +52,22 @@ artifact is rejected; use rollback for older artifacts rather than changing refs
 Promotion accepts only an
 exact HTTPS `*.vercel.app` deployment URL, reads Vercel deployment metadata, and
 requires the configured project, a ready production target, and `gitSource.sha`
-equal to the checked-out main commit (`PROMOTION_SOURCE_SHA`). It then promotes only the
+equal to the checked-out main commit (`PROMOTION_SOURCE_SHA`). CLI-created deployments
+may omit `gitSource`; only in that case, all three metadata fields must match:
+`meta.gitCommitSha === PROMOTION_SOURCE_SHA`,
+`meta.sourceCommit === PROMOTION_SOURCE_SHA`, and `meta.gitDirty === "0"`.
+A present but wrong or malformed `gitSource` is always rejected, even when metadata
+matches. This is an attestation from the trusted staging path, **not a cryptographic
+signature**, and no caller-entered source SHA is accepted.
+
+Immediately before Vercel upload, staging verifies `HEAD` equals the trusted SHA,
+both the tracked working tree and index are clean, and there are no untracked
+nonignored files. It explicitly passes `--meta sourceCommit=$PROMOTION_SOURCE_SHA`
+to the CLI. Generated binding changes from Convex codegen also fail this gate;
+commit the current bindings rather than ignoring those changes. Vercel's own Git
+metadata supplies `gitCommitSha` and the string-valued `gitDirty` marker.
+
+Promotion then uses only the
 verified immutable deployment ID. The selected commit must also have successful
 GitHub Actions checks named `Lint & Typecheck`, `Unit & Integration Tests`, and
 `Build`; all pages are read before admission, including later failed reruns.
@@ -58,6 +76,12 @@ malformed pages fail closed without accepting partial results.
 Missing provenance is rejected; use the separate
 rollback workflow for an older verified production artifact. The read-only Vercel
 deployment API is used because `vercel inspect --json` omits project/source fields.
+
+The coordinator observed the existing production artifact
+`dpl_7459Sr6pJERwJDC86fNkwZfP9BTm` without `gitSource`, with both metadata SHAs
+pointing to the old deployed source and `gitDirty: "1"`. It is deliberately
+ineligible for this promotion path; no dirty-artifact exception was added and no
+live deployment was changed.
 
 ### External production-environment blocker
 

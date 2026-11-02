@@ -27,6 +27,7 @@ Notes:
 bun --filter=@blah-chat/desktop run dev
 bun --filter=@blah-chat/desktop run build
 bun --filter=@blah-chat/desktop run build:bundle
+agent-work run -- bun --filter=@blah-chat/desktop run test:run
 source "$HOME/.cargo/env" && cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
 ```
 

@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
+import { getTtsVoiceLabel, TTS_VOICE_OPTIONS } from "@blah-chat/shared/tts";
 import { getFunctionName } from "convex/server";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   getMobileTransportError,
   getMobileTransportMode,
 } from "../lib/transport/mode";
-import { TTS_VOICE_OPTIONS } from "../lib/tts";
 import { formatToolResult, parseToolValue } from "../lib/utils/toolJson";
 
 const originalMode = process.env.EXPO_PUBLIC_MOBILE_TRANSPORT;
@@ -51,11 +51,65 @@ describe("native and legacy tool JSON", () => {
 });
 
 test("restored voice catalog includes the stored default and all existing voices", () => {
-  expect(TTS_VOICE_OPTIONS).toHaveLength(45);
+  expect(TTS_VOICE_OPTIONS.map((voice) => voice.value).sort()).toEqual(
+    [
+      "aura-2-amalthea-en",
+      "aura-2-andromeda-en",
+      "aura-angus-en",
+      "aura-2-apollo-en",
+      "aura-arcas-en",
+      "aura-2-aries-en",
+      "aura-asteria-en",
+      "aura-athena-en",
+      "aura-2-atlas-en",
+      "aura-2-aurora-en",
+      "aura-2-callista-en",
+      "aura-2-cora-en",
+      "aura-2-cordelia-en",
+      "aura-2-delia-en",
+      "aura-2-draco-en",
+      "aura-2-electra-en",
+      "aura-2-harmonia-en",
+      "aura-2-helena-en",
+      "aura-helios-en",
+      "aura-hera-en",
+      "aura-2-hermes-en",
+      "aura-2-hyperion-en",
+      "aura-2-iris-en",
+      "aura-2-janus-en",
+      "aura-2-juno-en",
+      "aura-2-jupiter-en",
+      "aura-luna-en",
+      "aura-2-mars-en",
+      "aura-2-minerva-en",
+      "aura-2-neptune-en",
+      "aura-2-odysseus-en",
+      "aura-2-ophelia-en",
+      "aura-orion-en",
+      "aura-orpheus-en",
+      "aura-2-pandora-en",
+      "aura-perseus-en",
+      "aura-2-phoebe-en",
+      "aura-2-pluto-en",
+      "aura-2-saturn-en",
+      "aura-2-selene-en",
+      "aura-stella-en",
+      "aura-2-thalia-en",
+      "aura-2-theia-en",
+      "aura-2-vesta-en",
+      "aura-zeus-en",
+    ].sort(),
+  );
   expect(
     TTS_VOICE_OPTIONS.find((voice) => voice.value === "aura-asteria-en")?.label,
   ).toBe("Asteria (Female, warm)");
   expect(new Set(TTS_VOICE_OPTIONS.map((voice) => voice.value)).size).toBe(45);
+});
+
+test("unknown persisted voices retain a readable fallback label", () => {
+  expect(getTtsVoiceLabel("aura-custom-en")).toBe("custom");
+  expect(getTtsVoiceLabel("aura-2-future-en")).toBe("future");
+  expect(getTtsVoiceLabel("other-provider-voice")).toBe("other-provider-voice");
 });
 
 let queryResult = new Error("Not authenticated");

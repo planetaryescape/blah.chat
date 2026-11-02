@@ -47,7 +47,7 @@ export default function SettingsScreen() {
       haptic.success();
       toast({
         preset: "done",
-        title: `Deleted ${result.deletedCount} empty conversations`,
+        title: `Deleted ${result.deletedCount} empty conversation${result.deletedCount === 1 ? "" : "s"}`,
       });
       return result;
     },

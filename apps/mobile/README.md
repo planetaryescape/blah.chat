@@ -10,17 +10,23 @@ provide a complete HTTP-only journey. Other values show a configuration error
 before mounting authenticated app consumers; no writes fall through to another
 backend. This does not affect the CLI's independent API-key HTTP/SSE transport.
 
-Voice settings retain the existing Deepgram Aura voice catalog. Selection persists
+Voice settings use the same `@blah-chat/shared/tts` Deepgram Aura catalog as web.
+Mobile resolves the workspace shared package so both pickers receive the same list.
+Selection persists
 `ttsVoice`; failed updates leave the picker open. Note autosave failures show a
 toast and keep the local edit; backing out waits for a successful final save.
 Shared notes use the web app's `/share/[shareId]` route.
+
+While preferences load, Enter inserts a newline. Overlapping async actions remain
+pending until every run settles. Back saves only explicitly edited titles and is
+guarded against repeated navigation; a failed save permits retry.
 
 From this directory:
 
 ```sh
 bun run dev
 agent-work run -- bun run typecheck
-agent-work run -- bun test tests
+agent-work run -- bun run test:run
 EXPO_NO_DOTENV=1 agent-work run -- bun run build -- --platform ios --max-workers 4
 ```
 

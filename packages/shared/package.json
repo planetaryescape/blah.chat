@@ -17,6 +17,10 @@
       "types": "./dist/desktop.d.ts",
       "import": "./dist/desktop.js"
     },
+    "./tts": {
+      "types": "./dist/tts.d.ts",
+      "import": "./dist/tts.js"
+    },
     "./utils": {
       "types": "./dist/utils/index.d.ts",
       "import": "./dist/utils/index.js"
@@ -47,7 +51,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup src/index.ts src/byod/index.ts src/desktop.ts src/utils/index.ts src/preferences.ts src/limits.ts src/integrations.ts src/canvas/index.ts --format esm --dts --clean",
+    "build": "tsup src/index.ts src/byod/index.ts src/desktop.ts src/tts.ts src/utils/index.ts src/preferences.ts src/limits.ts src/integrations.ts src/canvas/index.ts --format esm --dts --clean",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "bun run build"
   },

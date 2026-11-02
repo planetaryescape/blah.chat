@@ -1,4 +1,4 @@
-/** Existing Deepgram Aura catalog, retained locally after shared/tts was removed. */
+/** Existing Deepgram Aura voices shared by web and mobile settings. */
 export const TTS_VOICE_OPTIONS = [
   { value: "aura-2-amalthea-en", label: "Amalthea (Female, gentle)" },
   { value: "aura-2-andromeda-en", label: "Andromeda (Female, clear)" },
@@ -46,3 +46,10 @@ export const TTS_VOICE_OPTIONS = [
   { value: "aura-2-vesta-en", label: "Vesta (Female, homey)" },
   { value: "aura-zeus-en", label: "Zeus (Male, authoritative)" },
 ] as const;
+
+export function getTtsVoiceLabel(value: string): string {
+  return (
+    TTS_VOICE_OPTIONS.find((voice) => voice.value === value)?.label ??
+    value.replace(/^aura-(?:2-)?/, "").replace(/-en$/, "")
+  );
+}

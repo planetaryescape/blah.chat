@@ -43,6 +43,7 @@ import { useChatAttachmentUpload } from "@/lib/hooks/useChatAttachmentUpload";
 import { type STTStopMode, useChatSTT } from "@/lib/hooks/useChatSTT";
 import { usePreferences } from "@/lib/hooks/usePreferences";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
+import { shouldSendOnEnter } from "@/lib/utils/chatPreferences";
 
 export interface ChatInputRef {
   focus: () => void;
@@ -115,7 +116,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
     const inputRef = useRef<TextInputType>(null);
 
     const prefs = usePreferences();
-    const sendOnEnter = prefs?.sendOnEnter ?? true;
+    const sendOnEnter = shouldSendOnEnter(prefs);
     const sttEnabled = prefs?.sttEnabled ?? true;
 
     const { isUploading, uploadAsset } =

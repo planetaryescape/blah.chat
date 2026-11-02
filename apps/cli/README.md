@@ -10,7 +10,7 @@ chat transport selector.
 ```sh
 agent-work run -- bun run build
 agent-work run -- bun run typecheck
-agent-work run -- bun test tests
+agent-work run -- bun run test:run
 ```
 
 Build workspace dependencies first (`@blah-chat/api-client`, `@blah-chat/shared`

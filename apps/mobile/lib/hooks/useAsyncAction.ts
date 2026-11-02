@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { runTrackedAction } from "@/lib/utils/asyncAction";
 
 /** Run a user action with handled failures; undefined denotes an unsuccessful run. */
 export function useAsyncAction<TArgs extends unknown[], TResult>(
@@ -6,18 +7,10 @@ export function useAsyncAction<TArgs extends unknown[], TResult>(
   { onError }: { onError?: () => void } = {},
 ) {
   const [isPending, setIsPending] = useState(false);
+  const activeRuns = useRef(0);
   const run = useCallback(
-    async (...args: TArgs) => {
-      setIsPending(true);
-      try {
-        return await fn(...args);
-      } catch {
-        onError?.();
-        return undefined;
-      } finally {
-        setIsPending(false);
-      }
-    },
+    (...args: TArgs) =>
+      runTrackedAction(activeRuns, setIsPending, () => fn(...args), onError),
     [fn, onError],
   );
   return { run, isPending };

@@ -5,6 +5,7 @@ import type {
   SpeechSegment,
 } from "@blah-chat/backend/convex/lib/speech/types";
 import { useAuth } from "@clerk/nextjs";
+import { ConvexHttpClient } from "convex/browser";
 import { useAction } from "convex/react";
 import { makeFunctionReference } from "convex/server";
 import {
@@ -25,9 +26,14 @@ import { clamp, getTTSUrl } from "@/lib/utils/ttsUtils";
 // Message IDs already travel as strings through Speak; Convex validates IDs/access.
 const prepareNarration = makeFunctionReference<
   "action",
-  { text: string; messageId?: string },
+  { text: string; messageId?: string; requestId: string },
   PreparedNarration
 >("speechPreparation:prepare");
+const cancelNarration = makeFunctionReference<
+  "mutation",
+  { requestId: string },
+  null
+>("speechPreparation:cancel");
 
 interface TTSState {
   isVisible: boolean;
@@ -35,6 +41,7 @@ interface TTSState {
   isPreparing: boolean;
   isPlaying: boolean;
   canResume: boolean;
+  canRetry: boolean;
   duration: number;
   currentTime: number;
   speed: number;
@@ -56,6 +63,7 @@ interface TTSContextValue {
   }) => Promise<void>;
   pause: () => void;
   resume: () => Promise<void>;
+  retry: () => void;
   stop: () => void;
   seekBy: (seconds: number) => void;
   seekTo: (time: number) => void;
@@ -80,12 +88,37 @@ export function TTSProvider({
   const identityRef = useRef(identity);
   const generation = useRef(0);
   const mounted = useRef(true);
+  const retrySource = useRef<{
+    text: string;
+    messageId?: string;
+    owner: string;
+  } | null>(null);
+  const preparation = useRef<{ requestId: string; token: string } | null>(null);
+  const cancelPreparation = useCallback(() => {
+    const pending = preparation.current;
+    preparation.current = null;
+    if (!pending) return;
+    // Use the JWT captured before this request, never a token obtained after an
+    // account switch. Cancellation is best effort and never leaks a rejection.
+    try {
+      const client = new ConvexHttpClient(
+        process.env.NEXT_PUBLIC_CONVEX_URL || "",
+      );
+      client.setAuth(pending.token);
+      void client
+        .mutation(cancelNarration, { requestId: pending.requestId })
+        .catch(() => {});
+    } catch {
+      // Offline/misconfigured clients still stop locally; server deadlines bound work.
+    }
+  }, []);
   const [state, setState] = useState<TTSState>({
     isVisible: false,
     isLoading: false,
     isPreparing: false,
     isPlaying: false,
     canResume: false,
+    canRetry: false,
     duration: 0,
     currentTime: 0,
     speed: clamp(defaultSpeed, 0.5, 2),
@@ -112,6 +145,7 @@ export function TTSProvider({
       isPlaying: false,
       isStreaming: false,
       canResume: false,
+      canRetry: error.name === "SpeechBusyError",
       warning: error.message,
     }));
   };
@@ -162,6 +196,8 @@ export function TTSProvider({
 
   const stop = useCallback(() => {
     generation.current++;
+    retrySource.current = null;
+    cancelPreparation();
     cleanupAudio();
     setState((prev) => ({
       ...prev,
@@ -169,11 +205,12 @@ export function TTSProvider({
       isPreparing: false,
       isPlaying: false,
       canResume: false,
+      canRetry: false,
       isStreaming: false,
       currentTime: 0,
       currentChunk: 0,
     }));
-  }, [cleanupAudio]);
+  }, [cancelPreparation, cleanupAudio]);
 
   const close = useCallback(() => {
     stop();
@@ -199,9 +236,10 @@ export function TTSProvider({
     return () => {
       mounted.current = false;
       generation.current++;
+      cancelPreparation();
       cleanupAudio();
     };
-  }, [cleanupAudio]);
+  }, [cancelPreparation, cleanupAudio]);
 
   // Preference changes affect the next session, not in-flight synthesis parameters.
   const preferences = useRef({ voice: defaultVoice, speed: defaultSpeed });
@@ -215,6 +253,7 @@ export function TTSProvider({
   const playFromText = useCallback(
     async ({ text, messageId }: { text: string; messageId?: string }) => {
       const run = ++generation.current;
+      cancelPreparation();
       cleanupAudio();
       const owner = identityRef.current;
       sessionOwner.current = owner;
@@ -224,6 +263,7 @@ export function TTSProvider({
         !!owner &&
         identityRef.current === owner;
       if (!text.trim()) return;
+      retrySource.current = owner ? { text, messageId, owner } : null;
       const { voice, speed } = preferences.current;
       const sessionSpeed = setAudioSpeed(speed);
       setState((prev) => ({
@@ -233,6 +273,7 @@ export function TTSProvider({
         isPreparing: true,
         isPlaying: false,
         canResume: false,
+        canRetry: false,
         sourceMessageId: messageId,
         previewText: text.slice(0, 220),
         currentTime: 0,
@@ -252,8 +293,10 @@ export function TTSProvider({
         if (!active()) return;
         if (!token)
           throw new Error("Speech requires an authenticated session.");
+        const requestId = crypto.randomUUID();
+        preparation.current = { requestId, token };
         // Authoritative Markdown reaches preparation unchanged. No paid call before JWT.
-        const narration = await prepare({ text, messageId });
+        const narration = await prepare({ text, messageId, requestId });
         if (!active()) return;
         if (!narration.segments.length)
           throw new Error("This message has no speech to play.");
@@ -306,6 +349,13 @@ export function TTSProvider({
               }),
               signal: request.signal,
             });
+            if (response.status === 409) {
+              const busy = new Error(
+                "Speech is already being generated. Retry shortly.",
+              );
+              busy.name = "SpeechBusyError";
+              throw busy;
+            }
             if (!response.ok)
               throw new Error(
                 "Speech generation failed. Playback stopped without skipping this section.",
@@ -350,8 +400,14 @@ export function TTSProvider({
         }
       }
     },
-    [cleanupAudio, getToken, prepare, setAudioSpeed, start],
+    [cancelPreparation, cleanupAudio, getToken, prepare, setAudioSpeed, start],
   );
+
+  const retry = useCallback(() => {
+    const source = retrySource.current;
+    if (source && mounted.current && identityRef.current === source.owner)
+      void playFromText(source);
+  }, [playFromText]);
 
   const pause = useCallback(() => {
     pauseAudio();
@@ -389,6 +445,7 @@ export function TTSProvider({
         playFromText,
         pause,
         resume,
+        retry,
         stop,
         seekBy,
         seekTo,

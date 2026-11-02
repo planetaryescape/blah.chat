@@ -2,7 +2,7 @@ import { generateText } from "ai";
 import { makeFunctionReference } from "convex/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { convexTest } from "../../__tests__/testSetup";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { applyCodeOutline } from "../lib/speech/assistance";
 import {
@@ -32,7 +32,7 @@ vi.mock("ai", async (original) => ({
 
 const prepare = makeFunctionReference<
   "action",
-  { text: string; messageId?: Id<"messages"> },
+  { text: string; messageId?: Id<"messages">; requestId?: string },
   PreparedNarration
 >("speechPreparation:prepare");
 afterEach(() => {
@@ -815,6 +815,327 @@ async function fixture() {
 }
 
 describe("preparation and synthesis access boundaries", () => {
+  it("retains a cancellation tombstone before begin, denies foreign cancellation and never cancels a newer request", async () => {
+    const { t, client, owner } = await fixture();
+    const old = crypto.randomUUID();
+    const next = crypto.randomUUID();
+    await client.mutation(api.speechPreparation.cancel, { requestId: old });
+    const result = await client.action(prepare, {
+      requestId: old,
+      text: "```js\nreturn 1;\n```",
+    });
+    expect(generateText).not.toHaveBeenCalled();
+    expect(result.segments.map((s) => s.text).join(" ")).toContain("return 1;");
+    expect(
+      await t.mutation(internal.speechPreparation.beginSession, {
+        userId: owner,
+        requestId: next,
+        sourceHash: "source",
+      }),
+    ).toBe(true);
+    const foreign = t.withIdentity(
+      createMockIdentity({ subject: "speech-outsider" }),
+    );
+    await foreign.mutation(api.speechPreparation.cancel, { requestId: next });
+    expect(
+      await t.query(internal.speechPreparation.sessionActive, {
+        userId: owner,
+        requestId: next,
+        sourceHash: "stale-source",
+      }),
+    ).toBe(false);
+    await client.mutation(api.speechPreparation.cancel, { requestId: old });
+    expect(
+      await t.query(internal.speechPreparation.sessionActive, {
+        userId: owner,
+        requestId: next,
+        sourceHash: "source",
+      }),
+    ).toBe(true);
+    await expect(
+      t.mutation(api.speechPreparation.cancel, { requestId: next }),
+    ).rejects.toThrow(/Unauthorized/);
+    await expect(
+      client.mutation(api.speechPreparation.cancel, {
+        requestId: "oversized".repeat(100),
+      }),
+    ).rejects.toThrow();
+  });
+  it("records a pending provider call but cancellation prevents the remaining optional calls", async () => {
+    const { t, client } = await fixture();
+    const requestId = crypto.randomUUID();
+    let release!: () => void;
+    let began!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const started = new Promise<void>((resolve) => {
+      began = resolve;
+    });
+    vi.mocked(generateText).mockImplementation(async () => {
+      began();
+      await pending;
+      // SAFETY: Only the SDK fields consumed by preparation are needed in this provider fixture.
+      return {
+        text: "{}",
+        finishReason: "length",
+        usage: { inputTokens: 7, outputTokens: 3 },
+      } as Awaited<ReturnType<typeof generateText>>;
+    });
+    const running = client.action(prepare, {
+      requestId,
+      text: "```js\nreturn 1;\n```\n\n```js\nreturn 2;\n```",
+    });
+    await started;
+    await client.mutation(api.speechPreparation.cancel, { requestId });
+    release();
+    const result = await running;
+    expect(generateText).toHaveBeenCalledTimes(1);
+    expect(
+      (await t.run((ctx) => ctx.db.query("usageRecords").collect()))[0],
+    ).toMatchObject({ inputTokens: 7, outputTokens: 3, messageCount: 1 });
+    expect(result.segments.map((s) => s.text).join(" ")).toContain("return 2;");
+  });
+  it("atomically deduplicates concurrent synthesis and releases a failed winner for retry", async () => {
+    const { t, client } = await fixture();
+    vi.stubEnv("DEEPGRAM_API_KEY", "test-key");
+    let release!: () => void;
+    let began!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const started = new Promise<void>((resolve) => {
+      began = resolve;
+    });
+    const fetch = vi.fn(async () => {
+      began();
+      await pending;
+      return new Response(new Uint8Array([1, 2]), {
+        headers: { "Content-Type": "audio/mpeg" },
+      });
+    });
+    vi.stubGlobal("fetch", fetch);
+    const first = client.action(api.tts.generateSpeech, { text: "dedupe" });
+    await started;
+    const second = client.action(api.tts.generateSpeech, { text: "dedupe" });
+    // Keep the winner's provider unresolved while the duplicate reaches admission.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(
+      await t.run((ctx) => ctx.db.query("usageRecords").collect()),
+    ).toHaveLength(0);
+    release();
+    const results = await Promise.all([first, second]);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(results.map((r) => r.cost).filter((cost) => cost > 0)).toHaveLength(
+      1,
+    );
+    expect(
+      await t.run((ctx) => ctx.db.query("usageRecords").collect()),
+    ).toHaveLength(1);
+    expect(
+      await t.run((ctx) => ctx.db.query("ttsSynthesisClaims").collect()),
+    ).toHaveLength(0);
+    fetch.mockImplementationOnce(
+      async () => new Response("failure", { status: 500 }),
+    );
+    await expect(
+      client.action(api.tts.generateSpeech, { text: "retry" }),
+    ).rejects.toThrow(/failed/);
+    expect(
+      await t.run((ctx) => ctx.db.query("ttsSynthesisClaims").collect()),
+    ).toHaveLength(0);
+    expect(
+      (await client.action(api.tts.generateSpeech, { text: "retry" }))
+        .audioBase64,
+    ).toBe("AQI=");
+  });
+  it("isolates claim owners and fences stale release and stale cache completion", async () => {
+    const { t, owner } = await fixture();
+    const other = await t.run((ctx) =>
+      ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", "speech-outsider"))
+        .unique(),
+    );
+    if (!other) throw new Error("Missing fixture owner");
+    const old = { userId: owner, hash: "same", claimToken: "old" };
+    expect(await t.mutation(internal.ttsCache.claimSynthesis, old)).toBe(true);
+    expect(
+      await t.mutation(internal.ttsCache.claimSynthesis, {
+        ...old,
+        claimToken: "duplicate",
+      }),
+    ).toBe(false);
+    expect(
+      await t.mutation(internal.ttsCache.claimSynthesis, {
+        ...old,
+        userId: other._id,
+      }),
+    ).toBe(true);
+    await t.run(async (ctx) => {
+      const row = await ctx.db
+        .query("ttsSynthesisClaims")
+        .withIndex("by_user_hash", (q) =>
+          q.eq("userId", owner).eq("hash", "same"),
+        )
+        .unique();
+      if (row) await ctx.db.patch(row._id, { expiresAt: 0 });
+    });
+    expect(
+      await t.mutation(internal.ttsCache.claimSynthesis, {
+        ...old,
+        claimToken: "new",
+      }),
+    ).toBe(true);
+    await t.mutation(internal.ttsCache.releaseSynthesis, old);
+    const storageId = await t.run((ctx) =>
+      ctx.storage.store(new Blob(["old audio"])),
+    );
+    await expect(
+      t.mutation(internal.ttsCache.saveCache, {
+        ...old,
+        storageId,
+        text: "",
+        voice: "aura-asteria-en",
+        speed: 1,
+        format: "mp3",
+      }),
+    ).rejects.toThrow(/expired/);
+    const claims = await t.run((ctx) =>
+      ctx.db.query("ttsSynthesisClaims").collect(),
+    );
+    expect(claims.find((c) => c.userId === owner)?.claimToken).toBe("new");
+    expect(
+      await t.run((ctx) => ctx.db.query("ttsCache").collect()),
+    ).toHaveLength(0);
+  });
+  it("records late provider usage and removes an unreferenced blob when its old claim can no longer commit", async () => {
+    const { t, client, owner } = await fixture();
+    vi.stubEnv("DEEPGRAM_API_KEY", "test-key");
+    let release!: () => void;
+    let began!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const started = new Promise<void>((resolve) => {
+      began = resolve;
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        began();
+        await pending;
+        return new Response(new Uint8Array([1, 2]), {
+          headers: { "Content-Type": "audio/mpeg" },
+        });
+      }),
+    );
+    const running = client.action(api.tts.generateSpeech, { text: "late" });
+    await started;
+    const hash = await audioCacheHash(
+      owner,
+      "late",
+      "aura-asteria-en",
+      1,
+      "server",
+    );
+    await t.run(async (ctx) => {
+      const claim = await ctx.db
+        .query("ttsSynthesisClaims")
+        .withIndex("by_user_hash", (q) =>
+          q.eq("userId", owner).eq("hash", hash),
+        )
+        .unique();
+      if (claim) await ctx.db.patch(claim._id, { expiresAt: 0 });
+    });
+    await t.mutation(internal.ttsCache.claimSynthesis, {
+      userId: owner,
+      hash,
+      claimToken: "replacement",
+    });
+    release();
+    expect((await running).cost).toBeGreaterThan(0);
+    expect(
+      (await t.run((ctx) => ctx.db.query("usageRecords").collect()))[0].cost,
+    ).toBeGreaterThan(0);
+    expect(
+      await t.run((ctx) => ctx.db.query("ttsCache").collect()),
+    ).toHaveLength(0);
+    expect(
+      await t.run((ctx) => ctx.db.system.query("_storage").collect()),
+    ).toHaveLength(0);
+    expect(
+      (await t.run((ctx) => ctx.db.query("ttsSynthesisClaims").collect()))[0]
+        .claimToken,
+    ).toBe("replacement");
+  });
+  it("returns bounded busy HTTP admission with Retry-After and no provider call", async () => {
+    const { t, client, owner } = await fixture();
+    vi.stubEnv("DEEPGRAM_API_KEY", "test-key");
+    const hash = await audioCacheHash(
+      owner,
+      "busy",
+      "aura-asteria-en",
+      1,
+      "server",
+    );
+    await t.mutation(internal.ttsCache.claimSynthesis, {
+      userId: owner,
+      hash,
+      claimToken: "winner",
+    });
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    const result = await client.fetch("/tts?text=busy");
+    expect(result.status).toBe(409);
+    expect(result.headers.get("Retry-After")).toBe("1");
+    expect(fetch).not.toHaveBeenCalled();
+    expect(
+      await t.run((ctx) => ctx.db.query("usageRecords").collect()),
+    ).toHaveLength(0);
+  }, 10_000);
+  it("bounds expired cleanup batches and rejects excessive outstanding preparation requests", async () => {
+    const { t, client, owner } = await fixture();
+    await t.run(async (ctx) => {
+      for (let index = 0; index < 101; index++) {
+        await ctx.db.insert("speechPreparationSessions", {
+          userId: owner,
+          requestId: crypto.randomUUID(),
+          cancelled: true,
+          expiresAt: 0,
+        });
+        await ctx.db.insert("ttsSynthesisClaims", {
+          userId: owner,
+          hash: String(index),
+          claimToken: "expired",
+          expiresAt: 0,
+        });
+      }
+    });
+    await t.mutation(internal.speechPreparation.cleanupExpired, {});
+    await t.mutation(internal.ttsCache.cleanupExpiredClaims, {});
+    expect(
+      await t.run((ctx) => ctx.db.query("speechPreparationSessions").collect()),
+    ).toHaveLength(1);
+    expect(
+      await t.run((ctx) => ctx.db.query("ttsSynthesisClaims").collect()),
+    ).toHaveLength(1);
+    await t.run(async (ctx) => {
+      for (let index = 0; index < 100; index++)
+        await ctx.db.insert("speechPreparationSessions", {
+          userId: owner,
+          requestId: crypto.randomUUID(),
+          cancelled: true,
+          expiresAt: Date.now() + 60_000,
+        });
+    });
+    await expect(
+      client.mutation(api.speechPreparation.cancel, {
+        requestId: crypto.randomUUID(),
+      }),
+    ).rejects.toThrow(/limit/);
+  });
   it("rechecks recorded spend before each optional outline and preserves remaining code", async () => {
     const { t, client } = await fixture();
     vi.stubEnv("DEFAULT_MONTHLY_BUDGET", "0.000001");

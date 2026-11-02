@@ -9,6 +9,7 @@ import {
   renderHook,
   screen,
 } from "@testing-library/react";
+import type { FunctionReference } from "convex/server";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TTSButton } from "@/components/chat/TTSButton";
@@ -28,6 +29,7 @@ const mocks = vi.hoisted(() => {
   return {
     getToken: vi.fn(),
     prepare: vi.fn(),
+    cancel: vi.fn(),
     fetch: vi.fn(),
     error: vi.fn(),
     warning: vi.fn(),
@@ -40,6 +42,20 @@ vi.mock("@clerk/nextjs", () => ({
   useAuth: () => ({ ...mocks.auth, getToken: mocks.getToken }),
 }));
 vi.mock("convex/react", () => ({ useAction: () => mocks.prepare }));
+vi.mock("convex/browser", () => ({
+  ConvexHttpClient: class {
+    token = "";
+    setAuth(token: string) {
+      this.token = token;
+    }
+    mutation(
+      _reference: FunctionReference<"mutation">,
+      args: { requestId: string },
+    ) {
+      return mocks.cancel(args, this.token);
+    }
+  },
+}));
 vi.mock("sonner", () => ({
   toast: { error: mocks.error, warning: mocks.warning, info: mocks.info },
 }));
@@ -146,6 +162,7 @@ beforeEach(() => {
   mocks.auth.isLoaded = true;
   mocks.getToken.mockResolvedValue("user-convex-jwt");
   mocks.prepare.mockResolvedValue(narration());
+  mocks.cancel.mockResolvedValue(null);
   mocks.fetch.mockImplementation(
     async () => new Response(new Blob(["audio"], { type: "audio/mpeg" })),
   );
@@ -179,6 +196,7 @@ describe("prepared private narration", () => {
     expect(mocks.prepare).toHaveBeenCalledWith({
       text: "# Original\n\nPrivate **message**",
       messageId: "message-a",
+      requestId: expect.any(String),
     });
     expect(mocks.fetch).not.toHaveBeenCalled();
     prepare.resolve(narration());
@@ -389,6 +407,35 @@ describe("prepared private narration", () => {
 });
 
 describe("session cancellation", () => {
+  it("cancels only the replaced preparation request using its captured owner JWT", async () => {
+    const pending = deferred<PreparedNarration>();
+    mocks.prepare.mockReturnValueOnce(pending.promise);
+    const { result, rerender } = setup();
+    speak(result, "A", "a");
+    await flush();
+    const oldId = mocks.prepare.mock.calls[0][0].requestId;
+    speak(result, "B", "b");
+    await flush();
+    const newId = mocks.prepare.mock.calls[1][0].requestId;
+    expect(newId).not.toBe(oldId);
+    expect(mocks.cancel).toHaveBeenCalledWith(
+      { requestId: oldId },
+      "user-convex-jwt",
+    );
+    pending.resolve(narration());
+    await flush();
+    expect(mocks.cancel).toHaveBeenCalledTimes(1);
+    mocks.getToken.mockResolvedValue("other-account-jwt");
+    mocks.auth.userId = "other";
+    mocks.cancel.mockRejectedValue(new Error("Offline"));
+    act(() => rerender());
+    await flush();
+    expect(mocks.cancel).toHaveBeenLastCalledWith(
+      { requestId: newId },
+      "user-convex-jwt",
+    );
+    expect(mocks.error).not.toHaveBeenCalled();
+  });
   it("delayed token acquisition after stop cannot trigger paid preparation", async () => {
     const token = deferred<string>();
     mocks.getToken.mockReturnValue(token.promise);
@@ -476,6 +523,10 @@ describe("session cancellation", () => {
       }
     });
     expect(signal.aborted).toBe(true);
+    expect(mocks.cancel).toHaveBeenCalledWith(
+      { requestId: mocks.prepare.mock.calls[0][0].requestId },
+      "user-convex-jwt",
+    );
     expect(vi.getTimerCount()).toBe(0);
     response.resolve(new Response("late audio"));
     await flush();
@@ -495,6 +546,10 @@ describe("session cancellation", () => {
     await flush();
     expect(mocks.fetch).not.toHaveBeenCalled();
     expect(result.current.state.isLoading).toBe(false);
+    expect(mocks.cancel).toHaveBeenCalledWith(
+      { requestId: mocks.prepare.mock.calls[0][0].requestId },
+      "user-convex-jwt",
+    );
   });
 
   it("stop during a gap clears timers; stale ended events cannot resurrect playback", async () => {
@@ -532,6 +587,47 @@ describe("session cancellation", () => {
 });
 
 describe("failure and controls", () => {
+  it("offers a visible busy Retry without automatic duplicate synthesis or cross-account retry", async () => {
+    mocks.fetch.mockResolvedValueOnce(new Response("busy", { status: 409 }));
+    function Begin() {
+      const { playFromText } = useTTSPlayer();
+      return (
+        <button
+          type="button"
+          onClick={() => void playFromText({ text: "Source" })}
+        >
+          Begin
+        </button>
+      );
+    }
+    const { rerender } = render(
+      <TTSProvider>
+        <Begin />
+        <TTSPlayerBar />
+      </TTSProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Begin" }));
+    await flush();
+    const retry = screen.getByRole("button", { name: "Retry narration" });
+    expect(mocks.fetch).toHaveBeenCalledTimes(1);
+    fireEvent.click(retry);
+    await flush();
+    expect(mocks.fetch).toHaveBeenCalledTimes(2);
+    expect(mocks.prepare.mock.calls[1][0].requestId).not.toBe(
+      mocks.prepare.mock.calls[0][0].requestId,
+    );
+    mocks.auth.userId = "other";
+    rerender(
+      <TTSProvider>
+        <Begin />
+        <TTSPlayerBar />
+      </TTSProvider>,
+    );
+    await flush();
+    expect(
+      screen.queryByRole("button", { name: "Retry narration" }),
+    ).toBeNull();
+  });
   it("hides section zero while loading, then exposes an accessible gesture-bound Resume", async () => {
     const response = deferred<Response>();
     mocks.fetch.mockReturnValue(response.promise);

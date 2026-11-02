@@ -86,10 +86,23 @@ export const generateSpeech = action({
       byok ? `byok:${config?.updatedAt}` : "server",
     );
     const readCache = async (): Promise<SpeechResult | null> => {
-      const cached = await ctx.runQuery(internal.ttsCache.getCache, { hash });
+      const cached = await ctx.runQuery(internal.ttsCache.getCache, {
+        hash,
+        userId: user._id,
+      });
       if (!cached) return null;
       const blob = await ctx.storage.get(cached.storageId);
-      if (blob && blob.size > 0 && blob.size <= MAX_AUDIO_BYTES)
+      if (blob && blob.size > 0 && blob.size <= MAX_AUDIO_BYTES) {
+        // The hash above was derived from this authenticated owner and policy.
+        // Never expose a public hash-association endpoint or adopt arbitrary rows.
+        if (
+          !cached.userId &&
+          !(await ctx.runMutation(internal.ttsCache.associateOwner, {
+            hash,
+            userId: user._id,
+          }))
+        )
+          return null;
         return {
           audioBase64: Buffer.from(await blob.arrayBuffer()).toString("base64"),
           provider: "deepgram",
@@ -97,6 +110,7 @@ export const generateSpeech = action({
           cost: 0,
           characterCount: args.text.length,
         };
+      }
       return null;
     };
     const cached = await readCache();

@@ -24,6 +24,7 @@ import {
   createTestUserData,
 } from "../lib/test/factories";
 import schema from "../schema";
+import { isAudioCacheBlobReferenced, listOwnedAudioCache } from "../ttsCache";
 
 vi.mock("ai", async (original) => ({
   ...(await original<typeof import("ai")>()),
@@ -815,6 +816,211 @@ async function fixture() {
 }
 
 describe("preparation and synthesis access boundaries", () => {
+  it("cannot commit new owned cache audio after its account was deleted", async () => {
+    const { t, owner } = await fixture();
+    const claim = {
+      userId: owner,
+      hash: "late-account-write",
+      claimToken: "pending",
+    };
+    await t.mutation(internal.ttsCache.claimSynthesis, claim);
+    const storageId = await t.run(async (ctx) => {
+      const id = await ctx.storage.store(new Blob(["late"]));
+      await ctx.db.delete(owner);
+      return id;
+    });
+    await expect(
+      t.mutation(internal.ttsCache.saveCache, {
+        ...claim,
+        storageId,
+        text: "",
+        voice: "aura-asteria-en",
+        speed: 1,
+        format: "mp3",
+      }),
+    ).rejects.toThrow(/owner no longer exists/);
+    expect(
+      await t.run((ctx) => ctx.db.query("ttsCache").collect()),
+    ).toHaveLength(0);
+  });
+  it("stores new synthesized audio with its authenticated owner and replays without another charge", async () => {
+    const { t, client, owner } = await fixture();
+    vi.stubEnv("DEEPGRAM_API_KEY", "test-key");
+    const fetch = vi.fn(
+      async () =>
+        new Response(new Uint8Array([1, 2, 3]), {
+          headers: { "Content-Type": "audio/mpeg" },
+        }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    expect(
+      (await client.action(api.tts.generateSpeech, { text: "new owned audio" }))
+        .cost,
+    ).toBeGreaterThan(0);
+    expect(
+      (await client.action(api.tts.generateSpeech, { text: "new owned audio" }))
+        .cost,
+    ).toBe(0);
+    expect(await t.run((ctx) => listOwnedAudioCache(ctx, owner))).toMatchObject(
+      [{ userId: owner }],
+    );
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(
+      await t.run((ctx) => ctx.db.query("usageRecords").collect()),
+    ).toHaveLength(1);
+  });
+  it("backfills a valid legacy cache hit without provider work or another charge", async () => {
+    const { t, client, owner } = await fixture();
+    vi.stubEnv("DEEPGRAM_API_KEY", "test-key");
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    const hash = await audioCacheHash(
+      owner,
+      "legacy",
+      "aura-asteria-en",
+      1,
+      "server",
+    );
+    const storageId = await t.run((ctx) =>
+      ctx.storage.store(
+        new Blob([new Uint8Array([1, 2, 3])], { type: "audio/mpeg" }),
+      ),
+    );
+    const cacheId = await t.mutation(internal.ttsCache.saveCache, {
+      hash,
+      storageId,
+      text: "",
+      voice: "aura-asteria-en",
+      speed: 1,
+      format: "mp3",
+    });
+    expect((await t.run((ctx) => ctx.db.get(cacheId)))?.userId).toBeUndefined();
+    expect(
+      await client.action(api.tts.generateSpeech, { text: "legacy" }),
+    ).toMatchObject({ audioBase64: "AQID", cost: 0 });
+    expect(await t.run((ctx) => listOwnedAudioCache(ctx, owner))).toMatchObject(
+      [{ _id: cacheId, userId: owner, storageId }],
+    );
+    expect(fetch).not.toHaveBeenCalled();
+    expect(
+      await t.run((ctx) => ctx.db.query("usageRecords").collect()),
+    ).toHaveLength(0);
+  });
+  it("rejects a conflicting stored owner without returning audio, reassigning ownership or calling the provider", async () => {
+    const { t, client, owner } = await fixture();
+    vi.stubEnv("DEEPGRAM_API_KEY", "test-key");
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    const other = await t.run((ctx) =>
+      ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", "speech-outsider"))
+        .unique(),
+    );
+    if (!other) throw new Error("Missing fixture user");
+    const hash = await audioCacheHash(
+      owner,
+      "conflict",
+      "aura-asteria-en",
+      1,
+      "server",
+    );
+    const row = await t.run(async (ctx) => {
+      const storageId = await ctx.storage.store(new Blob(["foreign audio"]));
+      const id = await ctx.db.insert("ttsCache", {
+        hash,
+        userId: other._id,
+        storageId,
+        text: "",
+        voice: "aura-asteria-en",
+        speed: 1,
+        format: "mp3",
+        createdAt: 0,
+        lastAccessedAt: 0,
+      });
+      return { id, storageId };
+    });
+    await expect(
+      client.action(api.tts.generateSpeech, { text: "conflict" }),
+    ).rejects.toThrow(/ownership mismatch/);
+    await expect(
+      client.mutation(internal.ttsCache.associateOwner, {
+        hash,
+        userId: owner,
+      }),
+    ).rejects.toThrow(/ownership mismatch/);
+    const foreign = t.withIdentity(
+      createMockIdentity({ subject: "speech-outsider" }),
+    );
+    await expect(
+      foreign.mutation(internal.ttsCache.associateOwner, {
+        hash,
+        userId: owner,
+      }),
+    ).rejects.toThrow(/Unauthorized/);
+    await expect(
+      t.mutation(internal.ttsCache.saveCache, {
+        hash,
+        storageId: row.storageId,
+        text: "",
+        voice: "aura-asteria-en",
+        speed: 1,
+        format: "mp3",
+      }),
+    ).rejects.toThrow(/ownership mismatch/);
+    expect(await t.run((ctx) => ctx.db.get(row.id))).toMatchObject({
+      userId: other._id,
+      storageId: row.storageId,
+    });
+    expect(fetch).not.toHaveBeenCalled();
+    expect(
+      await t.run((ctx) => ctx.db.query("usageRecords").collect()),
+    ).toHaveLength(0);
+  });
+  it("provides indexed owned rows and protects surviving legacy or foreign blob references for cascade integration", async () => {
+    const { t, owner } = await fixture();
+    await t.run(async (ctx) => {
+      const other = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", "speech-outsider"))
+        .unique();
+      if (!other) throw new Error("Missing fixture user");
+      const storageId = await ctx.storage.store(new Blob(["shared"]));
+      const base = {
+        storageId,
+        text: "",
+        voice: "aura-asteria-en",
+        speed: 1,
+        format: "mp3",
+        createdAt: 0,
+        lastAccessedAt: 0,
+      };
+      const owned = await ctx.db.insert("ttsCache", {
+        ...base,
+        hash: "owned",
+        userId: owner,
+      });
+      const foreign = await ctx.db.insert("ttsCache", {
+        ...base,
+        hash: "foreign",
+        userId: other._id,
+      });
+      const legacy = await ctx.db.insert("ttsCache", {
+        ...base,
+        hash: "legacy",
+      });
+      expect(
+        (await listOwnedAudioCache(ctx, owner)).map((row) => row._id),
+      ).toEqual([owned]);
+      await ctx.db.delete(owned);
+      expect(await isAudioCacheBlobReferenced(ctx, storageId)).toBe(true);
+      await ctx.db.delete(foreign);
+      expect(await isAudioCacheBlobReferenced(ctx, storageId)).toBe(true);
+      await ctx.db.delete(legacy);
+      expect(await isAudioCacheBlobReferenced(ctx, storageId)).toBe(false);
+      expect(await ctx.storage.get(storageId)).not.toBeNull(); // Helpers never delete blobs on their own.
+    });
+  });
   it("retains a cancellation tombstone before begin, denies foreign cancellation and never cancels a newer request", async () => {
     const { t, client, owner } = await fixture();
     const old = crypto.randomUUID();
@@ -1202,6 +1408,9 @@ describe("preparation and synthesis access boundaries", () => {
     expect(
       await t.run((ctx) => ctx.db.query("ttsCache").collect()),
     ).toHaveLength(1);
+    expect(
+      (await t.run((ctx) => listOwnedAudioCache(ctx, owner)))[0].userId,
+    ).toBe(owner);
   });
   it("retains the established all-provider user recorded-cost budget, including BYOK", async () => {
     const { t, client, owner } = await fixture();

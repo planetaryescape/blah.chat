@@ -291,7 +291,29 @@ export async function prepareDeterministic(
       const start = sourceOffset(position);
       const end = sourceOffset(position + token.raw.length);
       cursor = position + token.raw.length;
-      if (token.type === "space" || token.type === "def") continue;
+      if (token.type === "space") continue;
+      if (token.type === "def") {
+        // Marked treats one-word footnotes as link definitions. Their body is
+        // substantive content, unlike an ordinary reference-link destination.
+        const note = token.raw.match(
+          /^ {0,3}\[\^([^\]\n]+)\]:[ \t]*([\s\S]*)$/,
+        );
+        if (note) {
+          add(
+            block(start, end),
+            "paragraph",
+            `Footnote ${literal(note[1])}. ${literal(decodeEntities(note[2]))}`,
+            "detail",
+          );
+          if (/!\[|<|>/.test(note[2])) {
+            narration.coverage = "partial";
+            warn(
+              "Footnote markup is retained as literal text; visual or HTML structure is unavailable.",
+            );
+          }
+        }
+        continue;
+      }
       if (token.type === "list") {
         // SAFETY: Marked's built-in lexer emits List for the checked list discriminator.
         const list = token as Tokens.List;

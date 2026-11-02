@@ -153,6 +153,12 @@ rows have `name` and `id`, not document `_id` fields; exclude it from document a
 Also check message pagination against preserved `createdAt`: import-time
 `_creationTime` order can differ from the original conversation order.
 
+Expect a cold browser cache after cutover. IndexedDB is partitioned by deployment
+and authenticated user; legacy shared caches are left intact but never opened or
+replayed. Account changes remount cache consumers before reading private data.
+The message tree cache retains inactive siblings for version controls separately
+from the paginated active-message display.
+
 Exit codes: `0` means dry-run success or complete import without blocked records;
 `2` means the audit is incomplete or some rows remain blocked; `1` means the run
 stopped. Detailed raw server errors are deliberately not printed. Use the private

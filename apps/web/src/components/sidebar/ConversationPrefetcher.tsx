@@ -4,7 +4,7 @@ import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { usePaginatedQuery, useQuery } from "convex-helpers/react/cache";
 import { useEffect } from "react";
-import { cache } from "@/lib/cache";
+import { useUserCache } from "@/lib/cache/context";
 
 /**
  * Invisible component that mounts Convex subscriptions to warm the cache.
@@ -17,6 +17,7 @@ export function ConversationPrefetcher({
 }: {
   conversationId: Id<"conversations">;
 }) {
+  const cache = useUserCache();
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   useQuery(
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
@@ -36,7 +37,7 @@ export function ConversationPrefetcher({
     if (results?.length) {
       cache.messages.bulkPut(results).catch(console.error);
     }
-  }, [results]);
+  }, [cache, results]);
 
   return null;
 }

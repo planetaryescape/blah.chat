@@ -13,7 +13,7 @@ export interface CachedPreferences {
  * Local IndexedDB cache for instant reads.
  * Synced from Convex subscriptions, enables offline access.
  */
-class BlahChatCache extends Dexie {
+export class BlahChatCache extends Dexie {
   conversations!: Table<Doc<"conversations">>;
   messages!: Table<Doc<"messages">>;
   notes!: Table<Doc<"notes">>;
@@ -25,13 +25,16 @@ class BlahChatCache extends Dexie {
   pendingMutations!: Table<PendingMutation>;
   userPreferences!: Table<CachedPreferences>;
 
-  constructor() {
+  constructor(userId: string) {
     // Deployment IDs are not portable. Keep the previous Postgres/deleted-Convex
     // cache intact, but never replay its queued writes into a new deployment.
     const deployment = process.env.NEXT_PUBLIC_CONVEX_URL
       ? new URL(process.env.NEXT_PUBLIC_CONVEX_URL).hostname
       : "unconfigured";
-    super(`blahchat-cache-convex-${deployment}`);
+    // Never open the legacy deployment-only database: it has no trusted owner.
+    super(
+      `blahchat-cache-convex-${deployment}-user-${encodeURIComponent(userId)}`,
+    );
 
     // v1: Initial schema
     this.version(1).stores({
@@ -116,9 +119,9 @@ export interface PendingMutation {
 }
 
 // SSR guard: IndexedDB not available on server
-let _cache: BlahChatCache | null = null;
+let activeCache: BlahChatCache | null = null;
 
-function getCache(): BlahChatCache {
+export function getCache(): BlahChatCache {
   if (typeof window === "undefined") {
     // Return a mock for SSR - will never be called in practice
     // since all cache usage is in "use client" components
@@ -126,14 +129,12 @@ function getCache(): BlahChatCache {
       "Attempted to access IndexedDB cache during SSR. Ensure cache is only used in client components.",
     );
   }
-  if (!_cache) {
-    _cache = new BlahChatCache();
+  if (!activeCache) {
+    throw new Error("Cache unavailable until authentication is resolved");
   }
-  return _cache;
+  return activeCache;
 }
 
-// Lazy-initialized cache singleton
-export const cache =
-  typeof window !== "undefined"
-    ? getCache()
-    : (null as unknown as BlahChatCache);
+export function setActiveCache(database: BlahChatCache | null): void {
+  activeCache = database;
+}

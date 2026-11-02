@@ -6,7 +6,9 @@ import { PREFERENCE_DEFAULTS } from "@blah-chat/shared/preferences";
 import { useAction, usePaginatedQuery, useQuery } from "convex/react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useMemo, useRef } from "react";
-import { cache } from "@/lib/cache";
+import { useUserCache } from "@/lib/cache/context";
+import type { BlahChatCache } from "@/lib/cache/db";
+import { syncMessageTree } from "@/lib/cache/messageTree";
 
 interface MessageCacheSyncOptions {
   conversationId: Id<"conversations"> | undefined;
@@ -180,6 +182,7 @@ export function useMessageCacheSync({
   conversationId,
   initialNumItems = 50,
 }: MessageCacheSyncOptions) {
+  const cache = useUserCache();
   // Track conversation ID changes to detect switches
   const prevConversationIdRef = useRef<Id<"conversations"> | undefined>(
     conversationId,
@@ -200,27 +203,16 @@ export function useMessageCacheSync({
     { initialNumItems },
   );
 
+  // Complete, authorized tree feeds branch controls, independently of active-page
+  // pagination. Inactive siblings must never be treated as active-page orphans.
+  const tree = useQuery(
+    api.messages.list,
+    conversationId ? { conversationId } : "skip",
+  );
   useEffect(() => {
-    if (!conversationId || convexMessages.results === undefined) return;
-
-    const syncCache = async () => {
-      const convexIds = new Set(convexMessages.results.map((m) => m._id));
-      const dexieRecords = await cache.messages
-        .where("conversationId")
-        .equals(conversationId)
-        .toArray();
-
-      const orphanIds = dexieRecords
-        .filter((d) => !convexIds.has(d._id))
-        .map((d) => d._id);
-
-      if (orphanIds.length > 0) await cache.messages.bulkDelete(orphanIds);
-      if (convexMessages.results.length > 0)
-        await cache.messages.bulkPut(convexMessages.results);
-    };
-
-    syncCache().catch(console.error);
-  }, [convexMessages.results, conversationId]);
+    if (!conversationId || tree === undefined) return;
+    syncMessageTree(cache, conversationId, tree).catch(console.error);
+  }, [cache, tree, conversationId]);
 
   // @ts-ignore - Type depth exceeded
   const triggerAutoRename = useAction(
@@ -250,8 +242,15 @@ export function useMessageCacheSync({
         cache.messages.where("conversationId").equals(conversationId).toArray(),
       ]);
 
+      // Only display loaded active-page rows; the cache also contains the tree.
+      const loadedIds =
+        convexMessages.status === "LoadingFirstPage"
+          ? undefined
+          : new Set(convexMessages.results.map((message) => message._id));
       const activeMessages = conversationMessages.filter(
-        (message) => message.isActiveBranch !== false,
+        (message) =>
+          (!loadedIds || loadedIds.has(message._id)) &&
+          message.isActiveBranch !== false,
       );
 
       return orderMessagesByActivePath(
@@ -259,7 +258,7 @@ export function useMessageCacheSync({
         conversation?.activeLeafMessageId,
       );
     },
-    [conversationId],
+    [cache, conversationId, convexMessages.results, convexMessages.status],
     undefined, // Return undefined while loading, not []
   );
 
@@ -314,6 +313,7 @@ export function useMessageCacheSync({
 }
 
 export function useMetadataCacheSync(messageIds: Id<"messages">[]) {
+  const cache = useUserCache();
   const prevIdsRef = useRef<Id<"messages">[]>([]);
   const stableIds = useMemo(() => {
     const changed =
@@ -345,7 +345,7 @@ export function useMetadataCacheSync(messageIds: Id<"messages">[]) {
     if (syncOps.length > 0) {
       Promise.all(syncOps).catch(console.error);
     }
-  }, [metadata]);
+  }, [cache, metadata]);
 }
 
 interface ConversationCacheSyncOptions {
@@ -357,6 +357,7 @@ interface ConversationCacheSyncOptions {
  * Note: "none" case uses toArray() + filter because Dexie can't index null/undefined values.
  */
 async function getConversationsByProject(
+  cache: BlahChatCache,
   projectId: Id<"projects"> | "none" | null | undefined,
 ): Promise<Doc<"conversations">[]> {
   let conversations: Doc<"conversations">[];
@@ -384,6 +385,7 @@ async function getConversationsByProject(
 export function useConversationCacheSync(
   options: ConversationCacheSyncOptions = {},
 ) {
+  const cache = useUserCache();
   const { projectId } = options;
 
   const conversations = useQuery(
@@ -397,7 +399,7 @@ export function useConversationCacheSync(
 
     const syncCache = async () => {
       const convexIds = new Set(conversations.map((c) => c._id));
-      const dexieRecords = await getConversationsByProject(projectId);
+      const dexieRecords = await getConversationsByProject(cache, projectId);
 
       const orphanIds = dexieRecords
         .filter((d) => !convexIds.has(d._id))
@@ -409,11 +411,11 @@ export function useConversationCacheSync(
     };
 
     syncCache().catch(console.error);
-  }, [conversations, projectId]);
+  }, [cache, conversations, projectId]);
 
   const cachedConversations = useLiveQuery(
-    () => getConversationsByProject(projectId),
-    [projectId],
+    () => getConversationsByProject(cache, projectId),
+    [cache, projectId],
     [] as Doc<"conversations">[],
   );
 
@@ -424,6 +426,7 @@ export function useConversationCacheSync(
 }
 
 export function useNoteCacheSync() {
+  const cache = useUserCache();
   const notes = useQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query
     api.notes.list,
@@ -450,11 +453,11 @@ export function useNoteCacheSync() {
     };
 
     syncCache().catch(console.error);
-  }, [notes]);
+  }, [cache, notes]);
 
   const cachedNotes = useLiveQuery(
     () => cache.notes.toArray(),
-    [],
+    [cache],
     [] as Doc<"notes">[],
   );
 
@@ -465,6 +468,7 @@ export function useNoteCacheSync() {
 }
 
 export function useTaskCacheSync() {
+  const cache = useUserCache();
   const tasks = useQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query
     api.tasks.list,
@@ -492,11 +496,11 @@ export function useTaskCacheSync() {
     };
 
     syncCache().catch(console.error);
-  }, [tasks]);
+  }, [cache, tasks]);
 
   const cachedTasks = useLiveQuery(
     () => cache.tasks.toArray(),
-    [],
+    [cache],
     [] as Doc<"tasks">[],
   );
 
@@ -507,6 +511,7 @@ export function useTaskCacheSync() {
 }
 
 export function useProjectCacheSync() {
+  const cache = useUserCache();
   const projects = useQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query
     api.projects.list,
@@ -533,11 +538,11 @@ export function useProjectCacheSync() {
     };
 
     syncCache().catch(console.error);
-  }, [projects]);
+  }, [cache, projects]);
 
   const cachedProjects = useLiveQuery(
     () => cache.projects.toArray(),
-    [],
+    [cache],
     [] as Doc<"projects">[],
   );
 
@@ -548,6 +553,7 @@ export function useProjectCacheSync() {
 }
 
 export function usePreferenceCacheSync() {
+  const cache = useUserCache();
   const preferences = useQuery(
     // @ts-ignore - Type depth exceeded with Convex modules
     api.users.getAllUserPreferences,
@@ -559,11 +565,11 @@ export function usePreferenceCacheSync() {
         .put({ _id: "current", data: preferences })
         .catch(console.error);
     }
-  }, [preferences]);
+  }, [cache, preferences]);
 
   const cachedPreferences = useLiveQuery(
     () => cache.userPreferences.get("current"),
-    [],
+    [cache],
     null,
   );
 
@@ -571,25 +577,28 @@ export function usePreferenceCacheSync() {
 }
 
 export function useCachedAttachments(messageId: Id<"messages"> | string) {
+  const cache = useUserCache();
   return useLiveQuery(
     () => cache.attachments.where("messageId").equals(messageId).toArray(),
-    [messageId],
+    [cache, messageId],
     [] as Doc<"attachments">[],
   );
 }
 
 export function useCachedToolCalls(messageId: Id<"messages"> | string) {
+  const cache = useUserCache();
   return useLiveQuery(
     () => cache.toolCalls.where("messageId").equals(messageId).toArray(),
-    [messageId],
+    [cache, messageId],
     [] as Doc<"toolCalls">[],
   );
 }
 
 export function useCachedSources(messageId: Id<"messages"> | string) {
+  const cache = useUserCache();
   return useLiveQuery(
     () => cache.sources.where("messageId").equals(messageId).toArray(),
-    [messageId],
+    [cache, messageId],
     [] as Doc<"sources">[],
   );
 }
@@ -597,13 +606,14 @@ export function useCachedSources(messageId: Id<"messages"> | string) {
 export function useCachedChildBranches(
   parentMessageId: Id<"messages"> | string,
 ) {
+  const cache = useUserCache();
   return useLiveQuery(
     () =>
       cache.conversations
         .where("parentMessageId")
         .equals(parentMessageId)
         .toArray(),
-    [parentMessageId],
+    [cache, parentMessageId],
     [] as Doc<"conversations">[],
   );
 }
@@ -615,6 +625,7 @@ export function useCachedChildBranches(
 export function useCachedChildMessages(
   parentMessageId: Id<"messages"> | string,
 ) {
+  const cache = useUserCache();
   return useLiveQuery(
     async () => {
       const parentMessage = await cache.messages.get(parentMessageId);
@@ -632,7 +643,7 @@ export function useCachedChildMessages(
 
       return getChildMessagesForParent(conversationMessages, parentMessageId);
     },
-    [parentMessageId],
+    [cache, parentMessageId],
     [] as Doc<"messages">[],
   );
 }
@@ -642,6 +653,7 @@ export function useCachedChildMessages(
  * Used for branch switching UI
  */
 export function useCachedSiblings(messageId: Id<"messages"> | string) {
+  const cache = useUserCache();
   return useLiveQuery(
     async () => {
       const message = await cache.messages.get(messageId);
@@ -654,7 +666,7 @@ export function useCachedSiblings(messageId: Id<"messages"> | string) {
 
       return getSiblingsForMessage(conversationMessages, message);
     },
-    [messageId],
+    [cache, messageId],
     [] as Doc<"messages">[],
   );
 }

@@ -20,6 +20,9 @@ const _SESSION_STORAGE_PREFIXES = ["modelHint-"] as const;
 export function clearUserDataOnLogout(): void {
   if (typeof window === "undefined") return;
 
+  // IndexedDB is user-partitioned. CacheProvider discards mounted consumers
+  // and revokes imperative access when the authenticated identity changes.
+
   try {
     // 1. Clear specific localStorage keys
     for (const key of LOCAL_STORAGE_KEYS_TO_CLEAR) {
@@ -28,9 +31,6 @@ export function clearUserDataOnLogout(): void {
 
     // 2. Clear sessionStorage completely (session-specific data)
     sessionStorage.clear();
-
-    // 3. Clear any IndexedDB databases if used (future-proofing)
-    // Currently not used, but pattern is here for future implementation
 
     console.log("[Logout] User data cleared from client storage");
   } catch (error) {

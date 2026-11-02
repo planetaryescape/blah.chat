@@ -11,7 +11,8 @@ import { PREFERENCE_DEFAULTS } from "@blah-chat/shared/preferences";
 import { useQuery } from "convex/react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect } from "react";
-import { cache } from "@/lib/cache";
+import { getCache } from "@/lib/cache";
+import { useUserCache } from "@/lib/cache/context";
 
 /**
  * Get a single user preference by key
@@ -32,13 +33,14 @@ import { cache } from "@/lib/cache";
 export function useUserPreference<K extends keyof typeof PREFERENCE_DEFAULTS>(
   key: K,
 ): (typeof PREFERENCE_DEFAULTS)[K] {
+  const cache = useUserCache();
   // @ts-ignore - Type depth exceeded with Convex modules
   const convexValue = useQuery(api.users.getUserPreference, { key });
 
   // Read from Dexie cache (reactive via useLiveQuery)
   const cachedPreferences = useLiveQuery(
     () => cache.userPreferences.get("current"),
-    [],
+    [cache],
     null,
   );
 
@@ -60,7 +62,7 @@ export function useUserPreference<K extends keyof typeof PREFERENCE_DEFAULTS>(
     };
 
     syncToCache().catch(console.error);
-  }, [convexValue, key]);
+  }, [cache, convexValue, key]);
 
   // Priority: cached (instant) → convex (reactive) → defaults
   if (cachedPreferences?.data?.[key] !== undefined) {
@@ -81,6 +83,7 @@ export async function updatePreferenceCache(
   key: string,
   value: unknown,
 ): Promise<void> {
+  const cache = getCache();
   const current = await cache.userPreferences.get("current");
   const existingData = current?.data ?? {};
   await cache.userPreferences.put({

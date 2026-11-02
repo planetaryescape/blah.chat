@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
+import { MAX_AUDIO_BYTES } from "./lib/speech/synthesis";
 
 export const getCache = internalQuery({
   args: { hash: v.string() },
@@ -28,6 +29,18 @@ export const saveCache = internalMutation({
       .first();
 
     if (existing) {
+      const metadata = await ctx.db.system.get(existing.storageId);
+      if (!metadata || metadata.size === 0 || metadata.size > MAX_AUDIO_BYTES) {
+        // Repair the row atomically; keep the newly synthesized usable blob.
+        await ctx.db.patch(existing._id, {
+          ...args,
+          createdAt: Date.now(),
+          lastAccessedAt: Date.now(),
+        });
+        if (metadata && args.storageId !== existing.storageId)
+          await ctx.storage.delete(existing.storageId);
+        return existing._id;
+      }
       if (args.storageId !== existing.storageId)
         await ctx.storage.delete(args.storageId);
       return existing._id;

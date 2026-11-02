@@ -3,6 +3,27 @@ import { readQuantities } from "../lib/speech/quantities";
 
 describe("math and currency pronunciation boundaries", () => {
   it.each([
+    "1.5:2.5",
+    "1.5–2.5",
+    "1.5—2.5",
+    "1.5 − 2.5",
+    "1.5 : 2.5",
+  ])("retains ambiguous ratio/range %s", (source) => {
+    expect(readQuantities(source)).toBe(source);
+  });
+  it.each([
+    "$x + 2$",
+    "$$x + 2$$",
+    "$x$",
+  ])("separates a price from following math %s", (math) => {
+    expect(readQuantities(`Pay $3.050, then compute ${math}.`)).toBe(
+      `Pay 3 point zero five zero dollars, then compute ${math}.`,
+    );
+    expect(readQuantities(`Pay $3.050 ${math}.`)).toBe(
+      `Pay 3 point zero five zero dollars ${math}.`,
+    );
+  });
+  it.each([
     "Compute $3.050 + 2$.",
     "Compute $3 + 2$.",
     "Compute $$3.050 + 2$$.",

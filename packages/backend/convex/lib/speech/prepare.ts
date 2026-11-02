@@ -228,7 +228,9 @@ export async function prepareDeterministic(
     pauseAfterMs = 250,
     headingLevel?: number,
   ) => {
-    for (const [index, chunk] of splitSpeech(readQuantities(value)).entries()) {
+    for (const [index, chunk] of splitSpeech(
+      kind === "code" ? value : readQuantities(value),
+    ).entries()) {
       const segment: SpeechSegment = {
         ...mapping,
         id: `${mapping.blockId}:${narration.segments.length}:${index}`,
@@ -258,6 +260,7 @@ export async function prepareDeterministic(
             return `Image${image.text ? `: ${literal(decodeEntities(image.text))}` : ""}. Visual content unavailable.`;
           }
           case "html":
+            narration.coverage = "partial";
             warn(
               "Literal HTML is read as text, not executed or interpreted as voice controls.",
             );
@@ -266,7 +269,10 @@ export async function prepareDeterministic(
             return "\n";
           case "codespan":
             // SAFETY: Marked's built-in lexer emits Codespan for this discriminator.
-            return literal((token as Tokens.Codespan).text);
+            return literal((token as Tokens.Codespan).text).replace(
+              /\$/g,
+              " dollar sign ",
+            );
           case "escape":
             // SAFETY: Marked's built-in lexer emits Escape for this discriminator.
             return literal(decodeEntities((token as Tokens.Escape).text));
@@ -391,6 +397,24 @@ export async function prepareDeterministic(
       if (token.type === "table") {
         // SAFETY: Marked's GFM lexer emits Table for the checked table discriminator.
         const table = token as Tokens.Table;
+        if (
+          [...table.header, ...table.rows.flat()].some((cell) =>
+            /\\[a-zA-Z]+|\\[()[\]]|\$[^$\n]+\$|\b\w+\s*[+*/^=]\s*\w+/.test(
+              cell.text,
+            ),
+          )
+        ) {
+          narration.coverage = "partial";
+          warn(
+            "Mathematical notation in table cells is retained; spoken grouping and pronunciation are unavailable.",
+          );
+          add(
+            mapping,
+            "notice",
+            "Table mathematical notation present. Spoken grouping and pronunciation are unavailable.",
+            "notice",
+          );
+        }
         const headers = table.header.map((cell) => inline(cell.tokens));
         add(
           mapping,
@@ -424,7 +448,7 @@ export async function prepareDeterministic(
           const indentation = line.match(/^[\t ]*/)?.[0] ?? "";
           const symbols =
             line.match(
-              /!==|===|!=|==|<=|>=|&&|\|\||[+*/%=<>!_&|^{}()[\].,:;?'"`\\-]/g,
+              /!==|===|!=|==|<=|>=|&&|\|\||[+$*/%=<>!_&|^{}()[\].,:;?'"`\\-]/g,
             ) ?? [];
           const names = new Map(
             Object.entries({
@@ -437,6 +461,7 @@ export async function prepareDeterministic(
               "&&": "logical and",
               "||": "logical or",
               "!": "not",
+              $: "dollar sign",
               _: "underscore",
               "-": "minus",
               "+": "plus",

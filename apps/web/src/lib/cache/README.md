@@ -34,6 +34,13 @@ used by tree deletion, so a late metadata response cannot resurrect deleted rows
 The metadata hook observes message presence and retries if the tree arrives after
 metadata; legitimate new-message metadata is not discarded permanently.
 
+Pass the original query's requested message IDs as the fourth argument to
+`syncMessageMetadata` for authoritative reconciliation. For each fetched table,
+cached rows absent from the response are deleted only within that request scope,
+before current rows are written. An empty array clears that table for the requested
+messages; an omitted table, unresolved response, or omitted request scope does not
+authorize deletion. An explicit empty request scope performs no writes.
+
 ## Verify changes
 
 From `apps/web`, run:

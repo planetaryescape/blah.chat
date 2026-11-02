@@ -175,7 +175,8 @@ jobs:
 
   smoke:
     name: Smoke E2E (health + authenticated API)
-    runs-on: ubuntu-latest
+    # The restored Playwright browser build supports Ubuntu 24, not 26.
+    runs-on: ubuntu-24.04
     needs: [build]
     environment: staging
     # Skipped on Dependabot PRs: GitHub does not expose environment secrets

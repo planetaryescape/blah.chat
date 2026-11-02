@@ -4,6 +4,7 @@ import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { internalMutation, mutation } from "./_generated/server";
+import { getMonthlySpend } from "./lib/monthlyBudget";
 import { getCurrentUserOrCreate } from "./lib/userSync";
 import { getUserPreference } from "./users/preferences";
 
@@ -140,6 +141,20 @@ export async function enforceModelPolicy(
     throw new Error("Comparison models must be distinct");
   if (models.some((id) => id !== "auto" && !Object.hasOwn(MODEL_CONFIG, id)))
     throw new Error("Unknown model");
+  const budgetSettings = await ctx.runQuery(
+    internal.adminSettings.getWithEnvOverrides,
+    {},
+  );
+  if (
+    budgetSettings.budgetHardLimitEnabled &&
+    budgetSettings.defaultMonthlyBudget > 0 &&
+    (await getMonthlySpend(ctx, user._id)) >=
+      budgetSettings.defaultMonthlyBudget
+  ) {
+    throw new Error(
+      "Monthly budget exceeded. Generation is blocked until the budget resets or an admin raises it",
+    );
+  }
   const hasProModel = models.some((id) => {
     const model = MODEL_CONFIG[id];
     return (

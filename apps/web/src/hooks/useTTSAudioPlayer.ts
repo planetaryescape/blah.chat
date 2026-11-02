@@ -26,6 +26,8 @@ interface PlaybackSession {
     remaining: number;
     started: number;
     timer?: ReturnType<typeof setTimeout>;
+    progressTimer?: ReturnType<typeof setInterval>;
+    total: number;
     resume: () => void;
   } | null;
 }
@@ -45,6 +47,7 @@ export function useTTSAudioPlayer(options: UseTTSAudioPlayerOptions = {}) {
     if (!session) return;
     session.controller.abort();
     if (session.gap?.timer) clearTimeout(session.gap.timer);
+    if (session.gap?.progressTimer) clearInterval(session.gap.progressTimer);
     if (session.audio) {
       session.audio.onended = null;
       session.audio.onerror = null;
@@ -66,8 +69,15 @@ export function useTTSAudioPlayer(options: UseTTSAudioPlayerOptions = {}) {
         sum + seconds + session.segments[i].pauseAfterMs / 1000,
       0,
     );
+    const gap = session.gap;
+    const gapElapsed = gap
+      ? gap.total -
+        gap.remaining +
+        (gap.timer ? Math.min(gap.remaining, Date.now() - gap.started) : 0)
+      : 0;
     callbacks.current.onTimeUpdate?.(
-      session.offset + (session.audio?.currentTime ?? 0),
+      session.offset +
+        (gap ? gapElapsed / 1000 : (session.audio?.currentTime ?? 0)),
       duration,
     );
   }, []);
@@ -88,7 +98,7 @@ export function useTTSAudioPlayer(options: UseTTSAudioPlayerOptions = {}) {
           return;
         }
         if (session.playAttempt !== attempt) return;
-      } catch {
+      } catch (error) {
         // pause() can reject an outstanding browser play() promise (AbortError).
         // A deliberate pause is not a failed narration.
         if (
@@ -97,6 +107,12 @@ export function useTTSAudioPlayer(options: UseTTSAudioPlayerOptions = {}) {
           session.playAttempt !== attempt
         )
           return;
+        if (error instanceof DOMException && error.name === "NotAllowedError") {
+          // Retain this exact section and Blob for a gesture-bound Resume.
+          session.paused = true;
+          callbacks.current.onPlaying?.(false);
+          return;
+        }
         cleanupAudio();
         callbacks.current.onError?.(
           new Error("Audio playback failed. Please try Speak again."),
@@ -116,6 +132,8 @@ export function useTTSAudioPlayer(options: UseTTSAudioPlayerOptions = {}) {
     session.audio?.pause();
     const gap = session.gap;
     if (gap?.timer) {
+      clearInterval(gap.progressTimer);
+      gap.progressTimer = undefined;
       clearTimeout(gap.timer);
       gap.timer = undefined;
       gap.remaining = Math.max(0, gap.remaining - (Date.now() - gap.started));
@@ -225,12 +243,15 @@ export function useTTSAudioPlayer(options: UseTTSAudioPlayerOptions = {}) {
             signal.addEventListener("abort", abort, { once: true });
             const gap: NonNullable<PlaybackSession["gap"]> = {
               remaining: segment.pauseAfterMs,
+              total: segment.pauseAfterMs,
               started: 0,
               timer: undefined,
               resume: () => {
                 if (!active() || session.paused || gap.timer) return;
                 gap.started = Date.now();
+                gap.progressTimer = setInterval(() => reportTime(session), 50);
                 gap.timer = setTimeout(() => {
+                  clearInterval(gap.progressTimer);
                   if (!active()) return;
                   signal.removeEventListener("abort", abort);
                   session.gap = null;

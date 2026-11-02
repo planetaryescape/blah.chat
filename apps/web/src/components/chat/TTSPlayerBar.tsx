@@ -178,7 +178,12 @@ export function TTSPlayerBar({ className }: { className?: string }) {
               {state.warning}
             </p>
           )}
-          {state.totalChunks > 0 && (
+          {!isPlaying && !isLoading && state.canResume && (
+            <p role="status" className="mb-3 text-xs text-muted-foreground">
+              Paused. Choose Resume to play this section.
+            </p>
+          )}
+          {state.totalChunks > 0 && state.currentChunk > 0 && (
             <p className="mb-2 text-xs text-muted-foreground">
               Section {state.currentChunk} of {state.totalChunks} · estimated
               duration
@@ -237,7 +242,8 @@ export function TTSPlayerBar({ className }: { className?: string }) {
                 className="h-12 w-12 rounded-full shadow-lg shadow-primary/20 transition-transform active:scale-95"
                 onClick={handlePlayPause}
                 disabled={isLoading || !state.canResume}
-                title={isPlaying ? "Pause (Space)" : "Play (Space)"}
+                title={isPlaying ? "Pause (Space)" : "Resume (Space)"}
+                aria-label={isPlaying ? "Pause narration" : "Resume narration"}
               >
                 {isLoading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />

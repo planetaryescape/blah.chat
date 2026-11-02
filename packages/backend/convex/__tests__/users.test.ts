@@ -4,7 +4,7 @@ import { api } from "../_generated/api";
 import { createMockIdentity, createTestUserData } from "../lib/test/factories";
 import schema from "../schema";
 
-const internalSecret = "test-only-webhook-secret";
+const internalSecret = "test-only-webhook-secret-at-least-32-characters";
 beforeEach(() => vi.stubEnv("INTERNAL_API_SECRET", internalSecret));
 afterEach(() => vi.unstubAllEnvs());
 

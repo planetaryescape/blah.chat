@@ -3,10 +3,16 @@
 export async function hasInternalAuthorization(
   headers: Headers,
 ): Promise<boolean> {
-  const secret = process.env.INTERNAL_API_SECRET;
   const authorization = headers.get("Authorization");
-  if (!secret || secret.length < 32 || !authorization?.startsWith("Bearer "))
-    return false;
+  if (!authorization?.startsWith("Bearer ")) return false;
+  return matchesInternalSecret(authorization.slice(7));
+}
+
+export async function matchesInternalSecret(
+  candidate: string | undefined,
+): Promise<boolean> {
+  const secret = process.env.INTERNAL_API_SECRET;
+  if (!secret || secret.length < 32 || !candidate) return false;
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw",
@@ -24,7 +30,7 @@ export async function hasInternalAuthorization(
     "HMAC",
     key,
     signature,
-    encoder.encode(authorization.slice(7)),
+    encoder.encode(candidate),
   );
 }
 

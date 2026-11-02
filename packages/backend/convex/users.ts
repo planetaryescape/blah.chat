@@ -7,6 +7,7 @@ import {
   mutation,
   query,
 } from "./_generated/server";
+import { matchesInternalSecret } from "./lib/internalAuth";
 import { cascadeDeleteUserData } from "./lib/utils/cascade";
 import {
   getAllUserPreferences as getAllUserPreferencesHelper,
@@ -18,9 +19,8 @@ import {
 // NOTE: This must match the DEFAULT_MODEL_ID in src/lib/ai/operational-models.ts
 const _DEFAULT_MODEL_FOR_NEW_USERS = "openai:gpt-oss-120b";
 
-function requireWebhookSecret(secret: string | undefined) {
-  const expected = process.env.INTERNAL_API_SECRET;
-  if (!expected || !secret || secret !== expected) {
+async function requireWebhookSecret(secret: string | undefined) {
+  if (!(await matchesInternalSecret(secret))) {
     throw new Error("Unauthorized webhook");
   }
 }
@@ -34,7 +34,7 @@ export const createUser = mutation({
     imageUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    requireWebhookSecret(args.internalSecret);
+    await requireWebhookSecret(args.internalSecret);
     const existing = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -68,7 +68,7 @@ export const updateUser = mutation({
     imageUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    requireWebhookSecret(args.internalSecret);
+    await requireWebhookSecret(args.internalSecret);
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -95,7 +95,7 @@ export const deleteUser = mutation({
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    requireWebhookSecret(args.internalSecret);
+    await requireWebhookSecret(args.internalSecret);
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))

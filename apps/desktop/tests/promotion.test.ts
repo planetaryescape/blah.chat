@@ -1,7 +1,11 @@
 import { expect, test } from "bun:test";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   collectCheckRuns,
   promoteVerifiedDeployment,
+  requireCleanStageSource,
   requireProductionBranchPolicy,
   requireProtectedMainSource,
   requireSuccessfulChecks,
@@ -19,6 +23,145 @@ const deployment = {
   readyState: "READY",
   target: "production",
 };
+
+// Real CLI deployments omit gitSource; these fields are returned by Vercel's API.
+const cliDeployment = {
+  id: "dpl_immutable123",
+  url: "blah-chat-build123.vercel.app",
+  projectId: expected.projectId,
+  readyState: "READY",
+  target: "production",
+  meta: { gitCommitSha: sha, sourceCommit: sha, gitDirty: "0" },
+};
+
+test("a clean CLI deployment with both attested SHAs promotes its immutable ID", async () => {
+  const promoted: string[] = [];
+  await promoteVerifiedDeployment(
+    url,
+    expected,
+    async () => cliDeployment,
+    async (id) => {
+      promoted.push(id);
+    },
+  );
+  expect(promoted).toEqual(["dpl_immutable123"]);
+});
+
+test("the observed dirty production artifact is rejected even with matching source SHAs", async () => {
+  const deployedSha = "ad8436cec4187a78bd4a10e7ea8a24bf33abeb0f";
+  const projectId = "prj_c1ywZnHhingrT82QKqZSTlqKbavl";
+  let promoted = false;
+  await expect(
+    promoteVerifiedDeployment(
+      "https://blah-chat-57bmrxm64-planetaryescape.vercel.app",
+      { projectId, sha: deployedSha },
+      async () => ({
+        id: "dpl_7459Sr6pJERwJDC86fNkwZfP9BTm",
+        url: "blah-chat-57bmrxm64-planetaryescape.vercel.app",
+        projectId,
+        readyState: "READY",
+        target: "production",
+        meta: {
+          gitCommitSha: deployedSha,
+          sourceCommit: deployedSha,
+          gitDirty: "1",
+        },
+      }),
+      async () => {
+        promoted = true;
+      },
+    ),
+  ).rejects.toThrow();
+  expect(promoted).toBe(false);
+});
+
+for (const patch of [
+  { meta: { ...cliDeployment.meta, gitDirty: "1" } },
+  { meta: { ...cliDeployment.meta, gitDirty: false } },
+  { meta: { gitCommitSha: sha, sourceCommit: sha } },
+  { meta: { gitCommitSha: sha, gitDirty: "0" } },
+  { meta: { sourceCommit: sha, gitDirty: "0" } },
+  { meta: { ...cliDeployment.meta, gitCommitSha: "b".repeat(40) } },
+  { meta: { ...cliDeployment.meta, sourceCommit: "b".repeat(40) } },
+  { meta: undefined },
+  { gitSource: { sha: "b".repeat(40) } },
+  { gitSource: null },
+]) {
+  test(`CLI provenance fails closed: ${JSON.stringify(patch)}`, async () => {
+    let promoted = false;
+    await expect(
+      promoteVerifiedDeployment(
+        url,
+        expected,
+        async () => ({ ...cliDeployment, ...patch }),
+        async () => {
+          promoted = true;
+        },
+      ),
+    ).rejects.toThrow();
+    expect(promoted).toBe(false);
+  });
+}
+
+function stageFixture() {
+  const directory = mkdtempSync(
+    "/private/var/folders/3p/n76j7jp14ljcvr1bhf7qmlh00000gn/T/opencode/pr577-cli-stage-",
+  );
+  const git = (args: string[]) =>
+    execFileSync("git", args, {
+      cwd: directory,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+  git(["init", "--quiet"]);
+  writeFileSync(join(directory, "tracked.txt"), "committed source\n");
+  writeFileSync(join(directory, ".gitignore"), "ignored-output\n");
+  git(["add", "."]);
+  git([
+    "-c",
+    "user.name=Stage Fixture",
+    "-c",
+    "user.email=stage@example.invalid",
+    "-c",
+    "commit.gpgsign=false",
+    "-c",
+    "core.hooksPath=/dev/null",
+    "commit",
+    "--quiet",
+    "-m",
+    "fixture",
+  ]);
+  return { directory, git, sha: git(["rev-parse", "HEAD"]).trim() };
+}
+
+test("staging accepts the exact committed checkout and ignored build outputs", () => {
+  const fixture = stageFixture();
+  writeFileSync(join(fixture.directory, "ignored-output"), "generated\n");
+  expect(() => requireCleanStageSource(fixture.sha, fixture.git)).not.toThrow();
+});
+
+for (const dirty of ["tracked", "index", "untracked", "wrong-sha"]) {
+  test(`staging refuses ${dirty} source before upload`, () => {
+    const fixture = stageFixture();
+    if (dirty === "tracked" || dirty === "index")
+      writeFileSync(
+        join(fixture.directory, "tracked.txt"),
+        "changed generated binding\n",
+      );
+    if (dirty === "index") fixture.git(["add", "tracked.txt"]);
+    if (dirty === "untracked")
+      writeFileSync(
+        join(fixture.directory, "untracked.txt"),
+        "not in commit\n",
+      );
+    expect(() =>
+      requireCleanStageSource(
+        dirty === "wrong-sha" ? "b".repeat(40) : fixture.sha,
+        fixture.git,
+      ),
+    ).toThrow();
+  });
+}
 
 const successfulChecks = [
   "Lint & Typecheck",

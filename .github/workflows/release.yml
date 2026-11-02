@@ -1,8 +1,6 @@
 name: Production Deploy
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       promote_deployment:
@@ -26,8 +24,8 @@ permissions:
 
 jobs:
   promotion-preflight:
-    name: Validate protected promotion source and environment policy
-    if: github.event_name == 'workflow_dispatch' && inputs.promote_deployment != ''
+    name: Validate protected production source and environment policy
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     outputs:
       sha: ${{ steps.source.outputs.sha }}
@@ -63,11 +61,19 @@ jobs:
 
   deploy-production:
     name: Deploy Convex and stage Vercel
-    if: (github.event_name == 'workflow_dispatch' && inputs.promote_deployment == '') || (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v'))
+    needs: promotion-preflight
+    if: github.event_name == 'workflow_dispatch' && inputs.promote_deployment == '' && github.ref == 'refs/heads/main' && github.event.repository.default_branch == 'main' && github.ref_protected
     runs-on: ubuntu-latest
     environment: production
+    env:
+      PROMOTION_SOURCE_SHA: ${{ needs.promotion-preflight.outputs.sha }}
+      PROMOTION_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      PROMOTION_REF_PROTECTED: ${{ github.ref_protected }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.promotion-preflight.outputs.sha }}
+          persist-credentials: false
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -99,7 +105,8 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          URL=$(vercel deploy --prod --skip-domain --yes)
+          bun apps/desktop/scripts/promote.ts --verify-stage-source
+          URL=$(vercel deploy --prod --skip-domain --yes --meta "sourceCommit=$PROMOTION_SOURCE_SHA")
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       - name: Verify Convex readiness

@@ -1,4 +1,32 @@
+import { execFileSync } from "node:child_process";
+
 type PromotionTarget = { projectId: string; sha: string };
+
+export function requireCleanStageSource(
+  expectedSha: string,
+  git: (args: string[]) => string = (args) =>
+    execFileSync("git", args, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }),
+): void {
+  if (
+    !/^[a-f0-9]{40}$/.test(expectedSha) ||
+    git(["rev-parse", "HEAD"]).trim() !== expectedSha
+  )
+    throw new Error("Staging checkout does not match the trusted source SHA");
+  git(["diff", "--quiet", "--no-ext-diff", "--ignore-submodules=none", "--"]);
+  git([
+    "diff",
+    "--cached",
+    "--quiet",
+    "--no-ext-diff",
+    "--ignore-submodules=none",
+    "--",
+  ]);
+  if (git(["ls-files", "--others", "--exclude-standard", "-z"]).length > 0)
+    throw new Error("Staging source contains untracked nonignored files");
+}
 
 export function requireProtectedMainSource(source: {
   eventName: string;
@@ -141,6 +169,35 @@ export function validatePromotionUrl(input: string): URL {
   return new URL(input);
 }
 
+function hasVerifiedSource(deployment: object, expectedSha: string): boolean {
+  // Never let CLI metadata override a present (including malformed) gitSource.
+  if ("gitSource" in deployment) {
+    return (
+      !!deployment.gitSource &&
+      typeof deployment.gitSource === "object" &&
+      "sha" in deployment.gitSource &&
+      deployment.gitSource.sha === expectedSha
+    );
+  }
+  // CLI attestation is meaningful only for the protected, clean staging path.
+  // It is metadata supplied by that path, not a cryptographic signature.
+  if (
+    !("meta" in deployment) ||
+    !deployment.meta ||
+    typeof deployment.meta !== "object"
+  )
+    return false;
+  const meta = deployment.meta;
+  return (
+    "gitCommitSha" in meta &&
+    meta.gitCommitSha === expectedSha &&
+    "sourceCommit" in meta &&
+    meta.sourceCommit === expectedSha &&
+    "gitDirty" in meta &&
+    meta.gitDirty === "0"
+  );
+}
+
 export async function promoteVerifiedDeployment(
   input: string,
   expected: PromotionTarget,
@@ -165,11 +222,7 @@ export async function promoteVerifiedDeployment(
     deployment.readyState !== "READY" ||
     !("target" in deployment) ||
     deployment.target !== "production" ||
-    !("gitSource" in deployment) ||
-    !deployment.gitSource ||
-    typeof deployment.gitSource !== "object" ||
-    !("sha" in deployment.gitSource) ||
-    deployment.gitSource.sha !== expected.sha
+    !hasVerifiedSource(deployment, expected.sha)
   ) {
     throw new Error(
       "Deployment ID, project, immutable URL, readiness, target or source commit did not match",
@@ -186,9 +239,15 @@ if (import.meta.main) {
     refProtected: process.env.PROMOTION_REF_PROTECTED ?? "",
     sourceSha: process.env.PROMOTION_SOURCE_SHA ?? "",
   });
+  if (process.argv[2] === "--verify-stage-source") {
+    requireCleanStageSource(sha);
+    process.exit(0);
+  }
   const input = process.env.DEPLOYMENT_URL ?? "";
-  validatePromotionUrl(input);
-  if (process.env.ACKNOWLEDGE_USER_JOURNEYS !== "true")
+  const preflight = process.argv[2] === "--preflight";
+  // A blank deployment URL requests staging; promotion always needs a URL.
+  if (!preflight || input) validatePromotionUrl(input);
+  if (input && process.env.ACKNOWLEDGE_USER_JOURNEYS !== "true")
     throw new Error("User journeys must be acknowledged");
   const repository = process.env.GITHUB_REPOSITORY;
   const githubToken = process.env.GITHUB_TOKEN;
@@ -219,7 +278,7 @@ if (import.meta.main) {
   );
   requireSuccessfulChecks(checks, sha);
   // The separate preflight job has no production environment or Vercel secrets.
-  if (process.argv[2] === "--preflight") process.exit(0);
+  if (preflight) process.exit(0);
   const projectId = process.env.VERCEL_PROJECT_ID ?? "";
   await promoteVerifiedDeployment(
     input,

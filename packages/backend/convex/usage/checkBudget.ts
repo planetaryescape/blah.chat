@@ -1,10 +1,14 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { query } from "../_generated/server";
+import { getCurrentUser } from "../lib/userSync";
 
 export const checkBudget = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user || user._id !== args.userId) throw new Error("Unauthorized");
+
     // Get budget from admin settings (with env var overrides)
     const adminSettings = await ((ctx.runQuery as any)(
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules

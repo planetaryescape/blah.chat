@@ -139,6 +139,20 @@ The final private report includes paginated remote `audit` rows and
   notes, tasks, bookmarks, historical citations, and costs in the app.
 - Review all warnings and block reasons; partial retention is not full success.
 
+Export the restored deployment before default repairs or smoke writes:
+
+```sh
+bunx convex export --path /private/path/convex-restored.zip \
+  --deployment bhekani-khumalo:blah-chat:production
+```
+
+Compare actual documents with the snapshot and mapping report, rather than trusting
+import counts alone. Check message content and roles, ownership, ordered parent
+arrays, roots, and active leaves. Convex exports include `_tables` metadata whose
+rows have `name` and `id`, not document `_id` fields; exclude it from document audits.
+Also check message pagination against preserved `createdAt`: import-time
+`_creationTime` order can differ from the original conversation order.
+
 Exit codes: `0` means dry-run success or complete import without blocked records;
 `2` means the audit is incomplete or some rows remain blocked; `1` means the run
 stopped. Detailed raw server errors are deliberately not printed. Use the private
@@ -153,6 +167,18 @@ agent-work run -- bun run deploy
 
 Keep production traffic on the old artifact until the restored backend passes
 live generation checks and the staged Vercel artifact reports Convex readiness.
+
+Run the backend smoke with securely injected `CONVEX_DEPLOY_KEY`,
+`NEXT_PUBLIC_CONVEX_URL`, and an existing test user's `SMOKE_CLERK_ID`:
+
+```sh
+agent-work run -- bun run packages/backend/scripts/smokeConvex.ts --run
+```
+
+This checks sending, reconnect durability, regeneration, comparison, and stopping
+all comparison responses. It uses admin impersonation, so it does not prove Clerk
+browser authentication. Verify the sign-in form on the production hostname as
+well; a production Clerk instance can reject the staged `vercel.app` origin.
 
 ### Repair new-chat defaults during the provider outage
 

@@ -44,8 +44,8 @@ function readPlainQuantities(text: string): string {
         const prefix = input.slice(0, offset);
         const suffix = input.slice(offset + source.length);
         if (
-          /\/$|\d-$/.test(prefix) ||
-          /^\/|^-\d/.test(suffix) ||
+          /\/$|\d\s*[:–—−-]\s*$/.test(prefix) ||
+          /^\/|^\s*[:–—−-]\s*[+-]?\d/.test(suffix) ||
           (currency === "$" && suffix.startsWith("$")) ||
           (before && after)
         )
@@ -87,8 +87,10 @@ export function readQuantities(text: string): string {
     // A dollar directly before another price is a currency opener, not a math closer.
     if (
       !match[0].startsWith("$$") &&
-      /^[+-]?\d/.test(text.slice(end)) &&
-      !mathematical
+      /^\$[+-]?\d[\d,.]*(?:\s|[;!?])/.test(match[0]) &&
+      (!mathematical ||
+        (/^[\d,.]+$/.test(content) &&
+          /^\$(?:\$[\s\S]+?\$\$|[^$\s][^$\n]*?\$)/.test(text.slice(end - 1))))
     ) {
       // Reconsider this delimiter as an opener; it may begin actual math after a price.
       delimiters.lastIndex = end - 1;

@@ -1,6 +1,6 @@
 "use node";
 
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { z } from "zod";
 import { api, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
@@ -31,16 +31,21 @@ export const generateSpeech = action({
     cost: number;
     characterCount: number;
   }> => {
-    if (!(await ctx.auth.getUserIdentity())) throw new Error("Unauthorized");
+    if (!(await ctx.auth.getUserIdentity()))
+      throw new ConvexError({ code: "TTS_AUTH", message: "Unauthorized" });
     const user: Doc<"users"> | null = await ctx.runQuery(
       internal.lib.helpers.getCurrentUser,
       {},
     );
-    if (!user) throw new Error("Unauthorized");
+    if (!user)
+      throw new ConvexError({ code: "TTS_AUTH", message: "Unauthorized" });
     if (
       !(await ctx.runQuery(api.users.getUserPreference, { key: "ttsEnabled" }))
     )
-      throw new Error("TTS is disabled in user preferences");
+      throw new ConvexError({
+        code: "TTS_DISABLED",
+        message: "TTS is disabled in user preferences",
+      });
     const preferredVoice = await ctx.runQuery(api.users.getUserPreference, {
       key: "ttsVoice",
     });
@@ -50,7 +55,14 @@ export const generateSpeech = action({
     const voice =
       args.voice ?? z.string().catch("aura-asteria-en").parse(preferredVoice);
     const speed = args.speed ?? z.number().catch(1).parse(preferredSpeed);
-    validateSynthesis(args.text, voice, speed);
+    try {
+      validateSynthesis(args.text, voice, speed);
+    } catch {
+      throw new ConvexError({
+        code: "TTS_INPUT",
+        message: "Invalid TTS text, voice or speed",
+      });
+    }
     const config = await ctx.runQuery(
       internal.byok.credentials.getConfigByAuth,
       {},
@@ -61,11 +73,12 @@ export const generateSpeech = action({
         ? await decryptByokKey(config, "deepgram")
         : process.env.DEEPGRAM_API_KEY;
     if (!apiKey)
-      throw new Error(
-        byok
+      throw new ConvexError({
+        code: byok ? "TTS_BYOK_KEY" : "TTS_CONFIGURATION",
+        message: byok
           ? "BYOK Deepgram key required for speech; server credentials were not used"
           : "Speech provider is not configured",
-      );
+      });
     const hash = await audioCacheHash(
       user._id,
       args.text,
@@ -85,14 +98,18 @@ export const generateSpeech = action({
           characterCount: args.text.length,
         };
     }
+    const cost = estimateSpeechCost(args.text.length, voice);
     if (!byok) {
       const budget = await ctx.runQuery(api.usage.checkBudget.checkBudget, {
         userId: user._id,
       });
-      if (!budget.allowed) throw new Error("Speech usage budget exhausted");
+      if (!budget.allowed || (budget.budget > 0 && cost > budget.remaining))
+        throw new ConvexError({
+          code: "TTS_BUDGET",
+          message: "Speech usage budget exhausted",
+        });
     }
     const audio = await synthesize(args.text, voice, speed, apiKey);
-    const cost = estimateSpeechCost(args.text.length, voice);
     await ctx.runMutation(internal.usage.mutations.recordTTS, {
       userId: user._id,
       model: "deepgram:tts",

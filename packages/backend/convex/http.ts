@@ -142,6 +142,7 @@ http.route({
 const ttsHandler = httpAction(async (ctx, request) => {
   if (!(await ctx.auth.getUserIdentity()))
     return new Response("Unauthorized", { status: 401, headers: ttsCors });
+  let status = 400;
   try {
     let input: z.infer<typeof ttsInput>;
     if (request.method === "POST") {
@@ -155,6 +156,7 @@ const ttsHandler = httpAction(async (ctx, request) => {
         speed: params.has("speed") ? Number(params.get("speed")) : undefined,
       });
     }
+    status = 502;
     const audio = await ctx.runAction(api.tts.generateSpeech, input);
     const binary = atob(audio.audioBase64);
     const bytes = Uint8Array.from(binary, (character) =>
@@ -163,11 +165,36 @@ const ttsHandler = httpAction(async (ctx, request) => {
     return new Response(bytes, {
       headers: { ...ttsCors, "Content-Type": "audio/mpeg" },
     });
-  } catch {
+  } catch (error) {
+    const failure = z
+      .object({
+        data: z.preprocess(
+          (data) => {
+            // Convex action boundaries can serialize application-error data.
+            const serialized = z.string().safeParse(data);
+            if (!serialized.success) return data;
+            try {
+              return JSON.parse(serialized.data);
+            } catch {
+              return null;
+            }
+          },
+          z.object({ code: z.string() }),
+        ),
+      })
+      .safeParse(error);
+    if (failure.success) {
+      const code = failure.data.data.code;
+      if (["TTS_INPUT", "TTS_DISABLED"].includes(code)) status = 400;
+      else if (code === "TTS_AUTH") status = 401;
+      else if (code === "TTS_BYOK_KEY") status = 403;
+      else if (code === "TTS_BUDGET") status = 429;
+      else if (code === "TTS_CONFIGURATION") status = 503;
+    }
     // Do not reflect private text, provider responses, credentials, or storage URLs.
     return new Response(
       "Speech request rejected. Check TTS preferences, credentials and usage budget.",
-      { status: 400, headers: ttsCors },
+      { status, headers: ttsCors },
     );
   }
 });

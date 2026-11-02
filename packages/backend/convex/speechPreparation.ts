@@ -1,6 +1,10 @@
 import { SPEECH_PREPARATION_MODEL } from "@blah-chat/ai/operational-models";
 import { getModel } from "@blah-chat/ai/registry";
-import { calculateCost } from "@blah-chat/ai/utils";
+import {
+  calculateCost,
+  normalizeUsageTokens,
+  type UsageTokenInfo,
+} from "@blah-chat/ai/utils";
 import { generateText } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
@@ -16,6 +20,10 @@ const failureUsage = z.object({
   usage: z.object({
     inputTokens: z.number().nonnegative().optional(),
     outputTokens: z.number().nonnegative().optional(),
+    reasoningTokens: z.number().nonnegative().optional(),
+    outputTokenDetails: z
+      .object({ reasoningTokens: z.number().nonnegative().optional() })
+      .optional(),
   }),
 });
 
@@ -60,15 +68,6 @@ export const prepare = action({
       );
       return narration;
     }
-    const budget = await ctx.runQuery(api.usage.checkBudget.checkBudget, {
-      userId: user._id,
-    });
-    if (!budget.allowed) {
-      narration.warnings.push(
-        "Optional code explanation skipped because the usage budget is exhausted; complete technical detail retained.",
-      );
-      return narration;
-    }
     let calls = 0;
     for (const block of codeBlocks) {
       if (calls >= 4 || Date.now() >= deadline || block.text.length > 6000) {
@@ -88,8 +87,19 @@ export const prepare = action({
         );
         continue;
       }
+      // Previous calls are recorded before the next admission check. This is a
+      // recorded-spend policy, not a reservation across concurrent actions.
+      const budget = await ctx.runQuery(api.usage.checkBudget.checkBudget, {
+        userId: user._id,
+      });
+      if (!budget.allowed) {
+        narration.warnings.push(
+          "Optional code explanation skipped because the usage budget is exhausted; complete technical detail retained.",
+        );
+        break;
+      }
       calls++;
-      let usage: { inputTokens?: number; outputTokens?: number } | undefined;
+      let usage: UsageTokenInfo | undefined;
       try {
         const result = await generateText({
           model: getModel(SPEECH_PREPARATION_MODEL.id),
@@ -113,16 +123,23 @@ export const prepare = action({
         );
       } finally {
         // Usage is recorded even for invalid or truncated output. Never log source or provider errors.
-        const inputTokens = usage?.inputTokens ?? 0;
-        const outputTokens = usage?.outputTokens ?? 0;
+        const {
+          inputTokens,
+          outputTokens,
+          reasoningTokens,
+          cachedInputTokens,
+        } = normalizeUsageTokens(usage);
         await ctx.runMutation(internal.usage.mutations.recordTextGeneration, {
           userId: user._id,
           model: SPEECH_PREPARATION_MODEL.id,
           inputTokens,
           outputTokens,
+          reasoningTokens,
           cost: calculateCost(SPEECH_PREPARATION_MODEL.id, {
             inputTokens,
             outputTokens,
+            reasoningTokens,
+            cachedInputTokens,
           }),
           feature: "chat",
         });

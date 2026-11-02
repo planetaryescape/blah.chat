@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { type CodeBlock, splitSpeech, validateNarration } from "./prepare";
-import { readQuantities } from "./quantities";
 import type { PreparedNarration, SpeechSegment } from "./types";
 
 const codeOutline = z
@@ -64,13 +63,11 @@ export function applyCodeOutline(
       throw new Error("Ungrounded code outline");
     previous = item.line;
     outline.push(
-      `${item.kind}, line ${item.line}: ${item.quote.replace(/</g, " less than ").replace(/>/g, " greater than ")}`,
+      `Source line ${item.line}: ${item.quote.replace(/</g, " less than ").replace(/>/g, " greater than ").replace(/\$/g, " dollar sign ")}`,
     );
   }
   const segments: SpeechSegment[] = splitSpeech(
-    readQuantities(
-      `Code explanation. Source-grounded outline; not execution results. ${outline.join(". ")}`,
-    ),
+    `Code explanation. Selected source lines; not a structural analysis or execution results. ${outline.join(". ")}`,
   ).map((text, index) => ({
     ...block,
     id: `${block.blockId}:explanation:${index}`,

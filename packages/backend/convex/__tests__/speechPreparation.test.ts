@@ -43,6 +43,58 @@ afterEach(() => {
 });
 
 describe("faithful structural narration", () => {
+  it("keeps shell parameter syntax out of prose currency pronunciation", async () => {
+    const { narration } = await prepareDeterministic(
+      'Pay $1.00. Inline `echo "$1"`.\n\n```sh\necho "$1"\n```\n\nDo not omit the ending.',
+    );
+    const code = narration.segments
+      .filter((s) => s.kind === "code")
+      .map((s) => s.text)
+      .join(" ");
+    expect(code).toContain('echo "$1"');
+    expect(code).toContain("dollar sign");
+    expect(code).not.toContain("dollars");
+    const all = narration.segments.map((s) => s.text).join(" ");
+    expect(all).toContain("1 point zero zero dollars");
+    expect(all).toContain('echo " dollar sign 1"');
+    expect(narration.segments.at(-1)?.text).toBe("Do not omit the ending.");
+  });
+  it.each([
+    "A <span>literal</span> ending.",
+    "| Formula | Value |\n| --- | --- |\n| $x + 2$ | 0 |",
+    "| $x$ | Value |\n| --- | --- |\n| label | 0 |",
+  ])("discloses partial inline markup and table math: %s", async (source) => {
+    const { narration } = await prepareDeterministic(source);
+    expect(narration.coverage).toBe("partial");
+    expect(narration.warnings.length).toBeGreaterThan(0);
+    if (source.startsWith("|"))
+      expect(narration.segments.map((s) => s.text).join(" ")).toContain(": 0.");
+  });
+  it("never announces keyword-bearing comments or strings as verified structure", async () => {
+    const { narration, codeBlocks } = await prepareDeterministic(
+      '```js\n// return if function\nconst x = "while";\n```',
+    );
+    applyCodeOutline(
+      narration,
+      codeBlocks[0],
+      JSON.stringify({
+        sourceHash: narration.sourceHash,
+        blockId: codeBlocks[0].blockId,
+        lines: [
+          { line: 1, quote: "// return if function", kind: "condition" },
+          { line: 2, quote: 'const x = "while";', kind: "loop" },
+        ],
+      }),
+      "stop",
+    );
+    const explanation = narration.segments
+      .filter((s) => s.role === "explanation")
+      .map((s) => s.text)
+      .join(" ");
+    expect(explanation).toContain("Source line 1: // return if function");
+    expect(explanation).not.toContain("condition, line");
+    expect(explanation).not.toContain("loop, line");
+  });
   it("preserves reference coverage and source order across 400 list/quote/wrapping combinations", async () => {
     let checked = 0;
     for (const marker of ["-", "+", "*", "1.", "12)"]) {
@@ -763,6 +815,129 @@ async function fixture() {
 }
 
 describe("preparation and synthesis access boundaries", () => {
+  it("rechecks recorded spend before each optional outline and preserves remaining code", async () => {
+    const { t, client } = await fixture();
+    vi.stubEnv("DEFAULT_MONTHLY_BUDGET", "0.000001");
+    // SAFETY: This SDK fixture includes every result field consumed by preparation.
+    vi.mocked(generateText).mockResolvedValue({
+      text: "{}",
+      finishReason: "length",
+      usage: {
+        inputTokens: 1000000,
+        outputTokens: 20,
+        outputTokenDetails: { reasoningTokens: 9 },
+      },
+    } as Awaited<ReturnType<typeof generateText>>);
+    const result = await client.action(prepare, {
+      text: "```js\nreturn 1;\n```\n\n```js\nreturn 2;\n```",
+    });
+    expect(generateText).toHaveBeenCalledTimes(1);
+    expect(result.segments.map((s) => s.text).join(" ")).toContain("return 2;");
+    expect(result.warnings.join(" ")).toContain("budget");
+    const usage = await t.run((ctx) => ctx.db.query("usageRecords").collect());
+    expect(usage[0].reasoningTokens).toBe(9);
+  });
+  it.each([
+    "empty",
+    "missing",
+  ])("repairs an unusable %s cached blob instead of charging on every replay", async (mode) => {
+    const { t, client, owner } = await fixture();
+    vi.stubEnv("DEEPGRAM_API_KEY", "test-key");
+    const hash = await audioCacheHash(
+      owner,
+      "repair",
+      "aura-asteria-en",
+      1,
+      "server",
+    );
+    await t.run(async (ctx) => {
+      const storageId = await ctx.storage.store(new Blob([]));
+      if (mode === "missing") await ctx.storage.delete(storageId);
+      await ctx.db.insert("ttsCache", {
+        hash,
+        storageId,
+        text: "",
+        voice: "aura-asteria-en",
+        speed: 1,
+        format: "mp3",
+        createdAt: 0,
+        lastAccessedAt: 0,
+      });
+    });
+    const fetch = vi.fn(
+      async () =>
+        new Response(new Uint8Array([4, 5]), {
+          headers: { "Content-Type": "audio/mpeg" },
+        }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    expect(
+      (await client.action(api.tts.generateSpeech, { text: "repair" })).cost,
+    ).toBeGreaterThan(0);
+    expect(
+      (await client.action(api.tts.generateSpeech, { text: "repair" })).cost,
+    ).toBe(0);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(
+      await t.run((ctx) => ctx.db.query("ttsCache").collect()),
+    ).toHaveLength(1);
+  });
+  it("retains the established all-provider user recorded-cost budget, including BYOK", async () => {
+    const { t, client, owner } = await fixture();
+    vi.stubEnv("DEFAULT_MONTHLY_BUDGET", "1");
+    await t.run((ctx) =>
+      ctx.db.insert("usageRecords", {
+        userId: owner,
+        date: new Date().toISOString().slice(0, 10),
+        model: "deepgram:tts",
+        operationType: "tts",
+        feature: "chat",
+        inputTokens: 0,
+        outputTokens: 0,
+        cost: 0.25,
+        messageCount: 1,
+        isByok: true,
+      }),
+    );
+    expect(
+      await client.query(api.usage.checkBudget.checkBudget, { userId: owner }),
+    ).toMatchObject({ totalSpend: 0.25, remaining: 0.75 });
+  });
+  it("separates malformed input from configuration and upstream failures without leaking provider text", async () => {
+    const { t, client } = await fixture();
+    expect(
+      (
+        await t
+          .withIdentity(createMockIdentity({ subject: "unregistered" }))
+          .fetch("/tts?text=private")
+      ).status,
+    ).toBe(401);
+    expect(
+      (await client.fetch("/tts", { method: "POST", body: "{" })).status,
+    ).toBe(400);
+    vi.stubEnv("DEEPGRAM_API_KEY", "");
+    expect((await client.fetch("/tts?text=private")).status).toBe(503);
+    vi.stubEnv("DEEPGRAM_API_KEY", "test-key");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("private provider echo", { status: 503 })),
+    );
+    const failed = await client.fetch("/tts?text=private");
+    expect(failed.status).toBe(502);
+    expect(await failed.text()).not.toContain("private");
+    expect((await client.fetch("/tts?text=private&speed=99")).status).toBe(400);
+  });
+  it("rejects a synthesis estimate exceeding remaining budget without a provider call", async () => {
+    const { client } = await fixture();
+    vi.stubEnv("DEFAULT_MONTHLY_BUDGET", "0.000001");
+    vi.stubEnv("DEEPGRAM_API_KEY", "test-key");
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    await expect(
+      client.action(api.tts.generateSpeech, { text: "Too expensive" }),
+    ).rejects.toThrow(/budget/);
+    expect(fetch).not.toHaveBeenCalled();
+  });
   it("bounds AI calls to four, retains all detail on invalid/truncated/failing output, and records each call", async () => {
     const { t, client } = await fixture();
     // SAFETY: This SDK mock supplies every field consumed by preparation; no other result fields are observed.
@@ -799,7 +974,11 @@ describe("preparation and synthesis access boundaries", () => {
     const { t, client } = await fixture();
     vi.mocked(generateText).mockRejectedValue(
       Object.assign(new Error("private provider payload"), {
-        usage: { inputTokens: 7, outputTokens: 3 },
+        usage: {
+          inputTokens: 7,
+          outputTokens: 3,
+          outputTokenDetails: { reasoningTokens: 5 },
+        },
       }),
     );
     const result = await client.action(prepare, {
@@ -814,6 +993,7 @@ describe("preparation and synthesis access boundaries", () => {
     expect(usage[0]).toMatchObject({
       inputTokens: 7,
       outputTokens: 3,
+      reasoningTokens: 5,
       messageCount: 1,
     });
   });
@@ -942,6 +1122,12 @@ describe("preparation and synthesis access boundaries", () => {
     expect(fetch.mock.calls[0][1]?.body).toBe(
       JSON.stringify({ text: "secret" }),
     );
+    expect(fetch.mock.calls[0][1]?.method).toBe("POST");
+    expect(fetch.mock.calls[0][1]?.headers).toEqual({
+      Authorization: "Token test-key",
+      "Content-Type": "application/json",
+      Accept: "audio/mpeg",
+    });
     const get = await client.fetch("/tts?text=secret");
     expect(get.status).toBe(200);
     expect(get.headers.get("location")).toBeNull();

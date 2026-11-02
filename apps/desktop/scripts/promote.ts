@@ -1,5 +1,111 @@
 type PromotionTarget = { projectId: string; sha: string };
 
+export function requireProtectedMainSource(source: {
+  eventName: string;
+  ref: string;
+  defaultBranch: string;
+  refProtected: string;
+  sourceSha: string;
+}): string {
+  if (
+    source.eventName !== "workflow_dispatch" ||
+    source.ref !== "refs/heads/main" ||
+    source.defaultBranch !== "main" ||
+    source.refProtected !== "true" ||
+    !/^[a-f0-9]{40}$/.test(source.sourceSha)
+  ) {
+    throw new Error(
+      "Promotion requires protected default branch main and its checked-out source SHA",
+    );
+  }
+  return source.sourceSha;
+}
+
+export function requireProductionBranchPolicy(
+  environment: unknown,
+  rules?: unknown,
+): void {
+  if (
+    !environment ||
+    typeof environment !== "object" ||
+    !("deployment_branch_policy" in environment) ||
+    !environment.deployment_branch_policy ||
+    typeof environment.deployment_branch_policy !== "object"
+  )
+    throw new Error(
+      "Production environment deployment branch policy is not configured",
+    );
+  const policy = environment.deployment_branch_policy;
+  if (
+    "protected_branches" in policy &&
+    policy.protected_branches === true &&
+    "custom_branch_policies" in policy &&
+    policy.custom_branch_policies === false
+  )
+    return;
+  if (
+    "protected_branches" in policy &&
+    policy.protected_branches === false &&
+    "custom_branch_policies" in policy &&
+    policy.custom_branch_policies === true &&
+    rules &&
+    typeof rules === "object" &&
+    "total_count" in rules &&
+    rules.total_count === 1 &&
+    "branch_policies" in rules &&
+    Array.isArray(rules.branch_policies) &&
+    rules.branch_policies.length === 1 &&
+    rules.branch_policies[0]?.name === "main" &&
+    rules.branch_policies[0]?.type === "branch"
+  )
+    return;
+  throw new Error(
+    "Production environment must restrict deployments to protected branches or exactly branch main",
+  );
+}
+
+export async function verifyProductionBranchPolicy(
+  read: (path: string) => Promise<unknown>,
+): Promise<void> {
+  const environment = await read("/environments/production");
+  let rules: unknown;
+  if (
+    environment &&
+    typeof environment === "object" &&
+    "deployment_branch_policy" in environment &&
+    environment.deployment_branch_policy &&
+    typeof environment.deployment_branch_policy === "object" &&
+    "custom_branch_policies" in environment.deployment_branch_policy &&
+    environment.deployment_branch_policy.custom_branch_policies === true
+  ) {
+    rules = await read(
+      "/environments/production/deployment-branch-policies?per_page=100",
+    );
+  }
+  requireProductionBranchPolicy(environment, rules);
+}
+
+/** Read every page before admission; never accept a successful partial result. */
+export async function collectCheckRuns(
+  readPage: (page: number) => Promise<unknown>,
+): Promise<{ check_runs: unknown[] }> {
+  const checkRuns: unknown[] = [];
+  for (let page = 1; page <= 100; page++) {
+    const result = await readPage(page);
+    if (
+      !result ||
+      typeof result !== "object" ||
+      !("check_runs" in result) ||
+      !Array.isArray(result.check_runs) ||
+      result.check_runs.length > 100
+    )
+      throw new Error("Malformed commit check page");
+    checkRuns.push(...result.check_runs);
+    if (result.check_runs.length < 100) return { check_runs: checkRuns };
+  }
+  throw new Error("Commit check pagination exceeded the 100-page limit");
+}
+
 export function requireSuccessfulChecks(payload: unknown, sha: string): void {
   if (
     !payload ||
@@ -73,10 +179,15 @@ export async function promoteVerifiedDeployment(
 }
 
 if (import.meta.main) {
+  const sha = requireProtectedMainSource({
+    eventName: process.env.GITHUB_EVENT_NAME ?? "",
+    ref: process.env.GITHUB_REF ?? "",
+    defaultBranch: process.env.PROMOTION_DEFAULT_BRANCH ?? "",
+    refProtected: process.env.PROMOTION_REF_PROTECTED ?? "",
+    sourceSha: process.env.PROMOTION_SOURCE_SHA ?? "",
+  });
   const input = process.env.DEPLOYMENT_URL ?? "";
   validatePromotionUrl(input);
-  const projectId = process.env.VERCEL_PROJECT_ID ?? "";
-  const sha = process.env.GITHUB_SHA ?? "";
   if (process.env.ACKNOWLEDGE_USER_JOURNEYS !== "true")
     throw new Error("User journeys must be acknowledged");
   const repository = process.env.GITHUB_REPOSITORY;
@@ -88,18 +199,28 @@ if (import.meta.main) {
     !/^[a-f0-9]{40}$/.test(sha)
   )
     throw new Error("Missing GitHub source context");
-  const checks = await fetch(
-    `https://api.github.com/repos/${repository}/commits/${sha}/check-runs?per_page=100`,
-    {
-      headers: {
-        Authorization: `Bearer ${githubToken}`,
-        Accept: "application/vnd.github+json",
+  const readGitHub = async (path: string): Promise<unknown> => {
+    const response = await fetch(
+      `https://api.github.com/repos/${repository}${path}`,
+      {
+        headers: {
+          Authorization: `Bearer ${githubToken}`,
+          Accept: "application/vnd.github+json",
+        },
       },
-    },
+    );
+    if (!response.ok)
+      throw new Error(`GitHub promotion preflight failed (${response.status})`);
+    return response.json();
+  };
+  await verifyProductionBranchPolicy(readGitHub);
+  const checks = await collectCheckRuns((page) =>
+    readGitHub(`/commits/${sha}/check-runs?per_page=100&page=${page}`),
   );
-  if (!checks.ok)
-    throw new Error(`Commit check lookup failed (${checks.status})`);
-  requireSuccessfulChecks(await checks.json(), sha);
+  requireSuccessfulChecks(checks, sha);
+  // The separate preflight job has no production environment or Vercel secrets.
+  if (process.argv[2] === "--preflight") process.exit(0);
+  const projectId = process.env.VERCEL_PROJECT_ID ?? "";
   await promoteVerifiedDeployment(
     input,
     { projectId, sha },

@@ -22,18 +22,50 @@ concurrency:
 permissions:
   contents: read
   checks: read
+  actions: read
 
 jobs:
+  promotion-preflight:
+    name: Validate protected promotion source and environment policy
+    if: github.event_name == 'workflow_dispatch' && inputs.promote_deployment != ''
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+    steps:
+      - name: Reject dispatches outside protected default branch main
+        env:
+          DISPATCH_REF: ${{ github.ref }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          REF_PROTECTED: ${{ github.ref_protected }}
+        run: |
+          test "$DEFAULT_BRANCH" = "main"
+          test "$DISPATCH_REF" = "refs/heads/main"
+          test "$REF_PROTECTED" = "true"
+      - uses: actions/checkout@v6
+        with:
+          ref: refs/heads/main
+          persist-credentials: false
+      - name: Record the exact trusted checkout
+        id: source
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.5
+      - name: Require server-side environment policy and successful commit checks
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DEPLOYMENT_URL: ${{ inputs.promote_deployment }}
+          ACKNOWLEDGE_USER_JOURNEYS: ${{ inputs.acknowledge_user_journeys }}
+          PROMOTION_SOURCE_SHA: ${{ steps.source.outputs.sha }}
+          PROMOTION_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          PROMOTION_REF_PROTECTED: ${{ github.ref_protected }}
+        run: bun apps/desktop/scripts/promote.ts --preflight
+
   deploy-production:
     name: Deploy Convex and stage Vercel
     if: (github.event_name == 'workflow_dispatch' && inputs.promote_deployment == '') || (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v'))
     runs-on: ubuntu-latest
     environment: production
-    env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
     steps:
       - uses: actions/checkout@v6
 
@@ -62,12 +94,19 @@ jobs:
       # Remote builds retain sensitive Vercel values, which env pull redacts.
       - name: Stage production without moving domains
         id: stage
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
           URL=$(vercel deploy --prod --skip-domain --yes)
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       - name: Verify Convex readiness
         env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           DEPLOYMENT_URL: ${{ steps.stage.outputs.url }}
         run: |
           vercel curl /api/v1/health --deployment "$DEPLOYMENT_URL" > health.json
@@ -82,24 +121,32 @@ jobs:
 
   promote-production:
     name: Manually promote a journey-verified artifact
-    if: github.event_name == 'workflow_dispatch' && inputs.promote_deployment != ''
+    needs: promotion-preflight
+    if: github.event_name == 'workflow_dispatch' && inputs.promote_deployment != '' && github.ref == 'refs/heads/main' && github.event.repository.default_branch == 'main' && github.ref_protected
     runs-on: ubuntu-latest
     environment: production
     env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       DEPLOYMENT_URL: ${{ inputs.promote_deployment }}
       ACKNOWLEDGE_USER_JOURNEYS: ${{ inputs.acknowledge_user_journeys }}
       GITHUB_TOKEN: ${{ github.token }}
+      PROMOTION_SOURCE_SHA: ${{ needs.promotion-preflight.outputs.sha }}
+      PROMOTION_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      PROMOTION_REF_PROTECTED: ${{ github.ref_protected }}
     steps:
       - name: Require explicit user-journey verification
         run: test "$ACKNOWLEDGE_USER_JOURNEYS" = "true"
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.promotion-preflight.outputs.sha }}
+          persist-credentials: false
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.5
       - name: Install Vercel CLI
         run: bun add --global vercel@56.4.0
       - name: Promote the explicitly verified artifact without rebuilding
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: bun apps/desktop/scripts/promote.ts

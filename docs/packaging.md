@@ -39,15 +39,42 @@ URL and `acknowledge_user_journeys` enabled. That promotion does not rebuild or
 redeploy backend functions. Promotion and rollback both use the
 `production-deploy` concurrency group without cancellation.
 
-Select the same workflow ref used to stage the artifact. Promotion accepts only an
+Dispatch promotion only from protected default branch `main`. A separate preflight
+job (no production environment or Vercel secrets) rejects other dispatch refs,
+checks out `refs/heads/main`, and records its exact commit. The promotion job checks
+out that immutable commit and uses it as `PROMOTION_SOURCE_SHA`, not the dispatch's
+potentially older `GITHUB_SHA`. If main advanced since staging, a mismatched
+artifact is rejected; use rollback for older artifacts rather than changing refs.
+
+Promotion accepts only an
 exact HTTPS `*.vercel.app` deployment URL, reads Vercel deployment metadata, and
 requires the configured project, a ready production target, and `gitSource.sha`
-equal to the selected workflow commit (`GITHUB_SHA`). It then promotes only the
+equal to the checked-out main commit (`PROMOTION_SOURCE_SHA`). It then promotes only the
 verified immutable deployment ID. The selected commit must also have successful
 GitHub Actions checks named `Lint & Typecheck`, `Unit & Integration Tests`, and
-`Build`; missing or failed checks block promotion. Missing provenance is rejected; use the separate
+`Build`; all pages are read before admission, including later failed reruns.
+Pagination is limited to 100 pages of 100 checks; overflow, failed requests and
+malformed pages fail closed without accepting partial results.
+Missing provenance is rejected; use the separate
 rollback workflow for an older verified production artifact. The read-only Vercel
 deployment API is used because `vercel inspect --json` omits project/source fields.
+
+### External production-environment blocker
+
+The coordinator's read-only observation on 2026-11-02 found environment
+`Production` with `protection_rules: []` and `deployment_branch_policy: null`.
+This is **not configured** for safe branch-restricted production secret access.
+Preflight now requires a server-side deployment branch policy permitting only
+protected branches, or an explicit allowlist containing exactly branch `main`
+(not tags or wildcard patterns). An unavailable policy API also blocks promotion.
+The read-only checks use `GITHUB_TOKEN`; no environment settings are changed.
+
+Vercel secrets are step-scoped and passed to promotion only after preflight
+succeeds. These workflow guards alone do **not** prevent a malicious branch
+workflow from removing its own checks while the environment remains unrestricted.
+An authorized operator must configure and verify the server-side environment
+policy before live promotion. This work neither changes that policy nor proves
+human sign-in/generation journeys; the manual acknowledgement is still required.
 
 ## Publishing to npm
 

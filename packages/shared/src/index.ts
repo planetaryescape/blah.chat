@@ -15,5 +15,6 @@ export * from "./limits";
 export * from "./preferences";
 // Theme (for mobile)
 export * from "./theme";
+export * from "./tts";
 // Utilities
 export * from "./utils";

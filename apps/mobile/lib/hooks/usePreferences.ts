@@ -6,7 +6,10 @@ import { api } from "@/lib/convex";
 import { createMobileSdkClient } from "@/lib/transport/httpClient";
 import { shouldUseConvexTransport } from "@/lib/transport/mode";
 
-export type Preferences = typeof PREFERENCE_DEFAULTS;
+// A persisted model selection is not restricted to the literal default model.
+export type Preferences = Omit<typeof PREFERENCE_DEFAULTS, "defaultModel"> & {
+  defaultModel: string;
+};
 
 export function usePreferences(): Preferences | undefined {
   const useConvexMode = shouldUseConvexTransport();

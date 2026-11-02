@@ -1,3 +1,4 @@
+import { getTtsVoiceLabel, TTS_VOICE_OPTIONS } from "@blah-chat/shared/tts";
 import { toast } from "burnt";
 import { useRouter } from "expo-router";
 import { ArrowLeft, Check } from "lucide-react-native";
@@ -12,7 +13,6 @@ import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { usePreferences } from "@/lib/hooks/usePreferences";
 import { useUpdatePreference } from "@/lib/hooks/useUpdatePreference";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
-import { TTS_VOICE_OPTIONS } from "@/lib/tts";
 
 export default function VoiceSettingsScreen() {
   const router = useRouter();
@@ -117,11 +117,7 @@ export default function VoiceSettingsScreen() {
               <SettingsRow
                 variant="value"
                 label="Voice"
-                value={
-                  TTS_VOICE_OPTIONS.find(
-                    (voice) => voice.value === prefs.ttsVoice,
-                  )?.label ?? prefs.ttsVoice
-                }
+                value={getTtsVoiceLabel(prefs.ttsVoice)}
                 onPress={() => {
                   haptic.light();
                   setIsVoicePickerOpen((open) => !open);

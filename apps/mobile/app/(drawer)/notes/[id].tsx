@@ -54,6 +54,7 @@ import {
 import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
+import { getNoteExitPatch, leaveNote } from "@/lib/utils/noteExit";
 
 const AUTOSAVE_DELAY = 2000;
 type Project = Doc<"projects">;
@@ -91,6 +92,8 @@ export default function NoteDetailScreen() {
   );
 
   const [title, setTitle] = useState("");
+  const titleEditedRef = useRef(false);
+  const leavingRef = useRef(false);
   const [content, setContent] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProjectPickerOpen, setIsProjectPickerOpen] = useState(false);
@@ -167,26 +170,25 @@ export default function NoteDetailScreen() {
 
   // Save title changes
   const handleTitleBlur = useCallback(async () => {
-    if (!note || title === note.title) return;
+    if (!note || !titleEditedRef.current || title === note.title) return;
 
     await saveNote({ noteId: note._id, title: title || "Untitled Note" });
   }, [note, title, saveNote]);
 
   const handleBack = useCallback(async () => {
+    if (leavingRef.current) return;
     haptic.light();
     // Save any pending changes before navigating
     if (autosaveTimeoutRef.current) {
       clearTimeout(autosaveTimeoutRef.current);
     }
-    if (note && (content !== note.content || title !== note.title)) {
-      const saved = await saveNote({
-        noteId: note._id,
-        content,
-        title: title || "Untitled Note",
-      });
-      if (!saved) return;
-    }
-    router.back();
+    const patch = note
+      ? getNoteExitPatch(
+          { noteId: note._id, content: note.content ?? "", title: note.title },
+          { content, title, titleEdited: titleEditedRef.current },
+        )
+      : null;
+    await leaveNote(leavingRef, patch, saveNote, () => router.back());
   }, [router, content, title, note, saveNote]);
 
   const handleTogglePin = useCallback(async () => {
@@ -465,7 +467,10 @@ export default function NoteDetailScreen() {
           {/* Title */}
           <TextInput
             value={title}
-            onChangeText={setTitle}
+            onChangeText={(value) => {
+              titleEditedRef.current = true;
+              setTitle(value);
+            }}
             onBlur={handleTitleBlur}
             placeholder="Note title"
             placeholderTextColor={palette.starlightDim}

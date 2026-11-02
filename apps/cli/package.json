@@ -15,6 +15,7 @@
     "./lib/config": "./src/lib/config.ts"
   },
   "scripts": {
+    "test:run": "bun test tests",
     "dev": "bun --watch src/index.tsx",
     "build": "bun run scripts/build.ts",
     "compile": "bun run scripts/compile.ts",

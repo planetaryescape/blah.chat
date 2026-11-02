@@ -7,8 +7,8 @@ import "@testing-library/jest-dom/vitest";
 import { vi } from "vitest";
 
 // Mock Dexie cache - IndexedDB not available in jsdom
-vi.mock("@/lib/cache", () => ({
-  cache: {
+vi.mock("@/lib/cache", () => {
+  const cache = {
     pendingMutations: {
       add: vi.fn(),
       get: vi.fn(),
@@ -36,8 +36,14 @@ vi.mock("@/lib/cache", () => ({
       get: vi.fn(async () => null),
       put: vi.fn(async () => {}),
     },
-  },
-}));
+  };
+  return { cache, getCache: () => cache };
+});
+
+vi.mock("@/lib/cache/context", async () => {
+  const { getCache } = await import("@/lib/cache");
+  return { useUserCache: getCache };
+});
 
 // Mock Radix UI Tooltip - requires TooltipProvider context
 vi.mock("@radix-ui/react-tooltip", () => ({

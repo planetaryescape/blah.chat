@@ -27,7 +27,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cache } from "@/lib/cache";
+import { getCache } from "@/lib/cache";
 import type { OptimisticMessage } from "@/types/optimistic";
 import { QuickModelSwitcher } from "./QuickModelSwitcher";
 
@@ -90,6 +90,7 @@ export function MessageActionsMenuMobile({
     if (isTempMessage) return;
 
     try {
+      const cache = getCache();
       const messageId = message._id as Id<"messages">;
 
       // Find message group before deleting for focus management

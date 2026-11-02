@@ -1,5 +1,5 @@
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { cache } from "@/lib/cache";
+import { getCache } from "@/lib/cache";
 
 export interface QueuedMessage {
   id: string;
@@ -24,6 +24,7 @@ export class MessageQueue {
   async enqueue(
     message: Omit<QueuedMessage, "id" | "timestamp" | "retries">,
   ): Promise<void> {
+    const cache = getCache();
     const queuedMessage: QueuedMessage = {
       ...message,
       id: crypto.randomUUID(),
@@ -45,13 +46,18 @@ export class MessageQueue {
   async processQueue(
     sendFn: (msg: QueuedMessage) => Promise<void>,
   ): Promise<void> {
+    const cache = getCache();
     const queue = await this.getQueue();
 
     for (const msg of queue) {
+      // Never replay an old account's pending writes after an identity change.
+      if (getCache() !== cache) return;
       try {
         await sendFn(msg);
+        if (getCache() !== cache) return;
         await this.remove(msg.id);
       } catch (_error) {
+        if (getCache() !== cache) return;
         if (msg.retries >= this.MAX_RETRIES) {
           await this.remove(msg.id);
           console.error(
@@ -71,6 +77,7 @@ export class MessageQueue {
 
   async getQueue(): Promise<QueuedMessage[]> {
     try {
+      const cache = getCache();
       const pending = await cache.pendingMutations
         .where("type")
         .equals("sendMessage")
@@ -84,6 +91,7 @@ export class MessageQueue {
 
   async getCount(): Promise<number> {
     try {
+      const cache = getCache();
       return await cache.pendingMutations
         .where("type")
         .equals("sendMessage")
@@ -95,6 +103,7 @@ export class MessageQueue {
 
   async clear(): Promise<void> {
     try {
+      const cache = getCache();
       await cache.pendingMutations.clear();
     } catch (error) {
       console.error("[MessageQueue] Failed to clear queue:", error);
@@ -104,6 +113,7 @@ export class MessageQueue {
 
   private async remove(id: string): Promise<void> {
     try {
+      const cache = getCache();
       await cache.pendingMutations.delete(id);
     } catch (error) {
       console.error("[MessageQueue] Failed to remove:", error);
@@ -113,6 +123,7 @@ export class MessageQueue {
 
   private async incrementRetry(id: string): Promise<void> {
     try {
+      const cache = getCache();
       const mutation = await cache.pendingMutations.get(id);
       if (mutation) {
         const payload = mutation.payload as QueuedMessage;

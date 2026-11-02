@@ -1,4 +1,4 @@
-import { cache } from "./db";
+import { type BlahChatCache, getCache } from "./db";
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
@@ -7,7 +7,9 @@ const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
  * Cleanup old cached data (>30 days)
  * Run on app start, non-blocking
  */
-export async function cleanupOldData(): Promise<void> {
+export async function cleanupOldData(
+  cache: BlahChatCache = getCache(),
+): Promise<void> {
   const thirtyDaysAgo = Date.now() - THIRTY_DAYS_MS;
 
   try {

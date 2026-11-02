@@ -1,2 +1,2 @@
 export { cleanupOldData } from "./cleanup";
-export { cache, type PendingMutation } from "./db";
+export { getCache, type PendingMutation } from "./db";

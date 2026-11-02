@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useHaptic } from "@/hooks/useHaptic";
 import { analytics } from "@/lib/analytics";
-import { cache } from "@/lib/cache";
+import { getCache } from "@/lib/cache";
 import type { OptimisticMessage } from "@/types/optimistic";
 
 interface MessageActionsMenuProps {
@@ -40,6 +40,7 @@ export function MessageActionsMenu({ message }: MessageActionsMenuProps) {
 
   const handleDelete = async () => {
     try {
+      const cache = getCache();
       const messageId = message._id as Id<"messages">;
 
       // Find message group before deleting for focus management

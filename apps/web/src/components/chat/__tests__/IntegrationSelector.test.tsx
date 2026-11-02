@@ -5,6 +5,7 @@ import { getFunctionName } from "convex/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
+  incognito: false,
   // SAFETY: synthetic selection IDs exercise the loading and selected states.
   selected: [] as string[] | undefined,
   toggle: vi.fn(),
@@ -12,10 +13,13 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock("convex/react", () => ({
-  useQuery: (reference: Parameters<typeof getFunctionName>[0]) =>
-    getFunctionName(reference).endsWith("getSelectedIds")
+  useQuery: (reference: Parameters<typeof getFunctionName>[0]) => {
+    const name = getFunctionName(reference);
+    if (name === "conversations:get") return { isIncognito: state.incognito };
+    return name.endsWith("getSelectedIds")
       ? state.selected
-      : [{ _id: "owned-connection", integrationName: "GitHub" }],
+      : [{ _id: "owned-connection", integrationName: "GitHub" }];
+  },
   useMutation: () => state.toggle,
 }));
 vi.mock("sonner", () => ({ toast: { error: state.error } }));
@@ -29,7 +33,27 @@ describe("IntegrationSelector", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     state.selected = [];
+    state.incognito = false;
     state.toggle.mockResolvedValue(undefined);
+  });
+
+  it("explains that integrations are unavailable in incognito without offering choices", () => {
+    state.incognito = true;
+    render(
+      <IntegrationSelector
+        conversationId={conversationId}
+        onSavingChange={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByText("Integrations unavailable in incognito"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", {
+        name: "Select integrations for this chat",
+      }),
+    ).not.toBeInTheDocument();
+    expect(state.toggle).not.toHaveBeenCalled();
   });
 
   it("does not present connections as selected just because they are connected", async () => {

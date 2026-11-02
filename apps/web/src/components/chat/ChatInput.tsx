@@ -770,10 +770,9 @@ export const ChatInput = memo(function ChatInput({
   // Determine what to show on right side
   const hasContent = input.trim().length > 0 || quote;
   const canSend =
-    (hasContent || isRecording || isGenerating) &&
-    !isSending &&
-    !uploading &&
-    !integrationsSaving;
+    isGenerating ||
+    isRecording ||
+    (hasContent && !isSending && !uploading && !integrationsSaving);
   const showMic =
     !hasContent && !isGenerating && hasSpeechRecognition && !isRecording;
   const showExpandButton = input.length > 100;
@@ -970,7 +969,7 @@ export const ChatInput = memo(function ChatInput({
                     ref={voiceInputRef}
                     onTranscript={async (text, autoSend) => {
                       setIsTranscribing(false);
-                      if (autoSend && text.trim()) {
+                      if (autoSend && text.trim() && !integrationsSaving) {
                         setIsSending(true);
                         try {
                           await sendMessage({
@@ -1007,7 +1006,7 @@ export const ChatInput = memo(function ChatInput({
                       setRecordingStream(stream || null);
                       if (!recording && stream) setIsTranscribing(true);
                     }}
-                    isDisabled={isSending || uploading}
+                    isDisabled={isSending || uploading || integrationsSaving}
                   />
                 </div>
               </MobileAwareTooltip>

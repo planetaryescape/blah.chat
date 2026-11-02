@@ -1717,6 +1717,7 @@ export default defineSchema({
     userId: v.id("users"),
     connectionId: v.id("composioConnections"),
   })
+    .index("by_connection", ["connectionId"])
     .index("by_conversation", ["conversationId"])
     .index("by_user", ["userId"])
     .index("by_user_conversation", ["userId", "conversationId"]),

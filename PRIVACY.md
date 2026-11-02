@@ -9,7 +9,9 @@ This privacy policy applies to **self-hosted instances** of blah.chat. For the c
 
 ## Summary
 
-- **Self-hosted**: You control all data. Nothing leaves your infrastructure.
+- **Self-hosted**: You control deployment and retention. Configured authentication,
+  AI, storage, and optional service providers receive data needed to operate those
+  features; self-hosting does not keep all processing inside your infrastructure.
 - **Telemetry**: Optional, anonymous, aggregate instance metrics only. Opt-out anytime.
 - **No tracking**: No cookies, no analytics, no user behavior tracking in self-hosted instances.
 - **AGPL compliance**: If you modify and distribute blah.chat, you must disclose your source per AGPLv3 Section 13.
@@ -217,7 +219,7 @@ Each is GDPR-compliant, but **you** are responsible for contracts (DPAs).
 
 Users of your instance can request:
 - **Access**: Use the authenticated `/api/export` endpoint for the requesting user's conversations. A deployment-wide `bunx convex export` is an operator backup, never a user access-request response. Handle other user-owned records through a scoped operator process; do not send an unfiltered backup.
-- **Deletion**: Delete the user's account and live owned records, then separately process retained Postgres data, migration snapshots, exports, and backups under the instance's retention policy.
+- **Deletion**: Delete the user's account and live owned records in the application's Convex deployment, then separately process retained Postgres data, migration snapshots, exports, and backups under the instance's retention policy. A separately configured BYOD database is user-controlled: export or delete its records directly in that database before deleting the application account. Removing the BYOD connection/configuration does not erase that external database.
 - **Portability**: Export in JSON format (machine-readable)
 - **Rectification**: Edit profile, preferences
 

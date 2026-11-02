@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -10,7 +10,30 @@ vi.mock("convex/react", () => ({
 }));
 
 vi.mock("../IntegrationSelector", () => ({
-  IntegrationSelector: () => null,
+  IntegrationSelector: ({
+    onSavingChange,
+  }: {
+    onSavingChange: (saving: boolean) => void;
+  }) => (
+    <button type="button" onClick={() => onSavingChange(true)}>
+      Start integration save
+    </button>
+  ),
+}));
+
+const voiceTranscript = vi.hoisted(() => ({
+  current: (_text: string, _autoSend?: boolean): Promise<void> =>
+    Promise.resolve(),
+}));
+vi.mock("../VoiceInput", () => ({
+  VoiceInput: ({
+    onTranscript,
+  }: {
+    onTranscript: (text: string, autoSend?: boolean) => Promise<void>;
+  }) => {
+    voiceTranscript.current = onTranscript;
+    return null;
+  },
 }));
 
 // Mock the send message hook
@@ -58,6 +81,33 @@ describe("ChatInput", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mobileDetectState = { isMobile: false, isTouchDevice: false };
+  });
+
+  it("keeps Stop available while an integration save is pending", async () => {
+    const user = userEvent.setup();
+    render(<ChatInput {...defaultProps} isGenerating={true} />);
+    await user.click(
+      screen.getByRole("button", { name: "Start integration save" }),
+    );
+    expect(
+      screen.getByRole("button", { name: "Stop generating response" }),
+    ).toBeEnabled();
+  });
+
+  it("retains a voice auto-send as a draft while integration choices are saving", async () => {
+    const user = userEvent.setup();
+    render(<ChatInput {...defaultProps} />);
+    await user.click(
+      screen.getByRole("button", { name: "Start integration save" }),
+    );
+    await act(async () =>
+      voiceTranscript.current("Retain this voice draft", true),
+    );
+    expect(mockSendMessage).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Message input")).toHaveValue(
+      "Retain this voice draft",
+    );
+    expect(screen.getByRole("button", { name: "Send message" })).toBeDisabled();
   });
 
   it("displays input value when user types", async () => {

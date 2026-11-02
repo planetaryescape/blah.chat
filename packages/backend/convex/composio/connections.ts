@@ -235,7 +235,13 @@ export const disconnectIntegration = mutation({
       throw new Error(`Connection not found: ${integrationId}`);
     }
 
-    // Delete the connection record
+    const selections = await ctx.db
+      .query("conversationIntegrations")
+      .withIndex("by_connection", (q) => q.eq("connectionId", connection._id))
+      .collect();
+    for (const selection of selections) await ctx.db.delete(selection._id);
+
+    // Delete the connection record only after its per-chat allowlist entries.
     await ctx.db.delete(connection._id);
 
     return { success: true };

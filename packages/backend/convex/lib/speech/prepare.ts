@@ -1,4 +1,4 @@
-import { marked, type Token, type Tokens } from "marked";
+import { type Links, marked, type Token, type Tokens } from "marked";
 import { readQuantities } from "./quantities";
 import type { PreparedNarration, SpeechSegment } from "./types";
 
@@ -76,6 +76,14 @@ function decodeEntities(text: string): string {
 /** Literal tags are text, never generated voice controls or executable HTML. */
 function literal(text: string): string {
   return text.replace(/</g, " less than ").replace(/>/g, " greater than ");
+}
+
+function lexNested(content: string, references: Links): Token[] {
+  const lexer = new marked.Lexer({ gfm: true });
+  // Re-lex normalized container content without losing forward/backward
+  // document references or injecting definitions into source-mapped text.
+  lexer.tokens.links = { ...references };
+  return lexer.lex(content);
 }
 
 /** Invert only Marked's list whitespace normalization, never search content for a match. */
@@ -271,8 +279,9 @@ export async function prepareDeterministic(
     tokens: Token[],
     base: number,
     rawSource: string,
-    depth = 0,
-    offsets?: number[],
+    depth: number,
+    offsets: number[] | undefined,
+    references: Links,
   ) => {
     const sourceOffset = (index: number) => offsets?.[index] ?? base + index;
     let cursor = 0;
@@ -303,13 +312,14 @@ export async function prepareDeterministic(
             0,
           );
           walk(
-            marked.lexer(item.text, { gfm: true }),
+            lexNested(item.text, references),
             sourceOffset(itemStart),
             item.text,
             depth + 1,
             listContentOffsets(item, (index) =>
               sourceOffset(itemStart + index),
             ),
+            references,
           );
         }
         continue;
@@ -330,7 +340,14 @@ export async function prepareDeterministic(
           local += line.length;
         }
         quoteOffsets.push(end);
-        walk(marked.lexer(quoteText), start, quoteText, depth, quoteOffsets);
+        walk(
+          lexNested(quoteText, references),
+          start,
+          quoteText,
+          depth,
+          quoteOffsets,
+          references,
+        );
         add(
           {
             blockId: `${mapping.blockId}:end`,
@@ -512,6 +529,7 @@ export async function prepareDeterministic(
     } else normalized += text[index];
   }
   offsets.push(text.length);
-  walk(marked.lexer(normalized, { gfm: true }), 0, normalized, 0, offsets);
+  const tokens = marked.lexer(normalized, { gfm: true });
+  walk(tokens, 0, normalized, 0, offsets, tokens.links);
   return { narration: validateNarration(narration), codeBlocks };
 }

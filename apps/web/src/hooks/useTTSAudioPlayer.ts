@@ -1,345 +1,307 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import type { SpeechSegment } from "@blah-chat/backend/convex/lib/speech/types";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { clamp } from "@/lib/utils/ttsUtils";
-
-export interface TTSAudioState {
-  currentTime: number;
-  duration: number;
-  isPlaying: boolean;
-}
 
 interface UseTTSAudioPlayerOptions {
   defaultSpeed?: number;
   onTimeUpdate?: (currentTime: number, duration: number) => void;
+  onSegment?: (segment: SpeechSegment, index: number) => void;
+  onPlaying?: (playing: boolean) => void;
   onEnded?: () => void;
-  onError?: (error: Event) => void;
+  onError?: (error: Error) => void;
 }
 
-/**
- * Hook for managing MSE (Media Source Extensions) audio playback.
- * Handles audio element, MediaSource, SourceBuffer, and buffer queue.
- */
+interface PlaybackSession {
+  controller: AbortController;
+  audio: HTMLAudioElement | null;
+  url: string | null;
+  paused: boolean;
+  playAttempt: number;
+  offset: number;
+  segments: SpeechSegment[];
+  durations: number[];
+  gap: {
+    remaining: number;
+    started: number;
+    timer?: ReturnType<typeof setTimeout>;
+    resume: () => void;
+  } | null;
+}
+
+/** One owned Blob at a time: bounded memory, ordered speech, real semantic gaps. */
 export function useTTSAudioPlayer(options: UseTTSAudioPlayerOptions = {}) {
-  const { defaultSpeed = 1, onTimeUpdate, onEnded, onError } = options;
+  const callbacks = useRef(options);
+  useLayoutEffect(() => {
+    callbacks.current = options;
+  });
+  const sessionRef = useRef<PlaybackSession | null>(null);
+  const speedRef = useRef(clamp(options.defaultSpeed ?? 1, 0.5, 2));
 
-  // MSE Refs
-  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
-  const mediaSourceRef = useRef<MediaSource | null>(null);
-  const sourceBufferRef = useRef<SourceBuffer | null>(null);
-  const bufferQueueRef = useRef<ArrayBuffer[]>([]);
-  const isAppendingRef = useRef(false);
-  const objectUrlRef = useRef<string | null>(null);
-  const speedRef = useRef(clamp(defaultSpeed, 0.5, 2));
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const endStreamIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
-    null,
-  );
-
-  /**
-   * Process the buffer queue safely - appends next buffer when ready.
-   */
-  const processBufferQueue = useCallback(() => {
-    if (
-      !sourceBufferRef.current ||
-      sourceBufferRef.current.updating ||
-      bufferQueueRef.current.length === 0
-    ) {
-      return;
-    }
-
-    const buffer = bufferQueueRef.current.shift();
-    if (buffer) {
-      try {
-        sourceBufferRef.current.appendBuffer(buffer);
-      } catch (e) {
-        console.error("MSE appendBuffer failed", e);
-      }
-    }
-  }, []);
-
-  /**
-   * Cleanup all audio resources.
-   */
   const cleanupAudio = useCallback(() => {
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
-      currentAudioRef.current.removeAttribute("src");
-      currentAudioRef.current.load();
+    const session = sessionRef.current;
+    sessionRef.current = null;
+    if (!session) return;
+    session.controller.abort();
+    if (session.gap?.timer) clearTimeout(session.gap.timer);
+    if (session.audio) {
+      session.audio.onended = null;
+      session.audio.onerror = null;
+      session.audio.ontimeupdate = null;
+      session.audio.onloadedmetadata = null;
+      session.audio.pause();
+      session.audio.removeAttribute("src");
+      session.audio.load();
     }
-
-    // Revoke Object URL
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
-      objectUrlRef.current = null;
-    }
-
-    // MSE Cleanup
-    if (mediaSourceRef.current) {
-      try {
-        if (mediaSourceRef.current.readyState === "open") {
-          mediaSourceRef.current.endOfStream();
-        }
-      } catch (_e) {
-        // ignore
-      }
-      mediaSourceRef.current = null;
-    }
-    sourceBufferRef.current = null;
-    bufferQueueRef.current = [];
-    isAppendingRef.current = false;
-
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-
-    // Clear endStream interval
-    if (endStreamIntervalRef.current) {
-      clearInterval(endStreamIntervalRef.current);
-      endStreamIntervalRef.current = null;
-    }
+    if (session.url) URL.revokeObjectURL(session.url);
   }, []);
 
-  /**
-   * Initialize MSE audio playback with a new MediaSource.
-   */
-  const initializeAudio =
-    useCallback(async (): Promise<HTMLAudioElement | null> => {
-      cleanupAudio();
-      abortControllerRef.current = new AbortController();
+  useEffect(() => cleanupAudio, [cleanupAudio]);
 
-      // Setup MSE
-      const mediaSource = new MediaSource();
-      mediaSourceRef.current = mediaSource;
-      const objectUrl = URL.createObjectURL(mediaSource);
-      objectUrlRef.current = objectUrl;
+  const reportTime = useCallback((session: PlaybackSession) => {
+    if (sessionRef.current !== session) return;
+    const duration = session.durations.reduce(
+      (sum, seconds, i) =>
+        sum + seconds + session.segments[i].pauseAfterMs / 1000,
+      0,
+    );
+    callbacks.current.onTimeUpdate?.(
+      session.offset + (session.audio?.currentTime ?? 0),
+      duration,
+    );
+  }, []);
 
-      // Create Audio Element
-      const audio = new Audio();
-      audio.src = objectUrl;
-      currentAudioRef.current = audio;
-      audio.playbackRate = speedRef.current;
-      if ("preservesPitch" in audio) {
-        audio.preservesPitch = true;
-      }
-
-      // Event Listeners
-      audio.ontimeupdate = () => {
-        onTimeUpdate?.(audio.currentTime, audio.duration);
-      };
-
-      audio.onended = () => {
-        onEnded?.();
-      };
-
-      audio.onerror = (e: Event | string) => {
-        console.error("Audio error", e);
-        if (typeof e !== "string" && e instanceof Event) {
-          onError?.(e);
-        }
-      };
-
-      // Wait for sourceopen with timeout
-      const MSE_INIT_TIMEOUT = 5000;
-
+  const play = useCallback(async () => {
+    const session = sessionRef.current;
+    if (!session) return;
+    const attempt = ++session.playAttempt;
+    session.paused = false;
+    if (session.gap) {
+      session.gap.resume();
+    } else if (session.audio) {
+      const audio = session.audio;
       try {
-        await Promise.race([
-          new Promise<void>((resolve) => {
-            mediaSource.addEventListener(
-              "sourceopen",
-              () => {
-                try {
-                  const sourceBuffer =
-                    mediaSource.addSourceBuffer("audio/mpeg");
-                  sourceBufferRef.current = sourceBuffer;
-
-                  sourceBuffer.addEventListener("updateend", () => {
-                    processBufferQueue();
-                  });
-                  resolve();
-                } catch (e) {
-                  console.error("[TTS] MSE addSourceBuffer failed", e);
-                  resolve();
-                }
-              },
-              { once: true },
-            );
-          }),
-          new Promise<void>((_, reject) =>
-            setTimeout(
-              () => reject(new Error("MSE initialization timeout")),
-              MSE_INIT_TIMEOUT,
-            ),
-          ),
-        ]);
-      } catch (e) {
-        console.error("[TTS] MSE init error:", e);
-        cleanupAudio();
-        return null;
-      }
-
-      return sourceBufferRef.current ? audio : null;
-    }, [cleanupAudio, processBufferQueue, onTimeUpdate, onEnded, onError]);
-
-  /**
-   * Append audio buffer to the queue.
-   */
-  const appendBuffer = useCallback(
-    (buffer: ArrayBuffer) => {
-      bufferQueueRef.current.push(buffer);
-      processBufferQueue();
-    },
-    [processBufferQueue],
-  );
-
-  /**
-   * Signal end of stream when all buffers are processed.
-   */
-  const endStream = useCallback(() => {
-    // Clear any existing interval before creating a new one
-    if (endStreamIntervalRef.current) {
-      clearInterval(endStreamIntervalRef.current);
-    }
-
-    endStreamIntervalRef.current = setInterval(() => {
-      if (abortControllerRef.current?.signal.aborted) {
-        if (endStreamIntervalRef.current) {
-          clearInterval(endStreamIntervalRef.current);
-          endStreamIntervalRef.current = null;
+        await audio.play();
+        if (sessionRef.current !== session || session.paused) {
+          audio.pause();
+          return;
         }
+        if (session.playAttempt !== attempt) return;
+      } catch {
+        // pause() can reject an outstanding browser play() promise (AbortError).
+        // A deliberate pause is not a failed narration.
+        if (
+          sessionRef.current !== session ||
+          session.paused ||
+          session.playAttempt !== attempt
+        )
+          return;
+        cleanupAudio();
+        callbacks.current.onError?.(
+          new Error("Audio playback failed. Please try Speak again."),
+        );
         return;
       }
-      if (
-        bufferQueueRef.current.length === 0 &&
-        sourceBufferRef.current &&
-        !sourceBufferRef.current.updating
-      ) {
-        if (
-          mediaSourceRef.current &&
-          mediaSourceRef.current.readyState === "open"
-        ) {
-          try {
-            mediaSourceRef.current.endOfStream();
-          } catch (_e) {
-            /* ignore */
-          }
-        }
-        if (endStreamIntervalRef.current) {
-          clearInterval(endStreamIntervalRef.current);
-          endStreamIntervalRef.current = null;
-        }
-      }
-    }, 500);
-  }, []);
-
-  /**
-   * Play the audio element.
-   */
-  const play = useCallback(async () => {
-    if (currentAudioRef.current) {
-      await currentAudioRef.current.play();
     }
-  }, []);
-
-  /**
-   * Pause playback.
-   */
-  const pause = useCallback(() => {
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
-    }
-  }, []);
-
-  /**
-   * Resume playback.
-   */
-  const resume = useCallback(async () => {
-    if (currentAudioRef.current) {
-      await currentAudioRef.current.play();
-    }
-  }, []);
-
-  /**
-   * Stop and reset playback.
-   */
-  const stop = useCallback(() => {
-    cleanupAudio();
+    if (sessionRef.current === session && session.playAttempt === attempt)
+      callbacks.current.onPlaying?.(true);
   }, [cleanupAudio]);
 
-  /**
-   * Seek by a relative amount of seconds.
-   */
-  const seekBy = useCallback((seconds: number) => {
-    if (!currentAudioRef.current) return;
-    const target = clamp(
-      (currentAudioRef.current.currentTime || 0) + seconds,
-      0,
-      currentAudioRef.current.duration || Number.POSITIVE_INFINITY,
-    );
-    if (Number.isFinite(target)) {
-      currentAudioRef.current.currentTime = target;
+  const pause = useCallback(() => {
+    const session = sessionRef.current;
+    if (!session) return;
+    session.playAttempt++;
+    session.paused = true;
+    session.audio?.pause();
+    const gap = session.gap;
+    if (gap?.timer) {
+      clearTimeout(gap.timer);
+      gap.timer = undefined;
+      gap.remaining = Math.max(0, gap.remaining - (Date.now() - gap.started));
     }
+    callbacks.current.onPlaying?.(false);
   }, []);
 
-  /**
-   * Seek to an absolute time.
-   */
-  const seekTo = useCallback((time: number) => {
-    if (!currentAudioRef.current) return;
-    const target = clamp(
-      time,
-      0,
-      currentAudioRef.current.duration || Number.POSITIVE_INFINITY,
-    );
-    if (Number.isFinite(target)) {
-      currentAudioRef.current.currentTime = target;
-    }
-  }, []);
-
-  /**
-   * Set playback speed.
-   */
-  const setSpeed = useCallback((speed: number) => {
-    const clamped = clamp(speed, 0.5, 2);
-    speedRef.current = clamped;
-    if (currentAudioRef.current) {
-      currentAudioRef.current.playbackRate = clamped;
-      if ("preservesPitch" in currentAudioRef.current) {
-        currentAudioRef.current.preservesPitch = true;
+  const start = useCallback(
+    async (
+      segments: SpeechSegment[],
+      loadSegment: (
+        segment: SpeechSegment,
+        signal: AbortSignal,
+      ) => Promise<Blob>,
+    ) => {
+      cleanupAudio();
+      // This is feature detection, not parsing untrusted input. Older browsers
+      // may lack the HTMLAudio/Blob URL adapter entirely.
+      if (
+        typeof Audio === "undefined" ||
+        typeof URL.createObjectURL !== "function"
+      ) {
+        callbacks.current.onError?.(
+          new Error("This browser does not support audio playback."),
+        );
+        return;
       }
-    }
-    return clamped;
-  }, []);
+      const session: PlaybackSession = {
+        controller: new AbortController(),
+        audio: null,
+        url: null,
+        paused: false,
+        playAttempt: 0,
+        offset: 0,
+        segments,
+        durations: segments.map((segment) =>
+          Math.max(1, segment.text.length / 14),
+        ),
+        gap: null,
+      };
+      sessionRef.current = session;
+      const signal = session.controller.signal;
+      const active = () => sessionRef.current === session && !signal.aborted;
+      try {
+        for (let i = 0; i < segments.length; i++) {
+          const segment = segments[i];
+          const blob = await loadSegment(segment, signal);
+          if (!active()) return;
+          if (!blob.size)
+            throw new Error("Speech returned empty audio. Playback stopped.");
+          const audio = new Audio();
+          session.audio = audio;
+          session.url = URL.createObjectURL(blob);
+          audio.src = session.url;
+          audio.playbackRate = speedRef.current;
+          audio.preservesPitch = true;
+          callbacks.current.onSegment?.(segment, i);
+          await new Promise<void>((resolve, reject) => {
+            const abort = () =>
+              reject(new DOMException("Cancelled", "AbortError"));
+            signal.addEventListener("abort", abort, { once: true });
+            audio.onloadedmetadata = () => {
+              if (!active()) return;
+              if (Number.isFinite(audio.duration) && audio.duration > 0) {
+                session.durations[i] = audio.duration;
+              }
+              reportTime(session);
+            };
+            audio.ontimeupdate = () => reportTime(session);
+            audio.onended = () => {
+              if (!active()) return;
+              signal.removeEventListener("abort", abort);
+              session.durations[i] =
+                Number.isFinite(audio.duration) && audio.duration > 0
+                  ? audio.duration
+                  : audio.currentTime;
+              resolve();
+            };
+            audio.onerror = () => {
+              if (!active()) return;
+              signal.removeEventListener("abort", abort);
+              reject(
+                new Error(
+                  "Audio could not be played. Playback stopped without skipping this section.",
+                ),
+              );
+            };
+            if (!session.paused) void play();
+          });
+          if (!active()) return;
+          audio.onended = null;
+          audio.onerror = null;
+          audio.ontimeupdate = null;
+          audio.onloadedmetadata = null;
+          audio.pause();
+          audio.removeAttribute("src");
+          audio.load();
+          session.audio = null;
+          URL.revokeObjectURL(session.url);
+          session.url = null;
+          session.offset += session.durations[i];
+          reportTime(session);
+          // A gap starts only after the actual audio ended, never from an estimate.
+          await new Promise<void>((resolve, reject) => {
+            const abort = () =>
+              reject(new DOMException("Cancelled", "AbortError"));
+            signal.addEventListener("abort", abort, { once: true });
+            const gap: NonNullable<PlaybackSession["gap"]> = {
+              remaining: segment.pauseAfterMs,
+              started: 0,
+              timer: undefined,
+              resume: () => {
+                if (!active() || session.paused || gap.timer) return;
+                gap.started = Date.now();
+                gap.timer = setTimeout(() => {
+                  if (!active()) return;
+                  signal.removeEventListener("abort", abort);
+                  session.gap = null;
+                  session.offset += segment.pauseAfterMs / 1000;
+                  reportTime(session);
+                  resolve();
+                }, gap.remaining);
+              },
+            };
+            session.gap = gap;
+            gap.resume();
+          });
+          if (!active()) return;
+        }
+        if (!active()) return;
+        cleanupAudio();
+        callbacks.current.onEnded?.();
+      } catch (error) {
+        if (!active()) return;
+        cleanupAudio();
+        callbacks.current.onError?.(
+          error instanceof Error ? error : new Error("Speech playback failed."),
+        );
+      }
+    },
+    [cleanupAudio, play, reportTime],
+  );
 
-  /**
-   * Get the abort signal for fetch operations.
-   */
-  const getAbortSignal = useCallback(() => {
-    return abortControllerRef.current?.signal;
-  }, []);
+  // Unknown/unloaded durations must never silently skip source segments. Seek is
+  // deliberately local to the currently loaded section; offsets remain source-linked.
+  const seekTo = useCallback(
+    (time: number) => {
+      const session = sessionRef.current;
+      const audio = session?.audio;
+      if (!session || !audio || !Number.isFinite(audio.duration)) return false;
+      const local = time - session.offset;
+      if (local < 0 || local > audio.duration) return false;
+      audio.currentTime = local;
+      reportTime(session);
+      return true;
+    },
+    [reportTime],
+  );
 
-  /**
-   * Check if playback was aborted.
-   */
-  const isAborted = useCallback(() => {
-    return abortControllerRef.current?.signal.aborted ?? false;
+  const seekBy = useCallback(
+    (seconds: number) => {
+      const session = sessionRef.current;
+      return session
+        ? seekTo(session.offset + (session.audio?.currentTime ?? 0) + seconds)
+        : false;
+    },
+    [seekTo],
+  );
+
+  const setSpeed = useCallback((speed: number) => {
+    speedRef.current = clamp(speed, 0.5, 2);
+    if (sessionRef.current?.audio)
+      sessionRef.current.audio.playbackRate = speedRef.current;
+    return speedRef.current;
   }, []);
 
   return {
-    initializeAudio,
-    appendBuffer,
-    endStream,
+    start,
     play,
     pause,
-    resume,
-    stop,
+    resume: play,
+    stop: cleanupAudio,
+    cleanupAudio,
     seekBy,
     seekTo,
     setSpeed,
-    cleanupAudio,
-    getAbortSignal,
-    isAborted,
     speedRef,
   };
 }

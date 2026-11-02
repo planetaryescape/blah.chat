@@ -45,10 +45,13 @@ plans can differ. Replaying cached audio does not add another synthesis charge.
 
 The usage budget measures the user's recorded cost, including BYOK usage; it is
 not an application-subsidy limit. Optional outlines recheck recorded spend before
-each call. Synthesis compares its estimate against remaining recorded budget.
-Neither check reserves spend across concurrent requests: this is not an atomic
-billing cap. Identical owner/configuration synthesis requests share a durable
-claim: only its winner calls the provider. Duplicates wait up to four seconds for
+each call. Application-managed synthesis compares its estimate against remaining
+recorded budget. BYOK synthesis skips this admission check; its usage is still
+recorded and contributes to the user's recorded spend. Neither the outline check
+nor application-managed synthesis admission reserves spend across concurrent
+requests: this is not an atomic billing cap. Identical owner/configuration
+synthesis requests share a durable claim: only its winner calls the provider.
+Duplicates wait up to four seconds for
 cached audio; if it is still pending, HTTP returns 409 with `Retry-After: 1`.
 The player shows a Retry narration button rather than automatically synthesizing
 a duplicate request.

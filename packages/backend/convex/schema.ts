@@ -1146,7 +1146,7 @@ export default defineSchema({
 
   ttsCache: defineTable({
     userId: v.optional(v.id("users")), // Legacy rows acquire ownership on verified replay.
-    hash: v.string(), // sha256 of text+voice+speed
+    hash: v.string(), // SHA-256 of owner/text/voice/speed/format/credential policy and cache version.
     storageId: v.id("_storage"),
     text: v.string(),
     voice: v.string(),

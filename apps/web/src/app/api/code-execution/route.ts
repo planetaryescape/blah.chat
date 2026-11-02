@@ -1,5 +1,21 @@
+import {
+  hasInternalAuthorization,
+  internalAuthorization,
+} from "@blah-chat/backend/convex/lib/internalAuth";
+import { readBoundedBody } from "@blah-chat/backend/convex/lib/ownedUploads";
 import { auth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import logger from "@/lib/logger";
+
+const executionInput = z.object({
+  code: z
+    .string()
+    .max(100_000)
+    .refine((code) => code.trim().length > 0),
+  language: z.enum(["python", "javascript"]),
+  timeout: z.number().finite().min(1).max(60).default(30),
+});
 
 // Types for E2B execution results
 interface E2BResult {
@@ -7,7 +23,6 @@ interface E2BResult {
   jpeg?: string;
   svg?: string;
   text?: string;
-  [key: string]: any;
 }
 
 /**
@@ -15,8 +30,8 @@ interface E2BResult {
  * This is outside Convex to avoid ESM/CommonJS bundling conflicts
  */
 export async function POST(request: NextRequest) {
-  // Check for internal Convex call header or verify user authentication
-  const isInternalCall = request.headers.get("X-Convex-Internal") === "true";
+  // A boolean internal-call header is never an authentication credential.
+  const isInternalCall = await hasInternalAuthorization(request.headers);
 
   if (!isInternalCall) {
     const { userId } = await auth();
@@ -26,14 +41,25 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { code, language, timeout = 30 } = await request.json();
-
-    if (!code || !language) {
+    let input: unknown;
+    try {
+      input = JSON.parse(
+        new TextDecoder().decode(await readBoundedBody(request, 128 * 1024)),
+      );
+    } catch {
       return NextResponse.json(
-        { error: "Missing required fields: code, language" },
+        { error: "Invalid or oversized JSON body" },
         { status: 400 },
       );
     }
+    const parsed = executionInput.safeParse(input);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid code, language or timeout" },
+        { status: 400 },
+      );
+    }
+    const { code, language, timeout } = parsed.data;
 
     // Check for E2B API key
     if (!process.env.E2B_API_KEY) {
@@ -60,7 +86,10 @@ export async function POST(request: NextRequest) {
 
     try {
       const startTime = Date.now();
-      const execution = await sandbox.runCode(code);
+      const execution = await sandbox.runCode(code, {
+        language,
+        timeoutMs: timeout * 1000,
+      });
       const executionTime = Date.now() - startTime;
 
       const stdout = execution.logs.stdout.join("\n");
@@ -82,10 +111,9 @@ export async function POST(request: NextRequest) {
               // Convert to Uint8Array for proper fetch body handling
               const uint8Array = new Uint8Array(imageBuffer);
 
-              console.log(
-                "[CodeExecution] Uploading image, size:",
-                uint8Array.length,
-                "bytes",
+              logger.info(
+                { bytes: uint8Array.length },
+                "Uploading execution image",
               );
 
               // Store in Convex
@@ -97,6 +125,7 @@ export async function POST(request: NextRequest) {
                     "Content-Type": "image/png",
                     "Content-Length": uint8Array.length.toString(),
                     "X-Convex-Internal": "true",
+                    Authorization: internalAuthorization(),
                   },
                   body: uint8Array,
                 },
@@ -104,16 +133,16 @@ export async function POST(request: NextRequest) {
 
               if (storeResponse.ok) {
                 const { url, storageId } = await storeResponse.json();
-                console.log("[CodeExecution] Image stored successfully:", url);
+                logger.info("Execution image stored");
                 images.push({ url, storageId });
               } else {
-                console.error(
-                  "[CodeExecution] Failed to store image:",
-                  await storeResponse.text(),
+                logger.error(
+                  { status: storeResponse.status },
+                  "Execution image storage failed",
                 );
               }
             } catch (imgError) {
-              console.error("[CodeExecution] Image storage error:", imgError);
+              logger.error({ err: imgError }, "Execution image storage failed");
             }
           }
 
@@ -138,11 +167,11 @@ export async function POST(request: NextRequest) {
       await sandbox.kill();
     }
   } catch (error) {
-    console.error("[CodeExecution API] Error:", error);
+    logger.error({ err: error }, "Code execution failed");
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Execution failed",
+        error: "Execution failed",
       },
       { status: 500 },
     );

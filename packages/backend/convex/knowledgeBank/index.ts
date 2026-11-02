@@ -13,6 +13,7 @@ import {
   mutation,
   query,
 } from "../_generated/server";
+import { ownedUploadUrl } from "../lib/ownedUploads";
 
 // Usage limits
 export const KNOWLEDGE_BANK_LIMITS = {
@@ -284,7 +285,7 @@ export const generateUploadUrl = mutation({
       .first();
     if (!user) throw new Error("User not found");
 
-    return await ctx.storage.generateUploadUrl();
+    return ownedUploadUrl(user._id);
   },
 });
 
@@ -309,6 +310,13 @@ export const createFileSource = mutation({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .first();
     if (!user) throw new Error("User not found");
+
+    const file = await ctx.db
+      .query("files")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .filter((q) => q.eq(q.field("storageId"), args.storageId))
+      .first();
+    if (!file) throw new Error("File not found or unauthorized");
 
     // Check size limit
     const maxBytes = KNOWLEDGE_BANK_LIMITS.maxFileSizeMB * 1024 * 1024;

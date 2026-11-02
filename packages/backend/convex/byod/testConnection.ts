@@ -3,8 +3,9 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
-import { action } from "../_generated/server";
+import { action, internalAction } from "../_generated/server";
 import { decryptCredential } from "../lib/encryption";
+import { fetchPublicUrl } from "../lib/urlGuard";
 
 interface PingResponse {
   status: string;
@@ -64,18 +65,22 @@ export const testConnection = action({
 
       // First verify basic connectivity with system endpoint
       const connectivityPromise = (async () => {
-        const response = await fetch(`${deploymentUrl}/api/run_function`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Convex ${deployKey}`,
+        const response = await fetchPublicUrl(
+          `${deploymentUrl}/api/run_function`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Convex ${deployKey}`,
+            },
+            body: JSON.stringify({
+              path: "_system/cli/queryEnvironmentVariables",
+              args: {},
+              format: "json",
+            }),
           },
-          body: JSON.stringify({
-            path: "_system/cli/queryEnvironmentVariables",
-            args: {},
-            format: "json",
-          }),
-        });
+          { maxRedirects: 0 },
+        );
 
         if (!response.ok) {
           const text = await response.text();
@@ -90,18 +95,22 @@ export const testConnection = action({
       let schemaVersion: number | undefined;
       try {
         const pingPromise = (async () => {
-          const response = await fetch(`${deploymentUrl}/api/run_function`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Convex ${deployKey}`,
+          const response = await fetchPublicUrl(
+            `${deploymentUrl}/api/run_function`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Convex ${deployKey}`,
+              },
+              body: JSON.stringify({
+                path: "functions:ping",
+                args: {},
+                format: "json",
+              }),
             },
-            body: JSON.stringify({
-              path: "functions:ping",
-              args: {},
-              format: "json",
-            }),
-          });
+            { maxRedirects: 0 },
+          );
 
           if (response.ok) {
             const data = (await response.json()) as PingResponse;
@@ -202,7 +211,7 @@ export const testConnection = action({
 /**
  * Test connection for a specific user (internal, used by health checks)
  */
-export const testConnectionInternal = action({
+export const testConnectionInternal = internalAction({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
     // Get encrypted config
@@ -244,18 +253,22 @@ export const testConnectionInternal = action({
       });
 
       const connectionPromise = (async () => {
-        const response = await fetch(`${deploymentUrl}/api/run_function`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Convex ${deployKey}`,
+        const response = await fetchPublicUrl(
+          `${deploymentUrl}/api/run_function`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Convex ${deployKey}`,
+            },
+            body: JSON.stringify({
+              path: "_system/cli/queryEnvironmentVariables",
+              args: {},
+              format: "json",
+            }),
           },
-          body: JSON.stringify({
-            path: "_system/cli/queryEnvironmentVariables",
-            args: {},
-            format: "json",
-          }),
-        });
+          { maxRedirects: 0 },
+        );
 
         if (!response.ok) {
           throw new Error(`Connection failed: ${response.status}`);

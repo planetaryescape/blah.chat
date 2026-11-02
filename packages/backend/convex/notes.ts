@@ -942,7 +942,7 @@ export const getPublicNote = query({
   args: { noteId: v.id("notes") },
   handler: async (ctx, { noteId }) => {
     const note = await ctx.db.get(noteId);
-    if (!note || !note.isPublic) return null;
+    if (!note || !note.isPublic || note.sharePassword) return null;
 
     // Check expiry
     if (note.shareExpiresAt && note.shareExpiresAt < Date.now()) {
@@ -1074,19 +1074,7 @@ export const verifyShare = action({
 
     // Verify password if required
     if (note.sharePassword) {
-      if (!args.password) {
-        throw new Error("Password required");
-      }
-      const valid = await ctx.runMutation(
-        internal.shares.password.verifyPassword,
-        {
-          password: args.password,
-          hash: note.sharePassword,
-        },
-      );
-      if (!valid) {
-        throw new Error("Invalid password");
-      }
+      throw new Error("Password-protected sharing is temporarily unavailable");
     }
 
     // Increment view count

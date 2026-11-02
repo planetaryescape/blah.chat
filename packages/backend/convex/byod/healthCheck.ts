@@ -6,6 +6,7 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
 import { decryptCredential } from "../lib/encryption";
+import { fetchPublicUrl } from "../lib/urlGuard";
 
 interface PingResponse {
   status: string;
@@ -54,18 +55,22 @@ export const checkUserHealth = internalAction({
       );
 
       // Test connection using HTTP API
-      const response = await fetch(`${deploymentUrl}/api/run_function`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Convex ${deployKey}`,
+      const response = await fetchPublicUrl(
+        `${deploymentUrl}/api/run_function`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Convex ${deployKey}`,
+          },
+          body: JSON.stringify({
+            path: "functions:ping",
+            args: {},
+            format: "json",
+          }),
         },
-        body: JSON.stringify({
-          path: "functions:ping",
-          args: {},
-          format: "json",
-        }),
-      });
+        { maxRedirects: 0 },
+      );
 
       if (!response.ok) {
         throw new Error(`Connection failed: ${response.status}`);

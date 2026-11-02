@@ -164,7 +164,7 @@ export const getSharedConversation = query({
       .withIndex("by_share_id", (q) => q.eq("shareId", args.shareId))
       .first();
 
-    if (!share) return null;
+    if (!share || !share.isPublic || share.password) return null;
     if (!share.isActive) return { revoked: true };
     if (share.expiresAt && share.expiresAt < Date.now()) {
       return { expired: true, expiresAt: share.expiresAt };
@@ -183,7 +183,7 @@ export const getSharedMessages = query({
       .withIndex("by_share_id", (q) => q.eq("shareId", args.shareId))
       .first();
 
-    if (!share) return null;
+    if (!share || !share.isPublic || share.password) return null;
     if (!share.isActive) return { revoked: true };
     if (share.expiresAt && share.expiresAt < Date.now()) {
       return { expired: true, expiresAt: share.expiresAt };
@@ -221,19 +221,9 @@ export const verify = action({
     }
 
     if (share.password) {
-      if (!args.password) {
-        throw new Error("Password required");
-      }
-      const valid = await ctx.runMutation(
-        internal.shares.password.verifyPassword,
-        {
-          password: args.password,
-          hash: share.password,
-        },
-      );
-      if (!valid) {
-        throw new Error("Invalid password");
-      }
+      // No durable password grant exists yet. Never imply that a client-side
+      // boolean unlocks subsequent public queries or fork actions.
+      throw new Error("Password-protected sharing is temporarily unavailable");
     }
 
     await ctx.runMutation(internal.shares.internal.incrementViewCount, {

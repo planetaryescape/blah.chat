@@ -4,6 +4,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
+import { fetchPublicUrl } from "../lib/urlGuard";
 
 /**
  * Enriches source citations with OpenGraph metadata (Phase 2: writes to sourceMetadata table)
@@ -104,7 +105,7 @@ async function fetchOpenGraph(
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchPublicUrl(url, {
       signal: controller.signal,
       headers: {
         "User-Agent":

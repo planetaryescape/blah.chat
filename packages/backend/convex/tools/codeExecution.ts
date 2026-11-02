@@ -2,6 +2,7 @@
 
 import { v } from "convex/values";
 import { internalAction } from "../_generated/server";
+import { internalAuthorization } from "../lib/internalAuth";
 import { logger } from "../lib/logger";
 
 /**
@@ -31,7 +32,7 @@ export const executeCode = internalAction({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Pass auth context - in production you'd want a service token
+          Authorization: internalAuthorization(),
           "X-Convex-Internal": "true",
         },
         body: JSON.stringify({
@@ -39,6 +40,7 @@ export const executeCode = internalAction({
           language,
           timeout: Math.min(timeout, 60),
         }),
+        signal: AbortSignal.timeout(75_000),
       });
 
       if (!response.ok) {

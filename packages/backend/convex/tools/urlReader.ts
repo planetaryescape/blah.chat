@@ -1,5 +1,8 @@
+"use node";
+
 import { v } from "convex/values";
 import { internalAction } from "../_generated/server";
+import { assertPublicHttpUrl, fetchPublicUrl } from "../lib/urlGuard";
 
 export const readUrl = internalAction({
   args: {
@@ -9,6 +12,7 @@ export const readUrl = internalAction({
   },
   handler: async (_ctx, { url, maxLength = 5000, format = "markdown" }) => {
     try {
+      await assertPublicHttpUrl(url);
       // Use Jina AI Reader API
       const jinaUrl = `https://r.jina.ai/${encodeURIComponent(url)}`;
 
@@ -21,7 +25,7 @@ export const readUrl = internalAction({
         headers.Authorization = `Bearer ${process.env.JINA_API_KEY}`;
       }
 
-      const response = await fetch(jinaUrl, { headers });
+      const response = await fetchPublicUrl(jinaUrl, { headers });
 
       if (!response.ok) {
         throw new Error(

@@ -25,7 +25,8 @@ export const forkPrivate = action({
       internal.shares.internal.getByShareId,
       { shareId: args.shareId },
     )) as Doc<"shares"> | null;
-    if (!share || !share.isActive) throw new Error("Share not found");
+    if (!share || !share.isActive || !share.isPublic || share.password)
+      throw new Error("Share not found or protected");
     if (share.expiresAt && share.expiresAt < Date.now())
       throw new Error("Expired");
 
@@ -181,7 +182,8 @@ export const forkCollaborative = action({
       internal.shares.internal.getByShareId,
       { shareId: args.shareId },
     )) as Doc<"shares"> | null;
-    if (!share || !share.isActive) throw new Error("Share not found");
+    if (!share || !share.isActive || !share.isPublic || share.password)
+      throw new Error("Share not found or protected");
     if (share.expiresAt && share.expiresAt < Date.now())
       throw new Error("Expired");
 

@@ -38,7 +38,7 @@ export const hybridSearch = action({
     // Check admin settings for hybrid search
     const adminSettings = (await (ctx.runQuery as any)(
       // @ts-ignore - TypeScript recursion limit
-      api.adminSettings.get,
+      internal.adminSettings.getInternal,
       {},
     )) as { enableHybridSearch?: boolean } | null;
     const hybridSearchEnabled = adminSettings?.enableHybridSearch ?? false;

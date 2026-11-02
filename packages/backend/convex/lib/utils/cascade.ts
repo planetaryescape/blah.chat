@@ -174,6 +174,7 @@ export async function cascadeDeleteUserData(
   }
 
   const extraTables = [
+    "routingFeedback",
     "conversationIntegrations",
     "rateLimitEvents",
     "jobs",
@@ -475,15 +476,15 @@ export async function cascadeDeleteUserData(
   ]);
 
   // A shared blob is retained while another user's record still references it.
+  const remainingFileIds = new Set(
+    (await ctx.db.query("files").collect()).map((file) => file.storageId),
+  );
   for (const storageId of ownedBlobs) {
     const attachment = await ctx.db
       .query("attachments")
       .withIndex("by_storage", (q) => q.eq("storageId", storageId))
       .first();
-    const file = await ctx.db
-      .query("files")
-      .filter((q) => q.eq(q.field("storageId"), storageId))
-      .first();
-    if (!attachment && !file) await ctx.storage.delete(storageId);
+    if (!attachment && !remainingFileIds.has(storageId))
+      await ctx.storage.delete(storageId);
   }
 }

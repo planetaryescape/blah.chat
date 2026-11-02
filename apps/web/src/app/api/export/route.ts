@@ -25,17 +25,17 @@ function exportError(message: string, status: number) {
 }
 
 export async function GET(request: Request) {
-  const { userId, getToken } = await auth();
-  const token = userId ? await getToken({ template: "convex" }) : null;
-  if (!userId || !token) {
-    return exportError("Unauthorized", 401);
-  }
-
-  const { searchParams } = new URL(request.url);
-  const format = searchParams.get("format") || "json";
-  const conversationId = searchParams.get("conversationId");
-
   try {
+    const { userId, getToken } = await auth();
+    const token = userId ? await getToken({ template: "convex" }) : null;
+    if (!userId || !token) {
+      return exportError("Unauthorized", 401);
+    }
+
+    const { searchParams } = new URL(request.url);
+    const format = searchParams.get("format") || "json";
+    const conversationId = searchParams.get("conversationId");
+
     let convex: ConvexHttpClient;
     try {
       convex = getAuthenticatedConvexClient(token);

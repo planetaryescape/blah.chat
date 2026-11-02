@@ -7,6 +7,7 @@ import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { trackAPIPerformance } from "@/lib/api/monitoring";
 import { consumeApiRateLimit } from "@/lib/api/rateLimits";
+import { parseRequestJson } from "@/lib/api/utils";
 import logger from "@/lib/logger";
 import { formatEntity } from "@/lib/utils/formatEntity";
 
@@ -33,7 +34,7 @@ async function postHandler(
   const text = await req.text();
   const body = z
     .object({ modelId: z.string().min(1).optional() })
-    .parse(text.trim() ? JSON.parse(text) : {});
+    .parse(text.trim() ? parseRequestJson(text) : {});
   await consumeApiRateLimit(convex, "regenerate");
 
   // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)

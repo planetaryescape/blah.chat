@@ -1,4 +1,3 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { fetchQuery } from "convex/nextjs";
 import type { NextRequest } from "next/server";
 import { getJobById } from "@/lib/api/dal/jobs";
@@ -24,7 +23,7 @@ async function handler(
 
   logger.info({ userId, jobId: id }, "GET /api/v1/actions/jobs/:id");
 
-  const job = await getJobById(fetchQuery, id as Id<"jobs">, sessionToken);
+  const job = await getJobById(fetchQuery, id, sessionToken);
 
   if (!job) {
     logger.warn({ userId, jobId: id }, "Job not found");

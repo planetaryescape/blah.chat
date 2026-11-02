@@ -120,13 +120,16 @@ export const executeExtractMemories = internalAction({
  */
 export const executeTranscribe = internalAction({
   args: {
+    model: v.optional(
+      v.union(v.literal("whisper-1"), v.literal("whisper-large-v3")),
+    ),
     jobId: v.id("jobs"),
     storageId: v.id("_storage"),
     mimeType: v.optional(v.string()),
   },
   handler: async (
     ctx,
-    { jobId, storageId, mimeType },
+    { jobId, storageId, mimeType, model },
   ): Promise<{ text: string }> => {
     const job = await ctx.runQuery(internal.jobs.crud.getInternal, { jobId });
     if (
@@ -143,7 +146,12 @@ export const executeTranscribe = internalAction({
         const text = (await (ctx.runAction as any)(
           // @ts-ignore - TypeScript recursion limit
           internal.transcription.transcribeAudioInternal,
-          { userId: job.userId, storageId, mimeType: mimeType ?? "audio/webm" },
+          {
+            userId: job.userId,
+            storageId,
+            model,
+            mimeType: mimeType ?? "audio/webm",
+          },
         )) as string;
         return { text };
       },

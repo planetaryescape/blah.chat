@@ -68,7 +68,9 @@ async function getHandler(
 
     await send("snapshot", {
       messages: initialMessages.map((item) =>
-        formatEntity(item, "message", item._id),
+        formatEntity(item, "message", item._id, {
+          preserveFields: ["content"],
+        }),
       ),
       hasMore: false,
       cursor: null,
@@ -94,7 +96,9 @@ async function getHandler(
 
         return {
           messages: messages.map((item) =>
-            formatEntity(item, "message", item._id),
+            formatEntity(item, "message", item._id, {
+              preserveFields: ["content"],
+            }),
           ),
         };
       },

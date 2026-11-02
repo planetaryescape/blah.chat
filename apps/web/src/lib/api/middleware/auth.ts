@@ -70,7 +70,14 @@ export function withAuth(handler: AuthenticatedHandler) {
         ? authResult
         : await handler(req, { ...context, ...authResult });
     // Browser caches are shared by successive accounts on the same device.
-    response.headers.set("Cache-Control", "private, no-store");
+    const noTransform = response.headers
+      .get("Cache-Control")
+      ?.split(",")
+      .some((value) => value.trim().toLowerCase() === "no-transform");
+    response.headers.set(
+      "Cache-Control",
+      `private, no-store${noTransform ? ", no-transform" : ""}`,
+    );
     response.headers.append("Vary", "Authorization, Cookie");
     return response;
   };

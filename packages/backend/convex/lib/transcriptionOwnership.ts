@@ -22,6 +22,11 @@ export async function requireOwnedAudio(
   const record = file ?? attachment;
   const metadata = record ? await ctx.db.system.get(storageId) : null;
   if (!record || !metadata) throw new Error("Audio file not found");
+  if (
+    !record.mimeType.toLowerCase().startsWith("audio/") ||
+    (attachment && attachment.type !== "audio")
+  )
+    throw new Error("Audio file not found");
   if (metadata.size > 24 * 1024 * 1024) throw new Error("Audio file too large");
   return record;
 }

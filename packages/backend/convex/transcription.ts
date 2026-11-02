@@ -4,6 +4,7 @@ import type { Doc } from "./_generated/dataModel";
 import { action, internalAction, internalQuery } from "./_generated/server";
 import { logger } from "./lib/logger";
 import { requireOwnedAudio } from "./lib/transcriptionOwnership";
+import { parseTranscriptionResult } from "./lib/transcriptionResponse";
 
 export const verifyAudioOwnership = internalQuery({
   args: { userId: v.id("users"), storageId: v.id("_storage") },
@@ -156,9 +157,6 @@ export const transcribeAudio = action({
     let cost: number;
     let durationMinutes: number;
 
-    // Estimate duration (rough approximation: buffer size / (16kHz * 60s * 2 bytes))
-    durationMinutes = bytes.length / (16000 * 60 * 2);
-
     switch (provider) {
       case "openai": {
         logger.info("Using OpenAI Whisper", { tag: "Transcription" });
@@ -166,6 +164,7 @@ export const transcribeAudio = action({
         const formData = new FormData();
         formData.append("file", audioFile);
         formData.append("model", "whisper-1");
+        formData.append("response_format", "verbose_json");
         logger.info("FormData prepared", { tag: "Transcription" });
 
         const controller = new AbortController();
@@ -211,7 +210,8 @@ export const transcribeAudio = action({
           }
 
           logger.info("Parsing response JSON", { tag: "Transcription" });
-          const result = (await response.json()) as { text: string };
+          const result = parseTranscriptionResult(await response.json());
+          durationMinutes = result.durationMinutes;
           text = result.text;
           cost = durationMinutes * costPerMinute;
           logger.info("Transcription successful", {
@@ -249,6 +249,7 @@ export const transcribeAudio = action({
         const formData = new FormData();
         formData.append("file", audioFile);
         formData.append("model", "whisper-large-v3-turbo");
+        formData.append("response_format", "verbose_json");
 
         const controller = new AbortController();
         const timeoutId = setTimeout(
@@ -277,7 +278,8 @@ export const transcribeAudio = action({
             );
           }
 
-          const result = (await response.json()) as { text: string };
+          const result = parseTranscriptionResult(await response.json());
+          durationMinutes = result.durationMinutes;
           text = result.text;
           cost = durationMinutes * costPerMinute;
         } catch (err: any) {
@@ -324,6 +326,9 @@ export const transcribeAudio = action({
  */
 export const transcribeAudioInternal = internalAction({
   args: {
+    model: v.optional(
+      v.union(v.literal("whisper-1"), v.literal("whisper-large-v3")),
+    ),
     userId: v.id("users"),
     storageId: v.id("_storage"),
     mimeType: v.string(),
@@ -342,7 +347,12 @@ export const transcribeAudioInternal = internalAction({
       {},
     );
 
-    const provider = adminSettings?.transcriptProvider ?? "groq";
+    const provider =
+      args.model === "whisper-1"
+        ? "openai"
+        : args.model === "whisper-large-v3"
+          ? "groq"
+          : (adminSettings?.transcriptProvider ?? "groq");
 
     // Fetch audio from Convex storage
     const audioBlob = await ctx.storage.get(args.storageId);
@@ -372,12 +382,13 @@ export const transcribeAudioInternal = internalAction({
     const timeoutId = setTimeout(() => controller.abort(), 90_000);
 
     try {
-      let result: any;
+      let result: ReturnType<typeof parseTranscriptionResult>;
 
       if (provider === "groq") {
         const formData = new FormData();
         formData.append("file", audioFile);
-        formData.append("model", "whisper-large-v3-turbo");
+        formData.append("model", args.model ?? "whisper-large-v3-turbo");
+        formData.append("response_format", "verbose_json");
 
         const response = await fetch(
           "https://api.groq.com/openai/v1/audio/transcriptions",
@@ -397,12 +408,13 @@ export const transcribeAudioInternal = internalAction({
           throw new Error(`Transcription provider failed (${response.status})`);
         }
 
-        result = await response.json();
+        result = parseTranscriptionResult(await response.json());
       } else {
         // Fallback to OpenAI for other providers
         const formData = new FormData();
         formData.append("file", audioFile);
         formData.append("model", "whisper-1");
+        formData.append("response_format", "verbose_json");
 
         const response = await fetch(
           "https://api.openai.com/v1/audio/transcriptions",
@@ -422,10 +434,10 @@ export const transcribeAudioInternal = internalAction({
           throw new Error(`Transcription provider failed (${response.status})`);
         }
 
-        result = await response.json();
+        result = parseTranscriptionResult(await response.json());
       }
 
-      const durationMinutes = bytes.length / (16000 * 60 * 2);
+      const durationMinutes = result.durationMinutes;
       await ctx.runMutation(internal.usage.mutations.recordTranscription, {
         userId: args.userId,
         model: `${provider}:stt`,

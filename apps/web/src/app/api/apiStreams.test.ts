@@ -64,11 +64,12 @@ describe("SSE identity and wire contracts", () => {
   it("formats message snapshots and updates after ownership verification", async () => {
     mocks.query
       .mockResolvedValueOnce({ _id: "conversation" })
-      .mockResolvedValue([{ _id: "message", content: "owned" }]);
+      .mockResolvedValue([{ _id: "message", content: "" }]);
     await messages(new NextRequest("https://example.test"), context);
     expect(mocks.send.mock.calls[0][1].messages[0].sys.id).toBe("message");
+    expect(mocks.send.mock.calls[0][1].messages[0].data.content).toBe("");
     expect((await mocks.poll.mock.calls[0][0]()).messages[0].data.content).toBe(
-      "owned",
+      "",
     );
   });
   it("never emits successful null preferences before or after sync disappears", async () => {
@@ -99,5 +100,18 @@ describe("SSE identity and wire contracts", () => {
       (await exportData(new Request("https://example.test/api/export"))).status,
     ).toBe(401);
     expect(mocks.query).toHaveBeenCalledTimes(1);
+  });
+  it("normalizes token acquisition failures into private export errors", async () => {
+    mocks.auth.mockResolvedValue({
+      userId: "owner",
+      getToken: vi.fn().mockRejectedValue(new Error("template unavailable")),
+    });
+    const response = await exportData(
+      new Request("https://example.test/api/export"),
+    );
+    expect(response.status).toBe(500);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect((await response.json()).status).toBe("error");
+    expect(mocks.client).not.toHaveBeenCalled();
   });
 });

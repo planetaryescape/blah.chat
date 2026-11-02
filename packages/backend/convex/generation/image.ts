@@ -15,6 +15,7 @@ import { IMAGE_GENERATION_SYSTEM_PROMPT } from "../lib/prompts/operational/image
 
 export const generateImage = internalAction({
   args: {
+    userId: v.optional(v.id("users")),
     conversationId: v.id("conversations"),
     messageId: v.id("messages"),
     prompt: v.string(),
@@ -250,6 +251,8 @@ export const generateImage = internalAction({
       // Store reasoning if present - models may return it natively
       const finalContent = accumulated || `Generated image: ${args.prompt}`;
       await ctx.runMutation(internal.messages.completeMessage, {
+        usageType: "image",
+        billingUserId: args.userId,
         messageId: args.messageId,
         content: finalContent,
         reasoning: finalReasoning,
@@ -258,23 +261,6 @@ export const generateImage = internalAction({
         reasoningTokens: reasoningTokens > 0 ? reasoningTokens : undefined,
         cost,
       });
-
-      // Track usage
-      const conversation = await ctx.runQuery(
-        internal.shares.getConversationInternal,
-        {
-          conversationId: args.conversationId,
-        },
-      );
-
-      if (conversation) {
-        await ctx.runMutation(internal.usage.mutations.recordImageGeneration, {
-          userId: conversation.userId,
-          conversationId: args.conversationId,
-          model: modelId,
-          cost,
-        });
-      }
 
       return {
         success: true,

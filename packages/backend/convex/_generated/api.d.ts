@@ -12,6 +12,7 @@ import type * as admin from "../admin.js";
 import type * as admin_byod from "../admin/byod.js";
 import type * as adminSettings from "../adminSettings.js";
 import type * as ai_autoRouter from "../ai/autoRouter.js";
+import type * as ai_classifierRouter from "../ai/classifierRouter.js";
 import type * as ai_generateTitle from "../ai/generateTitle.js";
 import type * as ai_meetingExtraction from "../ai/meetingExtraction.js";
 import type * as ai_modelProfiles from "../ai/modelProfiles.js";
@@ -84,6 +85,7 @@ import type * as conversations_internal from "../conversations/internal.js";
 import type * as conversations_tokens from "../conversations/tokens.js";
 import type * as crons from "../crons.js";
 import type * as debug from "../debug.js";
+import type * as deploymentHealth from "../deploymentHealth.js";
 import type * as emails_components_EmailButton from "../emails/components/EmailButton.js";
 import type * as emails_components_EmailContainer from "../emails/components/EmailContainer.js";
 import type * as emails_components_index from "../emails/components/index.js";
@@ -107,6 +109,7 @@ import type * as files_extraction from "../files/extraction.js";
 import type * as files_search from "../files/search.js";
 import type * as generation from "../generation.js";
 import type * as generation_attachments from "../generation/attachments.js";
+import type * as generation_history from "../generation/history.js";
 import type * as generation_image from "../generation/image.js";
 import type * as generation_index from "../generation/index.js";
 import type * as generation_sources from "../generation/sources.js";
@@ -127,7 +130,9 @@ import type * as lib_encryption from "../lib/encryption.js";
 import type * as lib_errorTracking from "../lib/errorTracking.js";
 import type * as lib_generationLock from "../lib/generationLock.js";
 import type * as lib_helpers from "../lib/helpers.js";
+import type * as lib_internalAuth from "../lib/internalAuth.js";
 import type * as lib_logger from "../lib/logger.js";
+import type * as lib_ownedUploads from "../lib/ownedUploads.js";
 import type * as lib_pdf_convertToPdf from "../lib/pdf/convertToPdf.js";
 import type * as lib_prompts_base from "../lib/prompts/base.js";
 import type * as lib_prompts_formatting from "../lib/prompts/formatting.js";
@@ -149,6 +154,7 @@ import type * as lib_prompts_templates_builtIn from "../lib/prompts/templates/bu
 import type * as lib_test_factories from "../lib/test/factories.js";
 import type * as lib_toolNames from "../lib/toolNames.js";
 import type * as lib_tree from "../lib/tree.js";
+import type * as lib_urlGuard from "../lib/urlGuard.js";
 import type * as lib_userSync from "../lib/userSync.js";
 import type * as lib_utils_cascade from "../lib/utils/cascade.js";
 import type * as lib_utils_memory from "../lib/utils/memory.js";
@@ -190,6 +196,9 @@ import type * as migrations_012_rechunk_knowledge from "../migrations/012_rechun
 import type * as migrations_013_tree_architecture from "../migrations/013_tree_architecture.js";
 import type * as migrations_add_cognitive_memory_fields from "../migrations/add_cognitive_memory_fields.js";
 import type * as migrations_backfill_memory_extraction from "../migrations/backfill_memory_extraction.js";
+import type * as migrations_cutoverDefaults from "../migrations/cutoverDefaults.js";
+import type * as migrations_restorePostgres from "../migrations/restorePostgres.js";
+import type * as migrations_restorePostgresPlan from "../migrations/restorePostgresPlan.js";
 import type * as migrations_verify_dual_write from "../migrations/verify_dual_write.js";
 import type * as models_cli from "../models/cli.js";
 import type * as models_mutations from "../models/mutations.js";
@@ -208,6 +217,10 @@ import type * as projects_internal from "../projects/internal.js";
 import type * as projects_notes from "../projects/notes.js";
 import type * as projects_resources from "../projects/resources.js";
 import type * as prompts_cache from "../prompts/cache.js";
+import type * as routing_admin from "../routing/admin.js";
+import type * as routing_feedback from "../routing/feedback.js";
+import type * as routing_mutations from "../routing/mutations.js";
+import type * as routing_seed from "../routing/seed.js";
 import type * as schema_activity from "../schema/activity.js";
 import type * as schema_admin from "../schema/admin.js";
 import type * as schema_bookmarks from "../schema/bookmarks.js";
@@ -225,7 +238,9 @@ import type * as schema_migrations from "../schema/migrations.js";
 import type * as schema_models from "../schema/models.js";
 import type * as schema_notes from "../schema/notes.js";
 import type * as schema_notifications from "../schema/notifications.js";
+import type * as schema_postgresRestore from "../schema/postgresRestore.js";
 import type * as schema_projects from "../schema/projects.js";
+import type * as schema_routing from "../schema/routing.js";
 import type * as schema_shares from "../schema/shares.js";
 import type * as schema_tags from "../schema/tags.js";
 import type * as schema_tasks from "../schema/tasks.js";
@@ -305,6 +320,7 @@ declare const fullApi: ApiFromModules<{
   "admin/byod": typeof admin_byod;
   adminSettings: typeof adminSettings;
   "ai/autoRouter": typeof ai_autoRouter;
+  "ai/classifierRouter": typeof ai_classifierRouter;
   "ai/generateTitle": typeof ai_generateTitle;
   "ai/meetingExtraction": typeof ai_meetingExtraction;
   "ai/modelProfiles": typeof ai_modelProfiles;
@@ -377,6 +393,7 @@ declare const fullApi: ApiFromModules<{
   "conversations/tokens": typeof conversations_tokens;
   crons: typeof crons;
   debug: typeof debug;
+  deploymentHealth: typeof deploymentHealth;
   "emails/components/EmailButton": typeof emails_components_EmailButton;
   "emails/components/EmailContainer": typeof emails_components_EmailContainer;
   "emails/components/index": typeof emails_components_index;
@@ -400,6 +417,7 @@ declare const fullApi: ApiFromModules<{
   "files/search": typeof files_search;
   generation: typeof generation;
   "generation/attachments": typeof generation_attachments;
+  "generation/history": typeof generation_history;
   "generation/image": typeof generation_image;
   "generation/index": typeof generation_index;
   "generation/sources": typeof generation_sources;
@@ -420,7 +438,9 @@ declare const fullApi: ApiFromModules<{
   "lib/errorTracking": typeof lib_errorTracking;
   "lib/generationLock": typeof lib_generationLock;
   "lib/helpers": typeof lib_helpers;
+  "lib/internalAuth": typeof lib_internalAuth;
   "lib/logger": typeof lib_logger;
+  "lib/ownedUploads": typeof lib_ownedUploads;
   "lib/pdf/convertToPdf": typeof lib_pdf_convertToPdf;
   "lib/prompts/base": typeof lib_prompts_base;
   "lib/prompts/formatting": typeof lib_prompts_formatting;
@@ -442,6 +462,7 @@ declare const fullApi: ApiFromModules<{
   "lib/test/factories": typeof lib_test_factories;
   "lib/toolNames": typeof lib_toolNames;
   "lib/tree": typeof lib_tree;
+  "lib/urlGuard": typeof lib_urlGuard;
   "lib/userSync": typeof lib_userSync;
   "lib/utils/cascade": typeof lib_utils_cascade;
   "lib/utils/memory": typeof lib_utils_memory;
@@ -483,6 +504,9 @@ declare const fullApi: ApiFromModules<{
   "migrations/013_tree_architecture": typeof migrations_013_tree_architecture;
   "migrations/add_cognitive_memory_fields": typeof migrations_add_cognitive_memory_fields;
   "migrations/backfill_memory_extraction": typeof migrations_backfill_memory_extraction;
+  "migrations/cutoverDefaults": typeof migrations_cutoverDefaults;
+  "migrations/restorePostgres": typeof migrations_restorePostgres;
+  "migrations/restorePostgresPlan": typeof migrations_restorePostgresPlan;
   "migrations/verify_dual_write": typeof migrations_verify_dual_write;
   "models/cli": typeof models_cli;
   "models/mutations": typeof models_mutations;
@@ -501,6 +525,10 @@ declare const fullApi: ApiFromModules<{
   "projects/notes": typeof projects_notes;
   "projects/resources": typeof projects_resources;
   "prompts/cache": typeof prompts_cache;
+  "routing/admin": typeof routing_admin;
+  "routing/feedback": typeof routing_feedback;
+  "routing/mutations": typeof routing_mutations;
+  "routing/seed": typeof routing_seed;
   "schema/activity": typeof schema_activity;
   "schema/admin": typeof schema_admin;
   "schema/bookmarks": typeof schema_bookmarks;
@@ -518,7 +546,9 @@ declare const fullApi: ApiFromModules<{
   "schema/models": typeof schema_models;
   "schema/notes": typeof schema_notes;
   "schema/notifications": typeof schema_notifications;
+  "schema/postgresRestore": typeof schema_postgresRestore;
   "schema/projects": typeof schema_projects;
+  "schema/routing": typeof schema_routing;
   "schema/shares": typeof schema_shares;
   "schema/tags": typeof schema_tags;
   "schema/tasks": typeof schema_tasks;
@@ -615,153 +645,5 @@ export declare const internal: FilterApi<
 >;
 
 export declare const components: {
-  resend: {
-    lib: {
-      cancelEmail: FunctionReference<
-        "mutation",
-        "internal",
-        { emailId: string },
-        null
-      >;
-      cleanupAbandonedEmails: FunctionReference<
-        "mutation",
-        "internal",
-        { olderThan?: number },
-        null
-      >;
-      cleanupOldEmails: FunctionReference<
-        "mutation",
-        "internal",
-        { olderThan?: number },
-        null
-      >;
-      createManualEmail: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          from: string;
-          headers?: Array<{ name: string; value: string }>;
-          replyTo?: Array<string>;
-          subject: string;
-          to: Array<string> | string;
-        },
-        string
-      >;
-      get: FunctionReference<
-        "query",
-        "internal",
-        { emailId: string },
-        {
-          bcc?: Array<string>;
-          bounced?: boolean;
-          cc?: Array<string>;
-          clicked?: boolean;
-          complained: boolean;
-          createdAt: number;
-          deliveryDelayed?: boolean;
-          errorMessage?: string;
-          failed?: boolean;
-          finalizedAt: number;
-          from: string;
-          headers?: Array<{ name: string; value: string }>;
-          html?: string;
-          opened: boolean;
-          replyTo: Array<string>;
-          resendId?: string;
-          segment: number;
-          status:
-            | "waiting"
-            | "queued"
-            | "cancelled"
-            | "sent"
-            | "delivered"
-            | "delivery_delayed"
-            | "bounced"
-            | "failed";
-          subject?: string;
-          template?: {
-            id: string;
-            variables?: Record<string, string | number>;
-          };
-          text?: string;
-          to: Array<string>;
-        } | null
-      >;
-      getStatus: FunctionReference<
-        "query",
-        "internal",
-        { emailId: string },
-        {
-          bounced: boolean;
-          clicked: boolean;
-          complained: boolean;
-          deliveryDelayed: boolean;
-          errorMessage: string | null;
-          failed: boolean;
-          opened: boolean;
-          status:
-            | "waiting"
-            | "queued"
-            | "cancelled"
-            | "sent"
-            | "delivered"
-            | "delivery_delayed"
-            | "bounced"
-            | "failed";
-        } | null
-      >;
-      handleEmailEvent: FunctionReference<
-        "mutation",
-        "internal",
-        { event: any },
-        null
-      >;
-      sendEmail: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          bcc?: Array<string>;
-          cc?: Array<string>;
-          from: string;
-          headers?: Array<{ name: string; value: string }>;
-          html?: string;
-          options: {
-            apiKey: string;
-            initialBackoffMs: number;
-            onEmailEvent?: { fnHandle: string };
-            retryAttempts: number;
-            testMode: boolean;
-          };
-          replyTo?: Array<string>;
-          subject?: string;
-          template?: {
-            id: string;
-            variables?: Record<string, string | number>;
-          };
-          text?: string;
-          to: Array<string>;
-        },
-        string
-      >;
-      updateManualEmail: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          emailId: string;
-          errorMessage?: string;
-          resendId?: string;
-          status:
-            | "waiting"
-            | "queued"
-            | "cancelled"
-            | "sent"
-            | "delivered"
-            | "delivery_delayed"
-            | "bounced"
-            | "failed";
-        },
-        null
-      >;
-    };
-  };
+  resend: import("@convex-dev/resend/_generated/component.js").ComponentApi<"resend">;
 };

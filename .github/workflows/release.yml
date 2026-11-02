@@ -21,6 +21,7 @@ concurrency:
 
 permissions:
   contents: read
+  checks: read
 
 jobs:
   deploy-production:
@@ -90,13 +91,15 @@ jobs:
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       DEPLOYMENT_URL: ${{ inputs.promote_deployment }}
       ACKNOWLEDGE_USER_JOURNEYS: ${{ inputs.acknowledge_user_journeys }}
+      GITHUB_TOKEN: ${{ github.token }}
     steps:
       - name: Require explicit user-journey verification
         run: test "$ACKNOWLEDGE_USER_JOURNEYS" = "true"
+      - uses: actions/checkout@v6
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.5
       - name: Install Vercel CLI
         run: bun add --global vercel@56.4.0
       - name: Promote the explicitly verified artifact without rebuilding
-        run: vercel promote "$DEPLOYMENT_URL" --yes
+        run: bun apps/desktop/scripts/promote.ts

@@ -39,6 +39,16 @@ URL and `acknowledge_user_journeys` enabled. That promotion does not rebuild or
 redeploy backend functions. Promotion and rollback both use the
 `production-deploy` concurrency group without cancellation.
 
+Select the same workflow ref used to stage the artifact. Promotion accepts only an
+exact HTTPS `*.vercel.app` deployment URL, reads Vercel deployment metadata, and
+requires the configured project, a ready production target, and `gitSource.sha`
+equal to the selected workflow commit (`GITHUB_SHA`). It then promotes only the
+verified immutable deployment ID. The selected commit must also have successful
+GitHub Actions checks named `Lint & Typecheck`, `Unit & Integration Tests`, and
+`Build`; missing or failed checks block promotion. Missing provenance is rejected; use the separate
+rollback workflow for an older verified production artifact. The read-only Vercel
+deployment API is used because `vercel inspect --json` omits project/source fields.
+
 ## Publishing to npm
 
 Publishing is tag-driven:

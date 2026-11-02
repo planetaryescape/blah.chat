@@ -64,6 +64,6 @@ test("rollback and promotion serialize, and health-only staging cannot promote",
     'test "$ACKNOWLEDGE_USER_JOURNEYS" = "true"',
   );
   expect(promotion.steps.at(-1).run).toBe(
-    'vercel promote "$DEPLOYMENT_URL" --yes',
+    "bun apps/desktop/scripts/promote.ts",
   );
 });

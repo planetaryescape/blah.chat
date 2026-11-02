@@ -460,6 +460,39 @@ describe("Postgres restore internal mutations", () => {
     expect(result.taskTags).toHaveLength(1);
   });
 
+  it("preserves a large historical tool result within the bounded request size", async () => {
+    const t = convexTest(schema);
+    const output = "x".repeat(575_000);
+    const plans = buildPlans(
+      fixture({
+        message_tool_calls: [
+          {
+            id: "large-tool",
+            message_id: "child",
+            conversation_id: conversation.id,
+            user_id: user.id,
+            tool_call_id: "historic-large-call",
+            tool_name: "synthetic",
+            args: {},
+            result: { output },
+            is_partial: false,
+            timestamp: 4,
+            created_at: 4,
+          },
+        ],
+      }),
+    );
+    await t.mutation(begin, { ...identity, expectedRows: plans.length });
+    for (const pass of [1, 2])
+      await t.mutation(batch, { ...identity, pass, items: plans.map(item) });
+    const stored = await t.run((ctx) => ctx.db.query("toolCalls").first());
+    const restored = stored?.result.output;
+    expect(typeof restored).toBe("string");
+    expect(createHash("sha256").update(restored).digest("hex")).toBe(
+      createHash("sha256").update(output).digest("hex"),
+    );
+  });
+
   it("imports in two passes, resolves parent/active leaf to fresh IDs, and reruns without duplicates", async () => {
     const t = convexTest(schema);
     const plans = buildPlans(

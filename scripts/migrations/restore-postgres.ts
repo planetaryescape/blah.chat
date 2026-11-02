@@ -19,7 +19,7 @@ import {
   sourceKey,
 } from "../../packages/backend/convex/migrations/restorePostgresPlan";
 
-const MAX_BYTES = 350_000;
+const MAX_BYTES = 650_000;
 const MAX_ROWS = 40;
 const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");

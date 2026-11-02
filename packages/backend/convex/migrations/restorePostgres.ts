@@ -14,7 +14,7 @@ import {
   type TargetTable,
 } from "./restorePostgresPlan";
 
-export const MAX_BATCH_BYTES = 350_000;
+export const MAX_BATCH_BYTES = 650_000;
 export const MAX_BATCH_ROWS = 40;
 const targetValidator = v.union(
   ...Object.values(TABLES).map((table) => v.literal(table)),

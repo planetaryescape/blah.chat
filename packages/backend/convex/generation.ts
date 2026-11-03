@@ -2,17 +2,22 @@
 
 import { getGatewayOptions } from "@blah-chat/ai/gateway";
 import { MODEL_CONFIG } from "@blah-chat/ai/models";
-import { DEFAULT_MODEL_ID } from "@blah-chat/ai/operational-models";
+import {
+  DEFAULT_MODEL_ID,
+  SUMMARIZATION_MODEL,
+} from "@blah-chat/ai/operational-models";
 import { buildReasoningOptions } from "@blah-chat/ai/reasoning";
 import { getModel } from "@blah-chat/ai/registry";
 import {
   calculateCost,
   getModelConfig,
   normalizeUsageTokens,
+  type UsageTokenInfo,
 } from "@blah-chat/ai/utils";
 import { generateText, stepCountIs, streamText } from "ai";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
+import { z } from "zod";
+import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { action, internalAction } from "./_generated/server";
 import { downloadAttachment } from "./generation/attachments";
@@ -1976,16 +1981,80 @@ export const summarizeSelection = action({
   args: {
     text: v.string(),
   },
-  handler: async (_ctx, args) => {
-    // Create abort controller with 30s timeout
+  handler: async (ctx, args) => {
+    if (!args.text.trim()) {
+      throw new Error("Select some text before asking for a summary");
+    }
+    if (args.text.length > MAX_SUMMARY_INPUT_CHARS) {
+      throw new Error(
+        `Selection is too long to summarize (maximum ${MAX_SUMMARY_INPUT_CHARS} characters)`,
+      );
+    }
+
+    // SAFETY: Convex validates this internal query reference and its user document at runtime.
+    const user = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.lib.helpers.getCurrentUser,
+      {},
+    )) as Doc<"users"> | null;
+    if (!user) throw new Error("Not authenticated");
+
+    const budget = await ctx.runQuery(api.usage.checkBudget.checkBudget, {
+      userId: user._id,
+    });
+    if (!budget.allowed) {
+      throw new Error(
+        "Monthly budget exceeded. Summary generation is blocked until the budget resets or an admin raises it",
+      );
+    }
+
+    const prompt = buildSummarizationPrompt(args.text);
+    const maximumInputTokens = estimateTokens(
+      `${SUMMARIZATION_SYSTEM_PROMPT}\n${prompt}`,
+    );
+    const maximumCost = calculateCost(SUMMARIZATION_MODEL.id, {
+      inputTokens: maximumInputTokens,
+      outputTokens: MAX_SUMMARY_OUTPUT_TOKENS,
+    });
+    if (budget.budget > 0 && budget.remaining < maximumCost) {
+      throw new Error(
+        "Insufficient remaining monthly budget for the maximum summary request",
+      );
+    }
+
+    if (activeSummaryRequests >= MAX_CONCURRENT_SUMMARIES_PER_WORKER) {
+      throw new Error("Summary generation is busy. Please try again shortly.");
+    }
+    activeSummaryRequests += 1;
+
     const abortController = new AbortController();
     const timeoutId = setTimeout(() => abortController.abort(), 30000);
+    const recordReportedUsage = async (reportedUsage: UsageTokenInfo) => {
+      const usage = normalizeUsageTokens(reportedUsage);
+      // SAFETY: Convex validates this internal mutation reference and its arguments at runtime.
+      await (ctx.runMutation as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.usage.mutations.recordTextGeneration,
+        {
+          userId: user._id,
+          model: SUMMARIZATION_MODEL.id,
+          inputTokens: usage.inputTokens,
+          outputTokens: usage.outputTokens,
+          reasoningTokens: usage.reasoningTokens || undefined,
+          cost: calculateCost(SUMMARIZATION_MODEL.id, {
+            inputTokens: usage.inputTokens,
+            outputTokens: usage.outputTokens,
+            cachedInputTokens: usage.cachedInputTokens,
+            reasoningTokens: usage.reasoningTokens,
+          }),
+          feature: "chat",
+        },
+      );
+    };
 
     try {
-      // Generate summary using GPT-OSS 120B via gateway
-      const summarizationModel = MODEL_CONFIG["openai:gpt-oss-120b"];
       const result = await generateText({
-        model: getModel(summarizationModel.id),
+        model: getModel(SUMMARIZATION_MODEL.id),
         messages: [
           {
             role: "system",
@@ -1993,19 +2062,26 @@ export const summarizeSelection = action({
           },
           {
             role: "user",
-            content: buildSummarizationPrompt(args.text),
+            content: prompt,
           },
         ],
         abortSignal: abortController.signal,
-        providerOptions: getGatewayOptions(summarizationModel.id, undefined, [
+        maxOutputTokens: MAX_SUMMARY_OUTPUT_TOKENS,
+        providerOptions: getGatewayOptions(SUMMARIZATION_MODEL.id, undefined, [
           "summary",
         ]),
       });
 
-      clearTimeout(timeoutId);
+      if (result.usage) {
+        await recordReportedUsage(await result.usage);
+      }
       return { summary: result.text };
     } catch (error) {
-      clearTimeout(timeoutId);
+      const reportedUsage =
+        error instanceof Error ? getReportedUsageFromError(error) : null;
+      if (reportedUsage) {
+        await recordReportedUsage(reportedUsage);
+      }
 
       // Handle timeout specifically
       if (error instanceof Error && error.name === "AbortError") {
@@ -2016,6 +2092,35 @@ export const summarizeSelection = action({
 
       // Re-throw other errors
       throw error;
+    } finally {
+      clearTimeout(timeoutId);
+      activeSummaryRequests -= 1;
     }
   },
 });
+
+const MAX_SUMMARY_INPUT_CHARS = 16_000;
+const MAX_SUMMARY_OUTPUT_TOKENS = 1_024;
+const MAX_CONCURRENT_SUMMARIES_PER_WORKER = 2;
+let activeSummaryRequests = 0;
+
+const reportedSummaryUsageErrorSchema = z.object({
+  usage: z
+    .object({
+      inputTokens: z.number().nonnegative().optional(),
+      outputTokens: z.number().nonnegative().optional(),
+      cachedInputTokens: z.number().nonnegative().optional(),
+      cachedTokens: z.number().nonnegative().optional(),
+      reasoningTokens: z.number().nonnegative().optional(),
+    })
+    .passthrough(),
+});
+
+function getReportedUsageFromError(error: Error): UsageTokenInfo | null {
+  const parsed = reportedSummaryUsageErrorSchema.safeParse(error);
+  if (!parsed.success) return null;
+  const knownUsage = parsed.data.usage;
+  return Object.values(knownUsage).some((value) => value !== undefined)
+    ? knownUsage
+    : null;
+}

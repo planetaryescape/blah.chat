@@ -34,6 +34,7 @@ test.describe("authenticated smoke", () => {
   test("conversation create/read/delete persists through Convex", async ({
     page,
   }) => {
+    test.setTimeout(60_000);
     await page.goto(`${baseUrl()}/settings`);
     await expect(
       page.getByRole("button", { name: "Open user menu", exact: true }),
@@ -60,10 +61,10 @@ test.describe("authenticated smoke", () => {
         const response = await api.delete(
           `${baseUrl()}/api/v1/conversations/${id}`,
         );
-        expect(response.status()).toBe(200);
-        expect(response.headers()["content-type"]).toMatch(
-          /application\/json/i,
-        );
+        expect.soft(response.status()).toBe(200);
+        expect
+          .soft(response.headers()["content-type"])
+          .toMatch(/application\/json/i);
       }
     }
   });

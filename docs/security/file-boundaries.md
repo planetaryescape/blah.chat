@@ -1,6 +1,6 @@
 # File RAG security boundaries
 
-File chunking, storage extraction, and semantic search are internal Convex actions. Public clients cannot invoke them with an arbitrary file ID, storage ID, or supplied user ID. The ingestion worker calls the internal chunking and extraction actions after resolving a file record.
+File chunking, storage extraction, and semantic search are internal Convex actions. Public clients cannot invoke them with an arbitrary file ID, storage ID, or supplied user ID. After resolving a file record, the ingestion worker calls `files.extraction.extractText` and `files.chunking.chunkFile`. The separate storage-based `files.chunking.extractFileText` helper has no current production caller and is also internal.
 
 File search is used by trusted internal tools, which pass the user ID from their generation context. A project-scoped search checks that the project belongs to that user and restricts candidates to that user's project-file links before generating the query embedding. It rechecks the project and file links after search awaits before returning results. Search validates query length (1–2000 characters) and `topK` (integer 1–128), then checks both chunk and hydrated file ownership before returning content.
 

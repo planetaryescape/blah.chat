@@ -104,7 +104,7 @@ Set these repository environment secrets in GitHub's `staging` environment:
 From `apps/web`, keep the storage-state file outside the repository, then send its
 encoded contents to GitHub through stdin without printing them:
 
-```sh
+```bash
 umask 077
 set -o pipefail
 mkdir -p "$HOME/.config/blah-chat"
@@ -128,7 +128,8 @@ session expires or is revoked. An expired or revoked session must fail the smoke
 not be skipped or bypass authentication.
 
 CI runs this deployed-liveness check against `SMOKE_BASE_URL`, independently of
-the candidate built by that run. Pull requests use the configured staging URL
+the candidate built by that run. Dependabot pull requests skip the smoke job.
+Other pull requests use the configured staging URL
 when available; otherwise they fall back to production, and authenticated smoke
 is skipped when its state secret is unavailable. Push and manual runs require
 both secrets. A passing smoke is not exact-candidate send/refresh proof. Treat the

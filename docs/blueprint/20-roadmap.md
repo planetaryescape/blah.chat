@@ -6,7 +6,7 @@ We are improving a working application, not building a replacement before anyone
 
 - Skateboard → scooter → bicycle → motorbike → car: stop after any released rung and the previous working product remains available.
 - A rung fits one working session and adds one observable outcome. Each names at most two new unknowns. If its acceptance cannot fit that session, insert a lettered rung before starting; never declare a half-working subsystem complete.
-- There are **33 numbered product rungs plus retirement completion 2b: 34 product releases**. The extra slices keep imports/activation/authoring, schedule review/delivery/jobs, connector lifecycle/reads/effects and script/desktop execution out of omnibus sessions. They are not a requirement to fund every capability at once.
+- There are **33 numbered product rungs plus retirement prerequisite 2a and completion 2b: 35 planned product releases**. Rung 2a separates executable retirement and compatible accounting readers from the future-writer switch in rung 2. The other extra slices keep imports/activation/authoring, schedule review/delivery/jobs, connector lifecycle/reads/effects and script/desktop execution out of omnibus sessions. They are not a requirement to fund every capability at once.
 - At most one unusable foundation turn, F1, is allowed. Skip it if the existing candidate can already be built and tested reproducibly. Do not introduce all proposed tables there.
 - Security, retirement producers, TTS and native-result repairs use existing seams. Add Run/Attempt/Usage records only where needed; add interactions, checkpoints and each domain's records with that capability ([02](02-data-model.md), D-014–D-018). The precise incremental table is [02](02-data-model.md#adopt-only-the-records-a-release-needs).
 - Product numbers are stable. A blocked 2b does not block an independent TTS repair; a blocked preview domain does not block skill text or reminder work. Execute only dependency-ready rungs, recording the chosen release and its deferred gates. New autonomy cannot bypass earlier security/accounting/ownership dependencies.
@@ -82,13 +82,13 @@ Every rung's **Done when** includes this contract. It does not demand all live p
 
 **Left out:** Workflow, long-term ledger redesign, remote exploitation and every new capability.
 
-## Rung 2: Remove Smart Assistant entrypoints and executable source
+## Rung 2a: Remove Smart Assistant entrypoints and executable source
 
 **Previously:** The retired workspace/actions can still be reached. **Now:** The feature no longer starts work; shared voice/tasks/notes remain.
 
 **Proposed demo promise, not BK quote:** “The meeting assistant is gone, and my tasks and voice input still work.”
 
-**Build:** Route/nav/settings/panels/actions/prompts/model-config/exports/docs purge; move shared deadline prompt; stop old preference and mislabeled triage writers. Keep historical schema readers temporarily until 2b, with a named contraction condition, not a permanent feature flag (D-003/D-032; [16](16-smart-assistant-removal.md)).
+**Build:** Route/nav/settings/panels/actions/prompts/model-config/exports/docs purge; move the shared deadline prompt and stop ordinary retired preference writes. Add compatible `model_recommendations` schema/readers and feature-bucket isolation without switching existing triage writers yet (D-037). Keep historical schema readers temporarily until 2b, with a named contraction condition, not a permanent feature flag (D-003/D-032; [16](16-smart-assistant-removal.md)).
 
 **Design:** No empty retired destination or replacement meeting shell; retained work stays where it was.
 
@@ -96,9 +96,27 @@ Every rung's **Done when** includes this contract. It does not demand all live p
 
 **Demo:** Visit retired route and directly call both old functions: no provider work. Create a task with a relative deadline; transcribe a synthetic clip only with authorized transport; exercise task/note/project reads and mock recommendation opt-out.
 
-**Done when:** Candidate source/API/export inventory has no executable feature except a narrowly dated fail-closed compatibility tombstone if required. Existing content/financial totals are untouched. Set 2b owner and authorized migration window in release evidence.
+**Done when:** Candidate source/API/export inventory has no executable meeting/transcript feature. Existing content/financial totals are untouched, stale extraction references cannot invoke a provider, and the deployed schema/readers accept the additive category while retaining old records. Existing recommendation writers still use the legacy category until rung 2; this is not full marker/schema removal. Record the remaining 2b owner and unresolved migration window in release evidence.
 
 **Left out:** Guessed note/audio deletion and validator contraction before data migration.
+
+## Rung 2: Stop mislabeled future recommendation accounting
+
+**Previously:** The retired workspace is gone, but unrelated recommendation calls still write its accounting marker. **Now:** New recommendation, triage and preview calls use their own category; history remains unchanged.
+
+**Proposed demo promise, not BK quote:** “New model recommendations no longer appear as work from the removed feature.”
+
+**Build:** After rung 2a's deployed schema/reader proof, switch the existing model-triage usage writers to the approved `model_recommendations` category (D-037). Keep current provider selection, opt-out and cost recording; do not introduce a new inference path or ledger.
+
+**Design:** Use the compatible usage views already deployed in 2a; retain historical labels rather than fabricating their original purpose.
+
+**New unknowns:** S3/future feature-bucket isolation under existing daily aggregation; S14/no stale recommendation writer remains.
+
+**Demo:** Fake-provider recommendation, triage and preview calls produce only the new category. Seed a legacy same-user/date/model row first, repeat with reversed insertion order, and verify its fields stay unchanged while new totals accrue correctly. Opt-out still makes no inference call.
+
+**Done when:** Every affected future writer records the approved category through the real validator, existing rows/totals reconcile, and the exact deployed writer/reader journey passes. No historical row is relabeled. Rung 2b remains separately incomplete.
+
+**Left out:** Historical task/usage mapping, old-client/BYOD contraction and unrelated per-attempt/payer accounting redesign.
 
 ## Rung 2b: Finish retirement with retained-data reconciliation
 
@@ -707,7 +725,7 @@ The [report](../../reports/blah-chat-modernization-review.md) and [synthesis](..
 | Decisions / requirement | Domain and release bucket |
 |---|---|
 | D-001/D-036/D-002: historical research scope replaced by authorized delivery; preserve durable architecture/repo rules | README delivery update; [21](21-decision-log.md); [01](01-architecture.md); rung 1 and every release contract |
-| D-003/D-032: complete approved Smart Assistant purge, preserved data | [16](16-smart-assistant-removal.md); 2 and 2b, not a permanent flag |
+| D-003/D-032/D-037: complete approved Smart Assistant purge, preserved data | [16](16-smart-assistant-removal.md); 2a, 2 and 2b, not a permanent flag or historical relabeling |
 | D-004: list narration | [11](11-rendering-and-narration.md); 3 |
 | D-005/D-018: approximate 80% compaction/caching | [05](05-context-and-caching.md); 14–17; optional native/cache branch later |
 | D-006/D-028: E2B computer | [07](07-tools-and-computer.md); 31–33; network/control expansion separately gated |

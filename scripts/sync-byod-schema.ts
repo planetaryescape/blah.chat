@@ -13,12 +13,14 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
 const VERSION_PATH = join(ROOT, "apps/web/src/lib/byod/version.ts");
+const SHARED_VERSION_PATH = join(ROOT, "packages/shared/src/byod/version.ts");
 
 const SCHEMA_TRIGGER_FILES = [
   "packages/backend/convex/schema.ts",
   "packages/shared/src/byod/tables.ts",
   "packages/shared/src/byod/excluded-fields.ts",
   "apps/web/src/lib/byod/version.ts",
+  "packages/shared/src/byod/version.ts",
 ];
 const SCHEMA_TRIGGER_DIRS = ["packages/backend/convex/schema/"];
 
@@ -115,14 +117,24 @@ function shouldTriggerSync(stagedFiles: string[]): boolean {
 function incrementVersion(): number {
   const current = parseVersion();
   const next = current + 1;
-  const content = readFileSync(VERSION_PATH, "utf-8");
-  writeFileSync(
-    VERSION_PATH,
-    content.replace(
-      /export const BYOD_SCHEMA_VERSION = \d+;/,
-      `export const BYOD_SCHEMA_VERSION = ${next};`,
-    ),
-  );
+  for (const path of [VERSION_PATH, SHARED_VERSION_PATH]) {
+    const content = readFileSync(path, "utf-8");
+    const match = content.match(/export const BYOD_SCHEMA_VERSION = (\d+);/);
+    if (!match || Number.parseInt(match[1], 10) > current) {
+      throw new Error(
+        `BYOD schema version is missing or ahead of ${current}: ${path}`,
+      );
+    }
+  }
+  for (const path of [VERSION_PATH, SHARED_VERSION_PATH]) {
+    writeFileSync(
+      path,
+      readFileSync(path, "utf-8").replace(
+        /export const BYOD_SCHEMA_VERSION = \d+;/,
+        `export const BYOD_SCHEMA_VERSION = ${next};`,
+      ),
+    );
+  }
   console.log(`📦 Incremented BYOD_SCHEMA_VERSION: ${current} → ${next}`);
   return next;
 }
@@ -315,9 +327,11 @@ export const getSystemInfo = query({
 }
 
 function stageGeneratedFiles() {
-  execFileSync("git", ["add", VERSION_PATH], { cwd: ROOT });
+  execFileSync("git", ["add", VERSION_PATH, SHARED_VERSION_PATH], {
+    cwd: ROOT,
+  });
   execFileSync("git", ["add", "packages/byod-schema/"], { cwd: ROOT });
-  console.log("📝 Staged version.ts and packages/byod-schema/");
+  console.log("📝 Staged web/shared schema versions and packages/byod-schema/");
 }
 
 // --- Main ---
@@ -343,7 +357,9 @@ async function main() {
 
   const stagedFiles = getStagedFiles();
   const nonVersionChanges = stagedFiles.filter(
-    (f) => f !== "apps/web/src/lib/byod/version.ts",
+    (f) =>
+      f !== "apps/web/src/lib/byod/version.ts" &&
+      f !== "packages/shared/src/byod/version.ts",
   );
 
   if (!shouldTriggerSync(nonVersionChanges)) {

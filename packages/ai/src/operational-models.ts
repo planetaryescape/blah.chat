@@ -86,24 +86,10 @@ export const FEEDBACK_TRIAGE_MODEL: ModelConfig =
   MODEL_CONFIG["openai:gpt-oss-120b"];
 
 /**
- * Task extraction from transcripts.
- * Extracts actionable tasks with deadlines from meeting transcripts.
- */
-export const TASK_EXTRACTION_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
-
-/**
  * Deadline parsing from natural language.
  * Converts deadline expressions like "next Friday" to timestamps.
  */
 export const DEADLINE_PARSING_MODEL: ModelConfig =
-  MODEL_CONFIG["openai:gpt-oss-120b"];
-
-/**
- * Meeting extraction (combined tasks + notes).
- * Extracts both actionable tasks and meeting notes from transcripts.
- */
-export const MEETING_EXTRACTION_MODEL: ModelConfig =
   MODEL_CONFIG["openai:gpt-oss-120b"];
 
 /**
@@ -176,9 +162,7 @@ export type OperationalModels = {
   embeddingSummarization: ModelConfig;
   memoryRerank: ModelConfig;
   feedbackTriage: ModelConfig;
-  taskExtraction: ModelConfig;
   deadlineParsing: ModelConfig;
-  meetingExtraction: ModelConfig;
   documentExtraction: ModelConfig;
   designSystemGeneration: ModelConfig;
   templateAnalysis: ModelConfig;
@@ -195,9 +179,7 @@ export const OPERATIONAL_MODELS: OperationalModels = {
   embeddingSummarization: EMBEDDING_SUMMARIZATION_MODEL,
   memoryRerank: MEMORY_RERANK_MODEL,
   feedbackTriage: FEEDBACK_TRIAGE_MODEL,
-  taskExtraction: TASK_EXTRACTION_MODEL,
   deadlineParsing: DEADLINE_PARSING_MODEL,
-  meetingExtraction: MEETING_EXTRACTION_MODEL,
   documentExtraction: DOCUMENT_EXTRACTION_MODEL,
   designSystemGeneration: DESIGN_SYSTEM_GENERATION_MODEL,
   templateAnalysis: TEMPLATE_ANALYSIS_MODEL,

@@ -18,6 +18,7 @@ export const usageRecordsTable = defineTable({
       v.literal("files"),
       v.literal("memory"),
       v.literal("smart_assistant"),
+      v.literal("model_recommendations"),
     ),
   ),
   operationType: v.optional(

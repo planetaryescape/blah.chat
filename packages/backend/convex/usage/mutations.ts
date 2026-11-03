@@ -9,6 +9,7 @@ const featureValidator = v.union(
   v.literal("files"),
   v.literal("memory"),
   v.literal("smart_assistant"),
+  v.literal("model_recommendations"),
 );
 
 const _operationTypeValidator = v.union(
@@ -89,11 +90,19 @@ export const recordTextGeneration = internalMutation({
     const date = new Date().toISOString().split("T")[0];
     const feature = args.feature ?? "chat";
 
-    // Upsert: aggregate daily per user+date+model
+    // Keep the existing daily upsert dimensions, while isolating feature buckets.
     const existing = await ctx.db
       .query("usageRecords")
       .withIndex("by_user_date_model", (q) =>
         q.eq("userId", args.userId).eq("date", date).eq("model", args.model),
+      )
+      .filter((q) =>
+        feature === "chat"
+          ? q.or(
+              q.eq(q.field("feature"), "chat"),
+              q.eq(q.field("feature"), undefined),
+            )
+          : q.eq(q.field("feature"), feature),
       )
       .first();
 

@@ -353,7 +353,8 @@ type FeatureType =
   | "tasks"
   | "files"
   | "memory"
-  | "smart_assistant";
+  | "smart_assistant"
+  | "model_recommendations";
 type OperationType = "text" | "tts" | "stt" | "image";
 
 // Helper to derive feature from legacy records (no feature field)
@@ -390,6 +391,11 @@ interface FeatureBreakdown {
   image: number;
   tokens: number;
   requests: number;
+}
+
+function getStoredOperationType(operationType: string): OperationType {
+  // SAFETY: Preserve the historical four-operation projection cast; schema-supported "embedding" remains outside this chart union.
+  return operationType as OperationType;
 }
 
 function createEmptyFeatureBreakdown(): FeatureBreakdown {
@@ -431,16 +437,21 @@ export const getCostByFeature = query({
       files: createEmptyFeatureBreakdown(),
       memory: createEmptyFeatureBreakdown(),
       smart_assistant: createEmptyFeatureBreakdown(),
+      model_recommendations: createEmptyFeatureBreakdown(),
     };
 
     for (const record of records) {
-      // Use explicit feature/operationType if available, otherwise derive from model
       let feature: FeatureType;
       let opType: OperationType;
 
-      if (record.feature && record.operationType) {
-        feature = record.feature as FeatureType;
-        opType = record.operationType as OperationType;
+      if (record.feature === "model_recommendations") {
+        feature = record.feature;
+        opType = record.operationType
+          ? getStoredOperationType(record.operationType)
+          : deriveFeatureFromModel(record.model).operationType;
+      } else if (record.feature && record.operationType) {
+        feature = record.feature;
+        opType = getStoredOperationType(record.operationType);
       } else {
         const derived = deriveFeatureFromModel(record.model);
         feature = derived.feature;
@@ -1156,15 +1167,21 @@ export const getUserCostByFeature = query({
       files: createEmptyFeatureBreakdown(),
       memory: createEmptyFeatureBreakdown(),
       smart_assistant: createEmptyFeatureBreakdown(),
+      model_recommendations: createEmptyFeatureBreakdown(),
     };
 
     for (const record of records) {
       let feature: FeatureType;
       let opType: OperationType;
 
-      if (record.feature && record.operationType) {
-        feature = record.feature as FeatureType;
-        opType = record.operationType as OperationType;
+      if (record.feature === "model_recommendations") {
+        feature = record.feature;
+        opType = record.operationType
+          ? getStoredOperationType(record.operationType)
+          : deriveFeatureFromModel(record.model).operationType;
+      } else if (record.feature && record.operationType) {
+        feature = record.feature;
+        opType = getStoredOperationType(record.operationType);
       } else {
         const derived = deriveFeatureFromModel(record.model);
         feature = derived.feature;
@@ -1205,15 +1222,21 @@ export const getAllUsersCostByFeature = query({
       files: createEmptyFeatureBreakdown(),
       memory: createEmptyFeatureBreakdown(),
       smart_assistant: createEmptyFeatureBreakdown(),
+      model_recommendations: createEmptyFeatureBreakdown(),
     };
 
     for (const record of records) {
       let feature: FeatureType;
       let opType: OperationType;
 
-      if (record.feature && record.operationType) {
-        feature = record.feature as FeatureType;
-        opType = record.operationType as OperationType;
+      if (record.feature === "model_recommendations") {
+        feature = record.feature;
+        opType = record.operationType
+          ? getStoredOperationType(record.operationType)
+          : deriveFeatureFromModel(record.model).operationType;
+      } else if (record.feature && record.operationType) {
+        feature = record.feature;
+        opType = getStoredOperationType(record.operationType);
       } else {
         const derived = deriveFeatureFromModel(record.model);
         feature = derived.feature;

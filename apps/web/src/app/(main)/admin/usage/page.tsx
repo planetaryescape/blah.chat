@@ -52,15 +52,17 @@ const FEATURE_COLORS: Record<string, string> = {
   files: "#8b5cf6",
   memory: "#6366f1",
   smart_assistant: "#14b8a6",
+  model_recommendations: "#f97316",
 };
 
-const FEATURE_LABELS: Record<string, string> = {
+const FEATURE_LABELS = {
   chat: "Chat",
   notes: "Notes",
   tasks: "Tasks",
   files: "Files",
   memory: "Memory",
   smart_assistant: "Smart Assistant",
+  model_recommendations: "Model recommendations",
 };
 
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -114,7 +116,10 @@ export default function UsagePage() {
     ? Object.entries(costByFeature)
         .filter(([_, data]) => data.total > 0)
         .map(([feature, data]) => ({
-          name: FEATURE_LABELS[feature] || feature,
+          name:
+            Object.entries(FEATURE_LABELS).find(
+              ([key]) => key === feature,
+            )?.[1] || feature,
           key: feature,
           value: data.total,
           breakdown: {

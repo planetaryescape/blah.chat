@@ -6,7 +6,7 @@ The summary action rejects blank selections, text longer than 16,000 characters,
 
 A configured monthly budget of zero means unlimited in the existing budget policy; recorded-spend and remaining-budget rejection do not apply in that case. Authentication, input, output, timeout, concurrency and usage-recording checks still apply.
 
-The public `ai.taskExtraction.extractTasksFromTranscript` and `ai.meetingExtraction.extractFromMeeting` references remain temporarily for compatibility, but throw a retired-feature error before model work. Production Convex responses may redact this plain error's message; the caller-visible wording is not guaranteed. They do not return empty results that could be mistaken for successful extraction. The full Smart Assistant source and caller purge is a later cleanup; shared task, voice, and deadline functionality remains in place.
+The former `ai/taskExtraction:extractTasksFromTranscript` and `ai/meetingExtraction:extractFromMeeting` actions are no longer registered. Stale authenticated and anonymous clients cannot invoke an extraction implementation or provider through either reference. The meeting/transcript route, prompts and feature-only model configuration are removed; shared task, voice and deadline functionality remains in place. Historical data markers are retained, not migrated or deleted by this source removal.
 
 Run the focused boundary tests from the repository root:
 
@@ -14,4 +14,4 @@ Run the focused boundary tests from the repository root:
 bun run --filter @blah-chat/backend test:run -- convex/__tests__/auxiliaryAuthorization.test.ts
 ```
 
-The tests dispatch through the public Convex action references with `convex-test`, mock AI SDK calls, and inspect the actual usage records. They should show zero provider calls for anonymous, invalid, over-budget, and retired requests.
+The tests dispatch through Convex action references with `convex-test`, mock AI SDK calls, and inspect the actual usage records. They should show zero provider calls for anonymous, invalid and over-budget summaries. Stale extraction references should fail module lookup for both anonymous and authenticated clients, with zero provider calls; a still-registered fail-closed tombstone is not sufficient for that source-removal check.

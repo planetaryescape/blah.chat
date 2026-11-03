@@ -171,3 +171,8 @@ This log records the modernization planning session on 2026-11-03 for an existin
 - **Status:** Accepted delivery authorization; replaces D-001's research-only restriction for this work, not its historical record.
 - **Evidence:** BK explicitly selected merge and deployment, then confirmed: "when it's ready just merge it, i give you permission". See the [delivery update](README.md#delivery-update-2026-11-03).
 - **Boundary:** Begin with the security repair, retain exact-candidate review and release gates, and do not implement dependent rungs before their prerequisites deploy. This does not settle later product policies or authorize billing changes, destructive data operations, private-code copying, or saving an administrator session as a low-privilege CI credential.
+
+### D-037: Attribute future model recommendations separately, without rewriting history. (BK, 2026-11-03)
+- **Status:** Accepted for future recommendation, triage and preview calls only.
+- **Evidence:** Asked whether to add `model_recommendations` because those calls currently write `smart_assistant`, with existing records, totals, tasks, notes and audio unchanged and historical migration deferred. BK selected “Use new label (Recommended)”.
+- **Boundary:** Deploy additive schema and compatible readers before switching future writers. Isolate new feature buckets so a new call cannot accrue into a legacy category. This does not approve historical attribution changes, retained-data migration, schema contraction, new provider spend or a replacement accounting architecture. Q20/Q22 remain open for those retained-data and supported-client decisions.

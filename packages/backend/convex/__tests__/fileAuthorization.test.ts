@@ -113,6 +113,9 @@ describe("file RAG authorization", () => {
       t.action(internal.files.extraction.extractText, { fileId }),
     ).resolves.toBe("private file text");
     await expect(
+      t.action(internal.files.chunking.extractFileText, { fileId }),
+    ).resolves.toBe("private file text");
+    await expect(
       t.action(internal.files.chunking.chunkFile, {
         fileId,
         content: "private file text",

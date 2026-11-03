@@ -1,4 +1,6 @@
 import { render, screen } from "@testing-library/react";
+import { useQuery } from "convex/react";
+import { getFunctionName } from "convex/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock Convex hooks BEFORE importing component
@@ -49,6 +51,7 @@ const baseMessage = {
 describe("ChatMessage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useQuery).mockImplementation(() => null);
   });
 
   it("renders user message content", () => {
@@ -78,6 +81,59 @@ describe("ChatMessage", () => {
 
     expect(screen.getByLabelText("Assistant message")).toBeInTheDocument();
     expect(screen.getByText(/Hello! How can I help you/)).toBeInTheDocument();
+  });
+
+  it("renders a read-only shared answer without subscribing to private sources", () => {
+    vi.mocked(useQuery).mockImplementation((...parameters) => {
+      const [reference, args] = parameters;
+      if (
+        getFunctionName(reference) === "sources/operations:getSources" &&
+        args !== "skip"
+      ) {
+        throw new Error(
+          "A public shared answer must not query private sources",
+        );
+      }
+      return null;
+    });
+    const message = {
+      ...baseMessage,
+      role: "assistant" as const,
+      content: "A readable shared answer",
+      status: "complete" as const,
+    };
+
+    render(<ChatMessage message={message} readOnly />);
+
+    expect(screen.getByText("A readable shared answer")).toBeInTheDocument();
+    const sourceCalls = vi
+      .mocked(useQuery)
+      .mock.calls.filter(
+        ([reference]) =>
+          getFunctionName(reference) === "sources/operations:getSources",
+      );
+    expect(sourceCalls.every(([, args]) => args === "skip")).toBe(true);
+  });
+
+  it("keeps source lookup enabled for an editable private answer", () => {
+    const message = {
+      ...baseMessage,
+      role: "assistant" as const,
+      content: "A private answer with citations",
+      status: "complete" as const,
+    };
+
+    render(<ChatMessage message={message} />);
+
+    const sourceCalls = vi
+      .mocked(useQuery)
+      .mock.calls.filter(
+        ([reference]) =>
+          getFunctionName(reference) === "sources/operations:getSources",
+      );
+    expect(sourceCalls.map(([, args]) => args)).toContainEqual({
+      messageId: message._id,
+    });
   });
 
   it("shows loading state when status is generating", () => {

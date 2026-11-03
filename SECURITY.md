@@ -133,11 +133,16 @@ limit_req zone=api burst=20 nodelay;
 
 ### 5. Database Security
 
-**Convex security** (built-in):
-- All queries check `ctx.auth.getUserIdentity()`
-- Row-level security via user ID filtering
-- Encrypted at rest (AES-256)
-- Encrypted in transit (TLS 1.3)
+**Application access checks**:
+- Convex does not automatically enforce application ownership. Public functions
+  must derive the caller's identity and check the actual resource parent; a
+  supplied user ID is not authorization.
+- Pipeline-only functions use internal visibility. Trusted background work
+  carries its validated owner explicitly instead of relying on a browser session.
+- Boundary behavior and focused test commands are documented for
+  [search and sources](docs/security/search-source-boundaries.md),
+  [file processing and retrieval](docs/security/file-boundaries.md), and
+  [auxiliary AI actions](docs/security/auxiliary-boundaries.md).
 
 **If migrating to PostgreSQL**:
 - Use connection pooling (PgBouncer)

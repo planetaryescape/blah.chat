@@ -59,7 +59,9 @@ export function MessageActions({
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const sources = useQuery(
     api.sources.operations.getSources,
-    message.role === "assistant" && !message._id.startsWith("temp_")
+    !readOnly &&
+      message.role === "assistant" &&
+      !message._id.startsWith("temp_")
       ? { messageId: message._id as Id<"messages"> }
       : "skip",
   );

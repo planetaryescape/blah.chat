@@ -34,8 +34,17 @@ different conversation are omitted.
 
 Public shares use their separate share projection. A public share does not
 grant anonymous access to these private search or source queries.
+Read-only shared messages skip the private source subscription; editable
+private messages retain their source lookup. The read-only path still renders
+the shared answer when private source data is unavailable.
 
 The checks use the existing `getCurrentUser` and
 `canAccessConversation` implementations. `canAccessConversation` treats the
 conversation owner and a row in `conversationParticipants` for a collaborative
 conversation as authorized; removing that participant row revokes access.
+
+Run the backend boundary tests from the repository root:
+
+```sh
+agent-work run -- bun --filter=@blah-chat/backend run test:run convex/__tests__/searchSourceAuthorization.test.ts --maxWorkers=4
+```

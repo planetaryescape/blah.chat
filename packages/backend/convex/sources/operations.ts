@@ -1,7 +1,45 @@
 // Source Operations - Mutations and Queries (V8 runtime)
 
 import { v } from "convex/values";
+import type { Doc, Id } from "../_generated/dataModel";
+import type { QueryCtx } from "../_generated/server";
 import { internalMutation, query } from "../_generated/server";
+import { canAccessConversation } from "../conversations/branching";
+import { getCurrentUser } from "../lib/userSync";
+
+/**
+ * Resolve the authenticated principal and confirm it may read the conversation
+ * that owns a message, before any source or metadata row is read.
+ *
+ * Source rows are children of a message, and a message is only readable through
+ * its parent conversation (owner or active participant). Returns null for:
+ * - anonymous callers
+ * - missing or deleted messages
+ * - deleted parent conversations
+ * - foreign callers, revoked participants and callers of revoked shares
+ *
+ * Public shares render a separate share projection; they are deliberately not
+ * an anonymous exception here.
+ */
+async function authorizeMessageParent(
+  ctx: QueryCtx,
+  messageId: Id<"messages">,
+): Promise<Doc<"users"> | null> {
+  const user = await getCurrentUser(ctx);
+  if (!user) return null;
+
+  const message = await ctx.db.get(messageId);
+  if (!message) return null;
+
+  const allowed = await canAccessConversation(
+    ctx,
+    message.conversationId,
+    user._id,
+  );
+  if (!allowed) return null;
+
+  return user;
+}
 
 /**
  * Insert sources with pre-computed URL hashes.
@@ -85,12 +123,19 @@ export const insertSourcesWithHashes = internalMutation({
 /**
  * Get sources for a message with joined metadata.
  * Returns sources sorted by position for [1], [2], [3] citation markers.
+ *
+ * Requires the caller to be the owner or an active participant of the parent
+ * conversation. Denials return the same empty array as a message with no
+ * sources, so the result does not reveal whether a foreign message exists.
  */
 export const getSources = query({
   args: {
     messageId: v.id("messages"),
   },
   handler: async (ctx, { messageId }) => {
+    const user = await authorizeMessageParent(ctx, messageId);
+    if (!user) return [];
+
     // Fetch all sources for this message
     const sources = await ctx.db
       .query("sources")
@@ -138,12 +183,24 @@ export const getSources = query({
 /**
  * Get all sources for a conversation.
  * Used for copying entire conversation with sources.
+ *
+ * Gated on the parent conversation before any source row is read. Rows whose
+ * real parent message is missing or belongs to a different conversation are
+ * skipped, so a corrupt denormalized `conversationId` cannot surface a foreign
+ * message's sources.
  */
 export const getByConversation = query({
   args: {
     conversationId: v.id("conversations"),
   },
   handler: async (ctx, { conversationId }) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+
+    if (!(await canAccessConversation(ctx, conversationId, user._id))) {
+      return [];
+    }
+
     const sources = await ctx.db
       .query("sources")
       .withIndex("by_conversation", (q) =>
@@ -151,12 +208,25 @@ export const getByConversation = query({
       )
       .collect();
 
-    return sources.map((src) => ({
-      messageId: src.messageId,
-      position: src.position,
-      title: src.title,
-      url: src.url,
-    }));
+    // Verify each row against its actual parent message, not the denormalized
+    // conversation ID that produced the index hit.
+    const authorizedRows = await Promise.all(
+      sources.map(async (src) => {
+        const message = await ctx.db.get(src.messageId);
+        return message && message.conversationId === conversationId
+          ? src
+          : null;
+      }),
+    );
+
+    return authorizedRows
+      .filter((src): src is Doc<"sources"> => src !== null)
+      .map((src) => ({
+        messageId: src.messageId,
+        position: src.position,
+        title: src.title,
+        url: src.url,
+      }));
   },
 });
 
@@ -164,12 +234,18 @@ export const getByConversation = query({
  * Get sources with fallback to legacy message.sources[] field.
  * Fixes race condition where normalized table hasn't been populated yet.
  * Returns: { sources, source: "normalized" | "legacy" | "none" }
+ *
+ * Requires parent-conversation access before reading. A denial returns the same
+ * shape as an authorized message without sources.
  */
 export const getSourcesWithFallback = query({
   args: {
     messageId: v.id("messages"),
   },
   handler: async (ctx, { messageId }) => {
+    const user = await authorizeMessageParent(ctx, messageId);
+    if (!user) return { sources: [], source: "none" as const };
+
     // 1. Try normalized table first (enriched with metadata)
     const normalizedSources = await ctx.db
       .query("sources")

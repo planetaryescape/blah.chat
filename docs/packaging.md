@@ -85,9 +85,17 @@ live deployment was changed.
 
 ### External production-environment blocker
 
-The coordinator's read-only observation on 2026-11-02 found environment
+**Resolved setting, 2026-11-03:** BK authorized restricting `Production` to
+protected branches. A subsequent GitHub environment API read confirmed
+`protected_branches: true`, `custom_branch_policies: false` and a `branch_policy`
+protection rule; `main` was independently confirmed protected. No secrets,
+billing or reviewer settings changed. This resolves the configuration observation
+below, not the candidate CI or authenticated staged-journey gates. Those still
+must pass for each deployment.
+
+**Historical observation, superseded by the resolution above:** the coordinator's read-only observation on 2026-11-02 found environment
 `Production` with `protection_rules: []` and `deployment_branch_policy: null`.
-This is **not configured** for safe branch-restricted production secret access.
+That configuration was not safe for branch-restricted production secret access.
 Preflight supports **only** the server-side protected-branches policy:
 `deployment_branch_policy.protected_branches === true` and
 `deployment_branch_policy.custom_branch_policies === false`. An unavailable
@@ -104,9 +112,9 @@ required by the dispatch and source checks.
 
 Vercel secrets are step-scoped and passed to promotion only after preflight
 succeeds. These workflow guards alone do **not** prevent a malicious branch
-workflow from removing its own checks while the environment remains unrestricted.
-An authorized operator must configure and verify the server-side environment
-policy before live promotion. This work neither changes that policy nor proves
+workflow from removing its own checks if the environment is unrestricted.
+An authorized operator configured the server-side environment policy as recorded
+above; verify it again before each live promotion. This setting does not prove
 human sign-in/generation journeys; the manual acknowledgement is still required.
 
 ## Publishing to npm

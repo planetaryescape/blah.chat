@@ -7,7 +7,7 @@
 
 import { getGatewayOptions } from "@blah-chat/ai/gateway";
 import { DEADLINE_PARSING_MODEL } from "@blah-chat/ai/operational-models";
-import { DEADLINE_PARSING_PROMPT } from "@blah-chat/ai/prompts/taskExtraction";
+import { DEADLINE_PARSING_PROMPT } from "@blah-chat/ai/prompts/deadlineParsing";
 import { getModel } from "@blah-chat/ai/registry";
 import { generateObject } from "ai";
 import { v } from "convex/values";

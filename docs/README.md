@@ -23,7 +23,7 @@ Feature-specific documentation.
 - [Reasoning](./features/reasoning.md) - Model thinking/reasoning display
 - [Notes](./features/notes.md) - Markdown note-taking system
 - [Shared Conversations](./features/shared-conversations.md) - Collaboration feature
-- [Smart Manager](./features/smart-manager.md) - Task extraction from transcripts
+- [Project workspaces and tasks](./features/smart-manager.md) - Shared project resources, file retrieval and task deadlines
 - [BYOD](./features/byod.md) - Bring Your Own Database
 - [Tiers](./features/tiers.md) - User tier and pro model access
 - [Tool Calling](./features/tool-calling.md) - LLM tool execution

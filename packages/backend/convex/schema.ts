@@ -1030,6 +1030,7 @@ export default defineSchema({
         v.literal("files"),
         v.literal("memory"),
         v.literal("smart_assistant"),
+        v.literal("model_recommendations"),
         v.literal("slides"), // Deprecated: kept for existing data
       ),
     ),

@@ -32,8 +32,8 @@ Read the decision log before proposing a change of direction, then read the numb
 | 17 | [CLI](17-cli.md) | Actual existing commands/transport and separately proposed scriptable run/review/output increments |
 | 18 | [Mobile and desktop](18-mobile-and-desktop.md) | Actual Convex mobile/Tauri shell, independent native cohorts and compatibility/release gates |
 | 19 | [Reuse map](19-reuse-map.md) | Exact Notto dual-remote pins, patterns/paths/counts, copying permission and public OSS references |
-| 20 | [Roadmap](20-roadmap.md) | 33 numbered rungs plus 2b, optional F1, maintenance recipes, all decisions/F01–F50 mapped |
-| 21 | [Decision log](21-decision-log.md) | 35 attributed requirements/constraints/recommendations; no invented prior agreements |
+| 20 | [Roadmap](20-roadmap.md) | 33 numbered rungs plus 2a/2b, optional F1, maintenance recipes, all decisions/F01–F50 mapped |
+| 21 | [Decision log](21-decision-log.md) | 37 attributed requirements/constraints/recommendations; no invented prior agreements |
 | 22 | [Open questions](22-open-questions.md) | 23 explicit policy assumptions and 18 evidence spikes |
 | — | [Kickoff](KICKOFF.md) | Paste-in prompt for the first separately authorized implementation session |
 
@@ -94,8 +94,29 @@ BK subsequently authorized building this blueprint and explicitly selected merge
 and deployment through the existing release channel. Work starts with rung 1;
 later capability policies remain unresolved at their stated boundaries. The
 planning-session statements above remain the record of what was authorized then,
-not a prohibition on this later implementation. [D-036](21-decision-log.md#d-036-begin-implementation-with-rung-1-and-carry-reviewed-work-through-merge-and-deployment-bk-2026-11-03) records this replacement of D-001's research-only scope. No rung is claimed deployed by
-this update.
+not a prohibition on this later implementation. [D-036](21-decision-log.md#d-036-begin-implementation-with-rung-1-and-carry-reviewed-work-through-merge-and-deployment-bk-2026-11-03) records this replacement of D-001's research-only scope.
+
+Rung 1's security repair is deployed. Artifact
+`dpl_AHDcdMQwsY9kymPFNWr5YTJtujFQ`, source
+`c30441201494fc9a560c415b777e8ffa0147f540`, passed authenticated staged and
+production send/refresh/persisted-response journeys before and after
+[exact-artifact promotion](https://github.com/planetaryescape/blah.chat/actions/runs/41731489607).
+A separate non-admin test account was used; no administrator session or temporary
+Vercel bypass state was saved into CI. The bypass was revoked after staging setup.
+
+The follow-up [CI renewal repair](https://github.com/planetaryescape/blah.chat/pull/583)
+merged at `4b96b9fbeae9575fe9e089c730025b184168ce45`.
+[Merged-main CI](https://github.com/planetaryescape/blah.chat/actions/runs/41737412330)
+passed all required checks and all three deployed-liveness smoke tests, with no
+authenticated test skipped. This test/docs-only commit did not rebuild the
+verified production artifact. Liveness remains separate from exact-candidate
+generation proof.
+
+Retirement proceeds through rung 2a's executable/UI removal and compatible usage
+readers, then rung 2's future-writer switch. D-037 approves
+`model_recommendations` for future calls only. Historical reconciliation and
+schema contraction remain gated by Q20/Q22; this update does not claim retirement
+or those later rungs deployed.
 
 BK separately approved the protected-branches-only `Production` environment
 policy. The API now reports that policy; candidate checks and authenticated

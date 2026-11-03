@@ -33,13 +33,9 @@
       "types": "./dist/reasoning/index.d.ts",
       "import": "./dist/reasoning/index.js"
     },
-    "./prompts/taskExtraction": {
-      "types": "./dist/prompts/taskExtraction.d.ts",
-      "import": "./dist/prompts/taskExtraction.js"
-    },
-    "./prompts/meetingExtraction": {
-      "types": "./dist/prompts/meetingExtraction.d.ts",
-      "import": "./dist/prompts/meetingExtraction.js"
+    "./prompts/deadlineParsing": {
+      "types": "./dist/prompts/deadlineParsing.d.ts",
+      "import": "./dist/prompts/deadlineParsing.js"
     },
     "./prompts/modelTriage": {
       "types": "./dist/prompts/modelTriage.d.ts",
@@ -59,7 +55,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup src/index.ts src/models.ts src/utils.ts src/gateway.ts src/registry.ts src/operational-models.ts src/reasoning/index.ts src/prompts/taskExtraction.ts src/prompts/meetingExtraction.ts src/prompts/modelTriage.ts src/prompts/triage.ts --format esm --dts --clean",
+    "build": "tsup src/index.ts src/models.ts src/utils.ts src/gateway.ts src/registry.ts src/operational-models.ts src/reasoning/index.ts src/prompts/deadlineParsing.ts src/prompts/modelTriage.ts src/prompts/triage.ts --format esm --dts --clean",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "bun run build"
   },

@@ -1,3 +1,4 @@
+import { makeFunctionReference } from "convex/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { convexTest } from "../../__tests__/testSetup";
 import { api } from "../_generated/api";
@@ -241,19 +242,24 @@ describe("paid auxiliary action boundaries", () => {
     expect(provider.generateText).toHaveBeenCalledTimes(2);
   });
 
-  it("retires both Smart Assistant extraction references before provider work", async () => {
+  it("does not register either retired extraction action for stale clients", async () => {
     const { t, owner } = await fixture();
 
-    await expect(
-      t.action(api.ai.taskExtraction.extractTasksFromTranscript, {
-        transcript: "private transcript with an action item",
-      }),
-    ).rejects.toThrow("Smart Assistant task extraction is retired");
-    await expect(
-      owner.action(api.ai.meetingExtraction.extractFromMeeting, {
-        transcript: "private meeting transcript",
-      }),
-    ).rejects.toThrow("Smart Assistant meeting extraction is retired");
+    for (const path of [
+      "ai/taskExtraction:extractTasksFromTranscript",
+      "ai/meetingExtraction:extractFromMeeting",
+    ]) {
+      const reference = makeFunctionReference<"action", { transcript: string }>(
+        path,
+      );
+      for (const client of [t, owner]) {
+        await expect(
+          client.action(reference, {
+            transcript: "private transcript with an action item",
+          }),
+        ).rejects.toThrow(`Could not find module for: "${path.split(":")[0]}"`);
+      }
+    }
 
     expect(provider.generateText).not.toHaveBeenCalled();
     expect(provider.generateObject).not.toHaveBeenCalled();

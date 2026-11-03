@@ -51,6 +51,20 @@ Same Clerk app for both databases. Users don't need separate auth setup - your C
 
 ---
 
+### Schema compatibility during feature retirement
+
+Schema regeneration updates the web and shared/backend version constants
+together, alongside the downloadable schema. The Instance Information card's
+version and the backend's `latestVersion` should agree. An **Update available**
+notice offers the corresponding schema package; it does not automatically deploy
+to a customer-owned database.
+
+The retirement update adds `model_recommendations` as an accepted future usage
+category while retaining historical `smart_assistant` records. It does not
+reclassify or delete old tasks, usage, notes or audio. Future writers are enabled
+only after compatible hosted schema/readers have been verified; regenerating a
+download package alone is not evidence that a customer instance was upgraded.
+
 ## Setup Guide
 
 ### Prerequisites

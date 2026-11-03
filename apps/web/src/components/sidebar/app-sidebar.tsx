@@ -8,7 +8,6 @@ import {
   FileText,
   FolderKanban,
   Ghost,
-  Mic,
   MoreHorizontal,
   NotebookPen,
   Plus,
@@ -77,12 +76,6 @@ const MENU_ITEMS = [
     label: "Tasks",
     href: "/tasks",
     featureKey: "showTasks" as const,
-  },
-  {
-    icon: Mic,
-    label: "Smart Assistant",
-    href: "/assistant",
-    featureKey: "showSmartAssistant" as const,
   },
   {
     icon: FileText,
@@ -163,7 +156,6 @@ export function AppSidebar() {
         showBookmarks: false,
         showSlides: false,
         showTasks: false,
-        showSmartAssistant: false,
         isLoading: true,
       };
     }
@@ -176,7 +168,6 @@ export function AppSidebar() {
       showBookmarks: rawAdvancedSettings.showBookmarks ?? true,
       showSlides: rawAdvancedSettings.showSlides ?? false,
       showTasks: rawAdvancedSettings.showTasks ?? true,
-      showSmartAssistant: rawAdvancedSettings.showSmartAssistant ?? true,
       isLoading: false,
     };
   }, [rawAdvancedSettings]);

@@ -370,7 +370,7 @@ export const searchAll = internalAction({
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
       internal.lib.helpers.getFeatureToggles,
       { userId: args.userId },
-    )) as { showTasks: boolean; showSmartAssistant: boolean };
+    )) as { showTasks: boolean };
 
     // Filter out disabled resource types
     let activeResourceTypes = args.resourceTypes;

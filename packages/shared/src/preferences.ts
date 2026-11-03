@@ -53,17 +53,6 @@ export const PREFERENCE_DEFAULTS = {
   showBookmarks: true,
   showTasks: true,
   showSlides: true as boolean,
-  showSmartAssistant: true,
-
-  // Smart Assistant
-  noteCategoryMode: "fixed" as const,
-  customNoteCategories: [
-    "decision",
-    "discussion",
-    "action-item",
-    "insight",
-    "followup",
-  ] as string[],
 
   // Custom Instructions (single object)
   customInstructions: {
@@ -138,11 +127,6 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   showBookmarks: "advanced",
   showTasks: "advanced",
   showSlides: "advanced",
-  showSmartAssistant: "advanced",
-
-  // Smart Assistant
-  noteCategoryMode: "advanced",
-  customNoteCategories: "advanced",
 
   // Special: nested objects stored as single rows
   customInstructions: "customInstructions",

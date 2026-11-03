@@ -14,13 +14,11 @@ interface SidebarFeaturesSectionProps {
   showProjects: boolean;
   showBookmarks: boolean;
   showTasks: boolean;
-  showSmartAssistant: boolean;
   onShowNotesChange: (checked: boolean) => Promise<void>;
   onShowTemplatesChange: (checked: boolean) => Promise<void>;
   onShowProjectsChange: (checked: boolean) => Promise<void>;
   onShowBookmarksChange: (checked: boolean) => Promise<void>;
   onShowTasksChange: (checked: boolean) => Promise<void>;
-  onShowSmartAssistantChange: (checked: boolean) => Promise<void>;
 }
 
 export function SidebarFeaturesSection({
@@ -29,13 +27,11 @@ export function SidebarFeaturesSection({
   showProjects,
   showBookmarks,
   showTasks,
-  showSmartAssistant,
   onShowNotesChange,
   onShowTemplatesChange,
   onShowProjectsChange,
   onShowBookmarksChange,
   onShowTasksChange,
-  onShowSmartAssistantChange,
 }: SidebarFeaturesSectionProps) {
   return (
     <AccordionItem value="sidebar-features">
@@ -123,23 +119,6 @@ export function SidebarFeaturesSection({
             id="show-tasks"
             checked={showTasks}
             onCheckedChange={onShowTasksChange}
-          />
-        </div>
-
-        <div
-          id="setting-showSmartAssistant"
-          className="flex items-center justify-between rounded-md p-2 -m-2 transition-all"
-        >
-          <div className="space-y-0.5">
-            <Label htmlFor="show-smart-assistant">Show Smart Assistant</Label>
-            <p className="text-sm text-muted-foreground">
-              Display AI extraction assistant in sidebar
-            </p>
-          </div>
-          <Switch
-            id="show-smart-assistant"
-            checked={showSmartAssistant}
-            onCheckedChange={onShowSmartAssistantChange}
           />
         </div>
       </AccordionContent>

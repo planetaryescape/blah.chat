@@ -354,10 +354,7 @@ export const getRecentConversations = internalQuery({
  */
 export const getFeatureToggles = internalQuery({
   args: { userId: v.id("users") },
-  handler: async (
-    ctx,
-    args,
-  ): Promise<{ showTasks: boolean; showSmartAssistant: boolean }> => {
+  handler: async (ctx, args): Promise<{ showTasks: boolean }> => {
     const prefs = await ctx.db
       .query("userPreferences")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
@@ -367,8 +364,6 @@ export const getFeatureToggles = internalQuery({
 
     return {
       showTasks: (prefMap.get("showTasks") as boolean) ?? true,
-      showSmartAssistant:
-        (prefMap.get("showSmartAssistant") as boolean) ?? true,
     };
   },
 });

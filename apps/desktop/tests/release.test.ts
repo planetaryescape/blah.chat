@@ -43,7 +43,7 @@ const vercelCredentials = [
 const cleanSourceCommand =
   "bun apps/desktop/scripts/promote.ts --verify-stage-source";
 const uploadCommand =
-  'URL=$(vercel deploy --prod --skip-domain --yes --meta "sourceCommit=$PROMOTION_SOURCE_SHA")';
+  'URL=$(vercel deploy --prod --skip-domain --yes --meta "sourceCommit=$PROMOTION_SOURCE_SHA" --meta "gitCommitSha=$PROMOTION_SOURCE_SHA" --meta "gitDirty=0")';
 
 function expectPromotionCredentialPlacement(
   job: Workflow["jobs"][string],
@@ -108,6 +108,9 @@ test("clean-source ordering assertions reject commented, removed, altered or lat
     `bun apps/desktop/scripts/promote.ts --verify-stage-source-disabled\n${uploadCommand}`,
     `echo ${cleanSourceCommand}\n${uploadCommand}`,
     `${uploadCommand}\n${cleanSourceCommand}`,
+    `${cleanSourceCommand}\n${uploadCommand.replace(' --meta "gitDirty=0"', "")}`,
+    `${cleanSourceCommand}\n${uploadCommand.replace("gitDirty=0", "gitDirty=1")}`,
+    `${cleanSourceCommand}\n${uploadCommand.replace("gitCommitSha=$PROMOTION_SOURCE_SHA", "gitCommitSha=$GITHUB_SHA")}`,
   ]) {
     expect(() => expectCleanSourceBeforeUpload(script)).toThrow();
   }

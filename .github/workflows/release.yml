@@ -106,7 +106,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
           bun apps/desktop/scripts/promote.ts --verify-stage-source
-          URL=$(vercel deploy --prod --skip-domain --yes --meta "sourceCommit=$PROMOTION_SOURCE_SHA")
+          URL=$(vercel deploy --prod --skip-domain --yes --meta "sourceCommit=$PROMOTION_SOURCE_SHA" --meta "gitCommitSha=$PROMOTION_SOURCE_SHA" --meta "gitDirty=0")
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       - name: Verify Convex readiness

@@ -62,10 +62,14 @@ signature**, and no caller-entered source SHA is accepted.
 
 Immediately before Vercel upload, staging verifies `HEAD` equals the trusted SHA,
 both the tracked working tree and index are clean, and there are no untracked
-nonignored files. It explicitly passes `--meta sourceCommit=$PROMOTION_SOURCE_SHA`
-to the CLI. Generated binding changes from Convex codegen also fail this gate;
-commit the current bindings rather than ignoring those changes. Vercel's own Git
-metadata supplies `gitCommitSha` and the string-valued `gitDirty` marker.
+nonignored files. Only after this check succeeds, the trusted staging command
+explicitly passes `sourceCommit` and `gitCommitSha` equal to
+`PROMOTION_SOURCE_SHA`, plus the string-valued `gitDirty=0` marker, as CLI metadata.
+GitHub-runner deployments can emit `githubCommitSha` instead of `gitCommitSha`
+and omit `gitDirty`, so automatic Vercel Git metadata is not sufficient.
+Generated binding changes from Convex codegen also fail this gate; commit the
+current bindings rather than ignoring those changes. These metadata fields attest
+to the preceding clean-source check; they do not replace it.
 
 If staging rejects untracked source files, its error lists filenames only (up to
 20 paths, each limited to 512 characters, with control characters escaped). It

@@ -15,7 +15,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
-import { action } from "../_generated/server";
+import { internalAction } from "../_generated/server";
 import { logger } from "../lib/logger";
 
 // Chunk configuration (optimized based on RAG research)
@@ -91,7 +91,7 @@ export function chunkText(text: string): FileChunk[] {
  * Chunk file action - processes file content into chunks
  * Called by embedding generation pipeline
  */
-export const chunkFile = action({
+export const chunkFile = internalAction({
   args: {
     fileId: v.id("files"),
     content: v.string(),
@@ -131,7 +131,7 @@ export const chunkFile = action({
  * Handles different file types (txt, md, pdf, docx)
  * For MVP: Only text files, add PDF/DOCX extraction later
  */
-export const extractFileText = action({
+export const extractFileText = internalAction({
   args: {
     fileId: v.id("files"),
   },

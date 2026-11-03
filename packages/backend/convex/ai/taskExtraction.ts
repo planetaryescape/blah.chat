@@ -1,20 +1,9 @@
-import { getGatewayOptions } from "@blah-chat/ai/gateway";
-import {
-  DEADLINE_PARSING_MODEL,
-  TASK_EXTRACTION_MODEL,
-} from "@blah-chat/ai/operational-models";
-import {
-  DEADLINE_PARSING_PROMPT,
-  TASK_EXTRACTION_PROMPT,
-} from "@blah-chat/ai/prompts/taskExtraction";
-import { getModel } from "@blah-chat/ai/registry";
-import { generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 import { action } from "../_generated/server";
-import { logger } from "../lib/logger";
 
-// Smart Manager Phase 2: Task Extraction from Transcripts
+const RETIRED_FEATURE_ERROR =
+  "Smart Assistant task extraction is retired. No transcript data was processed.";
 
 // Zod schema for extracted task - made lenient to avoid validation failures
 const TaskSchema = z.object({
@@ -27,11 +16,6 @@ const TaskSchema = z.object({
   timestampSeconds: z.number().optional().nullable(),
 });
 
-// Zod schema for extraction result
-const TaskExtractionSchema = z.object({
-  tasks: z.array(TaskSchema).default([]),
-});
-
 export type ExtractedTask = z.infer<typeof TaskSchema>;
 
 export const extractTasksFromTranscript = action({
@@ -39,88 +23,7 @@ export const extractTasksFromTranscript = action({
     transcript: v.string(),
     sourceId: v.optional(v.string()),
   },
-  handler: async (_ctx, args): Promise<ExtractedTask[]> => {
-    try {
-      // Use LLM to extract tasks from transcript
-      const result = await generateObject({
-        model: getModel(TASK_EXTRACTION_MODEL.id),
-        schema: TaskExtractionSchema,
-        providerOptions: getGatewayOptions(
-          TASK_EXTRACTION_MODEL.id,
-          undefined,
-          ["task-extraction"],
-        ),
-        prompt: `${TASK_EXTRACTION_PROMPT}
-
-Transcript:
-"""
-${args.transcript}
-"""
-
-Extract actionable tasks from the above transcript. Return a JSON object with a "tasks" array. If no tasks are found, return {"tasks": []}.`,
-      });
-
-      // Parse deadlines for each task
-      const tasksWithParsedDeadlines = await Promise.all(
-        result.object.tasks.map(async (task) => {
-          if (task.deadlineText) {
-            const deadline = await parseDeadline(task.deadlineText);
-            return {
-              ...task,
-              deadline,
-            };
-          }
-          return task;
-        }),
-      );
-
-      return tasksWithParsedDeadlines;
-    } catch (error) {
-      logger.error("Task extraction failed", {
-        tag: "TaskExtraction",
-        error: String(error),
-      });
-      // Return empty array on failure rather than throwing
-      return [];
-    }
+  handler: async (): Promise<ExtractedTask[]> => {
+    throw new Error(RETIRED_FEATURE_ERROR);
   },
 });
-
-// Schema for deadline parsing result
-const DeadlineSchema = z.object({
-  timestamp: z.string().nullable(),
-});
-
-async function parseDeadline(deadlineText: string): Promise<number | null> {
-  const now = new Date();
-  const currentDateStr = now.toISOString();
-
-  const prompt = DEADLINE_PARSING_PROMPT.replace(
-    "{{CURRENT_DATE}}",
-    currentDateStr,
-  );
-
-  try {
-    const result = await generateObject({
-      model: getModel(DEADLINE_PARSING_MODEL.id),
-      schema: DeadlineSchema,
-      providerOptions: getGatewayOptions(DEADLINE_PARSING_MODEL.id, undefined, [
-        "deadline-parsing",
-      ]),
-      prompt: `${prompt}
-
-Deadline text: "${deadlineText}"`,
-    });
-
-    if (result.object.timestamp) {
-      return new Date(result.object.timestamp).getTime();
-    }
-    return null;
-  } catch (error) {
-    logger.error("Error parsing deadline", {
-      tag: "TaskExtraction",
-      error: String(error),
-    });
-    return null;
-  }
-}

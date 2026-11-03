@@ -11,7 +11,7 @@ import { embed } from "ai";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
-import { action, internalAction, internalQuery } from "../_generated/server";
+import { internalAction, internalQuery } from "../_generated/server";
 import { logger } from "../lib/logger";
 
 export interface FileChunkResult {
@@ -24,7 +24,7 @@ export interface FileChunkResult {
  * Search file chunks using semantic (vector) search
  * Optionally filter by projectId to search only project files
  */
-export const searchFileChunks = action({
+export const searchFileChunks = internalAction({
   args: {
     query: v.string(),
     projectId: v.optional(v.id("projects")),
@@ -35,30 +35,36 @@ export const searchFileChunks = action({
     const startTime = Date.now();
     const topK = args.topK ?? 10;
 
+    if (args.query.trim().length === 0 || args.query.length > 2000) {
+      throw new Error("Query must contain 1 to 2000 characters");
+    }
+    if (!Number.isInteger(topK) || topK < 1 || topK > 128) {
+      throw new Error("topK must be an integer between 1 and 128");
+    }
+
+    // Project ownership is checked before embedding so rejected searches do no
+    // provider work. Generation calls this internal action with its trusted user.
+    let fileIds: string[] | undefined;
+    if (args.projectId) {
+      // SAFETY: Convex validates args; the internal query checks project ownership
+      // before returning schema-validated project-file rows.
+      const fileJunctions = (await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.files.search.getProjectFileIds,
+        { projectId: args.projectId, userId: args.userId },
+      )) as Array<{ fileId: string }>;
+
+      fileIds = fileJunctions.map((junction) => junction.fileId);
+      if (fileIds.length === 0) return [];
+    }
+
     // 1. Generate query embedding
     const { embedding: queryEmbedding } = await embed({
       model: EMBEDDING_MODEL,
       value: args.query,
     });
 
-    // 2. Get file IDs to filter by (if projectId provided)
-    let fileIds: string[] | undefined;
-    if (args.projectId) {
-      const fileJunctions = (await (ctx.runQuery as any)(
-        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-        internal.files.search.getProjectFileIds,
-        { projectId: args.projectId },
-      )) as Array<{ fileId: any }>;
-
-      fileIds = fileJunctions.map((j) => j.fileId);
-
-      if (fileIds.length === 0) {
-        logger.info("No files in project", { tag: "FileSearch" });
-        return [];
-      }
-    }
-
-    // 3. Perform vector search
+    // 2. Perform vector search
     const searchResults = (await (ctx.runAction as any)(
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
       internal.files.search.vectorSearchChunks,
@@ -70,7 +76,7 @@ export const searchFileChunks = action({
       },
     )) as Array<{ chunk: Doc<"fileChunks">; score: number }>;
 
-    // 4. Hydrate with file details
+    // 3. Hydrate with file details
     const fileMap = new Map<any, Doc<"files"> | null>();
     const uniqueFileIds = [
       ...new Set(searchResults.map((r) => r.chunk.fileId)),
@@ -87,11 +93,30 @@ export const searchFileChunks = action({
       }),
     );
 
-    const results: FileChunkResult[] = searchResults.map((r) => ({
-      chunk: r.chunk,
-      file: fileMap.get(r.chunk.fileId) || null,
-      score: r.score,
-    }));
+    // Re-read after provider, vector, and hydration awaits so a concurrent
+    // project ownership or membership change cannot leave this result stale.
+    if (args.projectId) {
+      // SAFETY: Same validated internal query and schema-validated row shape as above.
+      const currentFiles = (await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.files.search.getProjectFileIds,
+        { projectId: args.projectId, userId: args.userId },
+      )) as Array<{ fileId: string }>;
+      fileIds = currentFiles.map((junction) => junction.fileId);
+    }
+
+    const authorizedFileIds = fileIds ? new Set(fileIds) : undefined;
+    const results: FileChunkResult[] = searchResults.flatMap((result) => {
+      const file = fileMap.get(result.chunk.fileId);
+      if (
+        result.chunk.userId !== args.userId ||
+        file?.userId !== args.userId ||
+        (authorizedFileIds && !authorizedFileIds.has(result.chunk.fileId))
+      ) {
+        return [];
+      }
+      return [{ chunk: result.chunk, file, score: result.score }];
+    });
 
     const duration = Date.now() - startTime;
     logger.info("File search complete", {
@@ -111,12 +136,18 @@ export const searchFileChunks = action({
  * Internal query to get file IDs for a project
  */
 export const getProjectFileIds = internalQuery({
-  args: { projectId: v.id("projects") },
+  args: { projectId: v.id("projects"), userId: v.id("users") },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const project = await ctx.db.get(args.projectId);
+    if (!project || project.userId !== args.userId) {
+      throw new Error("Unauthorized project file search");
+    }
+
+    const files = await ctx.db
       .query("projectFiles")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
       .collect();
+    return files.filter((file) => file.userId === args.userId);
   },
 });
 
@@ -145,7 +176,7 @@ export const vectorSearchChunks = internalAction({
         const chunk = await ctx.runQuery(internal.lib.helpers.getFileChunk, {
           chunkId: result._id,
         });
-        if (chunk) chunks.push(chunk);
+        if (chunk?.userId === args.userId) chunks.push(chunk);
       }
 
       // Filter by fileIds if provided

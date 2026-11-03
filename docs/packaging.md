@@ -85,6 +85,14 @@ live deployment was changed.
 
 ### External production-environment blocker
 
+**Resolved setting, 2026-11-03:** BK authorized restricting `Production` to
+protected branches. A subsequent GitHub environment API read confirmed
+`protected_branches: true`, `custom_branch_policies: false` and a `branch_policy`
+protection rule; `main` was independently confirmed protected. No secrets,
+billing or reviewer settings changed. This resolves the configuration observation
+below, not the candidate CI or authenticated staged-journey gates. Those still
+must pass for each deployment.
+
 The coordinator's read-only observation on 2026-11-02 found environment
 `Production` with `protection_rules: []` and `deployment_branch_policy: null`.
 This is **not configured** for safe branch-restricted production secret access.

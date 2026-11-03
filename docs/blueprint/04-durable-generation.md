@@ -1,0 +1,106 @@
+# 04: Durable generation
+
+Preserve one saved answer through refresh, stop, retry and human interruption. This chapter specifies proposed repairs to the existing producer, not permission to replace it. Baseline: `04866f80a6236716ebf8d8c5a79001727f85f4bf`, reviewed on 2026-11-03. D-002 is inherited; D-015–D-017, D-021 and D-025 remain PROPOSED under [21](21-decision-log.md). Q3/Q19 and S3/S8 in [22](22-open-questions.md) gate limits and durable continuation.
+
+## What survives today
+
+The server creates pending assistant rows before scheduling `generation.generateResponse`. A Convex Node action produces and persists partial text/reasoning; clients subscribe to saved messages. Refresh observes that work rather than restarting inference. Keep DAG ancestry, comparison siblings, Unicode-safe buffering, provider error causes, terminal partial-write guards and owned lock release. Scheduling from a mutation is transactional, but scheduled actions are at-most-once and are not automatically retried. Browser resilience does not establish process-crash recovery. ([Current journey](../../research_notes/blah-chat-modernization-review/generation.md#how-does-the-current-generation-journey-work), [Convex contract](https://docs.convex.dev/scheduling/scheduled-functions#error-handling))
+
+Repair these concrete boundaries before extracting a runtime abstraction:
+
+| Current defect | Required change |
+|---|---|
+| Tagged strings replace native tool results; tool-only continuation uses obsolete SDK parts | Preserve structured results; validate real next-request serialization |
+| User-message retry deletes the chronological tail, including other branches | Add a sibling; never delete history to retry |
+| Initial-age 60-second lock and alternate admissions permit overlapping work | One admission transaction, progress-based lease and epoch fences |
+| Background prompt builder depends on absent ambient identity | Read admitted owner's instructions explicitly |
+| Stop is checked only after arriving chunks; late enrichment can change complete to error | Independent cancellation, monotonic terminal claims, independent enrichment |
+| `clientMessageId` is stored but not deduplicated | Stable `clientRequestId` plus semantic `requestHash` before scheduling/spend |
+
+These are static findings G1/G4–G6/G8–G11, not measured incident rates. Exact traces and proposed reproductions are in [generation research](../../research_notes/blah-chat-modernization-review/generation.md#which-failures-are-supported-by-current-code).
+
+## One admission owner
+
+Use the records and spelling in [02](02-data-model.md): `agentRuns`, `runAttempts`, existing `toolCalls`, `interactions`, `runEvents`, `usageEvents` and `budgetReservations`. Do not add a parallel tool-run, approval or conversation store. A Run is the logical requested answer; an Attempt records execution identity and resolved model/API/gateway/host/payer references. A physical retry creates another Attempt; it never erases the earlier charge or outcome. (D-016/D-017)
+
+Every paid entrypoint must use the same internal admission policy: web/HTTP, CLI, regenerate, user retry, edit, merge, comparison, consolidation, image work, schedule occurrences and retained auxiliary AI. A small auxiliary call need not acquire the chat's whole execution machinery, but it must not bypass authentication, bounded input/fanout, payer resolution, budget or usage. Retired Smart Assistant actions disappear under [16](16-smart-assistant-removal.md), rather than becoming another admission exception.
+
+The transaction must:
+
+1. Derive `ownerUserId` from authenticated authority, or from a trusted schedule occurrence with current consent. Check conversation/branch access, attachment ownership, incognito and requested capabilities server-side. A client-supplied owner or history is not authority.
+2. Look up `(ownerUserId, clientRequestId)` before incrementing counts, reserving funds or scheduling. The canonical `requestHash` covers owner scope, submitted content, immutable file references, `branchHeadMessageId`, manual/Auto intent, comparison choices, generation options and admitted pinned versions. It excludes transport timestamps. On replay, compare against the original pinned snapshot rather than resolving new defaults/versions and mistaking configuration drift for changed intent. Equal key/hash returns the original accepted IDs and result; equal key/different hash is an explicit conflict. Offline replay retains the original ID and all options.
+3. Resolve and pin `runnerVersion`, `policyVersion`, `catalogVersion`, `promptVersion` and admitted branch. Final provider dispatch still rechecks current permissions, route eligibility and exact context fit through [05](05-context-and-caching.md)/[06](06-model-routing.md). Revocation wins over a pinned old policy.
+4. Reserve the allowed envelope through [14](14-cost-model.md). Atomically create pending messages/Run records and schedule work. A rejected request creates no provider call or partial admission charge.
+
+Proposed initial concurrency is one ordinary active interactive request per conversation; an intentional comparison admits its bounded sibling set together. This preserves current intent without accidentally licensing arbitrary branch concurrency; Q19 must confirm it. Comparison siblings retain separate Runs/Attempts/settlements. Derive each sibling's `clientRequestId` deterministically from the original submitted request ID and immutable comparison slot, preserving [02](02-data-model.md)'s one-owner/request-to-one-Run invariant; batch replay returns the original entire set without scheduling missing duplicates independently. The legacy `pendingCount` is a projection of that admitted set, not an independent authority. Schedules additionally obey [12](12-schedules.md)'s occurrence/overlap policy. A waiting Run keeps its target reserved, without keeping a Node action alive or indefinitely monopolizing a global compute slot.
+
+## States, leases and terminal fences
+
+Run `status` has exactly these transitions:
+
+| From | To | Condition |
+|---|---|---|
+| `pending` | `running` | Current lease holder claims startup once; cancellation/access/budget checks pass |
+| `pending` | `failed`, `cancelled` | Admission accepted but startup cannot proceed, or authorized stop wins |
+| `running` | `waiting_for_input`, `waiting_for_approval` | Persisted interaction and resumable boundary committed |
+| Either waiting state | `running` | One accepted answer/approval resumes the same Run after fresh checks |
+| `running` or either waiting state | `succeeded`, `failed`, `cancelled` | Authorized monotonic terminal claim |
+| Any terminal state | No other Run state | Later usage/effect reconciliation cannot resurrect the answer |
+
+Preparing, compacting, retrying and reconciling are event phases, not extra Run states. `cancelRequestedAt` is a durable request, not a `cancelling` enum. Tool effect uncertainty belongs on `toolCalls.status: unknown` and `effectCertainty: uncertain`, not a new Run status. An unresolved consequential effect must prevent automatic replay; the Run can fail with an actionable explanation while the tool receipt remains uncertain. (D-017/D-025)
+
+Keep current message `status` as `pending | generating | complete | stopped | error`. Project pending→pending, running→generating, succeeded→complete, failed→error, cancelled→stopped. Use [02](02-data-model.md)'s optional `messages.runProjection`; both waiting states retain legacy `generating` while supported readers show paused controls. Deploy recovery guards and compatible readers before enabling waits; an unsupported client must receive a non-authorizing fallback/upgrade explanation, not spin or age-recover the wait as a stale stream.
+
+Ownership is `(runId, attemptId, leaseEpoch)`. A transaction increments `leaseEpoch` when granting replacement execution ownership. `lastProgressAt` plus a versioned bounded lease policy determines liveness; heartbeat independently of token arrivals, with a separate absolute wall-time cap. A fresh initial timestamp alone is insufficient, and elapsed UI time cannot declare failure.
+
+Every Run-owned agent content/reasoning/tool/source/artifact/checkpoint mutation and terminal claim must validate this ownership and relevant cancellation/deletion fences. Standalone asynchronous writes instead prove their admitted operation/operation-Attempt fences; human artifact saves check current authenticated artifact/parent edit rights before the shared revision CAS, without a Run or agent lease ([02](02-data-model.md)). All content writers require the undeleted owner and actual resource parents. Release/recovery may affect only the matching owner/epoch, preserving existing lock-ID protection. A stale worker may submit attributable usage or a late remote-effect observation to its old Attempt, but cannot change current answer content, dispatch another tool, release a newer lease or overwrite terminal status. Financial/effect evidence has a separately authorized idempotent ingestion path that requires no live chat and cannot resurrect erased content; it is not a way around content fences.
+
+Complete the answer's durable terminal claim before independent, repairable title, triage, counting and telemetry enrichment. An enrichment exception is recorded separately and must never turn `succeeded`/`complete` into `failed`/`error`. Settlement retry cannot duplicate usage. ([Late-state failures](../../research_notes/blah-chat-modernization-review/generation.md#g9-post-completion-work-can-turn-a-successful-answer-into-an-error))
+
+## Immutable branch retry and background identity
+
+Regeneration and user-message retry resolve the intended parent through the DAG and create a new sibling assistant/Run. Preserve the old failed/partial answer, comparison siblings, attachments, sources and tool receipts. Selecting a different branch is not permission to delete later chronological messages. Automatic fallback records a new Attempt and failed-model exclusion; it may continue only from a safe persisted boundary, never replay a whole side-effecting conversation because the final prose failed.
+
+Background work has no inherited interactive auth. Pass explicit admitted identity through internal queries and prompt construction, including custom-instruction enablement, project instructions, memory and blank-slate/incognito policy. Cache identities include those versions and scope. An uncached scheduled fake-provider action must contain only the intended owner's enabled instructions; a prefilled `cachedSystemPrompt` fixture cannot prove this contract. ([Scheduler auth](https://docs.convex.dev/scheduling/scheduled-functions#auth), [G6](../../research_notes/blah-chat-modernization-review/generation.md#g6-scheduled-generation-drops-user-custom-instructions))
+
+## Bounded provider and tool continuation
+
+Keep the current SDK6 loop for ordinary chat while repairing its contracts. Its existing 15-step ceiling is a retained outer bound, not permission to perform 15 expensive effects. Enforce reviewed token, tool-count, retry, compute and wall-time bounds as well; Q3 supplies numeric policies. Disable opaque SDK automatic retries where they cannot be individually identified and charged, or instrument each physical dispatch. A timeout implemented only with `Promise.race` does not terminate the underlying call.
+
+Native tool `args`/`result` stay structured through execution, storage and UI. The model-facing adapter alone frames untrusted output. Before continuation, retain complete call/result groups and provider-required reasoning/signatures, run the exact request preflight, and persist the bounded continuation boundary. For locked SDK6, tool calls use `input`; tool results include `toolName` and typed `output`, not the obsolete `args`/`result` reconstruction. Prefer SDK response messages plus a typed, version-specific converter. Pass the same abort signal, provider options, payer and usage hooks into tool-only `generateText` continuation. A generic success summary must not disguise a failed tool. ([Locked content parts](https://github.com/vercel/ai/blob/ai%406.0.89/packages/provider-utils/src/types/content-part.ts#L109-L166), [G11](../../research_notes/blah-chat-modernization-review/generation.md#g11-tool-only-fallback-continuation-constructs-obsolete-sdk-messages))
+
+Before any executor dispatch, recheck Run epoch, cancellation, exact selected account, current scopes/policy and any exact-effect approval. Local mutations deduplicate `effectOperationId` in the same transaction as the domain change. Remote effects use a supported provider idempotency key or reconciliation; lost acknowledgment is `unknown`, never evidence that nothing happened. Keep confirmed tool outcomes when a later model call fails. A model-issued replacement call is not automatically a new authorization. [07](07-tools-and-computer.md) and [09](09-integrations.md) own effect policy.
+
+Stop must persist `cancelRequestedAt`, consume/cancel pending interactions and fence new dispatches transactionally. A bounded independent monitor reaches silent model/HTTP calls; supported operations receive `AbortSignal`. Stop preserves saved partials and settles already incurred usage even when the provider never supplies a final total. It does not roll back an already committed local/remote effect. A late observation may clarify that effect without changing the cancelled Run. Comparison Stop task targets the explicitly admitted set, not every future run in the conversation.
+
+## Durable park and resume
+
+Clarification collects information; approval authorizes one exact effect. Both use `interactions`, with distinct `kind` and the canonical statuses in [02](02-data-model.md). A clarification is not a succeeded execution, and a conversational "yes" is not an approval. (D-010/D-025)
+
+1. Persist the interaction's `request`, `requestHash`, `version`, `policyVersion`, branch/Run/Attempt/tool references and optional expiry alongside the wait transition and saved output. Approval binds exact account, destination and input/content hashes. Do not return a fake completed tool result while secretly expecting browser input.
+2. Stop progression at a validated model/tool boundary and exit the active call. No open stream, busy loop or Node action waits for a person. Store bounded references/results, not the full transcript in a workflow journal.
+3. The answer command checks authenticated owner authority (Q5 governs collaborators), pending interaction/version/hash, expiry, branch validity and Run cancellation. Compare-and-swap stores one decision and `resumeOperationId`; two tabs get one winner and the same receipt. Denied/expired/cancelled/superseded requests never dispatch the effect.
+4. Resume revalidates permissions, account revisions, budgets and target context; reacquires execution with a new lease epoch; consumes the recorded answer once; then runs the next bounded call on the same Run. Changed effect inputs require fresh approval. If continuation cannot safely reconstruct state, preserve the wait/output and offer a specific recovery rather than replaying tools.
+
+Convex Workflow is the preferred **SPIKE**, not a selected dependency (D-021/Q19/S8). Compare an explicit Convex continuation with Workflow 0.4.10 using one bounded model call and separately journaled effect steps. Workflow journals completed results and waits for events, but in-flight actions can finish after cancel; replay order/version and journal cleanup remain app responsibilities. Workpool bounds concurrency, not exactly-once effects. WorkflowAgent is an alternative only if a measured requirement warrants another compute/auth/projection boundary; its approval API alone does not establish same-run parking. Eve remains an experiment with failed crash probes and synthetic billing, not the chosen engine. ([Runtime comparison](../../research_notes/blah-chat-modernization-review/agent-prior-art.md#runtime-comparison), [Workflow](https://github.com/get-convex/workflow), [external-effect caveat](https://docs.temporal.io/activity-definition#idempotency))
+
+## Quiet workbench behavior
+
+Under proposed [03](03-design-concept.md)/D-023/Q2, the answer is the hero. Show saved partial text in place after refresh; acknowledge a send only when durable admission returns its IDs. Keep unsent drafts visibly unsent. A quiet work disclosure names actual phases and elapsed duration, without percentages or finish promises. Required question/approval cards stay outside collapsed activity.
+
+Waiting uses a paused treatment with the authored controls and Stop task, not a spinner. After submission, show the server's accepted receipt before continuation. Stop leaves readable partial work and a restrained "Stopped" marker; an uncertain effect says what may have happened and offers reconciliation, not "Try again" as a blind repeat. Retry creates a visible alternative answer on the intended branch. CLI/mobile use the same nouns and receipts through [17](17-cli.md)/[18](18-mobile-and-desktop.md).
+
+## Small releases and proof
+
+Start with native results, valid continuation, explicit background owner, monotonic completion and all-step settlement in the current action. Ship immutable retry/idempotent admission next; add optional Run/Attempt/event fields with legacy projections; only then release durable waits after S8. No giant framework rebuild is a prerequisite. SDK6 maintenance and an eventual SDK7 migration are separate cohorts (D-020; [dependency gates](../../research_notes/blah-chat-modernization-review/dependencies.md#runtime-and-integration-gates)).
+
+S3/S8 must execute the real action, validators and pinned provider serialization with fake fetch/model backends, not only call completion helpers. Required cases include:
+
+- Three model steps, a tool-only continuation and a physical retry; native calculator/search/task-failure output and correctly charged totals.
+- Lost admission acknowledgment; identical replay; reused ID with changed payload; mixed web/CLI/regenerate/comparison admission.
+- Healthy work beyond 61 seconds; silent provider stop; stop-before-start; stale A release/tool/finish after B; successful completion followed by failed enrichment.
+- Older failed branch plus newer successful/comparison siblings; every original row/metadata retained after retry.
+- Uncached background custom instructions for two owners, disabled instructions and blank-slate incognito.
+- Two-tab answer, denial/expiry, stop versus resume, revoked account, changed input hash and process loss before/after provider/effect/checkpoint/usage commit. Completed effects must not repeat; unknown ones must remain blocked for reconciliation.
+
+Rollback chooses the old producer only for **new** admissions. Existing Runs keep their `runnerVersion` and recovery path until drained/cancelled safely. Retain additive fields, common effect/usage keys and old readers; never dual-execute real calls to compare engines. Candidate-release and separately authorized live canary gates are in [15](15-observability-and-evals.md)/[20](20-roadmap.md). These checks are planned, not executed; no latency, recovery-rate or cost improvement is measured.

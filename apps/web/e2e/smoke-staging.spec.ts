@@ -34,6 +34,11 @@ test.describe("authenticated smoke", () => {
   test("conversation create/read/delete persists through Convex", async ({
     page,
   }) => {
+    await page.goto(`${baseUrl()}/settings`);
+    await expect(
+      page.getByRole("button", { name: "Open user menu", exact: true }),
+    ).toBeVisible({ timeout: 30_000 });
+
     const api = page.context().request;
     const title = `convex-smoke-${Date.now()}`;
     let id: string | undefined;
@@ -42,18 +47,23 @@ test.describe("authenticated smoke", () => {
         data: { title, model: DEFAULT_MODEL_ID },
       });
       expect(response.status()).toBe(201);
+      expect(response.headers()["content-type"]).toMatch(/application\/json/i);
       const created = await response.json();
       id = created.data?._id ?? created.data?.id;
       expect(id).toBeTruthy();
       const fetched = await api.get(`${baseUrl()}/api/v1/conversations/${id}`);
       expect(fetched.status()).toBe(200);
+      expect(fetched.headers()["content-type"]).toMatch(/application\/json/i);
       expect((await fetched.json()).data.title).toBe(title);
     } finally {
       if (id) {
         const response = await api.delete(
           `${baseUrl()}/api/v1/conversations/${id}`,
         );
-        expect([200, 404]).toContain(response.status());
+        expect(response.status()).toBe(200);
+        expect(response.headers()["content-type"]).toMatch(
+          /application\/json/i,
+        );
       }
     }
   });

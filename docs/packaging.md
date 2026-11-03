@@ -91,11 +91,59 @@ Missing provenance is rejected; use the separate
 rollback workflow for an older verified production artifact. The read-only Vercel
 deployment API is used because `vercel inspect --json` omits project/source fields.
 
-The coordinator observed the existing production artifact
-`dpl_7459Sr6pJERwJDC86fNkwZfP9BTm` without `gitSource`, with both metadata SHAs
-pointing to the old deployed source and `gitDirty: "1"`. It is deliberately
-ineligible for this promotion path; no dirty-artifact exception was added and no
-live deployment was changed.
+### Configure the deployed-liveness smoke
+
+Set these repository environment secrets in GitHub's `staging` environment:
+
+- `SMOKE_BASE_URL=https://staging.blah.chat`
+- `SMOKE_AUTH_STORAGE_STATE_B64`: base64-encoded Playwright storage state for a
+  dedicated, non-admin Clerk account. Export real browser state that includes
+  Clerk's longer-lived client state as well as its current `__session` cookie;
+  a copied JWT alone expires after 60 seconds.
+
+From `apps/web`, keep the storage-state file outside the repository, then send its
+encoded contents to GitHub through stdin without printing them:
+
+```sh
+umask 077
+set -o pipefail
+mkdir -p "$HOME/.config/blah-chat"
+bunx playwright codegen \
+  --save-storage "$HOME/.config/blah-chat/smoke-storage-state.json" \
+  https://staging.blah.chat
+# Sign in as the dedicated smoke account, then close the browser to save its state.
+
+printf '%s' 'https://staging.blah.chat' \
+  | gh secret set SMOKE_BASE_URL --env staging
+base64 < "$HOME/.config/blah-chat/smoke-storage-state.json" \
+  | gh secret set SMOKE_AUTH_STORAGE_STATE_B64 --env staging
+```
+
+The account must remain low-privilege. Do not use an admin account or Vercel
+bypass cookies. Before storing a replacement, authenticate the dedicated account
+in a browser and export fresh Playwright storage state. Ordinary navigation in
+the smoke renews an existing authorized Clerk client session; it does not extend
+the Clerk session lifetime. Reauthenticate and replace the secret when that
+session expires or is revoked. An expired or revoked session must fail the smoke,
+not be skipped or bypass authentication.
+
+CI runs this deployed-liveness check against `SMOKE_BASE_URL`, independently of
+the candidate built by that run. Pull requests use the configured staging URL
+when available; otherwise they fall back to production, and authenticated smoke
+is skipped when its state secret is unavailable. Push and manual runs require
+both secrets. A passing smoke is not exact-candidate send/refresh proof. Treat the
+immutable deployment URL as the promotion input, and verify that the staging
+hostname aliases that exact deployment ID before using it as promotion evidence.
+Production Clerk rejects the `vercel.app` origin; do not relax the exact identity
+checks to make a preview hostname work.
+
+**Historical observation, 2026-11-02:** production artifact
+`dpl_7459Sr6pJERwJDC86fNkwZfP9BTm` lacked `gitSource`, its metadata SHAs pointed
+to the old deployed source, and `gitDirty` was `1`. It was ineligible for the
+promotion path at that time. **Current production artifact, 2026-11-03:**
+`dpl_AHDcdMQwsY9kymPFNWr5YTJtujFQ` was promoted from commit
+`c30441201494fc9a560c415b777e8ffa0147f540`. Use the immutable artifact and its
+verified source metadata for promotion, not the mutable staging hostname alone.
 
 ### External production-environment blocker
 

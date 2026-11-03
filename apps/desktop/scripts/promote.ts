@@ -29,8 +29,13 @@ export function requireCleanStageSource(
     // Report filenames only, escaping control characters; never read contents.
     const paths = untracked.split("\0").filter(Boolean);
     const preview = paths.slice(0, 20).map((path) => path.slice(0, 512));
+    const diagnostic = JSON.stringify(preview).replace(
+      /[\u007f-\u009f]/g,
+      (character) =>
+        `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`,
+    );
     throw new Error(
-      `Staging source contains untracked nonignored files (${paths.length}): ${JSON.stringify(preview)}`,
+      `Staging source contains untracked nonignored files (${paths.length}): ${diagnostic}`,
     );
   }
 }

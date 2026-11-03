@@ -164,7 +164,7 @@ test("repository ignores admit backend build exports without global Git ignores"
 
 test("staging reports escaped untracked paths without reading their contents", () => {
   const fixture = stageFixture();
-  const filename = 'unexpected-"line\nbreak.txt';
+  const filename = 'unexpected-"line\nbreak\u007f\u0085.txt';
   const contents = "PRIVATE_FILE_CONTENT_MUST_NOT_BE_LOGGED";
   writeFileSync(join(fixture.directory, filename), contents);
   let message = "";
@@ -174,9 +174,11 @@ test("staging reports escaped untracked paths without reading their contents", (
     if (!(error instanceof Error)) throw error;
     message = error.message;
   }
-  expect(message).toContain(JSON.stringify(filename));
+  expect(message).toContain('unexpected-\\"line\\nbreak\\u007f\\u0085.txt');
   expect(message).not.toContain(contents);
   expect(message).not.toContain("\n");
+  expect(message).not.toContain("\u007f");
+  expect(message).not.toContain("\u0085");
 });
 
 test("staging bounds the filename diagnostic without accepting omitted paths", () => {

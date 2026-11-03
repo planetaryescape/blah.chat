@@ -21,6 +21,12 @@ coverage/
 # production
 /build
 
+# Generated exports built by the backend deployment script
+/packages/ai/dist/
+/packages/shared/dist/
+/packages/auto-router/dist/
+/packages/cognitive-memory/dist/
+
 # misc
 .DS_Store
 *.pem

@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -104,7 +104,7 @@ for (const patch of [
   });
 }
 
-function stageFixture() {
+function stageFixture(ignoreRules = "ignored-output\n") {
   const directory = mkdtempSync(join(tmpdir(), "blah-chat-cli-stage-"));
   const git = (args: string[]) =>
     execFileSync("git", args, {
@@ -114,7 +114,7 @@ function stageFixture() {
     });
   git(["init", "--quiet"]);
   writeFileSync(join(directory, "tracked.txt"), "committed source\n");
-  writeFileSync(join(directory, ".gitignore"), "ignored-output\n");
+  writeFileSync(join(directory, ".gitignore"), ignoreRules);
   git(["add", "."]);
   git([
     "-c",
@@ -137,6 +137,66 @@ test("staging accepts the exact committed checkout and ignored build outputs", (
   const fixture = stageFixture();
   writeFileSync(join(fixture.directory, "ignored-output"), "generated\n");
   expect(() => requireCleanStageSource(fixture.sha, fixture.git)).not.toThrow();
+});
+
+test("repository ignores admit backend build exports without global Git ignores", () => {
+  const fixture = stageFixture(
+    readFileSync(new URL("../../../.gitignore", import.meta.url), "utf8"),
+  );
+  fixture.git(["config", "core.excludesFile", "/dev/null"]);
+  for (const name of ["ai", "shared", "auto-router", "cognitive-memory"]) {
+    const directory = join(fixture.directory, "packages", name, "dist");
+    mkdirSync(directory, { recursive: true });
+    writeFileSync(join(directory, "index.js"), "// generated export\n");
+  }
+  expect(() => requireCleanStageSource(fixture.sha, fixture.git)).not.toThrow();
+
+  const sourceDirectory = join(fixture.directory, "packages", "ai", "src");
+  mkdirSync(sourceDirectory, { recursive: true });
+  writeFileSync(
+    join(sourceDirectory, "unexpected.ts"),
+    "// unreviewed source\n",
+  );
+  expect(() => requireCleanStageSource(fixture.sha, fixture.git)).toThrow(
+    "packages/ai/src/unexpected.ts",
+  );
+});
+
+test("staging reports escaped untracked paths without reading their contents", () => {
+  const fixture = stageFixture();
+  const filename = 'unexpected-"line\nbreak.txt';
+  const contents = "PRIVATE_FILE_CONTENT_MUST_NOT_BE_LOGGED";
+  writeFileSync(join(fixture.directory, filename), contents);
+  let message = "";
+  try {
+    requireCleanStageSource(fixture.sha, fixture.git);
+  } catch (error) {
+    if (!(error instanceof Error)) throw error;
+    message = error.message;
+  }
+  expect(message).toContain(JSON.stringify(filename));
+  expect(message).not.toContain(contents);
+  expect(message).not.toContain("\n");
+});
+
+test("staging bounds the filename diagnostic without accepting omitted paths", () => {
+  const fixture = stageFixture();
+  for (let index = 0; index < 21; index++) {
+    writeFileSync(
+      join(fixture.directory, `extra-${String(index).padStart(2, "0")}.txt`),
+      "not committed\n",
+    );
+  }
+  let message = "";
+  try {
+    requireCleanStageSource(fixture.sha, fixture.git);
+  } catch (error) {
+    if (!(error instanceof Error)) throw error;
+    message = error.message;
+  }
+  expect(message).toContain("untracked nonignored files (21)");
+  expect(message).toContain("extra-19.txt");
+  expect(message).not.toContain("extra-20.txt");
 });
 
 for (const dirty of ["tracked", "index", "untracked", "wrong-sha"]) {

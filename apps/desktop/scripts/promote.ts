@@ -24,8 +24,15 @@ export function requireCleanStageSource(
     "--ignore-submodules=none",
     "--",
   ]);
-  if (git(["ls-files", "--others", "--exclude-standard", "-z"]).length > 0)
-    throw new Error("Staging source contains untracked nonignored files");
+  const untracked = git(["ls-files", "--others", "--exclude-standard", "-z"]);
+  if (untracked.length > 0) {
+    // Report filenames only, escaping control characters; never read contents.
+    const paths = untracked.split("\0").filter(Boolean);
+    const preview = paths.slice(0, 20).map((path) => path.slice(0, 512));
+    throw new Error(
+      `Staging source contains untracked nonignored files (${paths.length}): ${JSON.stringify(preview)}`,
+    );
+  }
 }
 
 export function requireProtectedMainSource(source: {

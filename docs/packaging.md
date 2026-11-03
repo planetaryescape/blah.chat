@@ -67,6 +67,16 @@ to the CLI. Generated binding changes from Convex codegen also fail this gate;
 commit the current bindings rather than ignoring those changes. Vercel's own Git
 metadata supplies `gitCommitSha` and the string-valued `gitDirty` marker.
 
+If staging rejects untracked source files, its error lists filenames only (up to
+20 paths, each limited to 512 characters, with control characters escaped). It
+does not read file contents. Identify the producing step and review the output;
+do not bypass the guard, delete unknown files, or add broad ignore patterns.
+
+The backend deploy script generates exports in `packages/{ai,shared,auto-router,cognitive-memory}/dist/`.
+These four build directories are ignored by the repository, not just a local
+global Git configuration. A regression test disables global ignores and checks
+that generated exports are accepted while an untracked source file is rejected.
+
 Promotion then uses only the
 verified immutable deployment ID. The selected commit must also have successful
 GitHub Actions checks named `Lint & Typecheck`, `Unit & Integration Tests`, and

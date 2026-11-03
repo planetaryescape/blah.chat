@@ -102,6 +102,17 @@ describe("paid auxiliary action boundaries", () => {
     expect(provider.generateText).toHaveBeenCalledTimes(1);
   });
 
+  it("rejects when estimated maximum request cost exceeds remaining budget", async () => {
+    const { owner } = await fixture(0.000000001);
+
+    await expect(
+      owner.action(api.generation.summarizeSelection, {
+        text: "small input, but not enough budget for the capped request",
+      }),
+    ).rejects.toThrow("Insufficient remaining monthly budget");
+    expect(provider.generateText).not.toHaveBeenCalled();
+  });
+
   it("records successful owner usage through the real usage mutation", async () => {
     const { t, owner, ownerId } = await fixture();
     provider.generateText.mockResolvedValue({
@@ -130,6 +141,7 @@ describe("paid auxiliary action boundaries", () => {
     });
     expect(records[0].cost).toBeGreaterThan(0);
     expect(provider.generateText.mock.calls[0]?.[0]).toMatchObject({
+      maxRetries: 0,
       maxOutputTokens: 1_024,
     });
   });
@@ -155,6 +167,36 @@ describe("paid auxiliary action boundaries", () => {
       inputTokens: 13,
       outputTokens: 2,
       messageCount: 1,
+      feature: "chat",
+    });
+  });
+
+  it("releases a worker slot after abort and records usage once per attempt", async () => {
+    const { t, owner, ownerId } = await fixture();
+    provider.generateText.mockRejectedValue(
+      Object.assign(new Error("inference aborted"), {
+        name: "AbortError",
+        usage: { inputTokens: 17, outputTokens: 4 },
+      }),
+    );
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await expect(
+        owner.action(api.generation.summarizeSelection, {
+          text: `aborted selection ${attempt}`,
+        }),
+      ).rejects.toThrow("Summary generation timed out");
+    }
+    expect(provider.generateText).toHaveBeenCalledTimes(3);
+    const records = await t.run((ctx) =>
+      ctx.db.query("usageRecords").collect(),
+    );
+    expect(records).toHaveLength(1);
+    expect(records[0]).toMatchObject({
+      userId: ownerId,
+      inputTokens: 51,
+      outputTokens: 12,
+      messageCount: 3,
       feature: "chat",
     });
   });

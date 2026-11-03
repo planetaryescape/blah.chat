@@ -2066,6 +2066,7 @@ export const summarizeSelection = action({
           },
         ],
         abortSignal: abortController.signal,
+        maxRetries: 0,
         maxOutputTokens: MAX_SUMMARY_OUTPUT_TOKENS,
         providerOptions: getGatewayOptions(SUMMARIZATION_MODEL.id, undefined, [
           "summary",

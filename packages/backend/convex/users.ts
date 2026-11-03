@@ -186,11 +186,6 @@ export const updatePreferences = mutation({
       showBookmarks: v.optional(v.boolean()),
       showSlides: v.optional(v.boolean()),
       showTasks: v.optional(v.boolean()),
-      showSmartAssistant: v.optional(v.boolean()),
-      noteCategoryMode: v.optional(
-        v.union(v.literal("fixed"), v.literal("ai-suggested")),
-      ),
-      customNoteCategories: v.optional(v.array(v.string())),
       autoCompressContext: v.optional(v.boolean()),
       autoRouterEnabled: v.optional(v.boolean()),
       autoRouterCostBias: v.optional(v.number()),

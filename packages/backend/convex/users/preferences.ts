@@ -72,7 +72,7 @@ export async function getUserPreferencesByCategory(
  *
  * @param ctx - Query context
  * @param userId - User ID
- * @returns Object with all 35 preference fields
+ * @returns Object with every active preference field
  */
 export async function getAllUserPreferences(
   ctx: QueryCtx,
@@ -251,22 +251,9 @@ function validatePreference(key: string, value: any): void {
     case "showBookmarks":
     case "showSlides":
     case "showTasks":
-    case "showSmartAssistant":
     case "enableModelRecommendations":
       if (typeof value !== "boolean") {
         throw new Error(`${key} must be a boolean`);
-      }
-      break;
-
-    case "noteCategoryMode":
-      if (!["fixed", "ai-suggested"].includes(value)) {
-        throw new Error("noteCategoryMode must be 'fixed' or 'ai-suggested'");
-      }
-      break;
-
-    case "customNoteCategories":
-      if (!Array.isArray(value) || !value.every((v) => typeof v === "string")) {
-        throw new Error("customNoteCategories must be an array of strings");
       }
       break;
 

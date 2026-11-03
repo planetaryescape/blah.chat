@@ -29,7 +29,7 @@ Evidence: [full artifact and interaction trace](../../research_notes/blah-chat-a
 | Interaction / `interactions` | `kind: clarification\|approval`, `ownerUserId`, `conversationId`, `messageId`, `runId`, `attemptId`, `toolCallId?`, `branchHeadMessageId`, `request`, `requestHash`, `version`, `policyVersion`, `status`, `expiresAt?`, `answer?`, `answeredByUserId?`, `answeredAt?`, `resumeOperationId?` |
 | Run event / `runEvents` | `runId`, `attemptId?`, `sequence`, `type`, `producer: orchestrator\|executor\|model`, bounded `payload`, `occurredAt`, `persistedAt`. Stable event IDs/cursors survive refresh. |
 | Artifact / `artifacts` | Owner/conversation, `kind: document\|code\|html\|diagram\|image\|file`, `currentRevisionId`, `status`. Validated title, format and presentation metadata must not substitute for identity. |
-| Revision / `artifactRevisions` | `artifactId`, `parentRevisionId?`, `ordinal`, `baseRevisionId?`, `operationId`, `operationOwnerUserId`, `requestHash`, `author: {kind:"human",userId} | {kind:"agent",runId,attemptId,toolCallId}`, real `messageId?`, `contentRef`, `contentHash`, MIME/bytes, `status`; IDs branded by 02 |
+| Revision / `artifactRevisions` | `artifactId`, `parentRevisionId?`, `ordinal`, `baseRevisionId?`, `operationId`, `operationOwnerUserId`, `requestHash`, `author: {kind:"human",userId} \| {kind:"agent",runId,attemptId,toolCallId}`, real `messageId?`, `contentRef`, `contentHash`, MIME/bytes, `status`; IDs branded by 02 |
 | Message reference / `messageArtifacts` | Message/artifact/exact revision junction, ordered relation; it pins the historical answer, never just the current artifact. |
 | Provenance / `artifactSources` | Revision/source junction with recoverable locator/attribution; source reads retain parent authorization. |
 
@@ -51,7 +51,7 @@ Revision.status = draft | committed | partial | failed | cancelled
 
 Run terminals are monotonic. `cancelRequestedAt` requests cancellation; it is not an eighth Run state. Preparing, compacting, retrying and reconciling are event phases/reasons. Unknown external effects live on outcomes, not a new Run state. A clarification result is waiting, not successful execution.
 
-Current `messages.status` remains `pending|generating|complete|stopped|error`. Run pending/running/succeeded/failed/cancelled project to those states respectively. Add an explicit optional run/wait projection for the two wait states; do not claim they already exist in the current enum or leave old readers spinning/recovering a legitimate wait. [18](18-mobile-and-desktop.md) and S15 gate compatibility.
+Current `messages.status` remains `pending|generating|complete|stopped|error`. The Run-to-message projection is `pending → pending`, `running → generating`, `succeeded → complete`, `failed → error`, and `cancelled → stopped`. Add an explicit optional run/wait projection for the two wait states; do not claim they already exist in the current enum or leave old readers spinning/recovering a legitimate wait. [18](18-mobile-and-desktop.md) and S15 gate compatibility.
 
 ## Artifacts as ordinary answers
 

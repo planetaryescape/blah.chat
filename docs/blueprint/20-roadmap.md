@@ -2,7 +2,7 @@
 
 ## Build philosophy
 
-We are improving a working application, not building a replacement before anyone can use it. Start with safer existing chat, then make each new capability useful end to end. This is a PROPOSED release order, pending Q1, not implementation or deployment authorization (D-001, D-030).
+We are improving a working application, not building a replacement before anyone can use it. Start with safer existing chat, then make each new capability useful end to end. This was the PROPOSED release order under the original planning scope (D-001, D-030). D-036 subsequently authorizes implementation, merge and deployment beginning with rung 1; later policies remain gated by their stated questions.
 
 - Skateboard → scooter → bicycle → motorbike → car: stop after any released rung and the previous working product remains available.
 - A rung fits one working session and adds one observable outcome. Each names at most two new unknowns. If its acceptance cannot fit that session, insert a lettered rung before starting; never declare a half-working subsystem complete.
@@ -702,11 +702,11 @@ Elective AI7, direct Google/Anthropic client API migrations, TS6→7, Shiki4/cod
 
 ## Requirement, decision and finding coverage
 
-The [report](../../reports/blah-chat-modernization-review.md) and [synthesis](../research/modernization-review.md) own evidence; this table assigns implementation/release buckets, not new approval. Every D-001–D-035 has an owner here.
+The [report](../../reports/blah-chat-modernization-review.md) and [synthesis](../research/modernization-review.md) own evidence; this table assigns implementation/release buckets, not new approval. Every D-001–D-036 has an owner here.
 
 | Decisions / requirement | Domain and release bucket |
 |---|---|
-| D-001/D-002: research only now; preserve durable architecture/repo rules | README/KICKOFF; [01](01-architecture.md); F1 and every release contract |
+| D-001/D-036/D-002: historical research scope replaced by authorized delivery; preserve durable architecture/repo rules | README delivery update; [21](21-decision-log.md); [01](01-architecture.md); rung 1 and every release contract |
 | D-003/D-032: complete approved Smart Assistant purge, preserved data | [16](16-smart-assistant-removal.md); 2 and 2b, not a permanent flag |
 | D-004: list narration | [11](11-rendering-and-narration.md); 3 |
 | D-005/D-018: approximate 80% compaction/caching | [05](05-context-and-caching.md); 14–17; optional native/cache branch later |

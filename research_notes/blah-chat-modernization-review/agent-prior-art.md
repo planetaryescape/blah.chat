@@ -36,7 +36,7 @@ These are adoption candidates, not instructions to install everything together.
 | `@ai-sdk/gateway` | 4.0.135 | Requires Node >=22 | [Registry](https://registry.npmjs.org/@ai-sdk%2Fgateway) |
 | `@openrouter/ai-sdk-provider` | 3.1.0 | v7 peer exists; current lock resolves v2.2.3 with v6 peer | [Registry](https://registry.npmjs.org/@openrouter%2Fai-sdk-provider); [lockfile](../../bun.lock) |
 | `@composio/vercel` | 0.13.0 | Supports v6/v7, requires newer Composio core and Node >=22.22.3; not a drop-in assumption for current 0.6.x | [Registry](https://registry.npmjs.org/@composio%2Fvercel) |
-| `@tavily/ai-sdk` | latest 0.5.0 | Still declares `ai: ^5 || ^6`; v7 compatibility is unverified, do not force peer overrides | [Registry](https://registry.npmjs.org/@tavily%2Fai-sdk) |
+| `@tavily/ai-sdk` | latest 0.5.0 | Still declares `ai: ^5 \|\| ^6`; v7 compatibility is unverified, do not force peer overrides | [Registry](https://registry.npmjs.org/@tavily%2Fai-sdk) |
 | `@convex-dev/agent` | 0.7.9 | Peers require AI SDK ^7.0.129, Convex ^1.46.0, helpers ^0.1.127; not an independent v6 add-on | [Registry](https://registry.npmjs.org/@convex-dev%2Fagent) |
 | `@convex-dev/workflow` / `workpool` | 0.4.10 / 0.4.15 | Workflow does not require AI SDK 7, so durability can be evaluated separately from provider migration | [Workflow](https://registry.npmjs.org/@convex-dev%2Fworkflow); [Workpool](https://registry.npmjs.org/@convex-dev%2Fworkpool) |
 

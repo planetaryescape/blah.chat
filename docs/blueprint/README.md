@@ -94,7 +94,7 @@ BK subsequently authorized building this blueprint and explicitly selected merge
 and deployment through the existing release channel. Work starts with rung 1;
 later capability policies remain unresolved at their stated boundaries. The
 planning-session statements above remain the record of what was authorized then,
-not a prohibition on this later implementation. No rung is claimed deployed by
+not a prohibition on this later implementation. [D-036](21-decision-log.md#d-036-begin-implementation-with-rung-1-and-carry-reviewed-work-through-merge-and-deployment-bk-2026-11-03) records this replacement of D-001's research-only scope. No rung is claimed deployed by
 this update.
 
 BK separately approved the protected-branches-only `Production` environment

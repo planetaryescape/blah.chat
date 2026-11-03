@@ -18,6 +18,7 @@ This log records the modernization planning session on 2026-11-03 for an existin
 ## Decisions
 
 ### D-001: Deliver evidence-backed research and a modernization blueprint, not implementation. (BK)
+- **Status:** Historical planning scope; superseded for the authorized delivery work by D-036. The evidence and preservation constraints remain in force.
 - **Why:** BK requested evaluation, current research and a blueprint. Source claims, proposed design and runtime measurements must remain distinguishable.
 - **Constraint:** Preserve root AGENTS.md, existing documentation and unrelated experiments. No installs, commits, application edits, paid calls or deployment changes in this assignment.
 - **Evidence:** [Curated research](../research/modernization-review.md), especially its evidence ledger and source registry.
@@ -165,3 +166,8 @@ This log records the modernization planning session on 2026-11-03 for an existin
 ### D-035: Resolve one executable catalog snapshot for UI, admission, routing and pricing. (GPT-6.1, recommendation delegated by BK)
 - **Status:** PROPOSED, Q8/Q18; S5/S18.
 - **Why:** Database picker rows, shared AI configuration and router-local profiles currently disagree in authority. Persist actual route/model/payer and capability/pricing versions; retain old versions for historical display/cost. Do not assume a custom picker row has a working provider adapter. [06](06-model-routing.md), [14](14-cost-model.md).
+
+### D-036: Begin implementation with rung 1 and carry reviewed work through merge and deployment. (BK, 2026-11-03)
+- **Status:** Accepted delivery authorization; replaces D-001's research-only restriction for this work, not its historical record.
+- **Evidence:** BK explicitly selected merge and deployment, then confirmed: "when it's ready just merge it, i give you permission". See the [delivery update](README.md#delivery-update-2026-11-03).
+- **Boundary:** Begin with the security repair, retain exact-candidate review and release gates, and do not implement dependent rungs before their prerequisites deploy. This does not settle later product policies or authorize billing changes, destructive data operations, private-code copying, or saving an administrator session as a low-privilege CI credential.

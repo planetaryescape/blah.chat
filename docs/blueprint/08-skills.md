@@ -31,10 +31,10 @@ All are new proposed tables, not deployed claims. Reuse existing `users` ownersh
 | Record | Fields and invariants |
 |---|---|
 | `skills` | `ownerUserId`, unique owner/slug, display name, `currentVersionId?`, timestamps. Selecting current never rewrites historical versions. |
-| `skillVersions` | `skillId`, `ownerUserId`, `version`, `parentVersionId?`, `status`, `packageHash`, parsed metadata, immutable manifest/body refs, `origin: imported|user_authored|conversation_generated`, source archive hash/provenance/license, creator user/run/tool refs, author model/prompt version if applicable, `validationPolicyVersion`, validation-report ref, creation/publication timestamps. |
+| `skillVersions` | `skillId`, `ownerUserId`, `version`, `parentVersionId?`, `status`, `packageHash`, parsed metadata, immutable manifest/body refs, `origin: imported\|user_authored\|conversation_generated`, source archive hash/provenance/license, creator user/run/tool refs, author model/prompt version if applicable, `validationPolicyVersion`, validation-report ref, creation/publication timestamps. |
 | `skillVersionFiles` | `skillVersionId`, canonical `path`, owned content ref/hash, MIME/bytes, category, executable indicator. Unique version/path via transactional insertion. No arbitrary filesystem pointers. |
-| `skillBindings` | `ownerUserId`, `skillId`, exact `skillVersionId`, scope `user|project|conversation` with corresponding owned reference, `invocationMode: explicit_only|automatic_and_explicit|disabled`, restriction-policy ref, revision. One effective binding per skill/scope; no hidden new-version upgrade. |
-| `runSkillActivations` | `runId`, `skillVersionId`, `packageHash`, source `user|model`, reason, catalog/selection-policy hash, effective-policy hash, loaded file IDs/hashes and activation timestamps. One run/version activation; context-epoch loading tracked separately from identity. |
+| `skillBindings` | `ownerUserId`, `skillId`, exact `skillVersionId`, scope `user\|project\|conversation` with corresponding owned reference, `invocationMode: explicit_only\|automatic_and_explicit\|disabled`, restriction-policy ref, revision. One effective binding per skill/scope; no hidden new-version upgrade. |
+| `runSkillActivations` | `runId`, `skillVersionId`, `packageHash`, source `user\|model`, reason, catalog/selection-policy hash, effective-policy hash, loaded file IDs/hashes and activation timestamps. One run/version activation; context-epoch loading tracked separately from identity. |
 | `skillImportJobs` | Owner, stable request key/hash, source kind, owned quarantine refs, actual byte/file counters, validation diagnostics, processing state/expiry and cleanup state. Import-job state is not skill-version status. |
 | `skillDraftSources` | Draft version to selected conversation/message/artifact revision, branch head, source hash, purpose and minimal authorized excerpt/ref. No automatic permanent transcript copy. |
 | `skillReviews` | Owner, exact version/package hash, validation-report hash, proposed binding/mode, requested capabilities, expiring nonce, decision/actor/timestamps. This is a publication receipt, **not** an external-effect approval store. |
@@ -64,10 +64,11 @@ Canonical skill-version `status` is:
 draft -> validating -> review_required -> published
 validating|review_required -> rejected
 published -> superseded|disabled|revoked
+disabled -> review_required  [owner requests review of the same immutable bytes]
 superseded|disabled -> revoked
 ```
 
-An edit/retry creates a **new** `draft` version, rather than mutating validated bytes. `superseded` means replaced as current, not unsafe: existing pinned runs may use it if policy still permits. `disabled` denies new activation until a new owner review/re-enable decision; `revoked` denies activation/resource/script dispatch and blocks dependent schedules. Rollback repoints a binding to an already published, still-allowed immutable version; it never revives a revoked version or rewrites history. Import quarantine/expiration/deletion are job/retention facts, not extra version enum values.
+An edit/retry creates a **new** `draft` version, rather than mutating validated bytes. `superseded` means replaced as current, not unsafe: existing pinned runs may use it if policy still permits. `disabled` denies new activation. Re-enabling the same immutable version requires a fresh owner review and current-policy validation through `review_required → published`; changed bytes require a new draft. This remains a proposed policy, not implemented behavior. `revoked` denies activation/resource/script dispatch and blocks dependent schedules. Rollback repoints a binding to an already published, still-allowed immutable version; it never revives a revoked version or rewrites history. Import quarantine/expiration/deletion are job/retention facts, not extra version enum values.
 
 ## Tools and owner APIs
 

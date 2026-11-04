@@ -1,4 +1,5 @@
-import { MODEL_CONFIG } from "@blah-chat/ai/models";
+import { DEFAULT_MODEL_ID, MODEL_CONFIG } from "@blah-chat/ai/models";
+import { calculateCost } from "@blah-chat/ai/utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { convexTest } from "../../__tests__/testSetup";
 import { api, internal } from "../_generated/api";
@@ -21,8 +22,18 @@ vi.mock("ai", async (importOriginal) => ({
   generateText: generateTextMock,
 }));
 
-const EXPENSIVE_MODEL = "openai:gpt-5";
-const PREVIEW_MODEL = "openai:gpt-5-mini";
+const TRIAGE_EXPENSIVE_THRESHOLD = 5;
+const EXPENSIVE_MODEL_CONFIG = Object.values(MODEL_CONFIG).find(
+  (model) =>
+    model.provider !== "auto" &&
+    (model.pricing.input + model.pricing.output) / 2 >=
+      TRIAGE_EXPENSIVE_THRESHOLD,
+);
+if (!EXPENSIVE_MODEL_CONFIG) {
+  throw new Error("Model catalog must include a triage-expensive model");
+}
+const EXPENSIVE_MODEL = EXPENSIVE_MODEL_CONFIG.id;
+const PREVIEW_MODEL = DEFAULT_MODEL_ID;
 
 async function seedConversation(t: ReturnType<typeof convexTest>) {
   const identity = createMockIdentity();
@@ -63,7 +74,7 @@ describe("model triage accounting and preview authorization", () => {
       ctx.db.insert("usageRecords", {
         userId,
         date: new Date().toISOString().slice(0, 10),
-        model: "openai:gpt-oss-120b",
+        model: DEFAULT_MODEL_ID,
         feature: "smart_assistant",
         operationType: "text",
         inputTokens: 90,
@@ -123,10 +134,13 @@ describe("model triage accounting and preview authorization", () => {
         })),
     ).toEqual([
       expect.objectContaining({
-        model: "openai:gpt-oss-120b",
+        model: DEFAULT_MODEL_ID,
         inputTokens: 28,
         outputTokens: 8,
-        cost: expect.closeTo(0.000009, 12),
+        cost: calculateCost(DEFAULT_MODEL_ID, {
+          inputTokens: 28,
+          outputTokens: 8,
+        }),
         messageCount: 2,
       }),
     ]);
@@ -226,11 +240,180 @@ describe("model triage accounting and preview authorization", () => {
       status: "rejected",
       reason: expect.objectContaining({ message: "Not authenticated" }),
     });
+    expect(outcomes[1]).toMatchObject({
+      status: "rejected",
+      reason: expect.objectContaining({ message: "User not found" }),
+    });
+    expect(outcomes[2]).toMatchObject({
+      status: "rejected",
+      reason: expect.objectContaining({
+        message: expect.stringContaining(
+          "Preview generation failed: Conversation not found or access denied",
+        ),
+      }),
+    });
+    expect(outcomes[3]).toMatchObject({
+      status: "rejected",
+      reason: expect.objectContaining({
+        message: expect.stringContaining(
+          "Preview generation failed: Conversation not found or access denied",
+        ),
+      }),
+    });
 
     expect(generateTextMock).not.toHaveBeenCalled();
     expect(
       await t.run((ctx) => ctx.db.query("usageRecords").collect()),
     ).toHaveLength(0);
+  });
+
+  it("builds preview context from the active branch, not newer discarded turns", async () => {
+    const t = convexTest(schema);
+    const owner = await seedConversation(t);
+    const rootSentinel = "ACTIVE_ROOT_CONTEXT_SENTINEL";
+    const assistantSentinel = "ACTIVE_BRANCH_ASSISTANT_SENTINEL";
+    const question = "Compare these options";
+    const createdAt = Date.now();
+    await t.run(async (ctx) => {
+      const seededQuestion = await ctx.db
+        .query("messages")
+        .withIndex("by_conversation_created", (q) =>
+          q.eq("conversationId", owner.conversationId),
+        )
+        .first();
+      if (!seededQuestion) throw new Error("Expected seeded root message");
+      await ctx.db.patch(seededQuestion._id, {
+        content: rootSentinel,
+        isActiveBranch: true,
+        createdAt: createdAt - 4,
+      });
+      await ctx.db.insert(
+        "messages",
+        createTestMessageData(owner.conversationId, owner.userId, {
+          role: "assistant",
+          content: assistantSentinel,
+          isActiveBranch: true,
+          createdAt: createdAt - 3,
+        }),
+      );
+      await ctx.db.insert(
+        "messages",
+        createTestMessageData(owner.conversationId, owner.userId, {
+          content: question,
+          isActiveBranch: true,
+          createdAt: createdAt - 2,
+        }),
+      );
+      await ctx.db.insert(
+        "messages",
+        createTestMessageData(owner.conversationId, owner.userId, {
+          content: "DISCARDED_BRANCH_USER_SENTINEL",
+          isActiveBranch: false,
+          createdAt: createdAt - 1,
+        }),
+      );
+      await ctx.db.insert(
+        "messages",
+        createTestMessageData(owner.conversationId, owner.userId, {
+          role: "assistant",
+          content: "DISCARDED_BRANCH_ASSISTANT_SENTINEL",
+          isActiveBranch: false,
+          createdAt,
+        }),
+      );
+      await ctx.db.insert(
+        "messages",
+        createTestMessageData(owner.conversationId, owner.userId, {
+          content: "DISCARDED_BRANCH_TAIL_SENTINEL",
+          isActiveBranch: false,
+          createdAt: createdAt + 1,
+        }),
+      );
+    });
+    generateTextMock.mockResolvedValue({
+      text: "Active branch preview",
+      usage: { inputTokens: 17, outputTokens: 5 },
+    });
+
+    // @ts-ignore - Convex test action types exceed the generated API depth.
+    await t
+      .withIdentity(owner.identity)
+      .action(api.ai.modelTriage.generatePreview, {
+        conversationId: owner.conversationId,
+        userMessage: question,
+        suggestedModelId: PREVIEW_MODEL,
+      });
+
+    const requestPrompt = generateTextMock.mock.calls[0]?.[0]?.prompt;
+    expect(requestPrompt).toContain(rootSentinel);
+    expect(requestPrompt).toContain(assistantSentinel);
+    expect(requestPrompt).toContain(question);
+    expect(requestPrompt).not.toContain("DISCARDED_BRANCH_USER_SENTINEL");
+    expect(requestPrompt).not.toContain("DISCARDED_BRANCH_ASSISTANT_SENTINEL");
+    expect(requestPrompt).not.toContain("DISCARDED_BRANCH_TAIL_SENTINEL");
+  });
+
+  it("keeps all legacy turns in preview context when no branch flags exist", async () => {
+    const t = convexTest(schema);
+    const owner = await seedConversation(t);
+    const legacyUser = "LEGACY_ROOT_SENTINEL";
+    const legacyAssistant = "LEGACY_ASSISTANT_SENTINEL";
+    const question = "Compare these options";
+    const createdAt = Date.now();
+    await t.run(async (ctx) => {
+      const seededQuestion = await ctx.db
+        .query("messages")
+        .withIndex("by_conversation_created", (q) =>
+          q.eq("conversationId", owner.conversationId),
+        )
+        .first();
+      if (!seededQuestion) throw new Error("Expected seeded legacy message");
+      await ctx.db.patch(seededQuestion._id, {
+        content: legacyUser,
+        createdAt: createdAt - 3,
+      });
+      await ctx.db.insert(
+        "messages",
+        createTestMessageData(owner.conversationId, owner.userId, {
+          role: "assistant",
+          content: legacyAssistant,
+          createdAt: createdAt - 2,
+        }),
+      );
+      await ctx.db.insert(
+        "messages",
+        createTestMessageData(owner.conversationId, owner.userId, {
+          content: question,
+          createdAt: createdAt - 1,
+        }),
+      );
+    });
+    const storedMessages = await t.run((ctx) =>
+      ctx.db
+        .query("messages")
+        .withIndex("by_conversation_created", (q) =>
+          q.eq("conversationId", owner.conversationId),
+        )
+        .collect(),
+    );
+    expect(
+      storedMessages.every((message) => message.isActiveBranch === undefined),
+    ).toBe(true);
+    generateTextMock.mockResolvedValue({ text: "Legacy preview" });
+
+    // @ts-ignore - Convex test action types exceed the generated API depth.
+    await t
+      .withIdentity(owner.identity)
+      .action(api.ai.modelTriage.generatePreview, {
+        conversationId: owner.conversationId,
+        userMessage: question,
+        suggestedModelId: PREVIEW_MODEL,
+      });
+
+    const requestPrompt = generateTextMock.mock.calls[0]?.[0]?.prompt;
+    expect(requestPrompt).toContain(legacyUser);
+    expect(requestPrompt).toContain(legacyAssistant);
+    expect(requestPrompt).toContain(question);
   });
 
   it("blocks an owner preview when the real monthly budget check denies the caller", async () => {
@@ -427,7 +610,10 @@ describe("model triage accounting and preview authorization", () => {
           model: PREVIEW_MODEL,
           inputTokens: 17,
           outputTokens: 5,
-          cost: 0.00001425,
+          cost: calculateCost(PREVIEW_MODEL, {
+            inputTokens: 17,
+            outputTokens: 5,
+          }),
         }),
         expect.objectContaining({
           userId: collaboratorId,
@@ -435,7 +621,10 @@ describe("model triage accounting and preview authorization", () => {
           model: PREVIEW_MODEL,
           inputTokens: 17,
           outputTokens: 5,
-          cost: 0.00001425,
+          cost: calculateCost(PREVIEW_MODEL, {
+            inputTokens: 17,
+            outputTokens: 5,
+          }),
         }),
       ]),
     );

@@ -595,6 +595,21 @@ describe("faithful structural narration", () => {
       listDepth: 2,
       listItemId: codeBlocks[0].listItemId,
     });
+    expect
+      .soft(
+        narration.segments.every((segment) =>
+          segment.id.startsWith("speech-v2:"),
+        ),
+      )
+      .toBe(true);
+    expect
+      .soft(
+        narration.segments.find((segment) => segment.text === "End of code."),
+      )
+      .toMatchObject({
+        listDepth: 2,
+        listItemId: codeBlocks[0].listItemId,
+      });
     expect(codeBlocks[0].sourceStart).toBe(source.indexOf("```ts"));
     expect(
       source.slice(codeBlocks[0].sourceStart, codeBlocks[0].sourceEnd),
@@ -809,6 +824,37 @@ describe("faithful structural narration", () => {
       before.segments.filter((s) => s.role === "detail"),
     );
     expect(narration.segments.at(-1)?.text).toBe("End.");
+  });
+
+  it("keeps legacy outline IDs unprefixed for version 1 narrations", async () => {
+    const { narration, codeBlocks } = await prepareDeterministic(
+      "```js\nif (ready) return true;\n```",
+    );
+    const legacy = {
+      ...narration,
+      version: "1" as const,
+      segments: narration.segments.map((segment) => ({
+        ...segment,
+        id: segment.id.replace(/^speech-v2:/, ""),
+      })),
+    };
+    const block = codeBlocks[0];
+    applyCodeOutline(
+      legacy,
+      block,
+      JSON.stringify({
+        sourceHash: legacy.sourceHash,
+        blockId: block.blockId,
+        lines: [
+          { line: 1, quote: "if (ready) return true;", kind: "condition" },
+        ],
+      }),
+      "stop",
+    );
+
+    expect(
+      legacy.segments.find((segment) => segment.role === "explanation")?.id,
+    ).toBe(`${block.blockId}:explanation:0`);
   });
 });
 

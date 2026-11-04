@@ -534,6 +534,7 @@ export async function prepareDeterministic(
             blockId: `${mapping.blockId}:end`,
             sourceStart: end,
             sourceEnd: end,
+            ...membership,
           },
           "notice",
           "End of code.",

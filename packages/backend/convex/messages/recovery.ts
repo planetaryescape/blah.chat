@@ -62,7 +62,11 @@ export const recoverStuckMessages = internalMutation({
       .withIndex("by_status", (q) => q.eq("status", "generating"))
       .filter((q) =>
         q.or(
-          q.lt(q.field("generationStartedAt"), cutoffTime),
+          // Convex orders missing fields before numbers; lt alone also matches fresh rows.
+          q.and(
+            q.neq(q.field("generationStartedAt"), undefined),
+            q.lt(q.field("generationStartedAt"), cutoffTime),
+          ),
           q.and(
             q.eq(q.field("generationStartedAt"), undefined),
             q.lt(q.field("createdAt"), cutoffTime),
@@ -77,7 +81,10 @@ export const recoverStuckMessages = internalMutation({
       .withIndex("by_status", (q) => q.eq("status", "pending"))
       .filter((q) =>
         q.or(
-          q.lt(q.field("generationStartedAt"), cutoffTime),
+          q.and(
+            q.neq(q.field("generationStartedAt"), undefined),
+            q.lt(q.field("generationStartedAt"), cutoffTime),
+          ),
           q.and(
             q.eq(q.field("generationStartedAt"), undefined),
             q.lt(q.field("createdAt"), cutoffTime),

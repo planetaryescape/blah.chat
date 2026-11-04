@@ -1,5 +1,6 @@
 import { DEFAULT_MODEL_ID, MODEL_CONFIG } from "@blah-chat/ai/models";
 import * as ai from "ai";
+import { MockLanguageModelV3 } from "ai/test";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { convexTest } from "../../__tests__/testSetup";
 import { api, internal } from "../_generated/api";
@@ -31,6 +32,7 @@ const models = Object.entries(MODEL_CONFIG)
   )
   .map(([id]) => id);
 const cheap = DEFAULT_MODEL_ID;
+const realGenerateText = ai.generateText;
 async function fixture() {
   vi.useFakeTimers();
   const t = convexTest(schema);
@@ -536,6 +538,287 @@ it("serializes only the target ancestry, preserves ordered merge parents and ded
   expect(JSON.stringify(providerMessages)).not.toMatch(
     /UNRELATED RIGHT BRANCH|COMPARISON SIBLING SECRET|INACTIVE NOISE/,
   );
+});
+
+it("round-trips SDK6 native tool outcomes through the real generation action and continuation", async () => {
+  const { t, owner, conversationId } = await fixture();
+  await t.run((ctx) =>
+    ctx.db.patch(conversationId, {
+      cachedSystemPrompt: JSON.stringify([
+        { role: "system", content: "Use tool results as evidence." },
+      ]),
+    }),
+  );
+  vi.stubEnv("TAVILY_API_KEY", "test-key-not-used-for-network");
+
+  const longNativeValue = `durable-${"z".repeat(2_000)}`;
+  const citationResult = {
+    query: "native result test",
+    answer: "Found the source",
+    results: [
+      {
+        title: "Evidence source",
+        url: "https://example.test/evidence",
+        content: "Citation snippet",
+      },
+    ],
+  };
+  const calls: Array<{
+    id: string;
+    name: string;
+    input: Record<string, unknown>;
+    output: unknown;
+    error?: boolean;
+  }> = [
+    {
+      id: "tc-a",
+      name: "calculator",
+      input: { expression: "1 + 1" },
+      output: false,
+    },
+    { id: "tc-b", name: "calculator", input: { expression: "0" }, output: 0 },
+    {
+      id: "tc-c",
+      name: "calculator",
+      input: { expression: "1 - 1" },
+      output: "",
+    },
+    {
+      id: "tc-d",
+      name: "calculator",
+      input: { expression: "null" },
+      output: null,
+    },
+    {
+      id: "tc-e",
+      name: "tavilySearch",
+      input: { query: "native result test" },
+      output: citationResult,
+    },
+    {
+      id: "tc-f",
+      name: "calculator",
+      input: { expression: "3 + 3" },
+      output: longNativeValue,
+    },
+    {
+      id: "tc-g",
+      name: "calculator",
+      input: { expression: "4 + 4" },
+      output: `pressure-${"p".repeat(300_000)}`,
+    },
+    {
+      id: "tc-h",
+      name: "manageTasks",
+      input: { action: "list" },
+      output: { success: false, error: "task failed" },
+      error: true,
+    },
+  ];
+  let responseMessages: unknown[] = [];
+  const completionOrder: string[] = [];
+  const sdkPrompt: { value?: unknown } = {};
+  const mockLanguageModel = new MockLanguageModelV3({
+    doGenerate: async ({ prompt }) => {
+      sdkPrompt.value = prompt;
+      return {
+        content: [
+          {
+            type: "text",
+            text: "The saved search result is Evidence source; the calculator results are retained.",
+          },
+        ],
+        finishReason: { unified: "stop", raw: undefined },
+        usage: {
+          inputTokens: {
+            total: 10,
+            noCache: 10,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: { total: 20, text: 20, reasoning: undefined },
+        },
+        warnings: [],
+      };
+    },
+  });
+  vi.spyOn(ai, "generateText").mockImplementation(
+    (options) =>
+      realGenerateText({ ...options, model: mockLanguageModel }) as ReturnType<
+        typeof ai.generateText
+      >,
+  );
+
+  vi.mocked(ai.streamText).mockImplementation((options) => {
+    const tools = options.tools as Record<string, any>;
+    responseMessages = [
+      {
+        role: "assistant",
+        content: calls.map(({ id, name, input }) => ({
+          type: "tool-call",
+          toolCallId: id,
+          toolName: name,
+          input,
+        })),
+      },
+    ];
+    return {
+      fullStream: (async function* () {
+        for (const { id, name, input } of calls) {
+          yield { type: "tool-call", toolCallId: id, toolName: name, input };
+        }
+        for (const call of [...calls].reverse()) {
+          completionOrder.push(call.id);
+          if (call.error) {
+            responseMessages.push({
+              role: "tool",
+              content: [
+                {
+                  type: "tool-result",
+                  toolCallId: call.id,
+                  toolName: call.name,
+                  output: { type: "error-json", value: call.output },
+                },
+              ],
+            });
+            yield {
+              type: "tool-error",
+              toolCallId: call.id,
+              toolName: call.name,
+              input: call.input,
+              error: new Error("task failed"),
+            };
+          } else {
+            const tool = tools[call.name];
+            const output = await tool.toModelOutput({
+              toolCallId: call.id,
+              input: call.input,
+              output: call.output,
+            });
+            responseMessages.push({
+              role: "tool",
+              content: [
+                {
+                  type: "tool-result",
+                  toolCallId: call.id,
+                  toolName: call.name,
+                  output,
+                },
+              ],
+            });
+            yield {
+              type: "tool-result",
+              toolCallId: call.id,
+              toolName: call.name,
+              input: call.input,
+              output: call.output,
+            };
+          }
+        }
+      })(),
+      response: Promise.resolve({
+        get messages() {
+          return responseMessages;
+        },
+      }),
+      usage: Promise.resolve({ inputTokens: 10, outputTokens: 10 }),
+      reasoning: Promise.resolve([]),
+      steps: Promise.resolve([
+        {
+          toolCalls: calls.map(({ id, name, input }) => ({
+            toolCallId: id,
+            toolName: name,
+            input,
+          })),
+          toolResults: calls
+            .filter((call) => !call.error)
+            .map(({ id, name, input, output }) => ({
+              toolCallId: id,
+              toolName: name,
+              input,
+              output,
+            })),
+        },
+      ]),
+      providerMetadata: Promise.resolve(undefined),
+      sources: Promise.resolve([]),
+    } as ReturnType<typeof ai.streamText>;
+  });
+
+  await t.action(internal.generation.generateResponse, {
+    conversationId,
+    userId: owner,
+    modelId: cheap,
+  });
+
+  expect(completionOrder).toEqual(calls.map(({ id }) => id).reverse());
+  const assistant = await t.run((ctx) =>
+    ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", conversationId),
+      )
+      .filter((q) => q.eq(q.field("role"), "assistant"))
+      .order("desc")
+      .first(),
+  );
+  expect(assistant?.content).toContain("Evidence source");
+  const stored = await t.run((ctx) =>
+    ctx.db
+      .query("toolCalls")
+      .withIndex("by_message", (q) => q.eq("messageId", assistant!._id))
+      .collect(),
+  );
+  const byId = new Map(stored.map((row) => [row.toolCallId, row.result]));
+  expect(byId.get("tc-a")).toBe(false);
+  expect(byId.get("tc-b")).toBe(0);
+  expect(byId.get("tc-c")).toBe("");
+  expect(byId.get("tc-d")).toBeNull();
+  expect(byId.get("tc-e")).toEqual(citationResult);
+  expect(byId.get("tc-f")).toBe(longNativeValue);
+  expect(byId.get("tc-g")).toBe(`pressure-${"p".repeat(300_000)}`);
+  expect(byId.get("tc-h")).toEqual({ success: false, error: "task failed" });
+  expect(String(JSON.stringify(sdkPrompt.value))).toContain("<tool-data");
+  expect(String(JSON.stringify(sdkPrompt.value))).toContain("[truncated]");
+
+  const sources = await t.run((ctx) =>
+    ctx.db
+      .query("sources")
+      .withIndex("by_message", (q) => q.eq("messageId", assistant!._id))
+      .collect(),
+  );
+  expect(sources).toMatchObject([
+    {
+      title: "Evidence source",
+      url: "https://example.test/evidence",
+      snippet: "Citation snippet",
+    },
+  ]);
+
+  await expect(
+    realGenerateText({
+      model: mockLanguageModel,
+      messages: [
+        {
+          role: "assistant",
+          content: [
+            {
+              type: "tool-call",
+              toolCallId: "old-call",
+              toolName: "calculator",
+              args: { expression: "1+1" },
+            },
+          ],
+        },
+        {
+          role: "tool",
+          content: [
+            { type: "tool-result", toolCallId: "old-call", result: "2" },
+          ],
+        },
+      ] as any,
+    }),
+  ).rejects.toThrow();
 });
 
 it("cancels an active provider stream without finalizing or releasing a subsequent request's lock", async () => {

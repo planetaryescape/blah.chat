@@ -366,6 +366,49 @@ describe("accepted send replay baseline", () => {
     expect(state).toEqual({ messages: [], receipts: [], schedules: [] });
   });
 
+  it("rejects non-finite attachment metadata before admitting a keyed direct send", async () => {
+    const { t, owner, request, ownerId } = await fixture();
+    const storageId = await t.run(async (ctx) => {
+      const storageId = await ctx.storage.store(new Blob(["synthetic file"]));
+      await ctx.db.insert("files", {
+        userId: ownerId,
+        storageId,
+        name: "finite.txt",
+        mimeType: "text/plain",
+        size: 14,
+        createdAt: Date.now(),
+      });
+      return storageId;
+    });
+    for (const size of [
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      Number.NEGATIVE_INFINITY,
+    ]) {
+      await expect(
+        owner.mutation(api.chat.sendMessage, {
+          ...request,
+          attachments: [
+            {
+              type: "file",
+              name: "finite.txt",
+              storageId,
+              mimeType: "text/plain",
+              size,
+            },
+          ],
+        }),
+      ).rejects.toThrow(/finite/i);
+    }
+    expect(
+      await t.run(async (ctx) => ({
+        messages: await ctx.db.query("messages").collect(),
+        receipts: await ctx.db.query("chatSendReceipts").collect(),
+        schedules: await ctx.db.system.query("_scheduled_functions").collect(),
+      })),
+    ).toEqual({ messages: [], receipts: [], schedules: [] });
+  });
+
   it("hashes the full ordered accepted media intent, not just its storage IDs", async () => {
     const { t, owner, request, ownerId } = await fixture();
     const attachments = await t.run(async (ctx) => {

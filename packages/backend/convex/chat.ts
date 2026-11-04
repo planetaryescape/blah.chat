@@ -331,6 +331,16 @@ export const sendMessage = mutation({
         message: "Choose either modelId or models for a keyed send.",
       });
     }
+    // JSON would collapse NaN and infinities to the same null hash input.
+    if (
+      args.clientMessageId &&
+      args.attachments?.some((attachment) => !Number.isFinite(attachment.size))
+    ) {
+      throw new ConvexError({
+        code: "CHAT_SEND_INTENT_INVALID",
+        message: "Attachment size must be finite for a keyed send.",
+      });
+    }
     const user = await getCurrentUserOrCreate(ctx);
 
     // Authorize before locks, accounting, message writes or scheduling work.

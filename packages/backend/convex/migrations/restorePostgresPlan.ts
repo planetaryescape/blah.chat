@@ -1,5 +1,8 @@
 import type { ValidatorJSON } from "convex/values";
-import { PREFERENCE_CATEGORIES } from "../../../shared/src/preferences";
+import {
+  getHistoricalPreferenceCategory,
+  PREFERENCE_CATEGORIES,
+} from "../../../shared/src/preferences";
 import { normalizeTagSlug } from "../../../shared/src/utils/tagUtils";
 import schema from "../schema";
 
@@ -690,7 +693,10 @@ export function buildPlans(
             plan.warnings.push("historical_assistant_model_missing_preserved");
         }
         if (table === "user_preferences") {
-          data.category = PREFERENCE_CATEGORIES[text(row.key)];
+          const key = text(row.key);
+          data.category = Object.hasOwn(PREFERENCE_CATEGORIES, key)
+            ? PREFERENCE_CATEGORIES[key]
+            : getHistoricalPreferenceCategory(key);
           if (!data.category) throw new Error("unknown_preference_category");
         }
         if (table === "memory_embeddings") {

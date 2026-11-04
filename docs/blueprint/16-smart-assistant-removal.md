@@ -2,11 +2,13 @@
 
 Remove the meeting/transcript workspace completely, including directly callable extraction actions. BK approved this retirement, D-003. The data/compatibility mechanism below is proposed under D-032; Q4/Q20 and S14/S17 gate migration and validator contraction. Nothing here authorizes deleting user-created tasks, notes, spend or audio.
 
-### Delivery sequence
+## Delivery sequence
 
 Implementation is split into [rung 2a and rung 2](20-roadmap.md#rung-2a-remove-smart-assistant-entrypoints-and-executable-source) before retained-data completion 2b. Rung 2a removes the route, controls, extraction implementations and feature-only prompts/models/exports, preserving the shared deadline prompt and old data readers. It also deploys additive `model_recommendations` schema/readers before any new writer uses that value. Rung 2 then switches future recommendation/triage/preview usage only, as explicitly approved in D-037. These are implementation boundaries, not claims that the candidate has deployed.
 
 Historical task sources, usage categories and stored retired preference rows remain unchanged until the separately authorized reconciliation and supported-client barrier. Retaining those records is not a permanent hidden feature. The old recommendation-writer marker is a short-lived sequencing exception until rung 2, not a completed purge.
+
+Historical preference categories remain available only to backup restore and legacy backfill. They do not restore defaults, settings controls or permission to write the retired keys through the active preferences API.
 
 The exact reviewed flow at `04866f80a6236716ebf8d8c5a79001727f85f4bf` is sidebar → `/assistant` → upload/transcription or pasted transcript → `ai.meetingExtraction.extractFromMeeting` → `MeetingReviewPanel` → client-managed task/note creation. Drafts are React state, not durable meeting jobs. Tasks receive `sourceType: "smart_assistant"`; notes do not receive a recoverable feature marker. The [removal inventory](../../research_notes/blah-chat-modernization-review/routing-feature-disposition.md#exact-smart-assistant-removal-map) is the source map for this chapter.
 

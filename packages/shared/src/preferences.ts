@@ -139,3 +139,17 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   highContrastMode: "accessibility",
   textScale: "accessibility",
 };
+
+// Historical import/backfill only. Never include these in active preference writers.
+export function getHistoricalPreferenceCategory(
+  key: string,
+): "advanced" | undefined {
+  switch (key) {
+    case "showSmartAssistant":
+    case "noteCategoryMode":
+    case "customNoteCategories":
+      return "advanced";
+    default:
+      return undefined;
+  }
+}

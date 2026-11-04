@@ -279,7 +279,7 @@ In `src/lib/features.ts`:
 
 ### Current Limitations
 1. **File storage** - Files currently stored on blah.chat's storage (migration planned)
-2. **Schema updates** - Deployed by blah.chat, you can't modify schema
+2. **Schema updates** - Deploy the new downloadable schema to your instance. The update notice alone does not deploy it.
 3. **Connection required** - App blocks if your instance unreachable
 
 ### Feature Parity
@@ -302,7 +302,7 @@ Your data is on your Convex instance. You can export via Convex dashboard or acc
 We recommend a dedicated project for blah.chat. Using an existing project could cause schema conflicts.
 
 **How do schema updates work?**
-We push updates to all BYOD instances, migrations run automatically, your data is preserved. You may see brief connection issues during updates.
+Download the updated schema from the Instance Information card and deploy it to your Convex project. The version notice and schema download do not automatically deploy or migrate your database. Separate administrative migration actions exist; this retirement release does not run them or prove that an instance has upgraded.
 
 ---
 

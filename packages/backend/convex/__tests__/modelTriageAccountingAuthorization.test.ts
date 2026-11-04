@@ -233,6 +233,149 @@ describe("model triage accounting and preview authorization", () => {
     ).toHaveLength(0);
   });
 
+  it("blocks an owner preview when the real monthly budget check denies the caller", async () => {
+    const t = convexTest(schema);
+    const owner = await seedConversation(t);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("adminSettings", {
+        autoMemoryExtractEnabled: false,
+        autoMemoryExtractInterval: 5,
+        enableHybridSearch: false,
+        defaultMonthlyBudget: 0.01,
+        defaultBudgetAlertThreshold: 0.8,
+        budgetHardLimitEnabled: true,
+        defaultDailyMessageLimit: 50,
+        alertEmail: "test@example.com",
+        updatedBy: owner.userId,
+        updatedAt: Date.now(),
+      });
+      await ctx.db.insert("usageRecords", {
+        userId: owner.userId,
+        date: new Date().toISOString().slice(0, 10),
+        model: PREVIEW_MODEL,
+        feature: "chat",
+        operationType: "text",
+        inputTokens: 100,
+        outputTokens: 50,
+        cost: 0.02,
+        messageCount: 1,
+      });
+    });
+
+    // @ts-ignore - Convex query types exceed the generated API depth.
+    const budget = await t
+      .withIdentity(owner.identity)
+      .query(api.usage.checkBudget.checkBudget, { userId: owner.userId });
+    expect(budget).toMatchObject({
+      allowed: false,
+      totalSpend: 0.02,
+      budget: 0.01,
+    });
+
+    const recordsBefore = await t.run((ctx) =>
+      ctx.db.query("usageRecords").collect(),
+    );
+    generateTextMock.mockResolvedValue({
+      text: "This must not be generated over budget",
+    });
+
+    // @ts-ignore - Convex test action types exceed the generated API depth.
+    const previewOutcome = await Promise.allSettled([
+      t
+        .withIdentity(owner.identity)
+        .action(api.ai.modelTriage.generatePreview, {
+          conversationId: owner.conversationId,
+          userMessage: "Compare these options",
+          suggestedModelId: PREVIEW_MODEL,
+        }),
+    ]);
+    expect.soft(previewOutcome[0]).toMatchObject({
+      status: "rejected",
+      reason: expect.objectContaining({
+        message: expect.stringContaining("Monthly budget exceeded"),
+      }),
+    });
+
+    expect(generateTextMock).not.toHaveBeenCalled();
+    expect(
+      await t.run((ctx) => ctx.db.query("usageRecords").collect()),
+    ).toEqual(recordsBefore);
+  });
+
+  it("allows a preview when the configured monthly budget is unlimited", async () => {
+    const t = convexTest(schema);
+    const owner = await seedConversation(t);
+    const historicalId = await t.run(async (ctx) => {
+      await ctx.db.insert("adminSettings", {
+        autoMemoryExtractEnabled: false,
+        autoMemoryExtractInterval: 5,
+        enableHybridSearch: false,
+        defaultMonthlyBudget: 0,
+        defaultBudgetAlertThreshold: 0.8,
+        budgetHardLimitEnabled: true,
+        defaultDailyMessageLimit: 50,
+        alertEmail: "test@example.com",
+        updatedBy: owner.userId,
+        updatedAt: Date.now(),
+      });
+      return await ctx.db.insert("usageRecords", {
+        userId: owner.userId,
+        date: new Date().toISOString().slice(0, 10),
+        model: PREVIEW_MODEL,
+        feature: "chat",
+        operationType: "text",
+        inputTokens: 10_000,
+        outputTokens: 5_000,
+        cost: 10,
+        messageCount: 5,
+      });
+    });
+    const historicalBefore = await t.run((ctx) => ctx.db.get(historicalId));
+
+    // @ts-ignore - Convex query types exceed the generated API depth.
+    const budget = await t
+      .withIdentity(owner.identity)
+      .query(api.usage.checkBudget.checkBudget, { userId: owner.userId });
+    expect(budget).toMatchObject({ allowed: true, budget: 0, remaining: 0 });
+
+    generateTextMock.mockResolvedValue({
+      text: "Preview remains available with an unlimited budget",
+      usage: { inputTokens: 17, outputTokens: 5 },
+    });
+    // @ts-ignore - Convex test action types exceed the generated API depth.
+    await expect(
+      t
+        .withIdentity(owner.identity)
+        .action(api.ai.modelTriage.generatePreview, {
+          conversationId: owner.conversationId,
+          userMessage: "Compare these options",
+          suggestedModelId: PREVIEW_MODEL,
+        }),
+    ).resolves.toEqual({
+      content: "Preview remains available with an unlimited budget",
+    });
+
+    const records = await t.run((ctx) =>
+      ctx.db.query("usageRecords").collect(),
+    );
+    expect(await t.run((ctx) => ctx.db.get(historicalId))).toEqual(
+      historicalBefore,
+    );
+    expect(records).toHaveLength(2);
+    expect(records).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          userId: owner.userId,
+          feature: "model_recommendations",
+          model: PREVIEW_MODEL,
+          inputTokens: 17,
+          outputTokens: 5,
+        }),
+      ]),
+    );
+    expect(generateTextMock).toHaveBeenCalledTimes(1);
+  });
+
   it("allows owners and collaborators to preview and charges the caller", async () => {
     const t = convexTest(schema);
     const owner = await seedConversation(t);

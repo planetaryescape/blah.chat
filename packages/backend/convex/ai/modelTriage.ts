@@ -276,6 +276,18 @@ export const generatePreview = action({
         throw new Error("No messages found for conversation");
       }
 
+      // Check the authenticated caller's existing monthly budget before prompt
+      // construction or provider work. A zero budget remains unlimited.
+      // @ts-ignore - Convex public-query types exceed the generated API depth.
+      const budget = await ctx.runQuery(api.usage.checkBudget.checkBudget, {
+        userId: user._id,
+      });
+      if (!budget.allowed) {
+        throw new Error(
+          "Monthly budget exceeded. Preview generation is blocked until the budget resets or an admin raises it",
+        );
+      }
+
       logger.info("Fetched messages for preview", {
         tag: "ModelTriage",
         conversationId: args.conversationId,

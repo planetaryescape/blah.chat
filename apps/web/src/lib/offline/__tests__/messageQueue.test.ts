@@ -16,6 +16,14 @@ function fixture(user: string) {
       add: async (row: PendingMutation) => rows.set(row._id, row),
       get: async (id: string) => rows.get(id),
       put: async (row: PendingMutation) => rows.set(row._id, row),
+      update: async (
+        id: string,
+        update: (row: PendingMutation) => boolean | undefined,
+      ) => {
+        const row = rows.get(id);
+        if (!row) return 0;
+        return update(row) === false ? 0 : 1;
+      },
       delete: async (id: string) => rows.delete(id),
       where: (field: keyof PendingMutation) => ({
         equals: (value: unknown) => ({
@@ -46,6 +54,131 @@ const message = {
 afterEach(() => setActiveCache(null));
 
 describe("offline queue ownership", () => {
+  it("does not let later sends overtake an uncertain earlier send in the same conversation", async () => {
+    const cache = new BlahChatCache(`blocked-order-${crypto.randomUUID()}`);
+    await cache.open();
+    setActiveCache(cache);
+    try {
+      for (const [index, key] of ["first", "second", "other"].entries()) {
+        const conversationId =
+          key === "other"
+            ? ("conversation-B" as Id<"conversations">)
+            : message.conversationId;
+        await cache.pendingMutations.add({
+          _id: key,
+          type: "sendMessageV2",
+          createdAt: index,
+          retries: 0,
+          payload: {
+            ...message,
+            conversationId,
+            id: key,
+            clientMessageId: key,
+            timestamp: index,
+            retries: 0,
+          },
+        });
+      }
+      const sent: string[] = [];
+      await new MessageQueue().processReplayableQueue(async (request) => {
+        sent.push(request.clientMessageId);
+        if (request.clientMessageId === "first")
+          throw new Error("unknown acceptance");
+      });
+      expect(sent).toEqual(["first", "other"]);
+      expect(await cache.pendingMutations.get("second")).toMatchObject({
+        retries: 0,
+      });
+    } finally {
+      setActiveCache(null);
+      cache.close();
+      await cache.delete();
+    }
+  });
+
+  it.each([
+    "transport failure",
+    "attention retry",
+  ])("does not resurrect an acknowledged send during a concurrent %s", async (action) => {
+    const cache = new BlahChatCache(`ack-race-${crypto.randomUUID()}`);
+    const queue = new MessageQueue();
+    await cache.open();
+    setActiveCache(cache);
+    try {
+      const queued = await queue.enqueueReplayable({
+        ...message,
+        clientMessageId: "race-key",
+      });
+      expect(queued).not.toBeNull();
+      const id = queued!.id;
+      if (action === "attention retry") {
+        await Promise.all([
+          queue.acknowledgeReplayable(id, cache),
+          queue.retryAttention(id, cache),
+        ]);
+      } else {
+        let acknowledgement: Promise<boolean> | undefined;
+        await queue.processReplayableQueue(async () => {
+          acknowledgement = queue.acknowledgeReplayable(id, cache);
+          throw new Error(
+            "reconnect response lost while foreground confirms acceptance",
+          );
+        });
+        await acknowledgement;
+      }
+      expect(await cache.pendingMutations.get(id)).toBeUndefined();
+    } finally {
+      setActiveCache(null);
+      cache.close();
+      await cache.delete();
+    }
+  });
+
+  it("replays persisted sends oldest-first rather than random primary-key order", async () => {
+    const cache = new BlahChatCache(`ordered-${crypto.randomUUID()}`);
+    await cache.open();
+    setActiveCache(cache);
+    try {
+      await cache.pendingMutations.bulkAdd([
+        {
+          _id: "z-first",
+          type: "sendMessageV2",
+          createdAt: 100,
+          retries: 0,
+          payload: {
+            ...message,
+            id: "z-first",
+            clientMessageId: "first",
+            timestamp: 100,
+            retries: 0,
+          },
+        },
+        {
+          _id: "a-second",
+          type: "sendMessageV2",
+          createdAt: 200,
+          retries: 0,
+          payload: {
+            ...message,
+            id: "a-second",
+            clientMessageId: "second",
+            timestamp: 200,
+            retries: 0,
+          },
+        },
+      ]);
+      const sent: string[] = [];
+      await new MessageQueue().processReplayableQueue(async (request) => {
+        sent.push(request.clientMessageId);
+      });
+      expect(sent).toEqual(["first", "second"]);
+    } finally {
+      setActiveCache(null);
+      cache.close();
+      await cache.delete();
+    }
+  });
+
   it("persists and replays a complete send through IndexedDB, retaining uncertainty and allowing same-key retry", async () => {
     const cache = new BlahChatCache(`indexeddb-${crypto.randomUUID()}`);
     const queue = new MessageQueue();

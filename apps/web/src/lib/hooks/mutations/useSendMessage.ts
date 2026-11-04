@@ -218,10 +218,19 @@ export function useSendMessage(
       cacheByRequestKey.current.delete(variables.clientMessageId ?? "");
       if (!context?.cache || getActiveCache() !== context.cache) return;
       if (context?.queueId) {
-        await messageQueue.acknowledgeReplayable(
-          context.queueId,
-          context.cache,
-        );
+        try {
+          await messageQueue.acknowledgeReplayable(
+            context.queueId,
+            context.cache,
+          );
+        } catch {
+          // Acceptance is already confirmed. A local cleanup failure must not
+          // restore a fresh-key draft; the saved request can reconcile safely.
+          if (getActiveCache() === context.cache)
+            toast.info(
+              "Message accepted. Its saved request will reconcile on retry.",
+            );
+        }
         if (getActiveCache() !== context.cache) return;
       }
       queryClient.invalidateQueries({

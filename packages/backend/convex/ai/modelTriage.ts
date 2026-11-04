@@ -16,7 +16,7 @@ import { generateObject, generateText } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 import { api, internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { action, internalAction } from "../_generated/server";
 import { logger } from "../lib/logger";
@@ -277,7 +277,7 @@ export const generatePreview = action({
       }
 
       const activeBranchMessages = messages.filter(
-        (message: any) => message.isActiveBranch === true,
+        (message: Doc<"messages">) => message.isActiveBranch === true,
       );
       const messagesForPreview =
         activeBranchMessages.length > 0 ? activeBranchMessages : messages;

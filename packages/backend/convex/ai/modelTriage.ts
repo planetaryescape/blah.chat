@@ -276,6 +276,12 @@ export const generatePreview = action({
         throw new Error("No messages found for conversation");
       }
 
+      const activeBranchMessages = messages.filter(
+        (message: any) => message.isActiveBranch === true,
+      );
+      const messagesForPreview =
+        activeBranchMessages.length > 0 ? activeBranchMessages : messages;
+
       // Check the authenticated caller's existing monthly budget before prompt
       // construction or provider work. A zero budget remains unlimited.
       // @ts-ignore - Convex public-query types exceed the generated API depth.
@@ -291,12 +297,12 @@ export const generatePreview = action({
       logger.info("Fetched messages for preview", {
         tag: "ModelTriage",
         conversationId: args.conversationId,
-        messageCount: messages.length,
+        messageCount: messagesForPreview.length,
         hasSystemPrompt: !!conversation?.systemPrompt,
       });
 
       // Exclude the last assistant message (the current response we're comparing against)
-      const messagesBeforeCurrent = messages.filter(
+      const messagesBeforeCurrent = messagesForPreview.filter(
         (m: any) => !(m.role === "assistant" && m.content === args.userMessage),
       );
 

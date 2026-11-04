@@ -106,7 +106,7 @@ Every rung's **Done when** includes this contract. It does not demand all live p
 
 **Proposed demo promise, not BK quote:** “New model recommendations no longer appear as work from the removed feature.”
 
-**Build:** After rung 2a's deployed schema/reader proof, switch the existing model-triage usage writers to the approved `model_recommendations` category (D-037). Keep current provider selection, opt-out and cost recording; do not introduce a new inference path or ledger.
+**Build:** The source implementation switches existing classification, analysis and preview usage writers to the approved `model_recommendations` category after rung 2a's deployed schema/reader proof (D-037). It also gates preview context reads with the existing authenticated conversation and message queries. Provider selection, opt-out, collaborator access and caller cost attribution remain unchanged; no new inference path or ledger is introduced. Coordinator-owned release evidence must verify the writer/reader journey in the deployed artifact.
 
 **Design:** Use the compatible usage views already deployed in 2a; retain historical labels rather than fabricating their original purpose.
 
@@ -114,7 +114,7 @@ Every rung's **Done when** includes this contract. It does not demand all live p
 
 **Demo:** Fake-provider recommendation, triage and preview calls produce only the new category. Seed a legacy same-user/date/model row first, repeat with reversed insertion order, and verify its fields stay unchanged while new totals accrue correctly. Opt-out still makes no inference call.
 
-**Done when:** Every affected future writer records the approved category through the real validator, existing rows/totals reconcile, and the exact deployed writer/reader journey passes. No historical row is relabeled. Rung 2b remains separately incomplete.
+**Done when:** Every affected future writer records the approved category through the real validator, existing rows/totals reconcile, and the exact deployed writer/reader journey passes. Action tests must show denied preview callers do no provider or usage work while owners and collaborators retain access and the caller is charged. No historical row is relabeled. Rung 2b remains separately incomplete. This checkout alone is not deployed-release evidence.
 
 **Left out:** Historical task/usage mapping, old-client/BYOD contraction and unrelated per-attempt/payer accounting redesign.
 

@@ -196,9 +196,13 @@ Every rung's **Done when** includes this contract. It does not demand all live p
 
 **5b — Lost-ack and offline replay:** Preserve the original owner-scoped request key and complete options/media through queue, transport and admission. Replaying an accepted request returns its original IDs without a second admission; reusing its key with changed intent conflicts. Reconcile optimistic messages with that durable outcome.
 
-5a can ship independently, but Rung 5 is complete only when both release journeys pass. A passing Retry demo is not evidence of replay idempotency.
+**First 5b cohort:** Ordinary signed-in web composer sends persist their original request before transport. Keyed REST and direct-Convex sends share the hosted admission contract. This covers the first send in the web's already-created empty conversation; it does not recover the separate conversation-create request. First acceptance uses the server-selected branch, and replay keeps that ancestry and the original IDs. Keyless mobile/CLI callers remain compatible but are not automatically replay-protected. Incognito keeps its ephemeral behavior without a new persistent outbox or long-lived send receipt. Native key adoption, branch pinning before first acceptance and bare conversation-create recovery remain follow-ups.
+
+5a can ship independently. The first 5b web release does not complete every Rung 5 client guarantee. A passing Retry demo is not evidence of replay idempotency.
 
 **5a release criterion:** On the exact immutable production-target artifact, an authorized operator verifies a signed-in non-admin journey in staging and production: fail A, create successful B, select A and Retry, refresh and later reload, then verify A's content/metadata and B remain retained, only the selected retry ancestry is on the active branch, and the next send follows that ancestry. Record backend/source and artifact identities; promote the same artifact without rebuilding it. These deployed journeys remain release-owner evidence, not a source-test claim.
+
+**5b web release criterion:** On that release's exact production-target artifact, send a synthetic turn through the normal composer, observe its real accepted `202`, then lose only the client acknowledgement. Reload/reconnect and verify that the original outbox request replays with the same key, full options/media and accepted IDs, leaving one durable message set. Changed intent under the same key must return `409` without more generation. Separately queue an actual offline send with thinking effort and a synthetic attachment, reload, reconnect and check its preserved intent. Verify retained Retry/branches and existing content, then promote the same artifact without rebuilding and repeat the journeys in production. Local real-action fake-provider counts prove dispatch multiplicity; they do not replace deployed UI evidence.
 
 ## Rung 6: Every chat attempt contributes the right cost once
 

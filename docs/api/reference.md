@@ -224,10 +224,9 @@ POST /conversations/:id/messages
 {
   "content": "Hello, world!",
   "clientMessageId": "client-3a8d...",
-  "modelId": "openai:gpt-4o",
-  "models": ["openai:gpt-4o", "anthropic:claude-3-5-sonnet"], // For comparison mode
-  "thinkingEffort": "medium", // Optional, for reasoning models
-  "attachments": [ // Optional
+  "modelId": "openai:gpt-oss-120b",
+  "thinkingEffort": "medium",
+  "attachments": [
     {
       "type": "file",
       "name": "document.pdf",
@@ -239,6 +238,13 @@ POST /conversations/:id/messages
 }
 ```
 
+Use `modelId` for a single-model send **or** `models` for comparison; do not
+send both fields together. `clientMessageId` is optional and bounded to 256
+characters. Web sends keep a stable key and the complete submitted intent across
+uncertain retries; an accepted matching replay returns the original IDs, while
+changed intent with the same key conflicts. `thinkingEffort` and attachment
+metadata are part of that intent.
+
 **Response:** `202 Accepted`
 
 The ordinary web composer sends an optional bounded `clientMessageId` as its
@@ -249,7 +255,10 @@ These replay guarantees apply to keyed sends only; keyless legacy clients retain
 their existing behavior. The hosted receipt is operational metadata, not exported
 content or BYOD schema. New incognito sends do not create a durable receipt or
 browser outbox entry. Deleting a conversation does not make its accepted create
-key reusable: replay fails closed rather than recreating it.
+key reusable: replay fails closed rather than recreating it. Receipts store a hash
+and accepted references, not another copy of the prompt or media. They remain
+until owner data erasure. The optional no-conversation-ID create intent belongs
+to the direct Convex send contract; this REST route requires a conversation ID.
 ```json
 {
   "status": "success",
@@ -266,6 +275,9 @@ key reusable: replay fails closed rather than recreating it.
 
 Changed intent with an already-used key returns the standard error envelope with
 HTTP `409` and code `CONFLICT`.
+
+If the conversation or accepted messages have been deleted or are no longer
+accessible, replay fails with HTTP `404`; it never recreates the accepted content.
 
 **Note:** Response generation happens asynchronously. Use SSE or polling to get assistant response.
 

@@ -38,6 +38,7 @@ composer can process it. Retry updates are atomic and never recreate a row alrea
 acknowledged by another processor. If local cleanup fails after confirmed acceptance,
 keep the send successful and retain its original saved request for reconciliation;
 never restore it as a new-key draft.
+Queue read failures reach Retry's error toast rather than masquerading as an empty queue.
 
 ## Message reconciliation
 

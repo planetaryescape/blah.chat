@@ -128,6 +128,56 @@ function _getRetryActivePathIds(
   return activeIds;
 }
 
+function _getUnambiguousLegacyPrefixIds(
+  messages: Doc<"messages">[],
+  userMessageId: Id<"messages">,
+  failedMessageId: Id<"messages">,
+): Set<Id<"messages">> {
+  const chronological = [...messages].sort(
+    (a, b) => a.createdAt - b.createdAt || a._creationTime - b._creationTime,
+  );
+  const userIndex = chronological.findIndex(
+    (message) => message._id === userMessageId,
+  );
+  const failedMessage = chronological[userIndex + 1];
+  const hasBranchMetadata = (message: Doc<"messages">) =>
+    message.branchLabel !== undefined ||
+    message.branchIndex !== undefined ||
+    message.siblingIndex !== undefined ||
+    message.rootMessageId !== undefined ||
+    message.forkReason !== undefined ||
+    message.comparisonGroupId !== undefined;
+  if (
+    userIndex < 2 ||
+    failedMessage?._id !== failedMessageId ||
+    failedMessage.parentMessageIds?.length ||
+    failedMessage.parentMessageId ||
+    hasBranchMetadata(failedMessage)
+  ) {
+    return new Set();
+  }
+
+  const hasActiveProjection = messages.some(
+    (message) => message.isActiveBranch === true,
+  );
+  const prefix = chronological.slice(0, userIndex + 1);
+  for (const [index, message] of prefix.entries()) {
+    const expectedRole = index % 2 === 0 ? "user" : "assistant";
+    if (
+      message.role !== expectedRole ||
+      message.status !== "complete" ||
+      message.parentMessageIds?.length ||
+      message.parentMessageId ||
+      hasBranchMetadata(message) ||
+      (hasActiveProjection && message.isActiveBranch !== true)
+    ) {
+      return new Set();
+    }
+  }
+
+  return new Set(prefix.map((message) => message._id));
+}
+
 const attachmentValidator = v.object({
   type: v.union(v.literal("file"), v.literal("image"), v.literal("audio")),
   name: v.string(),
@@ -1206,6 +1256,17 @@ export const retryMessage = mutation({
         [...allMessages, pendingMessage],
         pendingMessageId,
       );
+      // Only carry forward a provably linear, parentless legacy display prefix.
+      // Provider context remains DAG-only; this does not infer historical edges.
+      if (!parents && isAdjacentLegacyTarget) {
+        for (const messageId of _getUnambiguousLegacyPrefixIds(
+          allMessages,
+          userMessage._id,
+          aiMessage._id,
+        )) {
+          activePathIds.add(messageId);
+        }
+      }
       for (const message of allMessages) {
         const shouldBeActive = activePathIds.has(message._id);
         if (message.isActiveBranch !== shouldBeActive) {

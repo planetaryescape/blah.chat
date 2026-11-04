@@ -74,14 +74,7 @@ export function ArtifactList({ messageId, className }: ArtifactListProps) {
   const documentArtifacts = useMemo(() => {
     if (!toolCalls) return [];
 
-    return getDocumentArtifacts(
-      toolCalls.map((toolCall) => ({
-        id: toolCall.toolCallId,
-        toolName: toolCall.toolName,
-        args: toolCall.args,
-        result: toolCall.result,
-      })),
-    );
+    return getDocumentArtifacts(toolCalls);
   }, [toolCalls]);
 
   // Don't reserve space - most messages don't have artifacts

@@ -44,3 +44,19 @@ it("renders normalized cached document rows and suppresses the failure row", () 
   expect(html).toContain('data-document-id="doc-1"');
   expect(html).not.toContain("Failed plan");
 });
+
+it("retains legacy projected fields through the component boundary", () => {
+  cacheRows.rows = [
+    {
+      id: "legacy-call",
+      name: "createDocument",
+      arguments: JSON.stringify({ title: "Legacy plan" }),
+      result: JSON.stringify({ success: true, documentId: "legacy-doc" }),
+    },
+  ];
+  const html = renderToStaticMarkup(
+    createElement(ArtifactList, { messageId: "message-1" as never }),
+  );
+  expect(html).toContain("Legacy plan");
+  expect(html).toContain('data-document-id="legacy-doc"');
+});

@@ -223,6 +223,7 @@ POST /conversations/:id/messages
 ```json
 {
   "content": "Hello, world!",
+  "clientMessageId": "client-3a8d...",
   "modelId": "openai:gpt-4o",
   "models": ["openai:gpt-4o", "anthropic:claude-3-5-sonnet"], // For comparison mode
   "thinkingEffort": "medium", // Optional, for reasoning models
@@ -239,20 +240,32 @@ POST /conversations/:id/messages
 ```
 
 **Response:** `202 Accepted`
+
+The ordinary web composer sends an optional bounded `clientMessageId` as its
+stable request key. A matching replay of an already accepted keyed send returns
+the original conversation/message IDs and poll URL without scheduling generation
+again. Reusing that key for changed submitted intent returns `409 Conflict`.
+These replay guarantees apply to keyed sends only; keyless legacy clients retain
+their existing behavior. The hosted receipt is operational metadata, not exported
+content or BYOD schema. New incognito sends do not create a durable receipt or
+browser outbox entry. Deleting a conversation does not make its accepted create
+key reusable: replay fails closed rather than recreating it.
 ```json
 {
   "status": "success",
-  "sys": { "entity": "message" },
+  "sys": { "entity": "message", "async": true },
   "data": {
-    "_id": "msg_125",
     "conversationId": "conv_123",
-    "role": "user",
-    "content": "Hello, world!",
+    "messageId": "msg_user_125",
+    "assistantMessageId": "msg_assistant_126",
     "status": "pending",
-    "createdAt": 1702209700000
+    "pollUrl": "/api/v1/messages/msg_assistant_126"
   }
 }
 ```
+
+Changed intent with an already-used key returns the standard error envelope with
+HTTP `409` and code `CONFLICT`.
 
 **Note:** Response generation happens asynchronously. Use SSE or polling to get assistant response.
 

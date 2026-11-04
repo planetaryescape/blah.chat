@@ -1,5 +1,5 @@
 import { DEFAULT_MODEL_ID, MODEL_CONFIG } from "@blah-chat/ai/models";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
@@ -312,6 +312,25 @@ export const sendMessage = mutation({
     comparisonGroupId?: string;
   }> => {
     validatePromptContent(args.content);
+    if (
+      args.clientMessageId !== undefined &&
+      (args.clientMessageId.length === 0 || args.clientMessageId.length > 256)
+    ) {
+      throw new ConvexError({
+        code: "CHAT_SEND_KEY_INVALID",
+        message: "clientMessageId must contain between 1 and 256 characters.",
+      });
+    }
+    if (
+      args.clientMessageId &&
+      args.modelId !== undefined &&
+      args.models !== undefined
+    ) {
+      throw new ConvexError({
+        code: "CHAT_SEND_INTENT_INVALID",
+        message: "Choose either modelId or models for a keyed send.",
+      });
+    }
     const user = await getCurrentUserOrCreate(ctx);
 
     // Authorize before locks, accounting, message writes or scheduling work.
@@ -321,6 +340,75 @@ export const sendMessage = mutation({
     ) {
       throw new Error("Conversation not found or unauthorized");
     }
+
+    const intentHash = args.clientMessageId
+      ? await hashSendIntent(args)
+      : undefined;
+    const existingReceipt = args.clientMessageId
+      ? await ctx.db
+          .query("chatSendReceipts")
+          .withIndex("by_owner_key", (q) =>
+            q
+              .eq("ownerId", user._id)
+              .eq("clientMessageId", args.clientMessageId!),
+          )
+          .first()
+      : null;
+
+    if (existingReceipt) {
+      if (existingReceipt.intentHash !== intentHash) {
+        throw new ConvexError({
+          code: "CHAT_SEND_INTENT_CONFLICT",
+          message: "This request key was already used for a different send.",
+        });
+      }
+
+      const acceptedConversation = await ctx.db.get(
+        existingReceipt.conversationId,
+      );
+      if (
+        !acceptedConversation ||
+        !(await canAccessConversation(
+          ctx,
+          existingReceipt.conversationId,
+          user._id,
+        ))
+      ) {
+        throw new Error("Conversation not found or unauthorized");
+      }
+
+      const acceptedUserMessage = await ctx.db.get(
+        existingReceipt.userMessageId,
+      );
+      const acceptedAssistantMessages = await Promise.all(
+        existingReceipt.assistantMessageIds.map((id) => ctx.db.get(id)),
+      );
+      if (
+        !acceptedUserMessage ||
+        acceptedUserMessage.conversationId !== existingReceipt.conversationId ||
+        acceptedUserMessage.userId !== user._id ||
+        acceptedUserMessage.role !== "user" ||
+        acceptedAssistantMessages.some(
+          (message) =>
+            !message ||
+            message.conversationId !== existingReceipt.conversationId ||
+            message.userId !== user._id ||
+            message.role !== "assistant",
+        )
+      ) {
+        throw new Error("Accepted send is no longer available");
+      }
+
+      return {
+        conversationId: existingReceipt.conversationId,
+        userMessageId: existingReceipt.userMessageId,
+        assistantMessageIds: existingReceipt.assistantMessageIds,
+        comparisonGroupId: existingReceipt.comparisonGroupId,
+      };
+    }
+
+    // A no-ID replay can only be resolved by an existing receipt. Never create a
+    // new conversation before checking the owner/key namespace above.
 
     if (args.attachments?.length) {
       const files = await ctx.db
@@ -366,6 +454,7 @@ export const sendMessage = mutation({
     if (!conversation) {
       throw new Error("Conversation not found");
     }
+    const persistReceipt = !!args.clientMessageId && !conversation.isIncognito;
 
     // 4. Acquire lock BEFORE creating messages (prevents reactive query race condition)
     const lockAcquired = (await (ctx.runMutation as any)(
@@ -383,9 +472,8 @@ export const sendMessage = mutation({
       throw new Error("Please wait for the current response to complete.");
     }
 
-    // 5. Create messages and schedule generations - release lock on any failure
-    // Each ctx.runMutation is atomic independently, NOT together as a transaction.
-    // If message creation fails after lock acquired, we must explicitly release.
+    // 5. Create messages and schedule generations in this enclosing mutation
+    // transaction; any thrown error rolls back nested writes and schedules.
     let userMessageId: Id<"messages">;
     const assistantMessageIds: Id<"messages">[] = [];
 
@@ -477,6 +565,8 @@ export const sendMessage = mutation({
       if (lock)
         await ctx.db.patch(lock._id, { messageId: assistantMessageIds[0] });
 
+      const acceptedParentIds = lastMessage ? [lastMessage._id] : undefined;
+
       // 6. Schedule generation actions with existing message IDs
       for (let i = 0; i < modelsToUse.length; i++) {
         await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
@@ -521,6 +611,20 @@ export const sendMessage = mutation({
         userId: user._id,
         conversationId: conversationId!,
       });
+
+      if (persistReceipt && intentHash) {
+        await ctx.db.insert("chatSendReceipts", {
+          ownerId: user._id,
+          clientMessageId: args.clientMessageId!,
+          intentHash,
+          conversationId,
+          userMessageId,
+          assistantMessageIds,
+          comparisonGroupId,
+          parentMessageIds: acceptedParentIds,
+          createdAt: Date.now(),
+        });
+      }
     } catch (error) {
       // Release lock on any failure (message creation or scheduling)
       await (ctx.runMutation as any)(
@@ -540,6 +644,47 @@ export const sendMessage = mutation({
     };
   },
 });
+
+async function hashSendIntent(args: {
+  conversationId?: Id<"conversations">;
+  content: string;
+  modelId?: string;
+  models?: string[];
+  thinkingEffort?: "none" | "low" | "medium" | "high";
+  attachments?: Array<{
+    type: "file" | "image" | "audio";
+    name: string;
+    storageId: string;
+    mimeType: string;
+    size: number;
+  }>;
+}): Promise<string> {
+  const intent = {
+    version: 1,
+    target: args.conversationId
+      ? { kind: "existing", conversationId: args.conversationId }
+      : { kind: "create" },
+    content: args.content,
+    modelId: args.modelId ?? null,
+    models: args.models ?? null,
+    thinkingEffort: args.thinkingEffort ?? null,
+    attachments:
+      args.attachments?.map(({ type, name, storageId, mimeType, size }) => ({
+        type,
+        name,
+        storageId,
+        mimeType,
+        size,
+      })) ?? null,
+  };
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(JSON.stringify(intent)),
+  );
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+}
 
 /**
  * Background housekeeping mutation - runs after message is sent

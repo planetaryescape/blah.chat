@@ -1737,6 +1737,23 @@ export default defineSchema({
     .index("by_conversation", ["conversationId"])
     .index("by_user", ["userId"]),
 
+  // Hosted operational receipts prevent accepted web sends from being admitted twice.
+  // They intentionally remain outside portable BYOD/content export schemas.
+  chatSendReceipts: defineTable({
+    ownerId: v.id("users"),
+    clientMessageId: v.string(),
+    intentHash: v.string(),
+    conversationId: v.id("conversations"),
+    userMessageId: v.id("messages"),
+    assistantMessageIds: v.array(v.id("messages")),
+    comparisonGroupId: v.optional(v.string()),
+    parentMessageIds: v.optional(v.array(v.id("messages"))),
+    createdAt: v.number(),
+  })
+    .index("by_owner_key", ["ownerId", "clientMessageId"])
+    .index("by_user", ["ownerId"])
+    .index("by_conversation", ["conversationId"]),
+
   // Per-user, per-chat allowlist; no rows means no external integration tools.
   conversationIntegrations: defineTable({
     conversationId: v.id("conversations"),

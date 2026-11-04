@@ -112,10 +112,12 @@ export class BlahChatCache extends Dexie {
  */
 export interface PendingMutation {
   _id: string;
-  type: "sendMessage" | "editMessage" | "deleteMessage";
+  type: "sendMessage" | "sendMessageV2" | "editMessage" | "deleteMessage";
   payload: unknown;
   createdAt: number;
   retries: number;
+  state?: "pending" | "attention";
+  error?: string;
 }
 
 // SSR guard: IndexedDB not available on server

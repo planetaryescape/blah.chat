@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 let mutationConfig: null | {
   mutationFn?: (args: unknown) => Promise<unknown>;
   onMutate?: (variables: unknown) => unknown;
-  onSuccess?: (data: unknown, variables: unknown) => void;
+  onSuccess?: (data: unknown, variables: unknown, context?: unknown) => unknown;
   onError?: (
     error: Error,
     variables: unknown,
@@ -43,7 +43,11 @@ vi.mock("convex/react", () => ({
 }));
 
 vi.mock("@/lib/api/client", () => {
-  const post = vi.fn().mockResolvedValue({ status: "success", data: {} });
+  const post = vi.fn().mockResolvedValue({
+    conversationId: "conv-123",
+    messageId: "message-1",
+    assistantMessageId: "assistant-1",
+  });
   return {
     useApiClient: () => {
       mockPost = post;
@@ -55,9 +59,25 @@ vi.mock("@/lib/api/client", () => {
 vi.mock("@/lib/offline/messageQueue", () => ({
   messageQueue: {
     enqueue: vi.fn(async () => true),
+    enqueueReplayable: vi.fn(async (payload) => ({
+      ...payload,
+      id: "queued-1",
+      timestamp: Date.now(),
+      retries: 0,
+    })),
+    acknowledgeReplayable: vi.fn(async () => true),
+    processReplayableQueue: vi.fn(async () => "complete"),
+    retryAttention: vi.fn(),
     getCount: vi.fn(() => 0),
     processQueue: vi.fn(),
   },
+  isDefinitiveRefusal: (error: unknown) =>
+    !!error &&
+    typeof error === "object" &&
+    "status" in error &&
+    typeof error.status === "number" &&
+    error.status >= 400 &&
+    error.status < 500,
 }));
 
 vi.mock("sonner", () => ({
@@ -115,13 +135,14 @@ describe("useSendMessage", () => {
 
   it("creates optimistic user message on mutate", async () => {
     const onOptimisticUpdate = vi.fn();
-    renderHook(() => useSendMessage(onOptimisticUpdate));
+    renderHook(() => useSendMessage(onOptimisticUpdate, conversationId, false));
 
     // Call onMutate to trigger optimistic update
     await mutationConfig?.onMutate?.({
       conversationId,
       content: "Hello world",
       modelId: "openai:gpt-4o",
+      clientMessageId: "client-stable",
     });
 
     expect(onOptimisticUpdate).toHaveBeenCalled();
@@ -134,17 +155,18 @@ describe("useSendMessage", () => {
       _optimistic: true,
     });
     expect(messages[0]._id).toMatch(/^temp-user-/);
-    expect(messages[0].clientMessageId).toMatch(/^client-/);
+    expect(messages[0].clientMessageId).toBe("client-stable");
   });
 
   it("creates only user message for model comparison (server creates assistants)", async () => {
     const onOptimisticUpdate = vi.fn();
-    renderHook(() => useSendMessage(onOptimisticUpdate));
+    renderHook(() => useSendMessage(onOptimisticUpdate, conversationId, false));
 
     await mutationConfig?.onMutate?.({
       conversationId,
       content: "Compare these",
       models: ["openai:gpt-4o", "anthropic:claude-3-opus"],
+      clientMessageId: "client-compare",
     });
 
     expect(onOptimisticUpdate).toHaveBeenCalled();
@@ -156,8 +178,26 @@ describe("useSendMessage", () => {
     expect(messages[0].content).toBe("Compare these");
   });
 
+  it("keeps incognito sends out of the durable replay outbox", async () => {
+    renderHook(() => useSendMessage(undefined, conversationId, true));
+    const args = {
+      conversationId,
+      content: "Private message",
+      modelId: "openai:gpt-4o",
+      clientMessageId: "private-request-key",
+    };
+    await mutationConfig?.onMutate?.(args);
+    await mutationConfig?.mutationFn?.(args);
+
+    expect(mockMessageQueue.enqueueReplayable).not.toHaveBeenCalled();
+    expect(mockPost).toHaveBeenCalledWith(
+      `/api/v1/conversations/${conversationId}/messages`,
+      args,
+    );
+  });
+
   it("calls API client post with correct payload", async () => {
-    renderHook(() => useSendMessage());
+    renderHook(() => useSendMessage(undefined, conversationId, false));
 
     const args = {
       conversationId,
@@ -166,7 +206,13 @@ describe("useSendMessage", () => {
       clientMessageId: "client-fixed-id",
     };
 
+    const context = await mutationConfig?.onMutate?.(args);
     await mutationConfig?.mutationFn?.(args);
+    await mutationConfig?.onSuccess?.(
+      { conversationId: "conv-123", messageId: "m1", assistantMessageId: "a1" },
+      args,
+      context,
+    );
 
     expect(mockPost).toHaveBeenCalledWith(
       `/api/v1/conversations/${conversationId}/messages`,
@@ -175,10 +221,17 @@ describe("useSendMessage", () => {
   });
 
   it("invalidates conversations query on success", () => {
-    renderHook(() => useSendMessage());
+    renderHook(() => useSendMessage(undefined, conversationId, false));
 
     mutationConfig?.onSuccess?.(
-      { status: "success" },
+      {
+        status: "success",
+        data: {
+          conversationId: "conv-123",
+          messageId: "m1",
+          assistantMessageId: "a1",
+        },
+      },
       { conversationId, content: "Test" },
     );
 
@@ -187,23 +240,25 @@ describe("useSendMessage", () => {
     });
   });
 
-  it("shows error toast when online and fails", () => {
+  it("shows queued outcome when online and transport fails", async () => {
     Object.defineProperty(navigator, "onLine", {
       value: true,
       configurable: true,
     });
 
-    renderHook(() => useSendMessage());
+    renderHook(() => useSendMessage(undefined, conversationId, false));
 
+    const args = {
+      conversationId,
+      content: "Test",
+      clientMessageId: "client-network-failure",
+    };
+    const context = await mutationConfig?.onMutate?.(args);
     const error = new Error("Network error");
-    mutationConfig?.onError?.(
-      error,
-      { conversationId, content: "Test" },
-      undefined,
-    );
+    mutationConfig?.onError?.(error, args, context);
 
-    expect(mockToast.error).toHaveBeenCalledWith("Network error");
-    expect(mockMessageQueue.enqueue).not.toHaveBeenCalled();
+    expect(mockToast.info).toHaveBeenCalled();
+    expect(mockMessageQueue.acknowledgeReplayable).not.toHaveBeenCalled();
   });
 
   it("enqueues message when offline", async () => {
@@ -212,29 +267,26 @@ describe("useSendMessage", () => {
       configurable: true,
     });
 
-    renderHook(() => useSendMessage());
+    renderHook(() => useSendMessage(undefined, conversationId, false));
 
     const args = {
       conversationId,
       content: "Offline message",
       modelId: "openai:gpt-4o",
+      clientMessageId: "offline-stable",
     };
 
     const context = await mutationConfig?.onMutate?.(args);
     await mutationConfig?.onError?.(new Error("Failed"), args, context);
 
-    expect(mockMessageQueue.enqueue).toHaveBeenCalledWith(
-      {
+    expect(mockMessageQueue.enqueueReplayable).toHaveBeenCalledWith(
+      expect.objectContaining({
         conversationId,
         content: "Offline message",
         modelId: "openai:gpt-4o",
-        models: undefined,
-        attachments: undefined,
-      },
+        clientMessageId: "offline-stable",
+      }),
       expect.any(BlahChatCache),
-    );
-    expect(mockToast.info).toHaveBeenCalledWith(
-      "You're offline. Message queued and will send when reconnected.",
     );
   });
 
@@ -244,7 +296,8 @@ describe("useSendMessage", () => {
   ] as const)("does not toast success when processing is %s", async (status) => {
     mockMessageQueue.getCount.mockResolvedValue(1);
     mockMessageQueue.processQueue.mockResolvedValue(status);
-    renderHook(() => useSendMessage());
+    mockMessageQueue.processReplayableQueue.mockResolvedValue(status);
+    renderHook(() => useSendMessage(undefined, conversationId, false));
     window.dispatchEvent(new Event("online"));
     await vi.waitFor(() =>
       expect(mockMessageQueue.processQueue).toHaveBeenCalled(),
@@ -257,7 +310,7 @@ describe("useSendMessage", () => {
     mockMessageQueue.processQueue.mockRejectedValue(
       new Error("storage failed"),
     );
-    renderHook(() => useSendMessage());
+    renderHook(() => useSendMessage(undefined, conversationId, false));
     window.dispatchEvent(new Event("online"));
     await vi.waitFor(() =>
       expect(mockToast.error).toHaveBeenCalledWith(

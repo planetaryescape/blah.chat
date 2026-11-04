@@ -20,6 +20,17 @@ change and `incomplete` after send failures. Show a success toast only for
 `complete`. Pass the original mutation's cache handle to `enqueue` so a late
 offline failure cannot queue the previous user's message for the next user.
 
+Ordinary signed-in web chat sends are written to `pendingMutations` before their
+first REST request as `sendMessageV2`. The payload retains its `clientMessageId`,
+content, model/comparison choice, thinking effort and attachment references.
+Keep this discriminator distinct: older readers that select only `sendMessage`
+must ignore it. A confirmed 202 removes the matching row; an uncertain transport
+outcome keeps it for reconnect/reload replay with the same key. Repeated unknown
+outcomes move to attention instead of deleting the request; the existing queue
+indicator offers an explicit retry when online. Incognito sends bypass this durable
+outbox. Legacy `sendMessage` rows keep their existing compatibility path and do not
+gain replay guarantees retroactively.
+
 ## Message reconciliation
 
 Only pass the complete authorized message tree to `syncMessageTree`. An active

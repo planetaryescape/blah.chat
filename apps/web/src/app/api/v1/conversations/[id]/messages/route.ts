@@ -1,31 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { CachePresets, getCacheControl } from "@/lib/api/cache";
 import { messagesDAL } from "@/lib/api/dal/messages";
+import { sendMessageSchema } from "@/lib/api/dal/sendMessageSchema";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { trackAPIPerformance } from "@/lib/api/monitoring";
 import { parseBody } from "@/lib/api/utils";
 import logger from "@/lib/logger";
-
-const sendSchema = z.object({
-  content: z.string().min(1),
-  modelId: z.string().optional(),
-  models: z.array(z.string()).optional(),
-  clientMessageId: z.string().optional(),
-  thinkingEffort: z.enum(["none", "low", "medium", "high"]).optional(),
-  attachments: z
-    .array(
-      z.object({
-        type: z.enum(["file", "image", "audio"]),
-        name: z.string(),
-        storageId: z.string(),
-        mimeType: z.string(),
-        size: z.number(),
-      }),
-    )
-    .optional(),
-});
 
 async function getHandler(
   _req: NextRequest,
@@ -84,7 +65,7 @@ async function postHandler(
     "POST /api/v1/conversations/:id/messages",
   );
 
-  const body = await parseBody(req, sendSchema);
+  const body = await parseBody(req, sendMessageSchema);
   const result = await messagesDAL.send(
     userId,
     conversationId,

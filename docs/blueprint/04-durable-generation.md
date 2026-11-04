@@ -15,7 +15,9 @@ Repair these concrete boundaries before extracting a runtime abstraction:
 | Initial-age 60-second lock and alternate admissions permit overlapping work | One admission transaction, progress-based lease and epoch fences |
 | Background prompt builder depends on absent ambient identity | Read admitted owner's instructions explicitly |
 | Stop is checked only after arriving chunks; late enrichment can change complete to error | Independent cancellation, monotonic terminal claims, independent enrichment |
-| `clientMessageId` is stored but not deduplicated | Stable `clientRequestId` plus semantic `requestHash` before scheduling/spend |
+| `clientMessageId` is stored but not deduplicated | The 5b web candidate adds an owner-scoped hosted receipt keyed by this optional ID and a versioned hash of submitted intent. Matching authorized replay returns the original IDs before mutable policy, lock or scheduling work; changed intent conflicts. This is not the broader Run/Attempt admission design below. |
+
+The 5b candidate covers ordinary signed-in web composer/REST sends and keyed direct-Convex callers. The web client persists its complete request in the existing owner/deployment-scoped Dexie queue under a new `sendMessageV2` discriminator before first transport. It retains uncertain outcomes and retries with the same key. The hosted receipt is operational metadata: it is not part of BYOD schema/content export and is removed with owner data. Keyless callers retain legacy behavior; new incognito sends do not write a durable receipt or browser outbox entry. An accepted create-intent replay returns its original conversation; a deleted target fails closed. This candidate does not recover the bare conversation-create endpoint, pin an explicit branch parent, or introduce Run/Attempt records. Release and live lost-ack proof remain separate gates.
 
 These are static findings G1/G4–G6/G8–G11, not measured incident rates. Exact traces and proposed reproductions are in [generation research](../../research_notes/blah-chat-modernization-review/generation.md#which-failures-are-supported-by-current-code).
 

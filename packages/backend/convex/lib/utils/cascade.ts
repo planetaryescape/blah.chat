@@ -195,6 +195,12 @@ export async function cascadeDeleteUserData(
     "composioConnections",
     "templates",
   ] as const;
+  const sendReceipts = await ctx.db
+    .query("chatSendReceipts")
+    .withIndex("by_user", (q) => q.eq("ownerId", userId))
+    .collect();
+  for (const receipt of sendReceipts) await ctx.db.delete(receipt._id);
+
   for (const table of extraTables) {
     const rows = await ctx.db
       .query(table)

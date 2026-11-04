@@ -154,14 +154,14 @@ Schema version: ${BYOD_SCHEMA_VERSION}
 
 ## Important Notes
 
-- **DO NOT modify the schema** - blah.chat manages schema updates automatically.
+- **Schema updates require deployment** - download the current schema package from the Instance Information card and deploy it to your Convex project. An update notice or download does not deploy or migrate your database.
 - Your data is stored securely on your own Convex instance.
 - blah.chat only stores your connection credentials (encrypted).
 
 ## Troubleshooting
 
 ### "Schema mismatch" error
-Wait for blah.chat to deploy the latest schema, or re-download this project.
+Download the latest project, link it to your existing Convex project, and deploy its schema. Preserve your project and data; do not create a replacement database just to resolve a version mismatch.
 
 ### "Connection failed" error
 Verify your deployment URL is correct and your Convex project is active.

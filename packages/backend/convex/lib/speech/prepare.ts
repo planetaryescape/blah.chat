@@ -98,9 +98,11 @@ function lexNested(content: string, references: Links): Token[] {
 function listContentOffsets(
   item: Tokens.ListItem,
   sourceOffset: (index: number) => number,
+  contentText = item.text,
+  isTask = item.task,
 ): number[] {
   const rawLines = item.raw.split("\n");
-  const contentLines = item.text.split("\n");
+  const contentLines = contentText.split("\n");
   const offsets: number[] = [];
   let rawStart = 0;
   let end = sourceOffset(0);
@@ -131,8 +133,8 @@ function listContentOffsets(
         local += character.length;
         column += character === "\t" && tabs ? width : 1;
       }
-      if (lineIndex === 0 && item.task) {
-        const taskLength = value.match(/^ *\[[ xX]\] +/)?.[0].length ?? 0;
+      if (lineIndex === 0 && isTask) {
+        const taskLength = value.match(/^ *\[[ xX]\](?: +|$)/)?.[0].length ?? 0;
         value = value.slice(taskLength);
         positions.splice(0, taskLength);
       }
@@ -353,8 +355,8 @@ export async function prepareDeterministic(
             itemMembership,
           );
           const taskMarker = item.raw
-            .trimEnd()
-            .match(/^[ \t]{0,3}(?:[*+-]|\d{1,9}[.)])[ \t]+\[([ xX])\][ \t]*$/);
+            .split("\n", 1)[0]
+            ?.match(/^[ \t]{0,3}(?:[*+-]|\d{1,9}[.)])[ \t]+\[([ xX])\][ \t]*$/);
           const taskState = item.task
             ? item.checked
               ? "Checked. "
@@ -366,14 +368,19 @@ export async function prepareDeterministic(
               : "";
           const prefix = `${list.ordered ? `${Number(list.start) + index}. ` : ""}${taskState}`;
           if (prefix) add(mapping, "list", prefix, "detail", 0);
-          const emptyTask = taskMarker !== null;
+          const itemText = taskMarker
+            ? item.text.replace(/^[ \t]*\[[ xX]\][ \t]*(?=\n|$)/, "")
+            : item.text;
           walk(
-            lexNested(emptyTask ? "" : item.text, references),
+            lexNested(itemText, references),
             sourceOffset(itemStart),
-            item.text,
+            itemText,
             depth + 1,
-            listContentOffsets(item, (index) =>
-              sourceOffset(itemStart + index),
+            listContentOffsets(
+              item,
+              (index) => sourceOffset(itemStart + index),
+              itemText,
+              item.task || taskMarker !== null,
             ),
             references,
             itemMembership,

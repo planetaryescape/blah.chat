@@ -1,6 +1,10 @@
 import { type Links, marked, type Token, type Tokens } from "marked";
 import { readQuantities } from "./quantities";
-import type { PreparedNarration, SpeechSegment } from "./types";
+import type {
+  ListItemMembership,
+  PreparedNarration,
+  SpeechSegment,
+} from "./types";
 
 export const SPEECH_LIMITS = {
   source: 40_000,
@@ -10,7 +14,7 @@ export const SPEECH_LIMITS = {
   segment: 1800,
 } as const;
 
-export interface CodeBlock {
+export interface CodeBlock extends ListItemMembership {
   blockId: string;
   text: string;
   sourceStart: number;
@@ -193,7 +197,7 @@ export async function prepareDeterministic(
     throw new Error("Speech source requires 1-40000 characters");
   const sourceHash = await speechHash(text);
   const narration: PreparedNarration = {
-    version: "1",
+    version: "2",
     sourceHash,
     segments: [],
     coverage: "complete",
@@ -211,13 +215,18 @@ export async function prepareDeterministic(
       "LaTeX notation is retained as source text; spoken mathematical grouping and pronunciation are unavailable.",
     );
   }
-  const block = (start: number, end: number) => {
+  const block = (
+    start: number,
+    end: number,
+    membership?: ListItemMembership,
+  ) => {
     if (++blocks > SPEECH_LIMITS.blocks)
       throw new Error("Speech source exceeds 500 blocks");
     return {
       blockId: `${sourceHash.slice(0, 16)}:${start}:${end}`,
       sourceStart: start,
       sourceEnd: end,
+      ...membership,
     };
   };
   const add = (
@@ -233,7 +242,7 @@ export async function prepareDeterministic(
     ).entries()) {
       const segment: SpeechSegment = {
         ...mapping,
-        id: `${mapping.blockId}:${narration.segments.length}:${index}`,
+        id: `speech-v2:${mapping.blockId}:${narration.segments.length}:${index}`,
         kind,
         role,
         text: chunk,
@@ -292,6 +301,7 @@ export async function prepareDeterministic(
     depth: number,
     offsets: number[] | undefined,
     references: Links,
+    membership?: ListItemMembership,
   ) => {
     const sourceOffset = (index: number) => offsets?.[index] ?? base + index;
     let cursor = 0;
@@ -310,7 +320,7 @@ export async function prepareDeterministic(
         );
         if (note) {
           add(
-            block(start, end),
+            block(start, end, membership),
             "paragraph",
             `Footnote ${literal(note[1])}. ${literal(decodeEntities(note[2]))}`,
             "detail",
@@ -332,19 +342,33 @@ export async function prepareDeterministic(
           const itemStart = rawSource.indexOf(item.raw, itemCursor);
           if (itemStart < 0) throw new Error("Unable to map list item");
           itemCursor = itemStart + item.raw.length;
+          const listItemId = `speech-v2:${sourceHash.slice(0, 16)}:${sourceOffset(itemStart)}:${sourceOffset(itemCursor)}`;
+          const itemMembership: ListItemMembership = {
+            listItemId,
+            listDepth: depth + 1,
+          };
           const mapping = block(
             sourceOffset(itemStart),
             sourceOffset(itemCursor),
+            itemMembership,
           );
-          add(
-            mapping,
-            "list",
-            `${depth ? `Nested list level ${depth + 1}. ` : ""}${list.ordered ? `Item ${Number(list.start) + index}. ` : "List item. "}${item.task ? (item.checked ? "Checked. " : "Unchecked. ") : ""}`,
-            "detail",
-            0,
-          );
+          const taskMarker = item.raw
+            .trimEnd()
+            .match(/^[ \t]{0,3}(?:[*+-]|\d{1,9}[.)])[ \t]+\[([ xX])\][ \t]*$/);
+          const taskState = item.task
+            ? item.checked
+              ? "Checked. "
+              : "Unchecked. "
+            : taskMarker
+              ? taskMarker[1].toLowerCase() === "x"
+                ? "Checked. "
+                : "Unchecked. "
+              : "";
+          const prefix = `${list.ordered ? `${Number(list.start) + index}. ` : ""}${taskState}`;
+          if (prefix) add(mapping, "list", prefix, "detail", 0);
+          const emptyTask = taskMarker !== null;
           walk(
-            lexNested(item.text, references),
+            lexNested(emptyTask ? "" : item.text, references),
             sourceOffset(itemStart),
             item.text,
             depth + 1,
@@ -352,12 +376,13 @@ export async function prepareDeterministic(
               sourceOffset(itemStart + index),
             ),
             references,
+            itemMembership,
           );
         }
         continue;
       }
       if (token.type === "blockquote") {
-        const mapping = block(start, end);
+        const mapping = block(start, end, membership);
         add(mapping, "paragraph", "Quote.", "detail", 0);
         // Retain an explicit UTF-16 map while removing only the quote prefixes.
         let quoteText = "";
@@ -379,12 +404,14 @@ export async function prepareDeterministic(
           depth,
           quoteOffsets,
           references,
+          membership,
         );
         add(
           {
             blockId: `${mapping.blockId}:end`,
             sourceStart: end,
             sourceEnd: end,
+            ...membership,
           },
           "notice",
           "End quote.",
@@ -393,7 +420,7 @@ export async function prepareDeterministic(
         );
         continue;
       }
-      const mapping = block(start, end);
+      const mapping = block(start, end, membership);
       if (token.type === "table") {
         // SAFETY: Marked's GFM lexer emits Table for the checked table discriminator.
         const table = token as Tokens.Table;

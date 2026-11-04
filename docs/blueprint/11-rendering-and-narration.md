@@ -98,7 +98,7 @@ One semantic announcer tracks status transitions by stable message/run identity,
 
 ## Read-aloud: remove the words the app adds
 
-The app, not a list-aware voice heuristic, inserts the repeated prefix. The exact seam is [`packages/backend/convex/lib/speech/prepare.ts:339–345`](https://github.com/planetaryescape/blah.chat/blob/04866f80a6236716ebf8d8c5a79001727f85f4bf/packages/backend/convex/lib/speech/prepare.ts#L339-L345). Its list adapter emits a separate segment containing `List item. `, `Item N. `, `Nested list level N. ` and checked/unchecked text. [`speechPreparation.test.ts:533–537`](https://github.com/planetaryescape/blah.chat/blob/04866f80a6236716ebf8d8c5a79001727f85f4bf/packages/backend/convex/__tests__/speechPreparation.test.ts#L533-L537), [nested expectations](https://github.com/planetaryescape/blah.chat/blob/04866f80a6236716ebf8d8c5a79001727f85f4bf/packages/backend/convex/__tests__/speechPreparation.test.ts#L601-L608) and [task expectations](https://github.com/planetaryescape/blah.chat/blob/04866f80a6236716ebf8d8c5a79001727f85f4bf/packages/backend/convex/__tests__/speechPreparation.test.ts#L624-L644) mandate those labels today (D-004).
+The old adapter inserted `List item. `, `Item N. ` and `Nested list level N. ` before list bodies. The current deterministic adapter emits unordered bodies without a prefix, preserves ordered ordinals as `7. ` / `8. `, and retains `Checked. ` / `Unchecked. ` once as task state. It never removes matching words authored in the body. Each spoken item carries typed `listItemId` and `listDepth`; nested traversal replaces membership for the child rather than inheriting the parent's identity. Empty ordinary items create no empty segment, while an empty task still has its state segment. Block counting and existing pause behavior remain.
 
 ### Exact current path
 
@@ -118,7 +118,7 @@ MessageActions → TTSButton → TTSContext.playFromText(text, messageId)
 
 The player applies speed once. This is sequential segment playback, not direct provider-byte streaming despite UI naming. No device-speech fallback was found; do not claim offline/browser voice parity. [Path evidence](../../research_notes/blah-chat-modernization-review/narration.md#actual-path-not-a-provider-hypothesis), [Deepgram REST contract](https://developers.deepgram.com/docs/text-to-speech).
 
-The isolated source-expression probe reproduced `"List item. "` and the desired no-label assertion failed. Importing the full parser was blocked by missing `marked`. **No audio was synthesized or heard**, and no segment join or final sample was listened to. That is enough to identify app-inserted text, not to certify pronunciation, deployed behavior or the complete fix (S7).
+The historical isolated source-expression probe reproduced `"List item. "`; the complete parser was not available in that earlier probe. For this change, a real `prepareDeterministic` test ran against the base parser and failed on actual generated prefixes (`List item. `, `Item 7. ` and `Nested list level 2. `). The changed parser and handoff tests now pass. Raw base-red and green command logs are in the orchestrator's `evidence/next-rung-3/` packet. The handoff test uses actual prepared list segments and mocked only auth/network/audio boundaries. **No provider synthesis was requested and no audio was heard.** Parser and POST-body evidence does not certify pronunciation, deployed behavior or listening quality (S7).
 
 ### Small deterministic list change
 
@@ -127,8 +127,8 @@ Change the existing AST/token-tree list adapter, not the provider or a full-mess
 | Source / structure | Prepared-text rule | Metadata / fidelity |
 |---|---|---|
 | `- Apples` / `- Pears` | `Apples` then `Pears`, with existing pause metadata | Distinct source-linked items; no empty synthetic prefix segment. |
-| Ordered list starting at 7 | `7. …` then `8. …`, without generated `Item` | Preserve rendered ordinal policy and all substantive body numbers. |
-| Nested lists | Parent/child/sibling content in source order, no spoken nesting labels | Add `listItemId` / `listDepth` or equivalent typed membership to the existing speech-segment schema; child membership is not overwritten by parent traversal. |
+| Ordered list starting at 7 | `7. ` + `…`, then `8. ` + `…`; no generated `Item` | Preserve rendered ordinal policy and all substantive body numbers. |
+| Nested lists | Parent/child/sibling content in source order, no spoken nesting labels | Typed `listItemId` / `listDepth`; child membership is not overwritten by parent traversal. Code blocks and optional code explanations retain their containing list membership. |
 | Checked / unchecked tasks | Preserve `Checked. ` / `Unchecked. ` once | Task state carries meaning; the bullet marker does not. Empty task bodies still retain that state. |
 | Author writes "Say list item literally." | Speak those words unchanged | Distinguish synthetic segments from source spans. No phrase blacklist. |
 | Heading, code, table, math, final paragraph | Unchanged by this list repair | Retain heading rank, technical detail paths, existing unsupported-structure notices and the final sentence. |
@@ -139,9 +139,9 @@ Do not revive the legacy punctuation-stripping `markdownToSpeechText` fallback. 
 
 ### Source mapping, policy and caches
 
-Preserve immutable Markdown/hash and original UTF-16 offsets through CRLF, tabs, emoji, repeated text and nested items. Structural rank/depth/pause belongs in metadata rather than spoken tags. Removing segments changes position-derived segment IDs: increment the preparation policy/version and invalidate old rendition/resume mappings. Never resume an old numeric segment index under the new policy.
+Preserve immutable Markdown/hash and original UTF-16 offsets through CRLF, tabs, emoji, repeated text and nested items. Structural rank/depth/pause belongs in metadata rather than spoken tags. The current preparation result is version `2`; every segment ID uses the `speech-v2:` namespace, preventing a prior positional mapping from being mistaken for this policy. The web client continues to accept legacy version `1` results from a still-deployed or BYOD backend and consumes only their existing segment fields. Older clients ignore the additional metadata and version field. Rollback to an old backend therefore restores its old speech text for old clients; a new client can consume either result without a forced schema migration. No numeric-index resume store was found in the current player path.
 
-There is no preparation-result cache in the inspected action. Current audio identity covers owner, exact prepared text, voice, speed, MP3, credential policy and `speech-audio-v1`. Deleted label segments will no longer be requested; changed `Item 7. `→`7. ` naturally yields a different text hash. Unchanged content audio can remain valid. Do not flush unrelated audio or users' caches merely to change a list prefix.
+There is no preparation-result cache in the inspected action. Current audio identity covers owner, exact prepared text, voice, speed, MP3, credential policy and `speech-audio-v1`. Removed label segments are no longer requested; changed `Item 7. `→`7. ` naturally yields a different text hash. Unchanged content audio can remain valid. Do not flush unrelated audio or users' caches merely to change a list prefix.
 
 If an adapter changes interpretation for identical text, version its audio namespace/configuration. Any future preparation cache must include authenticated owner, source revision/hash, normalizer/preparation policy, locale and relevant model/config versions; audio adds prepared-text/segment identity, provider/model/voice/config and adapter version. A source edit or policy mismatch invalidates mapped playback. Voice changes apply to a clearly captured playback session, not half of an old rendition. Locale support is not established by English structural rules or existing `-en` voices (D-022; Q4/Q7/Q8).
 

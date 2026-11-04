@@ -138,19 +138,19 @@ Every rung's **Done when** includes this contract. It does not demand all live p
 
 ## Rung 3: Read lists without synthetic announcements
 
-**Previously:** The app inserts “List item” and nesting labels. **Now:** Read-aloud preserves content without those generated words.
+**Source implementation:** The deterministic adapter no longer inserts unordered-item or nesting announcements. Ordered ordinals, task state, source mapping and typed nested-item membership remain; preparation and segment identity are versioned. This source change is not deployment or listening proof.
 
 **Proposed demo promise, not BK quote:** “I hear the list, not an announcement before every bullet.”
 
-**Build:** Deterministic token adapter, item/depth metadata, changed policy/mapping version and updated adversarial fixtures; retain real ordinals/task state (D-004; [11](11-rendering-and-narration.md#small-deterministic-list-change)).
+**Build:** Deterministic token adapter, item/depth metadata, changed policy/mapping version and adversarial parser plus parser-to-player POST-body fixtures; retain real ordinals/task state (D-004; [11](11-rendering-and-narration.md#small-deterministic-list-change)).
 
 **Design:** Existing play/pause/stop and source following stay familiar; no new narration mode or provider switch.
 
-**New unknowns:** S7/real parser-to-player source coverage; S7/authorized selected-voice joins and final sample.
+**Remaining gates:** Independent exact-artifact verification, deployed signed-in playback/POST sequence, and S7/authorized selected-voice joins and final sample.
 
 **Demo:** Nested bullets, list starting at 7, checked task, author's literal “list item” and distinctive last sentence; inspect actual prepared POST sequence, then listen only after explicit call budget.
 
-**Done when:** No generated label/empty segment, substantive content/source order/ending preserved, cancellation and cache identity remain isolated. Ship audio-facing claim only with the listening gate; otherwise report text/handoff-only evidence and keep release listening approval pending.
+**Done when:** No generated label/empty segment, substantive content/source order/ending preserved, cancellation and cache identity remain isolated. Source and mocked-boundary handoff tests pass; deployment and listening remain pending. Ship an audio-facing claim only with the listening gate; otherwise report text/handoff-only evidence and keep release listening approval pending.
 
 **Left out:** Full-message AI rewrite, quieter technical tables/code, unrelated audio cache flush or all rendering repairs.
 

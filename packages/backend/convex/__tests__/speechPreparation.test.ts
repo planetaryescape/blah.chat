@@ -534,7 +534,7 @@ describe("faithful structural narration", () => {
       narration.segments
         .filter((segment) => segment.role === "detail")
         .map((segment) => segment.text),
-    ).toEqual(["List item. ", "List item. ", "Item 7. ", "Item 8. "]);
+    ).toEqual(["7. ", "8. "]);
     expect(narration.coverage).toBe("complete");
   });
   it.each([
@@ -577,6 +577,24 @@ describe("faithful structural narration", () => {
       expect(spoken).toContain(value);
     expect(codeBlocks).toHaveLength(1);
     expect(codeBlocks[0].text).toBe("if (ready) {\n  return false;\n}");
+    expect(codeBlocks[0].listDepth).toBe(2);
+    expect(codeBlocks[0].listItemId).toBeDefined();
+    applyCodeOutline(
+      narration,
+      codeBlocks[0],
+      JSON.stringify({
+        sourceHash: narration.sourceHash,
+        blockId: codeBlocks[0].blockId,
+        lines: [{ line: 1, quote: "if (ready) {", kind: "condition" }],
+      }),
+      "stop",
+    );
+    expect(
+      narration.segments.find((segment) => segment.role === "explanation"),
+    ).toMatchObject({
+      listDepth: 2,
+      listItemId: codeBlocks[0].listItemId,
+    });
     expect(codeBlocks[0].sourceStart).toBe(source.indexOf("```ts"));
     expect(
       source.slice(codeBlocks[0].sourceStart, codeBlocks[0].sourceEnd),
@@ -598,19 +616,27 @@ describe("faithful structural narration", () => {
           segment.sourceStart === source.indexOf("| Name | Actual |"),
       ),
     ).toBe(true);
-    const labels = narration.segments.filter(
-      (segment) => segment.role === "detail" && segment.kind === "list",
+    const listSegments = narration.segments.filter(
+      (segment) =>
+        segment.kind === "list" &&
+        ["Parent", "Nested", "Sibling"].some(
+          (value) => segment.sourceStart === source.indexOf(value),
+        ),
     );
-    expect(labels.map((segment) => segment.text)).toEqual([
-      "List item. ",
-      "Nested list level 2. List item. ",
-      "List item. ",
+    expect(listSegments.map((segment) => segment.text)).toEqual([
+      "Parent 😀\nparent continuation",
+      "Nested 😀\nnested continuation",
+      "Sibling",
     ]);
-    expect(labels.map((segment) => segment.sourceStart)).toEqual([
-      0,
-      source.indexOf("- Nested"),
-      source.indexOf("- Sibling"),
+    expect(listSegments.map((segment) => segment.listDepth)).toEqual([1, 2, 1]);
+    expect(listSegments.map((segment) => segment.sourceStart)).toEqual([
+      source.indexOf("Parent"),
+      source.indexOf("Nested"),
+      source.indexOf("Sibling"),
     ]);
+    expect(
+      new Set(listSegments.map((segment) => segment.listItemId)).size,
+    ).toBe(3);
     expect(narration.segments.map((segment) => segment.sourceStart)).toEqual(
       narration.segments
         .map((segment) => segment.sourceStart)
@@ -640,7 +666,10 @@ describe("faithful structural narration", () => {
       source.indexOf("Tabbed"),
       source.indexOf("Lazy"),
     ]);
-    expect(narration.segments[0].text).toBe("List item. Checked. ");
+    expect(narration.segments[0].text).toBe("Checked. ");
+    expect(
+      narration.segments.filter((segment) => segment.text === "Checked. "),
+    ).toHaveLength(1);
     expect(codeBlocks[0].text).toBe("    if ready:\n        return False");
     expect(
       narration.segments.some((segment) =>
@@ -675,7 +704,7 @@ describe("faithful structural narration", () => {
       narration.segments
         .filter((segment) => segment.role === "detail")
         .map((segment) => segment.text),
-    ).toEqual(["Item 10. ", "Item 11. "]);
+    ).toEqual(["10. ", "11. "]);
   });
   it("composes quote and list mappings and handles interior tabs after emoji", async () => {
     const source =

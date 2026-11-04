@@ -292,7 +292,8 @@ it("completes a retry target with only its selected multi-parent ancestry and ke
   expect(reloadedActiveIds).toEqual(
     expect.arrayContaining([otherAParent, prompt, pending._id, nextUser._id]),
   );
-  expect(reloadedActiveIds).not.toEqual(expect.arrayContaining([left, right]));
+  expect(reloadedActiveIds).not.toContain(left);
+  expect(reloadedActiveIds).not.toContain(right);
   expect(reloadedActiveIds).not.toContain(bFollowup);
   expect(
     await client.query(api.messages.getBranchesAtMessage, {

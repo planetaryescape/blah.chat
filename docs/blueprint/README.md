@@ -4,7 +4,7 @@
 
 This is an **existing-app modernization plan**, audited on **2026-11-03** at HEAD and freshly fetched `origin/main` **`04866f80a6236716ebf8d8c5a79001727f85f4bf`**. The application and its existing design precede this session. There was no previous blueprint; existing architecture/runbooks remain intact. Root [AGENTS.md](../../AGENTS.md) is preserved, including inherited engineering constraints; current paths are clarified in [01](01-architecture.md).
 
-BK requested evaluation, current research and this blueprint, not implementation. **No application code, installation, paid model/sandbox call, migration, deployment or commit is authorized by these documents.** The 35 entries in [21](21-decision-log.md) distinguish explicit BK requirements, inherited constraints and unapproved GPT-6.1 recommendations. The 23 questions and 18 spikes in [22](22-open-questions.md) remain open; a planning assumption is not permission. The [kickoff](KICKOFF.md) is a prompt to use after scoped implementation authorization, not an instruction to start it now (D-001).
+BK initially requested evaluation, current research and this blueprint, not implementation. **These documents alone do not authorize application code, installation, paid model/sandbox calls, migration, deployment or commits.** The 37 entries in [21](21-decision-log.md) distinguish explicit BK requirements, inherited constraints and unapproved GPT-6.1 recommendations, including subsequent scoped implementation approvals. The 23 questions and 18 spikes in [22](22-open-questions.md) remain open; a planning assumption is not permission. The [kickoff](KICKOFF.md) is a prompt to use after scoped implementation authorization (D-001).
 
 ## Reading order
 
@@ -58,9 +58,9 @@ No production build, authenticated E2E, browser/accessibility/native journey, re
 
 ### Blueprint validation
 
-Local documentation checks on 2026-11-03 found 25 blueprint files, 35 decision definitions, 23 questions and 18 spikes. The index covers all 23 numbered chapters and KICKOFF. Every decision and F01–F50 has a roadmap bucket; all 34 product rungs have the required acceptance fields.
+Local documentation checks after D-037 found 25 blueprint files, 37 decision definitions, 23 questions and 18 spikes. The index covers all 23 numbered chapters and KICKOFF. Every decision and F01–F50 has a roadmap bucket; all 35 product rungs have the required acceptance fields.
 
-The unmodified stock command `python3 -I /Users/bhekanik/.dotfiles/.skills/blueprint/scripts/check_blueprint.py docs/blueprint` passed with actual output: `25 documents, 35 decisions, 41 spikes/questions: 0 errors, 0 warnings`. Research/report paths now use hyphenated names; parenthesized mobile paths and the packaging line citation use immutable source permalinks. No checker workaround or ignored error is used. External URLs were not re-fetched in this finalization. This validates documentation links/structure, not application behavior or approval of the proposed contracts.
+The unmodified stock command `python3 -I /Users/bhekanik/.dotfiles/.skills/blueprint/scripts/check_blueprint.py docs/blueprint` passed with actual output: `25 documents, 37 decisions, 41 spikes/questions: 0 errors, 0 warnings`. Research/report paths use hyphenated names; parenthesized mobile paths and the packaging line citation use immutable source permalinks. No checker workaround or ignored error is used. External URLs were not re-fetched in this finalization. This validates documentation links/structure, not application behavior or approval of the proposed contracts.
 
 ## Research and raw sources
 

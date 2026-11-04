@@ -6,8 +6,11 @@
  */
 
 import { v } from "convex/values";
+import {
+  getHistoricalPreferenceCategory,
+  PREFERENCE_CATEGORIES,
+} from "../../../shared/src/preferences";
 import { internalMutation, internalQuery } from "../_generated/server";
-import { PREFERENCE_CATEGORIES } from "../users/constants";
 
 /**
  * Query: Check backfill progress
@@ -121,7 +124,8 @@ export const backfillBatch = internalMutation({
         }
 
         // Regular preferences
-        const category = PREFERENCE_CATEGORIES[key];
+        const category =
+          PREFERENCE_CATEGORIES[key] ?? getHistoricalPreferenceCategory(key);
         if (category) {
           await ctx.db.insert("userPreferences", {
             userId: user._id,
@@ -194,7 +198,8 @@ export const backfillSingleUser = internalMutation({
         continue;
       }
 
-      const category = PREFERENCE_CATEGORIES[key];
+      const category =
+        PREFERENCE_CATEGORIES[key] ?? getHistoricalPreferenceCategory(key);
       if (category) {
         await ctx.db.insert("userPreferences", {
           userId: args.userId,

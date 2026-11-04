@@ -41,7 +41,7 @@ async function createTask(deadline?: string) {
     deadline,
   });
   await t.finishAllScheduledFunctions(vi.runAllTimers);
-  const task = await t.run(async (ctx) =>
+  const task = await t.run((ctx) =>
     ctx.db
       .query("tasks")
       .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -73,7 +73,7 @@ describe("task-manager deadline parsing after extraction retirement", () => {
     const currentDate = request.prompt.match(
       /Current date and time: ([^\n]+)/,
     )?.[1];
-    expect(currentDate).toBeDefined();
+    expect(currentDate).toBe("2026-11-03T12:00:00.000Z");
     expect(request.prompt).toBe(
       `${DEADLINE_PARSING_PROMPT.replace("{{CURRENT_DATE}}", currentDate ?? "")}` +
         '\n\nDeadline text: "next Friday"',

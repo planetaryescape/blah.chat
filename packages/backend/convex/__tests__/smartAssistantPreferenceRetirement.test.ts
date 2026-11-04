@@ -16,7 +16,7 @@ describe("retired Smart Assistant preferences", () => {
   )("rejects stale writes for %s before changing stored preferences", async (key, value) => {
     const t = convexTest(schema);
     const identity = createMockIdentity();
-    const userId = await t.run(async (ctx) =>
+    const userId = await t.run((ctx) =>
       ctx.db.insert("users", createTestUserData({ clerkId: identity.subject })),
     );
     const asUser = t.withIdentity(identity);
@@ -62,7 +62,7 @@ describe("retired Smart Assistant preferences", () => {
   it("continues to write and read task, voice, theme, and memory preferences", async () => {
     const t = convexTest(schema);
     const identity = createMockIdentity();
-    await t.run(async (ctx) =>
+    await t.run((ctx) =>
       ctx.db.insert("users", createTestUserData({ clerkId: identity.subject })),
     );
     const asUser = t.withIdentity(identity);

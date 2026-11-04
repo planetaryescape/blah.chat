@@ -61,7 +61,11 @@ async function fixture(budget = 10) {
 }
 
 describe("paid auxiliary action boundaries", () => {
-  it("rejects anonymous, empty, and oversized summaries before provider work", async () => {
+  // The first action lazily loads the generation module graph; cold CI exceeded 5s.
+  // Keep a bounded startup allowance without retries or relaxing any boundary assertion.
+  it("rejects anonymous, empty, and oversized summaries before provider work", {
+    timeout: 20_000,
+  }, async () => {
     const { t, owner } = await fixture();
 
     await expect(

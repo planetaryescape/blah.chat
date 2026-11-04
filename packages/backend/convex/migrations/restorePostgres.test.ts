@@ -92,6 +92,55 @@ const item = (plan: RestorePlan) => ({
 });
 
 describe("Postgres restore planner", () => {
+  it("restores retired preference rows unchanged without re-enabling active writes", async () => {
+    const t = convexTest(schema);
+    const rows = [
+      { key: "showSmartAssistant", value: false },
+      { key: "noteCategoryMode", value: "ai-suggested" },
+      { key: "customNoteCategories", value: ["decision", "followup"] },
+    ].map((preference) => ({
+      ...preference,
+      user_id: user.id,
+      created_at: 1,
+      updated_at: 2,
+    }));
+    const plans = buildPlans(fixture({ user_preferences: rows }));
+    const preferencePlans = plans.filter(
+      (plan) => plan.sourceTable === "user_preferences",
+    );
+    expect(preferencePlans).toHaveLength(3);
+    expect(preferencePlans.every((plan) => plan.action === "insert")).toBe(
+      true,
+    );
+    await t.mutation(begin, { ...identity, expectedRows: plans.length });
+    for (const pass of [1, 2, 1, 2]) {
+      await t.mutation(batch, { ...identity, pass, items: plans.map(item) });
+    }
+    const stored = await t.run((ctx) =>
+      ctx.db.query("userPreferences").collect(),
+    );
+    expect(stored).toHaveLength(3);
+    for (const row of rows) {
+      expect(stored.find((pref) => pref.key === row.key)).toMatchObject({
+        key: row.key,
+        value: row.value,
+        category: "advanced",
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      });
+    }
+    expect(
+      buildPlans(
+        fixture({
+          user_preferences: [{ ...rows[0], key: "not-a-preference" }],
+        }),
+      ).find((plan) => plan.sourceTable === "user_preferences"),
+    ).toMatchObject({
+      action: "blocked",
+      reason: "unknown_preference_category",
+    });
+  });
+
   it.each([
     ["message_embeddings", "message_id", "messages"],
     ["note_embeddings", "note_key", "notes"],

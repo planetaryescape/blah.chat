@@ -66,11 +66,12 @@ export function applyCodeOutline(
       `Source line ${item.line}: ${item.quote.replace(/</g, " less than ").replace(/>/g, " greater than ").replace(/\$/g, " dollar sign ")}`,
     );
   }
+  const idPrefix = narration.version === "2" ? "speech-v2:" : "";
   const segments: SpeechSegment[] = splitSpeech(
     `Code explanation. Selected source lines; not a structural analysis or execution results. ${outline.join(". ")}`,
   ).map((text, index) => ({
     ...block,
-    id: `${block.blockId}:explanation:${index}`,
+    id: `${idPrefix}${block.blockId}:explanation:${index}`,
     kind: "code",
     role: "explanation",
     text,

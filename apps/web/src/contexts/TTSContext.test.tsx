@@ -196,7 +196,7 @@ afterEach(() => {
 describe("prepared private narration", () => {
   it("hands real list preparation to sequential POST playback without labels", async () => {
     const source =
-      "- First\n- Second\n\n7. Seventh\n8. Eighth\n\n- [x] Checked\n- [ ] Unchecked\n\nFinal sentence.";
+      "- First\n  - Child says list item literally.\n- Second\n\n7. Seventh\n8. Eighth\n\n- [x] Checked\n- [ ] Unchecked\n\nFinal sentence.";
     const { narration: prepared } = await prepareDeterministic(source);
     mocks.prepare.mockResolvedValue(prepared);
     const { result } = setup();
@@ -223,6 +223,12 @@ describe("prepared private narration", () => {
     }
 
     expect(bodies()).toEqual(prepared.segments.map((segment) => segment.text));
+    expect(bodies().slice(0, 3)).toEqual([
+      "First",
+      "Child says list item literally.",
+      "Second",
+    ]);
+    expect(bodies()).toContain("Child says list item literally.");
     expect(bodies().join("")).toContain("7. Seventh");
     expect(bodies().join("")).toContain("8. Eighth");
     expect(bodies().join("")).toContain("Checked. Checked");

@@ -128,7 +128,7 @@ Change the existing AST/token-tree list adapter, not the provider or a full-mess
 |---|---|---|
 | `- Apples` / `- Pears` | `Apples` then `Pears`, with existing pause metadata | Distinct source-linked items; no empty synthetic prefix segment. |
 | Ordered list starting at 7 | `7. ` + `…`, then `8. ` + `…`; no generated `Item` | Preserve rendered ordinal policy and all substantive body numbers. |
-| Nested lists | Parent/child/sibling content in source order, no spoken nesting labels | Typed `listItemId` / `listDepth`; child membership is not overwritten by parent traversal. Code blocks and optional code explanations retain their containing list membership. |
+| Nested lists | Parent/child/sibling content in source order, no spoken nesting labels | Typed `listItemId` / `listDepth`; child membership is not overwritten by parent traversal. Code blocks, optional code explanations and code-closing anchors retain their containing item membership. |
 | Checked / unchecked tasks | Preserve `Checked. ` / `Unchecked. ` once | Task state carries meaning; the bullet marker does not. Empty task bodies still retain that state. |
 | Author writes "Say list item literally." | Speak those words unchanged | Distinguish synthetic segments from source spans. No phrase blacklist. |
 | Heading, code, table, math, final paragraph | Unchanged by this list repair | Retain heading rank, technical detail paths, existing unsupported-structure notices and the final sentence. |

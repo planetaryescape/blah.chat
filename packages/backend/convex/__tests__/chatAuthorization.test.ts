@@ -1,7 +1,7 @@
 import { MODEL_CONFIG } from "@blah-chat/ai/models";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { convexTest } from "../../__tests__/testSetup";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import {
   createMockIdentity,
   createTestConversationData,
@@ -274,6 +274,154 @@ describe("alternate chat mutation authorization", () => {
         failedMessageId: assistantId,
       }),
     ).toBe(userMessageId);
+  });
+
+  it("preserves a visible linear legacy prefix in the public active path after retry", async () => {
+    const { t, owner, conversationId, userMessageId, assistantId, siblingId } =
+      await fixture();
+    const { oldUserId, oldAssistantId } = await t.run(async (ctx) => {
+      const oldUserId = await ctx.db.insert(
+        "messages",
+        createTestMessageData(conversationId, owner, {
+          content: "Earlier legacy question",
+          createdAt: -1,
+          isActiveBranch: true,
+        }),
+      );
+      const oldAssistantId = await ctx.db.insert(
+        "messages",
+        createTestMessageData(conversationId, owner, {
+          role: "assistant",
+          content: "Earlier legacy answer",
+          createdAt: 0,
+          isActiveBranch: true,
+        }),
+      );
+      await ctx.db.patch(userMessageId, {
+        parentMessageId: undefined,
+        parentMessageIds: undefined,
+      });
+      await ctx.db.patch(assistantId, {
+        parentMessageId: undefined,
+        parentMessageIds: undefined,
+      });
+      return { oldUserId, oldAssistantId };
+    });
+    const client = t.withIdentity(createMockIdentity({ subject: "owner" }));
+
+    await client.mutation(api.chat.retryMessage, {
+      messageId: userMessageId,
+      failedMessageId: assistantId,
+    });
+
+    const retry = await t.run((ctx) =>
+      ctx.db
+        .query("messages")
+        .withIndex("by_conversation", (q) =>
+          q.eq("conversationId", conversationId),
+        )
+        .filter((q) => q.eq(q.field("status"), "pending"))
+        .first(),
+    );
+    if (!retry) throw new Error("Retry did not create its pending target");
+    const activePath = await client.query(
+      api.messages.listActivePathPaginated,
+      {
+        conversationId,
+        paginationOpts: { numItems: 20, cursor: null },
+      },
+    );
+
+    expect(activePath.page.map(({ _id }) => _id)).toEqual([
+      oldUserId,
+      oldAssistantId,
+      userMessageId,
+      retry._id,
+    ]);
+    expect(activePath.page.map(({ _id }) => _id)).not.toContain(assistantId);
+    expect(activePath.page.map(({ _id }) => _id)).not.toContain(siblingId);
+    const generationContext = await t.query(
+      internal.messages.getContextMessages,
+      {
+        conversationId,
+        messageId: retry._id,
+      },
+    );
+    expect(generationContext.map(({ _id }) => _id)).toEqual([userMessageId]);
+    expect(generationContext.map(({ _id }) => _id)).not.toContain(oldUserId);
+    expect(generationContext.map(({ _id }) => _id)).not.toContain(
+      oldAssistantId,
+    );
+  });
+
+  it("does not infer a legacy prefix from ambiguous parentless chronology", async () => {
+    const { t, owner, conversationId, userMessageId, assistantId } =
+      await fixture();
+    const { earlierUserId, extraAssistantId } = await t.run(async (ctx) => {
+      const earlierUserId = await ctx.db.insert(
+        "messages",
+        createTestMessageData(conversationId, owner, {
+          content: "Earlier question",
+          createdAt: -2,
+          isActiveBranch: true,
+        }),
+      );
+      await ctx.db.insert(
+        "messages",
+        createTestMessageData(conversationId, owner, {
+          role: "assistant",
+          content: "One possible earlier answer",
+          createdAt: -1,
+          isActiveBranch: true,
+        }),
+      );
+      const extraAssistantId = await ctx.db.insert(
+        "messages",
+        createTestMessageData(conversationId, owner, {
+          role: "assistant",
+          content: "Another possible earlier answer",
+          createdAt: 0,
+          isActiveBranch: true,
+        }),
+      );
+      await ctx.db.patch(userMessageId, {
+        parentMessageId: undefined,
+        parentMessageIds: undefined,
+      });
+      await ctx.db.patch(assistantId, {
+        parentMessageId: undefined,
+        parentMessageIds: undefined,
+      });
+      return { earlierUserId, extraAssistantId };
+    });
+    const client = t.withIdentity(createMockIdentity({ subject: "owner" }));
+
+    await client.mutation(api.chat.retryMessage, {
+      messageId: userMessageId,
+      failedMessageId: assistantId,
+    });
+
+    const activePath = await client.query(
+      api.messages.listActivePathPaginated,
+      {
+        conversationId,
+        paginationOpts: { numItems: 20, cursor: null },
+      },
+    );
+    const retry = await t.run((ctx) =>
+      ctx.db
+        .query("messages")
+        .withIndex("by_conversation", (q) =>
+          q.eq("conversationId", conversationId),
+        )
+        .filter((q) => q.eq(q.field("status"), "pending"))
+        .first(),
+    );
+    if (!retry) throw new Error("Retry did not create its pending target");
+    const activeIds = activePath.page.map(({ _id }) => _id);
+    expect(activeIds).toEqual([userMessageId, retry._id]);
+    expect(activeIds).not.toContain(earlierUserId);
+    expect(activeIds).not.toContain(extraAssistantId);
   });
 
   it("rejects contradictory legacy and DAG parents without writes", async () => {

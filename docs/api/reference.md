@@ -245,6 +245,9 @@ uncertain retries; an accepted matching replay returns the original IDs, while
 changed intent with the same key conflicts. `thinkingEffort` and attachment
 metadata are part of that intent.
 
+Keyed direct-Convex sends must also use finite attachment sizes; non-finite
+numbers cannot be hashed as distinct JSON intent.
+
 **Response:** `202 Accepted`
 
 The ordinary web composer sends an optional bounded `clientMessageId` as its

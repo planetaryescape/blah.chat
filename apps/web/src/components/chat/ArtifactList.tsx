@@ -6,6 +6,57 @@ import { useCachedToolCalls } from "@/hooks/useCacheSync";
 import { cn } from "@/lib/utils";
 import { ArtifactCard } from "./ArtifactCard";
 
+type ArtifactToolCall = {
+  id?: string;
+  toolCallId?: string;
+  name?: string;
+  toolName?: string;
+  arguments?: string;
+  args?: unknown;
+  result?: unknown;
+};
+
+function parseObject(value: unknown): Record<string, unknown> | null {
+  if (typeof value === "string") {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+export function getDocumentArtifacts(toolCalls: ArtifactToolCall[]) {
+  return toolCalls.flatMap((tc) => {
+    const toolName = tc.toolName ?? tc.name;
+    if (!["createDocument", "updateDocument"].includes(toolName ?? "")) {
+      return [];
+    }
+    const args = parseObject(tc.args ?? tc.arguments) ?? {};
+    const result = parseObject(tc.result);
+    if (result?.success !== true || typeof result.documentId !== "string") {
+      return [];
+    }
+    return [
+      {
+        id: tc.id ?? tc.toolCallId ?? "",
+        toolName,
+        documentId: result.documentId as Id<"canvasDocuments">,
+        title: typeof args.title === "string" ? args.title : "Document",
+        documentType:
+          args.documentType === "code" ? ("code" as const) : ("prose" as const),
+        language: typeof args.language === "string" ? args.language : undefined,
+        version: typeof result.newVersion === "number" ? result.newVersion : 1,
+        lineCount:
+          typeof result.lineCount === "number" ? result.lineCount : undefined,
+      },
+    ];
+  });
+}
+
 interface ArtifactListProps {
   messageId: Id<"messages">;
   className?: string;
@@ -23,36 +74,14 @@ export function ArtifactList({ messageId, className }: ArtifactListProps) {
   const documentArtifacts = useMemo(() => {
     if (!toolCalls) return [];
 
-    return toolCalls
-      .filter((tc: any) => {
-        // Only createDocument and updateDocument tools
-        if (!["createDocument", "updateDocument"].includes(tc.name)) {
-          return false;
-        }
-
-        // Parse result and check for success
-        try {
-          const result = tc.result ? JSON.parse(tc.result) : null;
-          return result?.success && result?.documentId;
-        } catch {
-          return false;
-        }
-      })
-      .map((tc: any) => {
-        const args = tc.arguments ? JSON.parse(tc.arguments) : {};
-        const result = tc.result ? JSON.parse(tc.result) : {};
-
-        return {
-          id: tc.id,
-          toolName: tc.name,
-          documentId: result.documentId as Id<"canvasDocuments">,
-          title: args.title ?? "Document",
-          documentType: args.documentType ?? "prose",
-          language: args.language,
-          version: result.newVersion ?? 1,
-          lineCount: result.lineCount,
-        };
-      });
+    return getDocumentArtifacts(
+      toolCalls.map((toolCall) => ({
+        id: toolCall.toolCallId,
+        toolName: toolCall.toolName,
+        args: toolCall.args,
+        result: toolCall.result,
+      })),
+    );
   }, [toolCalls]);
 
   // Don't reserve space - most messages don't have artifacts

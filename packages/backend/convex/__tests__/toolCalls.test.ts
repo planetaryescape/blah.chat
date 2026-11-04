@@ -9,6 +9,61 @@ import {
 import schema from "../schema";
 
 describe("convex/messages/toolCalls", () => {
+  it.each([
+    { name: "object", result: { answer: 42 } },
+    { name: "array", result: ["source", 2] },
+    { name: "false", result: false },
+    { name: "zero", result: 0 },
+    { name: "empty string", result: "" },
+    { name: "null", result: null },
+    { name: "error", result: { success: false, error: "task failed" } },
+  ])("persists native $name result through the normalized mutation", async ({
+    result,
+  }) => {
+    const t = convexTest(schema);
+    const { messageId, conversationId, userId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert(
+        "users",
+        createTestUserData({ clerkId: "native-tool-user" }),
+      );
+      const conversationId = await ctx.db.insert(
+        "conversations",
+        createTestConversationData(userId),
+      );
+      const messageId = await ctx.db.insert(
+        "messages",
+        createTestMessageData(conversationId, userId, {
+          role: "assistant",
+          model: "gpt-4o",
+        }),
+      );
+      return { messageId, conversationId, userId };
+    });
+
+    // @ts-ignore - Type instantiation too deep with 94+ Convex modules
+    await t.mutation(internal.messages.toolCalls.upsertToolCall, {
+      messageId,
+      conversationId,
+      userId,
+      toolCallId: "native-result-call",
+      toolName: "calculator",
+      args: { expression: "6 * 7" },
+      result,
+      isPartial: false,
+      timestamp: 1,
+    });
+
+    const stored = await t.run((ctx) =>
+      ctx.db
+        .query("toolCalls")
+        .withIndex("by_message", (q) => q.eq("messageId", messageId))
+        .unique(),
+    );
+    expect(stored?.args).toEqual({ expression: "6 * 7" });
+    expect(stored?.result).toEqual(result);
+    expect(stored?.isPartial).toBe(false);
+  });
+
   describe("cleanupPartialToolCalls", () => {
     it("deletes only partial tool calls", async () => {
       const t = convexTest(schema);

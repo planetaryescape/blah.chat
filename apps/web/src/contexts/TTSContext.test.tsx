@@ -1,3 +1,4 @@
+import { prepareDeterministic } from "@blah-chat/backend/convex/lib/speech/prepare";
 import type {
   PreparedNarration,
   SpeechSegment,
@@ -193,6 +194,48 @@ afterEach(() => {
 });
 
 describe("prepared private narration", () => {
+  it("hands real list preparation to sequential POST playback without labels", async () => {
+    const source =
+      "- First\n- Second\n\n7. Seventh\n8. Eighth\n\n- [x] Checked\n- [ ] Unchecked\n\nFinal sentence.";
+    const { narration: prepared } = await prepareDeterministic(source);
+    mocks.prepare.mockResolvedValue(prepared);
+    const { result } = setup();
+    speak(result, source);
+    await flush();
+
+    expect(prepared.version).toBe("2");
+    const bodies = () =>
+      mocks.fetch.mock.calls.map(([, init]) => JSON.parse(init.body).text);
+    expect(bodies()).toEqual(["First"]);
+    expect(MockAudio.instances).toHaveLength(1);
+    expect(JSON.parse(mocks.fetch.mock.calls[0][1].body)).toMatchObject({
+      text: "First",
+      voice: "voice-a",
+      speed: 1,
+    });
+
+    for (let index = 0; index < prepared.segments.length; index++) {
+      await endAudio(index, prepared.segments[index].pauseAfterMs);
+      if (index + 1 < prepared.segments.length) {
+        expect(bodies()).toHaveLength(index + 2);
+        expect(bodies()[index + 1]).toBe(prepared.segments[index + 1].text);
+      }
+    }
+
+    expect(bodies()).toEqual(prepared.segments.map((segment) => segment.text));
+    expect(bodies().join("")).toContain("7. Seventh");
+    expect(bodies().join("")).toContain("8. Eighth");
+    expect(bodies().join("")).toContain("Checked. Checked");
+    expect(bodies().join("")).toContain("Unchecked. Unchecked");
+    expect(bodies().at(-1)).toBe("Final sentence.");
+    expect(
+      bodies().some((text) =>
+        /^(?:List item|Item \d+|Nested list level)/.test(text),
+      ),
+    ).toBe(false);
+    expect(mocks.error).not.toHaveBeenCalled();
+  });
+
   it("prepares original Markdown before JWT-only POST audio and retains source mapping", async () => {
     const prepare = deferred<PreparedNarration>();
     mocks.prepare.mockReturnValue(prepare.promise);

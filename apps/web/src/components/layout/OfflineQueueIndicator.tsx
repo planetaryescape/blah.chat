@@ -1,7 +1,8 @@
 "use client";
 
-import { Loader2, WifiOff } from "lucide-react";
+import { RotateCcw, WifiOff } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { messageQueue } from "@/lib/offline/messageQueue";
 
 /**
@@ -10,6 +11,9 @@ import { messageQueue } from "@/lib/offline/messageQueue";
  */
 export function OfflineQueueIndicator() {
   const [queueCount, setQueueCount] = useState(0);
+  const [isOnline, setIsOnline] = useState(
+    () => typeof navigator !== "undefined" && navigator.onLine,
+  );
 
   useEffect(() => {
     // Initial count (async from Dexie)
@@ -27,9 +31,15 @@ export function OfflineQueueIndicator() {
     };
 
     window.addEventListener("queue-updated", handleQueueUpdate);
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
     return () => {
       window.removeEventListener("queue-updated", handleQueueUpdate);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, []);
 
@@ -45,8 +55,20 @@ export function OfflineQueueIndicator() {
         <span className="text-sm font-medium">
           {queueCount} message{queueCount > 1 ? "s" : ""} queued
         </span>
-        {navigator.onLine && (
-          <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+        {isOnline && (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2"
+            onClick={async () => {
+              await messageQueue.retryAllAttention();
+              window.dispatchEvent(new Event("online"));
+            }}
+          >
+            <RotateCcw className="mr-1 h-3.5 w-3.5" />
+            Retry
+          </Button>
         )}
       </div>
     </div>

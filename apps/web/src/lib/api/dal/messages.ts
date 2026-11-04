@@ -1,28 +1,12 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { ConvexError } from "convex/values";
 import { getAuthenticatedConvexClient } from "@/lib/api/convex";
+import { ConflictError } from "@/lib/api/errors";
 import { formatEntity } from "@/lib/utils/formatEntity";
 import "server-only";
-import { z } from "zod";
-
-const sendMessageSchema = z.object({
-  content: z.string().min(1),
-  modelId: z.string().optional(),
-  models: z.array(z.string()).optional(),
-  clientMessageId: z.string().optional(),
-  thinkingEffort: z.enum(["none", "low", "medium", "high"]).optional(),
-  attachments: z
-    .array(
-      z.object({
-        type: z.enum(["file", "image", "audio"]),
-        name: z.string(),
-        storageId: z.string(),
-        mimeType: z.string(),
-        size: z.number(),
-      }),
-    )
-    .optional(),
-});
+import type { z } from "zod";
+import { sendMessageSchema } from "@/lib/api/dal/sendMessageSchema";
 
 export const messagesDAL = {
   /**
@@ -56,15 +40,27 @@ export const messagesDAL = {
     // and schedules generation action (fire-and-forget)
     // Uses authenticated client since sendMessage needs ctx.auth
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-    const result = await convex.mutation(api.chat.sendMessage, {
-      conversationId: conversationId as Id<"conversations">,
-      content: validated.content,
-      modelId: validated.modelId,
-      models: validated.models,
-      clientMessageId: validated.clientMessageId,
-      thinkingEffort: validated.thinkingEffort,
-      attachments: validated.attachments,
-    });
+    let result: Awaited<
+      ReturnType<typeof convex.mutation<typeof api.chat.sendMessage>>
+    >;
+    try {
+      result = await convex.mutation(api.chat.sendMessage, {
+        conversationId: conversationId as Id<"conversations">,
+        content: validated.content,
+        modelId: validated.modelId,
+        models: validated.models,
+        clientMessageId: validated.clientMessageId,
+        thinkingEffort: validated.thinkingEffort,
+        attachments: validated.attachments,
+      });
+    } catch (error) {
+      if (isSendIntentConflict(error)) {
+        throw new ConflictError(
+          "This request key was already used for a different send.",
+        );
+      }
+      throw error;
+    }
 
     return {
       status: "success" as const,
@@ -201,3 +197,21 @@ export const messagesDAL = {
     return formatEntity({ deleted: true, messageId }, "message", messageId);
   },
 };
+
+function isSendIntentConflict(error: unknown): boolean {
+  if (!(error instanceof ConvexError)) return false;
+  let data: unknown = error.data;
+  if (typeof data === "string") {
+    try {
+      data = JSON.parse(data);
+    } catch {
+      return false;
+    }
+  }
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "code" in data &&
+    data.code === "CHAT_SEND_INTENT_CONFLICT"
+  );
+}

@@ -137,6 +137,24 @@ describe("ChatInput", () => {
     );
   });
 
+  it("does not restore a fresh-key draft after an uncertain send was queued", async () => {
+    const user = userEvent.setup();
+    render(<ChatInput {...defaultProps} />);
+
+    const input = screen.getByLabelText("Message input");
+    await user.type(input, "Already saved for safe replay{Enter}");
+    const [, callbacks] = mockSendMessage.mock.calls[0] as [
+      unknown,
+      { onError: (error: Error & { queued: true }) => void },
+    ];
+    const uncertainError = Object.assign(new Error("Send outcome unknown"), {
+      queued: true as const,
+    });
+    await act(async () => callbacks.onError(uncertainError));
+
+    expect(input).toHaveValue("");
+  });
+
   it("inserts newline when Shift+Enter is pressed", async () => {
     const user = userEvent.setup();
     render(<ChatInput {...defaultProps} />);

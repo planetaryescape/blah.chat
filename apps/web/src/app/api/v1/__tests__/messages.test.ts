@@ -47,6 +47,7 @@ vi.mock("@/lib/api/monitoring", () => ({
 
 // 2. Imports AFTER mocks
 import { messagesDAL } from "@/lib/api/dal/messages";
+import { ConflictError } from "@/lib/api/errors";
 import {
   assertEnvelopeError,
   assertEnvelopeSuccess,
@@ -127,6 +128,53 @@ describe("/api/v1/conversations/[id]/messages", () => {
   });
 
   describe("POST /api/v1/conversations/:id/messages", () => {
+    it("returns a typed 409 envelope for a reused send key with changed intent", async () => {
+      vi.mocked(messagesDAL.send).mockRejectedValue(
+        new ConflictError(
+          "This request key was already used for a different send.",
+        ),
+      );
+      const { POST } = await import("../conversations/[id]/messages/route");
+      const response = await POST(
+        createMockRequest("/api/v1/conversations/conv-123/messages", {
+          method: "POST",
+          body: {
+            content: "Changed content",
+            clientMessageId: "stable-request-key",
+          },
+        }),
+        { params: Promise.resolve({ id: "conv-123" }) },
+      );
+
+      expect(response.status).toBe(409);
+      expect(await response.json()).toMatchObject({
+        status: "error",
+        sys: { entity: "error" },
+        error: {
+          code: "CONFLICT",
+          message: "This request key was already used for a different send.",
+        },
+      });
+    });
+
+    it("rejects contradictory model fields for a keyed send", async () => {
+      const { POST } = await import("../conversations/[id]/messages/route");
+      const response = await POST(
+        createMockRequest("/api/v1/conversations/conv-123/messages", {
+          method: "POST",
+          body: {
+            content: "Compare these",
+            modelId: "openai:model-a",
+            models: ["openai:model-a", "openai:model-b"],
+            clientMessageId: "stable-request-key",
+          },
+        }),
+        { params: Promise.resolve({ id: "conv-123" }) },
+      );
+      expect(response.status).toBe(400);
+      expect(messagesDAL.send).not.toHaveBeenCalled();
+    });
+
     it("sends message and returns 202 Accepted", async () => {
       const mockResult = {
         status: "success" as const,

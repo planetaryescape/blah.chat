@@ -176,7 +176,12 @@ export const ChatInput = memo(function ChatInput({
   // iOS keyboard handling - scrolls input into view when virtual keyboard appears
   useIOSKeyboard({ inputRef: textareaRef });
 
-  const { mutate: sendMessage } = useSendMessage(onOptimisticUpdate);
+  const conversation = useQuery(api.conversations.get, { conversationId });
+  const { mutate: sendMessage } = useSendMessage(
+    onOptimisticUpdate,
+    conversationId,
+    conversation?.isIncognito,
+  );
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const stopGeneration = useMutation(api.chat.stopGeneration);
   const lastAssistantMessage = useQuery(api.messages.getLastAssistantMessage, {
@@ -377,9 +382,7 @@ export const ChatInput = memo(function ChatInput({
     const messageContent = originalQuote
       ? `> ${originalQuote}\n\n${originalInput}`
       : originalInput;
-    const clientMessageId = `client-${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2, 10)}`;
+    const clientMessageId = `client-${crypto.randomUUID()}`;
 
     sendMessage(
       {
@@ -395,7 +398,10 @@ export const ChatInput = memo(function ChatInput({
       {
         onError: (error) => {
           const currentInput = textareaRef.current?.value?.trim() || "";
-          if (!currentInput) {
+          const outcomeIsQueued =
+            error instanceof Error &&
+            (error as Error & { queued?: boolean }).queued === true;
+          if (!currentInput && !outcomeIsQueued) {
             setInput(originalInput);
             setQuote(originalQuote);
             onAttachmentsChange(originalAttachments);

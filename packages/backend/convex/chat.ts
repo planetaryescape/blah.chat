@@ -1018,7 +1018,10 @@ export const stopGeneration = mutation({
 });
 
 export const retryMessage = mutation({
-  args: { messageId: v.id("messages") },
+  args: {
+    messageId: v.id("messages"),
+    failedMessageId: v.optional(v.id("messages")),
+  },
   handler: async (ctx, args): Promise<Id<"messages">> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
@@ -1037,7 +1040,8 @@ export const retryMessage = mutation({
     const conversation = await ctx.db.get(userMessage.conversationId);
     if (!conversation) throw new Error("Conversation not found");
 
-    // Find failed AI message (next message after user message)
+    // Resolve the selected failed answer by ancestry. Chronology is only a
+    // compatibility path for old callers whose failed row has no parent data.
     const allMessages = await ctx.db
       .query("messages")
       .withIndex("by_conversation", (q) =>
@@ -1046,10 +1050,72 @@ export const retryMessage = mutation({
       .order("asc")
       .collect();
 
-    const userIndex = allMessages.findIndex((m) => m._id === args.messageId);
-    const aiMessage = allMessages[userIndex + 1];
+    const children = allMessages.filter(
+      (message) =>
+        message.role === "assistant" &&
+        (message.parentMessageIds?.includes(userMessage._id) ||
+          message.parentMessageId === userMessage._id),
+    );
+    const failedChildren = children.filter(
+      (message) => message.status === "error",
+    );
+    let aiMessage = args.failedMessageId
+      ? allMessages.find((message) => message._id === args.failedMessageId)
+      : failedChildren.length === 1
+        ? failedChildren[0]
+        : undefined;
 
+    if (!args.failedMessageId && failedChildren.length > 1) {
+      throw new Error("Retry target is ambiguous; select the failed answer");
+    }
+    if (!aiMessage && failedChildren.length === 0) {
+      const userIndex = allMessages.findIndex((m) => m._id === args.messageId);
+      const chronologicalNext = allMessages[userIndex + 1];
+      if (
+        chronologicalNext?.role === "assistant" &&
+        (!chronologicalNext.parentMessageIds ||
+          chronologicalNext.parentMessageIds.length === 0) &&
+        !chronologicalNext.parentMessageId
+      ) {
+        if (
+          !args.failedMessageId ||
+          args.failedMessageId === chronologicalNext._id
+        ) {
+          aiMessage = chronologicalNext;
+        }
+      }
+    }
     if (!aiMessage) throw new Error("No message to retry");
+    if (aiMessage.conversationId !== userMessage.conversationId) {
+      throw new Error("Retry target is not in the same conversation");
+    }
+    if (aiMessage.role !== "assistant") {
+      throw new Error("Can only retry assistant messages");
+    }
+    const dagParents = aiMessage.parentMessageIds?.length
+      ? aiMessage.parentMessageIds
+      : undefined;
+    const legacyParent = aiMessage.parentMessageId;
+    const parents = dagParents ?? (legacyParent ? [legacyParent] : undefined);
+    const userIndex = allMessages.findIndex(
+      (message) => message._id === userMessage._id,
+    );
+    const isAdjacentLegacyTarget =
+      !parents && allMessages[userIndex + 1]?._id === aiMessage._id;
+    if (
+      (dagParents && !dagParents.includes(userMessage._id)) ||
+      (!dagParents && legacyParent && legacyParent !== userMessage._id) ||
+      (dagParents && legacyParent && !dagParents.includes(legacyParent))
+    ) {
+      throw new Error("Retry target is not a child of this user message");
+    }
+    if (
+      args.failedMessageId &&
+      !parents?.includes(userMessage._id) &&
+      !isAdjacentLegacyTarget
+    ) {
+      throw new Error("Retry target is not a child of this user message");
+    }
     if (aiMessage.status !== "error") {
       throw new Error("Can only retry failed messages");
     }
@@ -1066,47 +1132,75 @@ export const retryMessage = mutation({
       DEFAULT_MODEL_ID;
     await enforceModelPolicy(ctx, user, [modelId]);
 
-    // Delete failed AI message + all following messages
-    const deletedCount = allMessages.slice(userIndex + 1).length;
-    for (const msg of allMessages.slice(userIndex + 1)) {
-      await ctx.db.delete(msg._id);
+    const lockAcquired = (await (ctx.runMutation as any)(
+      internal.lib.generationLock.acquireLock,
+      { conversationId: userMessage.conversationId, userId: user._id },
+    )) as boolean;
+    if (!lockAcquired) {
+      throw new Error("Please wait for the current response to complete.");
     }
 
-    // Decrement messageCount by deleted count
-    const conv = await ctx.db.get(userMessage.conversationId);
-    if (conv && deletedCount > 0) {
-      await ctx.db.patch(userMessage.conversationId, {
-        messageCount: Math.max(0, (conv.messageCount || 0) - deletedCount),
+    const lock = await ctx.db
+      .query("generationLocks")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", userMessage.conversationId),
+      )
+      .first();
+    try {
+      const retryParents = parents?.length ? parents : [userMessage._id];
+      const primaryParent = retryParents[0];
+      const siblings = allMessages.filter(
+        (message) =>
+          message.parentMessageId === primaryParent ||
+          message.parentMessageIds?.includes(primaryParent),
+      );
+      const siblingIndex =
+        siblings.reduce(
+          (highest, sibling) => Math.max(highest, sibling.siblingIndex ?? -1),
+          -1,
+        ) + 1;
+      const rootMessageId = await _deriveRootMessageId(ctx, aiMessage);
+      const pendingMessageId = await ctx.runMutation(internal.messages.create, {
+        conversationId: userMessage.conversationId,
+        userId: user._id,
+        role: "assistant",
+        status: "pending",
+        model: modelId,
+        comparisonGroupId: aiMessage.comparisonGroupId,
+        parentMessageIds: retryParents,
+        siblingIndex,
+        isActiveBranch: true,
+        rootMessageId,
+        forkReason: "regenerate",
       });
+      if (lock) await ctx.db.patch(lock._id, { messageId: pendingMessageId });
+      // Create the pending target before scheduling so stop can cancel queued work.
+      await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
+        conversationId: userMessage.conversationId,
+        modelId,
+        userId: user._id,
+        existingMessageId: pendingMessageId,
+      });
+      await ctx.scheduler.runAfter(0, internal.chat.runHousekeeping, {
+        userId: user._id,
+        conversationId: userMessage.conversationId,
+      });
+    } catch (error) {
+      if (lock) {
+        await ctx.runMutation(internal.lib.generationLock.releaseLock, {
+          conversationId: userMessage.conversationId,
+          lockId: lock._id,
+        });
+      }
+      throw error;
     }
-
-    const pendingMessageId = await ctx.runMutation(internal.messages.create, {
-      conversationId: userMessage.conversationId,
-      userId: user._id,
-      role: "assistant",
-      status: "pending",
-      model: modelId,
-      parentMessageIds: [userMessage._id],
-      isActiveBranch: true,
-    });
-    // Create the pending target before scheduling so stop can cancel queued work.
-    await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
-      conversationId: userMessage.conversationId,
-      modelId,
-      userId: user._id,
-      existingMessageId: pendingMessageId,
-    });
-    await ctx.scheduler.runAfter(0, internal.chat.runHousekeeping, {
-      userId: user._id,
-      conversationId: userMessage.conversationId,
-    });
 
     // Update conversation timestamp
     await ctx.runMutation(internal.conversations.updateLastMessageAt, {
       conversationId: userMessage.conversationId,
     });
 
-    // Note: message ID not available here - created in action
+    // Keep the original public return contract for existing callers.
     return userMessage._id; // Return user message ID as reference
   },
 });

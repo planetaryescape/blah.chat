@@ -94,7 +94,7 @@ describe("natural list narration", () => {
 
   it("keeps empty, nested-only, loose, tabbed, and repeated items source-mapped", async () => {
     const source =
-      "- Parent\r\n  - Nested-only child\r\n- Same 😀\tvalue\r\n  continuation\tvalue\r\n\r\n  Loose paragraph.\r\n-\r\n- [x]\r\n\r\nFinal sentence.";
+      "- Parent\r\n  - Nested-only child\r\n- Same 😀\tvalue\r\n  continuation\tvalue\r\n\r\n  Loose paragraph.\r\n- Same 😀\tvalue\r\n  continuation\tvalue\r\n-\r\n- [x]\r\n\r\nFinal sentence.";
     const { narration } = await prepareDeterministic(source);
     const spoken = narration.segments.map((segment) => segment.text);
     const sourceSegments = narration.segments.filter(
@@ -103,11 +103,30 @@ describe("natural list narration", () => {
 
     expect(spoken).toContain("Parent");
     expect(spoken).toContain("Nested-only child");
-    expect(spoken).toContain("Same 😀    value\ncontinuation    value");
+    expect(
+      spoken.filter(
+        (text) => text === "Same 😀    value\ncontinuation    value",
+      ),
+    ).toHaveLength(2);
     expect(spoken).toContain("Loose paragraph.");
     expect(spoken.filter((text) => text === "Checked. ")).toHaveLength(1);
     expect(spoken).not.toContain("");
-    expect(sourceSegments).toHaveLength(4);
+    expect(sourceSegments).toHaveLength(5);
+    const sameItems = sourceSegments.filter((segment) =>
+      segment.text.startsWith("Same 😀"),
+    );
+    expect(sameItems).toHaveLength(2);
+    expect(new Set(sameItems.map((segment) => segment.listItemId)).size).toBe(
+      2,
+    );
+    expect(sameItems.map((segment) => segment.sourceStart)).toEqual([
+      source.indexOf("Same 😀"),
+      source.lastIndexOf("Same 😀"),
+    ]);
+    expect(sameItems.map((segment) => segment.sourceEnd)).toEqual([
+      source.indexOf("continuation\tvalue") + "continuation\tvalue".length,
+      source.lastIndexOf("continuation\tvalue") + "continuation\tvalue".length,
+    ]);
     expect(
       sourceSegments.map((segment) => [segment.sourceStart, segment.sourceEnd]),
     ).toEqual([
@@ -124,7 +143,84 @@ describe("natural list narration", () => {
         source.indexOf("Loose paragraph."),
         source.indexOf("Loose paragraph.") + "Loose paragraph.".length,
       ],
+      [
+        source.lastIndexOf("Same 😀"),
+        source.lastIndexOf("continuation\tvalue") +
+          "continuation\tvalue".length,
+      ],
     ]);
+    expect(narration.segments.at(-1)).toMatchObject({
+      text: "Final sentence.",
+      sourceStart: source.indexOf("Final sentence."),
+      sourceEnd: source.length,
+    });
+  });
+
+  it.each([
+    "\n",
+    "\r\n",
+  ])("retains task state and all continuation/child content with exact source spans (%j)", async (newline) => {
+    const source = [
+      "- [x]",
+      "  Checked continuation 😀",
+      "- [ ]",
+      "  Unchecked continuation 😀",
+      "- [x]",
+      "  - Nested task child",
+      "",
+      "Author literal [x] remains.",
+      "",
+      "Final sentence.",
+    ].join(newline);
+    const { narration } = await prepareDeterministic(source);
+    const listSegments = narration.segments.filter(
+      (segment) => segment.kind === "list",
+    );
+    const sourceSegments = listSegments.filter(
+      (segment) => segment.role === "source",
+    );
+    const bodies = sourceSegments.map((segment) => segment.text);
+
+    expect(
+      listSegments
+        .filter((segment) => segment.role === "detail")
+        .map((segment) => segment.text),
+    ).toEqual(["Checked. ", "Unchecked. ", "Checked. "]);
+    expect(bodies).toEqual([
+      "Checked continuation 😀",
+      "Unchecked continuation 😀",
+      "Nested task child",
+    ]);
+    expect(
+      new Set(sourceSegments.map((segment) => segment.listItemId)).size,
+    ).toBe(3);
+    expect(sourceSegments.map((segment) => segment.listDepth)).toEqual([
+      1, 1, 2,
+    ]);
+    expect(
+      sourceSegments.map((segment) => [segment.sourceStart, segment.sourceEnd]),
+    ).toEqual([
+      [
+        source.indexOf("Checked continuation 😀"),
+        source.indexOf("Checked continuation 😀") +
+          "Checked continuation 😀".length,
+      ],
+      [
+        source.indexOf("Unchecked continuation 😀"),
+        source.indexOf("Unchecked continuation 😀") +
+          "Unchecked continuation 😀".length,
+      ],
+      [
+        source.indexOf("Nested task child"),
+        source.indexOf("Nested task child") + "Nested task child".length,
+      ],
+    ]);
+    const allSpeech = narration.segments
+      .map((segment) => segment.text)
+      .join(" ");
+    const listSpeech = listSegments.map((segment) => segment.text).join(" ");
+    expect(listSpeech).not.toMatch(/\[[ xX]\]/);
+    expect(allSpeech).toContain("Author literal [x] remains.");
     expect(narration.segments.at(-1)).toMatchObject({
       text: "Final sentence.",
       sourceStart: source.indexOf("Final sentence."),

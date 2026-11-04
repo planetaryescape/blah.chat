@@ -6,12 +6,20 @@ The summary action rejects blank selections, text longer than 16,000 characters,
 
 A configured monthly budget of zero means unlimited in the existing budget policy; recorded-spend and remaining-budget rejection do not apply in that case. Authentication, input, output, timeout, concurrency and usage-recording checks still apply.
 
+The model recommendation preview requires a registered authenticated user and reads its conversation and messages through the existing authenticated `conversations.get` and `messages.list` queries. These queries allow the conversation owner and existing collaborators; anonymous, unregistered and nonmember callers, and missing conversations, fail before prompt construction, provider work or usage recording. Successful preview usage is charged to the authenticated caller under `model_recommendations`. Classification and analysis calls use that same feature category. This is an application-layer boundary; it does not change the usage schema or historical rows.
+
 The former `ai/taskExtraction:extractTasksFromTranscript` and `ai/meetingExtraction:extractFromMeeting` actions are no longer registered. Stale authenticated and anonymous clients cannot invoke an extraction implementation or provider through either reference. The meeting/transcript route, prompts and feature-only model configuration are removed; shared task, voice and deadline functionality remains in place. Historical data markers are retained, not migrated or deleted by this source removal.
 
 Run the focused boundary tests from the repository root:
 
 ```sh
 bun run --filter @blah-chat/backend test:run -- convex/__tests__/auxiliaryAuthorization.test.ts
+```
+
+Verify recommendation accounting and preview access with the action-level mocked-provider fixture:
+
+```sh
+bun run --filter @blah-chat/backend test:run -- convex/__tests__/modelTriageAccountingAuthorization.test.ts
 ```
 
 The tests dispatch through Convex action references with `convex-test`, mock AI SDK calls, and inspect the actual usage records. They should show zero provider calls for anonymous, invalid and over-budget summaries. Stale extraction references should fail module lookup for both anonymous and authenticated clients, with zero provider calls; a still-registered fail-closed tombstone is not sufficient for that source-removal check.

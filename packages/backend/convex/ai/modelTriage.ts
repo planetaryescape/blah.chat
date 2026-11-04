@@ -15,7 +15,7 @@ import {
 import { generateObject, generateText } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
-import { internal } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { action, internalAction } from "../_generated/server";
@@ -245,9 +245,10 @@ export const generatePreview = action({
     // Get user for cost tracking
     const user = (await (ctx.runQuery as any)(
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      internal.lib.helpers.getUserByClerkId,
+      internal.users._getUserByClerkIdInternal,
       { clerkId: identity.subject },
     )) as { _id: Id<"users"> } | null;
+    if (!user) throw new Error("User not found");
 
     try {
       logger.info("Preview generation started", {
@@ -256,20 +257,20 @@ export const generatePreview = action({
         suggestedModel: args.suggestedModelId,
       });
 
-      // 1. Fetch conversation to get system prompt (Server-side only)
-      const conversation = await (ctx.runQuery as any)(
-        internal.lib.helpers.getConversation,
-        { id: args.conversationId },
-      );
+      // Use the public authenticated queries so both conversation and message
+      // reads enforce owner/collaborator access before prompt construction.
+      // @ts-ignore - Convex public-query types exceed the generated API depth.
+      const conversation = await ctx.runQuery(api.conversations.get, {
+        conversationId: args.conversationId,
+      });
+      if (!conversation) {
+        throw new Error("Conversation not found or access denied");
+      }
 
-      // 2. Get conversation context (last few messages for context)
-      const messages = (await (ctx.runQuery as any)(
-        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-        internal.lib.helpers.getConversationMessages,
-        {
-          conversationId: args.conversationId,
-        },
-      )) as any[];
+      // @ts-ignore - Convex public-query types exceed the generated API depth.
+      const messages = await ctx.runQuery(api.messages.list, {
+        conversationId: args.conversationId,
+      });
 
       if (!messages || messages.length === 0) {
         throw new Error("No messages found for conversation");
@@ -325,7 +326,7 @@ export const generatePreview = action({
         ]),
       });
 
-      // Track usage with feature: "smart_assistant"
+      // Track usage with feature: "model_recommendations"
       if (user && response.usage) {
         const inputTokens = response.usage.inputTokens ?? 0;
         const outputTokens = response.usage.outputTokens ?? 0;
@@ -344,7 +345,7 @@ export const generatePreview = action({
             inputTokens,
             outputTokens,
             cost,
-            feature: "smart_assistant",
+            feature: "model_recommendations",
           },
         );
       }
@@ -419,7 +420,7 @@ ATTACHMENTS: None`,
           inputTokens,
           outputTokens,
           cost,
-          feature: "smart_assistant",
+          feature: "model_recommendations",
         },
       );
     }
@@ -554,7 +555,7 @@ ${alternatives
   .join("\n\n")}`,
     });
 
-    // Track usage with feature: "smart_assistant"
+    // Track usage with feature: "model_recommendations"
     if (response.usage) {
       const inputTokens = response.usage.inputTokens ?? 0;
       const outputTokens = response.usage.outputTokens ?? 0;
@@ -572,7 +573,7 @@ ${alternatives
           inputTokens,
           outputTokens,
           cost,
-          feature: "smart_assistant",
+          feature: "model_recommendations",
         },
       );
     }

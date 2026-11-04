@@ -190,6 +190,14 @@ Every rung's **Done when** includes this contract. It does not demand all live p
 
 **Left out:** Concurrent branch generation policy expansion and new queue/transport service.
 
+### Deliver Rung 5 as two usable releases
+
+**5a — Branch-preserving Retry:** Retrying a failed answer creates a sibling on that answer's ordered ancestry. The failed answer, successful alternatives, later descendants and related records remain available after refresh. The UI passes the selected failed answer; older user-message-only calls remain compatible when the target is unambiguous, including the narrow adjacent legacy-row case. Ambiguous calls fail without scheduling work. Keep the existing generation policy; no receipt table or schema change is required for this release.
+
+**5b — Lost-ack and offline replay:** Preserve the original owner-scoped request key and complete options/media through queue, transport and admission. Replaying an accepted request returns its original IDs without a second admission; reusing its key with changed intent conflicts. Reconcile optimistic messages with that durable outcome.
+
+5a can ship independently, but Rung 5 is complete only when both release journeys pass. A passing Retry demo is not evidence of replay idempotency.
+
 ## Rung 6: Every chat attempt contributes the right cost once
 
 **Previously:** Last-step totals and stopped/error paths under-record usage. **Now:** Chat's physical calls settle independently of answer state.

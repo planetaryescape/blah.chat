@@ -177,6 +177,31 @@ Evaluated for UI patterns but incompatible with resilient generation:
 
 ## Edge Cases
 
+### Stuck-message recovery
+
+The recovery cron in `packages/backend/convex/messages/recovery.ts` considers a
+pending or generating message stuck only after ten minutes. It measures from
+`generationStartedAt` when present, otherwise from `createdAt`. Fresh messages
+and their generation locks must remain untouched; terminal messages are excluded.
+
+Convex orders missing fields before numeric values. A query comparing an optional
+start timestamp with a numeric cutoff must first require that timestamp to exist.
+Without that guard, a new pending message can be marked timed out before its
+scheduled generation starts.
+
+Run the local cases from `packages/backend`:
+
+```bash
+bun run test:run convex/__tests__/messageRecoveryAge.test.ts
+```
+
+The current `convex-test` adapter does not reproduce the hosted engine's
+missing-value ordering. Local tests cover state, age precedence and lock handling,
+but are not sufficient proof of this comparator behavior. Check the predicate
+with a scoped, read-only hosted query and verify a real send/refresh journey before
+releasing changes to this boundary. Do not run recovery against real messages to
+test the cutoff.
+
 ### Long Generations (>5 minutes)
 Convex actions support up to 10 minutes. For extremely long generations:
 - Consider chunking responses

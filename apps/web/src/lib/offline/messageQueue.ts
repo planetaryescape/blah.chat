@@ -258,25 +258,20 @@ export class MessageQueue {
   async getQueue(
     cache: BlahChatCache | null = getActiveCache(),
   ): Promise<QueuedMessage[]> {
-    try {
-      if (!cache || getActiveCache() !== cache) return [];
-      const pending = await cache.pendingMutations
-        .where("type")
-        .anyOf("sendMessage", REPLAYABLE_SEND_TYPE)
-        .toArray();
-      if (getActiveCache() !== cache) return [];
-      pending.sort((left, right) => left.createdAt - right.createdAt);
-      return pending.flatMap((row) => {
-        if (row.type === REPLAYABLE_SEND_TYPE) {
-          const parsed = parseReplayableMessage(row.payload);
-          return parsed ? [parsed] : [];
-        }
-        return [row.payload as QueuedMessage];
-      });
-    } catch (error) {
-      console.error("[MessageQueue] Failed to read queue:", error);
-      return [];
-    }
+    if (!cache || getActiveCache() !== cache) return [];
+    const pending = await cache.pendingMutations
+      .where("type")
+      .anyOf("sendMessage", REPLAYABLE_SEND_TYPE)
+      .toArray();
+    if (getActiveCache() !== cache) return [];
+    pending.sort((left, right) => left.createdAt - right.createdAt);
+    return pending.flatMap((row) => {
+      if (row.type === REPLAYABLE_SEND_TYPE) {
+        const parsed = parseReplayableMessage(row.payload);
+        return parsed ? [parsed] : [];
+      }
+      return [row.payload as QueuedMessage];
+    });
   }
 
   async getCount(

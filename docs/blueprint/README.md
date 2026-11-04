@@ -4,7 +4,7 @@
 
 This is an **existing-app modernization plan**, audited on **2026-11-03** at HEAD and freshly fetched `origin/main` **`04866f80a6236716ebf8d8c5a79001727f85f4bf`**. The application and its existing design precede this session. There was no previous blueprint; existing architecture/runbooks remain intact. Root [AGENTS.md](../../AGENTS.md) is preserved, including inherited engineering constraints; current paths are clarified in [01](01-architecture.md).
 
-BK initially requested evaluation, current research and this blueprint, not implementation. **These documents alone do not authorize application code, installation, paid model/sandbox calls, migration, deployment or commits.** The 37 entries in [21](21-decision-log.md) distinguish explicit BK requirements, inherited constraints and unapproved GPT-6.1 recommendations, including subsequent scoped implementation approvals. The 23 questions and 18 spikes in [22](22-open-questions.md) remain open; a planning assumption is not permission. The [kickoff](KICKOFF.md) is a prompt to use after scoped implementation authorization (D-001).
+BK initially requested evaluation, current research and this blueprint, not implementation. **These documents alone do not authorize application code, installation, paid model/sandbox calls, migration, deployment or commits.** The 37 entries in [21](21-decision-log.md) distinguish explicit BK requirements, inherited constraints and unapproved GPT-6.1 recommendations, including subsequent scoped implementation approvals. The 23 questions and 18 spikes in [22](22-open-questions.md) remain open; a planning assumption is not permission. The [kickoff](KICKOFF.md) is a prompt to use after scoped implementation authorization (D-036).
 
 ## Reading order
 

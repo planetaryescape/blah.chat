@@ -146,11 +146,11 @@ Every rung's **Done when** includes this contract. It does not demand all live p
 
 **Design:** Existing play/pause/stop and source following stay familiar; no new narration mode or provider switch.
 
-**Remaining gates:** Independent exact-artifact verification, deployed signed-in playback/POST sequence, and S7/authorized selected-voice joins and final sample.
+**Release checks:** Independent exact-artifact verification, deployed signed-in playback/POST sequence, and S7/authorized selected-voice joins and final sample.
 
 **Demo:** Nested bullets, list starting at 7, checked task, author's literal “list item” and distinctive last sentence; inspect actual prepared POST sequence, then listen only after explicit call budget.
 
-**Done when:** No generated label/empty segment, substantive content/source order/ending preserved, cancellation and cache identity remain isolated. Source and mocked-boundary handoff tests pass; deployment and listening remain pending. Ship an audio-facing claim only with the listening gate; otherwise report text/handoff-only evidence and keep release listening approval pending.
+**Done when:** No generated label/empty segment, substantive content/source order/ending preserved, cancellation and cache identity remain isolated. Run source and handoff tests, then verify deployed playback and a selected-voice sample on the exact staged artifact. Ship an audio-facing claim only with the listening gate; otherwise report text/handoff-only evidence and keep release listening approval pending.
 
 **Left out:** Full-message AI rewrite, quieter technical tables/code, unrelated audio cache flush or all rendering repairs.
 

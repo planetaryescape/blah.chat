@@ -198,6 +198,8 @@ Every rung's **Done when** includes this contract. It does not demand all live p
 
 5a can ship independently, but Rung 5 is complete only when both release journeys pass. A passing Retry demo is not evidence of replay idempotency.
 
+**5a release criterion:** On the exact immutable production-target artifact, an authorized operator verifies a signed-in non-admin journey in staging and production: fail A, create successful B, select A and Retry, refresh and later reload, then verify A's content/metadata and B remain retained, only the selected retry ancestry is on the active branch, and the next send follows that ancestry. Record backend/source and artifact identities; promote the same artifact without rebuilding it. These deployed journeys remain release-owner evidence, not a source-test claim.
+
 ## Rung 6: Every chat attempt contributes the right cost once
 
 **Previously:** Last-step totals and stopped/error paths under-record usage. **Now:** Chat's physical calls settle independently of answer state.

@@ -97,6 +97,37 @@ async function _deriveRootMessageId(
   return message._id;
 }
 
+function _getRetryActivePathIds(
+  messages: Doc<"messages">[],
+  targetMessageId: Id<"messages">,
+): Set<Id<"messages">> {
+  const byId = new Map(messages.map((message) => [message._id, message]));
+  const activeIds = new Set<Id<"messages">>();
+  const visiting = new Set<Id<"messages">>();
+
+  function visit(messageId: Id<"messages">) {
+    if (activeIds.has(messageId)) return;
+    if (visiting.has(messageId)) throw new Error("Cyclic message ancestry");
+    // Legacy history may contain an already-missing parent; match getPathToRoot
+    // by retaining the extant chain and ending traversal at that boundary.
+    const message = byId.get(messageId);
+    if (!message) return;
+
+    visiting.add(messageId);
+    const parents = message.parentMessageIds?.length
+      ? message.parentMessageIds
+      : message.parentMessageId
+        ? [message.parentMessageId]
+        : [];
+    for (const parentId of parents) visit(parentId);
+    visiting.delete(messageId);
+    activeIds.add(messageId);
+  }
+
+  visit(targetMessageId);
+  return activeIds;
+}
+
 const attachmentValidator = v.object({
   type: v.union(v.literal("file"), v.literal("image"), v.literal("audio")),
   name: v.string(),
@@ -1169,6 +1200,21 @@ export const retryMessage = mutation({
         rootMessageId,
         forkReason: "regenerate",
       });
+      const pendingMessage = await ctx.db.get(pendingMessageId);
+      if (!pendingMessage) throw new Error("Retry target was not created");
+      const activePathIds = _getRetryActivePathIds(
+        [...allMessages, pendingMessage],
+        pendingMessageId,
+      );
+      for (const message of allMessages) {
+        const shouldBeActive = activePathIds.has(message._id);
+        if (message.isActiveBranch !== shouldBeActive) {
+          await ctx.db.patch(message._id, {
+            isActiveBranch: shouldBeActive,
+            updatedAt: Date.now(),
+          });
+        }
+      }
       if (lock) await ctx.db.patch(lock._id, { messageId: pendingMessageId });
       // Create the pending target before scheduling so stop can cancel queued work.
       await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {

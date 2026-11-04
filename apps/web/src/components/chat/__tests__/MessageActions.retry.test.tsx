@@ -65,12 +65,8 @@ describe("MessageActions retry handoff", () => {
     vi.clearAllMocks();
     vi.mocked(useMutation).mockImplementation((reference) =>
       getFunctionName(reference) === "chat:retryMessage"
-        ? (Object.assign(retryMutation, {
-            withOptimisticUpdate: vi.fn(),
-          }) as ReturnType<typeof useMutation>)
-        : (Object.assign(vi.fn(), {
-            withOptimisticUpdate: vi.fn(),
-          }) as ReturnType<typeof useMutation>),
+        ? Object.assign(retryMutation, { withOptimisticUpdate: vi.fn() })
+        : Object.assign(vi.fn(), { withOptimisticUpdate: vi.fn() }),
     );
     vi.mocked(useQuery).mockReturnValue(null);
   });

@@ -105,6 +105,7 @@ describe("alternate chat mutation authorization", () => {
           isActiveBranch: true,
         }),
       );
+      await ctx.db.patch(conversationId, { activeLeafMessageId: assistantId });
       return { descendantId, extraParentId };
     });
     await t.run(async (ctx) => {
@@ -196,11 +197,16 @@ describe("alternate chat mutation authorization", () => {
     const after = await t.run((ctx) => ctx.db.query("messages").collect());
     expect(after).toHaveLength(before.length + 1);
     for (const original of before) {
-      expect(after.find((message) => message._id === original._id)).toEqual(
-        original,
-      );
+      const retained = after.find((message) => message._id === original._id);
+      if (!retained) throw new Error(`Retry removed message ${original._id}`);
+      expect({
+        ...retained,
+        isActiveBranch: original.isActiveBranch,
+        updatedAt: original.updatedAt,
+      }).toEqual(original);
     }
     const retry = after.find((message) => message.status === "pending");
+    if (!retry) throw new Error("Retry did not create its pending target");
     expect(retry).toMatchObject({
       role: "assistant",
       parentMessageIds: [userMessageId, extraParentId],
@@ -210,6 +216,18 @@ describe("alternate chat mutation authorization", () => {
       model: "openai:gpt-oss-20b",
     });
     expect(after.map(({ _id }) => _id)).toContain(descendantId);
+    const selectedBranch = await client.query(
+      api.messages.listActivePathPaginated,
+      {
+        conversationId,
+        paginationOpts: { numItems: 20, cursor: null },
+      },
+    );
+    expect(selectedBranch.page.map(({ _id }) => _id)).toEqual([
+      extraParentId,
+      userMessageId,
+      retry._id,
+    ]);
     expect(
       await t.run(async (ctx) => ({
         attachments: await ctx.db
@@ -453,19 +471,17 @@ describe("alternate chat mutation authorization", () => {
 
   it("fails closed for an explicitly selected answer from another parent", async () => {
     const { t, conversationId, userMessageId, assistantId } = await fixture();
-    const foreignParentId = await t.run(async (ctx) =>
-      ctx.db.insert(
+    const foreignParentId = await t.run(async (ctx) => {
+      const userMessage = await ctx.db.get(userMessageId);
+      if (!userMessage) throw new Error("Missing fixture user message");
+      return ctx.db.insert(
         "messages",
-        createTestMessageData(
-          conversationId,
-          (await ctx.db.get(userMessageId))!.userId,
-          {
-            content: "different turn",
-            createdAt: 5,
-          },
-        ),
-      ),
-    );
+        createTestMessageData(conversationId, userMessage.userId, {
+          content: "different turn",
+          createdAt: 5,
+        }),
+      );
+    });
     const foreignChildId = await t.run(async (ctx) =>
       ctx.db.insert(
         "messages",

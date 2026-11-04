@@ -117,6 +117,156 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+it("completes a retry target with only its selected multi-parent ancestry and keeps B queryable", async () => {
+  const { t, owner, conversationId, prompt, left, right } = await fixture();
+  const otherAParent = await t.run(async (ctx) => {
+    const id = await ctx.db.insert(
+      "messages",
+      createTestMessageData(conversationId, owner, {
+        role: "user",
+        content: "OTHER A ANCESTRY",
+        status: "complete",
+        createdAt: 0,
+        isActiveBranch: false,
+      }),
+    );
+    await ctx.db.patch(prompt, { content: "QUESTION A", status: "complete" });
+    await ctx.db.patch(left, {
+      content: "FAILED A partial answer",
+      status: "error",
+      parentMessageIds: [prompt, id],
+      parentMessageId: prompt,
+      siblingIndex: 0,
+    });
+    await ctx.db.patch(right, {
+      content: "SUCCESSFUL B ANSWER",
+      status: "complete",
+      siblingIndex: 2,
+    });
+    const bFollowup = await ctx.db.insert(
+      "messages",
+      createTestMessageData(conversationId, owner, {
+        role: "user",
+        content: "QUESTION B FOLLOW-UP",
+        status: "complete",
+        createdAt: 4,
+        parentMessageIds: [right],
+        parentMessageId: right,
+      }),
+    );
+    await ctx.db.patch(conversationId, {
+      activeLeafMessageId: bFollowup,
+      cachedSystemPrompt: JSON.stringify([
+        { role: "system", content: "Retry action fixture" },
+      ]),
+    });
+    return id;
+  });
+  const client = t.withIdentity(createMockIdentity({ subject: "owner" }));
+  expect(
+    await client.mutation(api.chat.retryMessage, {
+      messageId: prompt,
+      failedMessageId: left,
+    }),
+  ).toBe(prompt);
+  const pending = await t.run((ctx) =>
+    ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", conversationId),
+      )
+      .filter((q) => q.eq(q.field("status"), "pending"))
+      .first(),
+  );
+  if (!pending) throw new Error("Retry did not create its pending target");
+  expect(pending.parentMessageIds).toEqual([prompt, otherAParent]);
+
+  vi.stubEnv("TAVILY_API_KEY", "fixture-key-not-used-for-network");
+  const network = vi.fn(() => {
+    throw new Error("Retry action must not use the network");
+  });
+  vi.stubGlobal("fetch", network);
+  const actualAi = await vi.importActual<typeof import("ai")>("ai");
+  const promptSeen: { value?: unknown } = {};
+  const usage = {
+    inputTokens: {
+      total: 11,
+      noCache: 11,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+    },
+    outputTokens: { total: 7, text: 7, reasoning: undefined },
+  };
+  const model = new MockLanguageModelV3({
+    doStream: async ({ prompt: sdkPrompt }) => {
+      promptSeen.value = sdkPrompt;
+      return {
+        stream: new ReadableStream({
+          start(controller) {
+            controller.enqueue({ type: "stream-start", warnings: [] });
+            controller.enqueue({ type: "text-start", id: "retry-text" });
+            controller.enqueue({
+              type: "text-delta",
+              id: "retry-text",
+              delta: "Recovered answer A",
+            });
+            controller.enqueue({ type: "text-end", id: "retry-text" });
+            controller.enqueue({
+              type: "finish",
+              finishReason: { unified: "stop", raw: undefined },
+              usage,
+            });
+            controller.close();
+          },
+        }),
+      };
+    },
+  });
+  vi.mocked(ai.streamText).mockImplementation(
+    (options) =>
+      actualAi.streamText({ ...options, model }) as ReturnType<
+        typeof ai.streamText
+      >,
+  );
+
+  await t.action(internal.generation.generateResponse, {
+    conversationId,
+    userId: owner,
+    existingMessageId: pending._id,
+    modelId: cheap,
+  });
+  expect(network).not.toHaveBeenCalled();
+  const storedRetry = await t.run((ctx) => ctx.db.get(pending._id));
+  expect(storedRetry).toMatchObject({
+    status: "complete",
+    content: "Recovered answer A",
+    parentMessageIds: [prompt, otherAParent],
+  });
+  const serializedPrompt = JSON.stringify(promptSeen.value);
+  expect(serializedPrompt).toContain("QUESTION A");
+  expect(serializedPrompt).toContain("OTHER A ANCESTRY");
+  expect(serializedPrompt).not.toContain("SUCCESSFUL B ANSWER");
+  expect(serializedPrompt).not.toContain("QUESTION B FOLLOW-UP");
+
+  const nextSend = await client.mutation(api.chat.sendMessage, {
+    conversationId,
+    content: "Continue from retried A",
+    modelId: cheap,
+  });
+  const nextUser = await t.run((ctx) => ctx.db.get(nextSend.userMessageId));
+  expect(nextUser?.parentMessageIds).toEqual([pending._id]);
+  expect(
+    await client.query(api.messages.getBranchesAtMessage, {
+      messageId: prompt,
+    }),
+  ).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ _id: left }),
+      expect.objectContaining({ _id: right }),
+    ]),
+  );
+});
+
 describe("comparison source/destination authorization", () => {
   it("denies both foreign consolidations and foreign votes before copying, linking, or scheduling", async () => {
     const { t, destinationId, conversationId, left } = await fixture();

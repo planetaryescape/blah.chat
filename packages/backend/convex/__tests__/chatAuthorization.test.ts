@@ -74,6 +74,408 @@ async function fixture(model = "openai:gpt-oss-20b") {
 afterEach(() => vi.useRealTimers());
 
 describe("alternate chat mutation authorization", () => {
+  it("retries the selected failed answer as a sibling and preserves later branch content", async () => {
+    const { t, conversationId, userMessageId, assistantId, siblingId, owner } =
+      await fixture();
+    const { descendantId, extraParentId } = await t.run(async (ctx) => {
+      const sibling = await ctx.db.get(siblingId);
+      if (!sibling) throw new Error("Missing later sibling");
+      const extraParentId = await ctx.db.insert(
+        "messages",
+        createTestMessageData(conversationId, owner, {
+          content: "Additional retained parent",
+          createdAt: 0,
+          isActiveBranch: false,
+        }),
+      );
+      await ctx.db.patch(assistantId, {
+        parentMessageIds: [userMessageId, extraParentId],
+        parentMessageId: userMessageId,
+        siblingIndex: 0,
+      });
+      await ctx.db.patch(siblingId, { siblingIndex: 2 });
+      const descendantId = await ctx.db.insert(
+        "messages",
+        createTestMessageData(conversationId, owner, {
+          role: "user",
+          content: "follow-up on B",
+          createdAt: 4,
+          parentMessageId: siblingId,
+          parentMessageIds: [siblingId],
+          isActiveBranch: true,
+        }),
+      );
+      return { descendantId, extraParentId };
+    });
+    await t.run(async (ctx) => {
+      const audioId = await ctx.storage.store(new Blob(["audio artifact"]));
+      await ctx.db.insert("attachments", {
+        messageId: assistantId,
+        conversationId,
+        userId: owner,
+        type: "audio",
+        name: "answer-audio.wav",
+        storageId: audioId,
+        mimeType: "audio/wav",
+        size: 14,
+        metadata: { duration: 2.5 },
+        createdAt: 11,
+      });
+      await ctx.db.insert("toolCalls", {
+        messageId: assistantId,
+        conversationId,
+        userId: owner,
+        toolCallId: "tool-on-failed-a",
+        toolName: "calculator",
+        args: { expression: "6 * 7" },
+        result: { value: 42 },
+        isPartial: false,
+        timestamp: 12,
+        createdAt: 12,
+      });
+      await ctx.db.insert("sources", {
+        messageId: assistantId,
+        conversationId,
+        userId: owner,
+        position: 1,
+        provider: "tool",
+        title: "Retained source A",
+        urlHash: "retry-source-hash",
+        url: "https://example.test/a",
+        isPartial: false,
+        createdAt: 13,
+      });
+      await ctx.db.insert("sourceMetadata", {
+        urlHash: "retry-source-hash",
+        url: "https://example.test/a",
+        title: "Retained source metadata A",
+        enriched: true,
+        firstSeenAt: 13,
+        lastAccessedAt: 13,
+        accessCount: 1,
+      });
+      await ctx.db.insert("usageRecords", {
+        userId: owner,
+        date: "2026-11-04",
+        model: "openai:gpt-oss-20b",
+        conversationId,
+        feature: "chat",
+        operationType: "text",
+        inputTokens: 17,
+        outputTokens: 23,
+        cost: 0.001,
+        messageCount: 1,
+      });
+    });
+    const before = await t.run((ctx) => ctx.db.query("messages").collect());
+    const relatedBefore = await t.run(async (ctx) => ({
+      attachments: await ctx.db
+        .query("attachments")
+        .withIndex("by_message", (q) => q.eq("messageId", assistantId))
+        .collect(),
+      toolCalls: await ctx.db
+        .query("toolCalls")
+        .withIndex("by_message", (q) => q.eq("messageId", assistantId))
+        .collect(),
+      sources: await ctx.db
+        .query("sources")
+        .withIndex("by_message", (q) => q.eq("messageId", assistantId))
+        .collect(),
+      sourceMetadata: await ctx.db.query("sourceMetadata").collect(),
+      usage: await ctx.db.query("usageRecords").collect(),
+    }));
+    const beforeConversation = await t.run((ctx) => ctx.db.get(conversationId));
+    const client = t.withIdentity(createMockIdentity({ subject: "owner" }));
+
+    expect(
+      await client.mutation(api.chat.retryMessage, {
+        messageId: userMessageId,
+      }),
+    ).toBe(userMessageId);
+
+    const after = await t.run((ctx) => ctx.db.query("messages").collect());
+    expect(after).toHaveLength(before.length + 1);
+    for (const original of before) {
+      expect(after.find((message) => message._id === original._id)).toEqual(
+        original,
+      );
+    }
+    const retry = after.find((message) => message.status === "pending");
+    expect(retry).toMatchObject({
+      role: "assistant",
+      parentMessageIds: [userMessageId, extraParentId],
+      siblingIndex: 3,
+      forkReason: "regenerate",
+      isActiveBranch: true,
+      model: "openai:gpt-oss-20b",
+    });
+    expect(after.map(({ _id }) => _id)).toContain(descendantId);
+    expect(
+      await t.run(async (ctx) => ({
+        attachments: await ctx.db
+          .query("attachments")
+          .withIndex("by_message", (q) => q.eq("messageId", assistantId))
+          .collect(),
+        toolCalls: await ctx.db
+          .query("toolCalls")
+          .withIndex("by_message", (q) => q.eq("messageId", assistantId))
+          .collect(),
+        sources: await ctx.db
+          .query("sources")
+          .withIndex("by_message", (q) => q.eq("messageId", assistantId))
+          .collect(),
+        sourceMetadata: await ctx.db.query("sourceMetadata").collect(),
+        usage: await ctx.db.query("usageRecords").collect(),
+      })),
+    ).toEqual(relatedBefore);
+    expect(await t.run((ctx) => ctx.db.get(conversationId))).toMatchObject({
+      messageCount: (beforeConversation?.messageCount ?? 0) + 1,
+    });
+    expect(
+      await t.run((ctx) =>
+        ctx.db.system.query("_scheduled_functions").collect(),
+      ),
+    ).toHaveLength(2);
+  });
+
+  it.each([
+    undefined,
+    [],
+  ])("accepts an explicitly selected adjacent legacy error with parents=%s", async (parentMessageIds) => {
+    const { t, userMessageId, assistantId } = await fixture();
+    await t.run(async (ctx) => {
+      await ctx.db.patch(assistantId, {
+        parentMessageId: undefined,
+        parentMessageIds,
+      });
+    });
+    const client = t.withIdentity(createMockIdentity({ subject: "owner" }));
+    expect(
+      await client.mutation(api.chat.retryMessage, {
+        messageId: userMessageId,
+        failedMessageId: assistantId,
+      }),
+    ).toBe(userMessageId);
+  });
+
+  it("rejects contradictory legacy and DAG parents without writes", async () => {
+    const { t, conversationId, userMessageId, assistantId, owner } =
+      await fixture();
+    const otherParentId = await t.run((ctx) =>
+      ctx.db.insert(
+        "messages",
+        createTestMessageData(conversationId, owner, { createdAt: 4 }),
+      ),
+    );
+    await t.run(async (ctx) => {
+      await ctx.db.patch(assistantId, {
+        parentMessageIds: [otherParentId],
+        parentMessageId: userMessageId,
+      });
+    });
+    const before = await t.run((ctx) => ctx.db.query("messages").collect());
+    await expect(
+      t
+        .withIdentity(createMockIdentity({ subject: "owner" }))
+        .mutation(api.chat.retryMessage, {
+          messageId: userMessageId,
+          failedMessageId: assistantId,
+        }),
+    ).rejects.toThrow(/not a child/);
+    expect(await t.run((ctx) => ctx.db.query("messages").collect())).toEqual(
+      before,
+    );
+  });
+
+  it.each([
+    "complete",
+    "wrong-role",
+    "foreign-conversation",
+  ] as const)("rejects an explicitly selected %s target without writes", async (kind) => {
+    const { t, conversationId, userMessageId, siblingId, owner } =
+      await fixture();
+    const targetId = await t.run(async (ctx) => {
+      if (kind === "complete") return siblingId;
+      if (kind === "wrong-role")
+        return ctx.db.insert(
+          "messages",
+          createTestMessageData(conversationId, owner, {
+            role: "user",
+            status: "error",
+            content: "not an assistant",
+            createdAt: 4,
+          }),
+        );
+      const otherConversation = await ctx.db.insert(
+        "conversations",
+        createTestConversationData(owner),
+      );
+      return ctx.db.insert(
+        "messages",
+        createTestMessageData(otherConversation, owner, {
+          role: "assistant",
+          status: "error",
+          model: "openai:gpt-oss-20b",
+          createdAt: 5,
+          parentMessageId: userMessageId,
+        }),
+      );
+    });
+    const before = await t.run(async (ctx) => ({
+      messages: await ctx.db.query("messages").collect(),
+      conversations: await ctx.db.query("conversations").collect(),
+      locks: await ctx.db.query("generationLocks").collect(),
+      scheduled: await ctx.db.system.query("_scheduled_functions").collect(),
+    }));
+    await expect(
+      t
+        .withIdentity(createMockIdentity({ subject: "owner" }))
+        .mutation(api.chat.retryMessage, {
+          messageId: userMessageId,
+          failedMessageId: targetId,
+        }),
+    ).rejects.toThrow();
+    expect(
+      await t.run(async (ctx) => ({
+        messages: await ctx.db.query("messages").collect(),
+        conversations: await ctx.db.query("conversations").collect(),
+        locks: await ctx.db.query("generationLocks").collect(),
+        scheduled: await ctx.db.system.query("_scheduled_functions").collect(),
+      })),
+    ).toEqual(before);
+  });
+
+  it("admits only one racing retry and stops a queued retry without removing prior answers", async () => {
+    const { t, conversationId, userMessageId, assistantId, siblingId } =
+      await fixture();
+    const owner = t.withIdentity(createMockIdentity({ subject: "owner" }));
+    const results = await Promise.allSettled([
+      owner.mutation(api.chat.retryMessage, {
+        messageId: userMessageId,
+        failedMessageId: assistantId,
+      }),
+      owner.mutation(api.chat.retryMessage, {
+        messageId: userMessageId,
+        failedMessageId: assistantId,
+      }),
+    ]);
+    expect(
+      results.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    expect(
+      results.filter((result) => result.status === "rejected"),
+    ).toHaveLength(1);
+    const pending = await t.run((ctx) =>
+      ctx.db
+        .query("messages")
+        .withIndex("by_conversation", (q) =>
+          q.eq("conversationId", conversationId),
+        )
+        .filter((q) => q.eq(q.field("status"), "pending"))
+        .first(),
+    );
+    if (!pending) throw new Error("Racing retries did not create a target");
+    await owner.mutation(api.chat.stopGeneration, { conversationId });
+    expect((await t.run((ctx) => ctx.db.get(pending._id)))?.status).toBe(
+      "stopped",
+    );
+    expect((await t.run((ctx) => ctx.db.get(assistantId)))?.status).toBe(
+      "error",
+    );
+    expect(await t.run((ctx) => ctx.db.get(siblingId))).not.toBeNull();
+    expect(
+      await t.run((ctx) =>
+        ctx.db.system.query("_scheduled_functions").collect(),
+      ),
+    ).toHaveLength(2);
+    expect(
+      await t.run((ctx) => ctx.db.query("generationLocks").collect()),
+    ).toHaveLength(0);
+  });
+
+  it("rejects retry while an active generation lock owns the conversation", async () => {
+    const { t, owner, conversationId, userMessageId, assistantId } =
+      await fixture();
+    await t.run((ctx) =>
+      ctx.db.insert("generationLocks", {
+        conversationId,
+        userId: owner,
+        pendingCount: 1,
+        lockedAt: Date.now(),
+      }),
+    );
+    const before = await t.run((ctx) => ctx.db.query("messages").collect());
+    await expect(
+      t
+        .withIdentity(createMockIdentity({ subject: "owner" }))
+        .mutation(api.chat.retryMessage, {
+          messageId: userMessageId,
+          failedMessageId: assistantId,
+        }),
+    ).rejects.toThrow(/current response/);
+    expect(await t.run((ctx) => ctx.db.query("messages").collect())).toEqual(
+      before,
+    );
+    expect(
+      await t.run((ctx) =>
+        ctx.db.system.query("_scheduled_functions").collect(),
+      ),
+    ).toHaveLength(0);
+    expect(
+      await t.run((ctx) => ctx.db.query("generationLocks").collect()),
+    ).toHaveLength(1);
+  });
+
+  it("fails closed for an explicitly selected answer from another parent", async () => {
+    const { t, conversationId, userMessageId, assistantId } = await fixture();
+    const foreignParentId = await t.run(async (ctx) =>
+      ctx.db.insert(
+        "messages",
+        createTestMessageData(
+          conversationId,
+          (await ctx.db.get(userMessageId))!.userId,
+          {
+            content: "different turn",
+            createdAt: 5,
+          },
+        ),
+      ),
+    );
+    const foreignChildId = await t.run(async (ctx) =>
+      ctx.db.insert(
+        "messages",
+        createTestMessageData(
+          conversationId,
+          (await ctx.db.get(userMessageId))!.userId,
+          {
+            role: "assistant",
+            status: "error",
+            createdAt: 6,
+            parentMessageId: foreignParentId,
+          },
+        ),
+      ),
+    );
+    const before = await t.run((ctx) => ctx.db.query("messages").collect());
+    await expect(
+      t
+        .withIdentity(createMockIdentity({ subject: "owner" }))
+        .mutation(api.chat.retryMessage, {
+          messageId: userMessageId,
+          failedMessageId: foreignChildId,
+        }),
+    ).rejects.toThrow(/not a child/);
+    expect(await t.run((ctx) => ctx.db.query("messages").collect())).toEqual(
+      before,
+    );
+    expect(
+      await t.run((ctx) =>
+        ctx.db.system.query("_scheduled_functions").collect(),
+      ),
+    ).toHaveLength(0);
+    expect(await t.run((ctx) => ctx.db.get(assistantId))).not.toBeNull();
+  });
+
   it("rejects mixed-conversation branch IDs and does not cascade deletion across conversations", async () => {
     const { t, conversationId, userMessageId, assistantId } = await fixture();
     const foreignId = await t.run(async (ctx) => {
@@ -199,6 +601,7 @@ describe("alternate chat mutation authorization", () => {
         expect(
           await client.mutation(api.chat.retryMessage, {
             messageId: userMessageId,
+            failedMessageId: assistantId,
           }),
         ).toBe(userMessageId);
       if (operation === "edit")
@@ -284,7 +687,11 @@ describe("alternate chat mutation authorization", () => {
     const before = await t.run((ctx) => ctx.db.query("messages").collect());
     for (const operation of [
       () => owner.mutation(api.chat.regenerate, { messageId: assistantId }),
-      () => owner.mutation(api.chat.retryMessage, { messageId: userMessageId }),
+      () =>
+        owner.mutation(api.chat.retryMessage, {
+          messageId: userMessageId,
+          failedMessageId: assistantId,
+        }),
       () =>
         owner.mutation(api.chat.editMessage, {
           messageId: userMessageId,

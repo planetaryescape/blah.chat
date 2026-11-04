@@ -11,7 +11,7 @@ Repair these concrete boundaries before extracting a runtime abstraction:
 | Current defect | Required change |
 |---|---|
 | Tagged strings replace native tool results; tool-only continuation uses obsolete SDK parts | Preserve structured results; validate real next-request serialization |
-| User-message retry deletes the chronological tail, including other branches | Add a sibling; never delete history to retry |
+| User-message retry used to delete the chronological tail, including other branches | The scoped 5a repair adds a sibling and leaves existing rows and normalized records intact; 5b separately addresses lost-ack replay |
 | Initial-age 60-second lock and alternate admissions permit overlapping work | One admission transaction, progress-based lease and epoch fences |
 | Background prompt builder depends on absent ambient identity | Read admitted owner's instructions explicitly |
 | Stop is checked only after arriving chunks; late enrichment can change complete to error | Independent cancellation, monotonic terminal claims, independent enrichment |
@@ -58,6 +58,10 @@ Every Run-owned agent content/reasoning/tool/source/artifact/checkpoint mutation
 Complete the answer's durable terminal claim before independent, repairable title, triage, counting and telemetry enrichment. An enrichment exception is recorded separately and must never turn `succeeded`/`complete` into `failed`/`error`. Settlement retry cannot duplicate usage. ([Late-state failures](../../research_notes/blah-chat-modernization-review/generation.md#g9-post-completion-work-can-turn-a-successful-answer-into-an-error))
 
 ## Immutable branch retry and background identity
+
+In the 5a retry contract, pass the selected failed assistant ID together with its user-message ID. The mutation checks that the target is an assistant error in the same conversation and a direct child of that user message. Older clients may omit the assistant ID only when the failed child resolves unambiguously; legacy rows without parent fields retain a narrow chronological-adjacency fallback. Ambiguous, successful, missing, or unrelated targets fail without creating or scheduling a retry. The mutation keeps its historical return value: the original user-message ID.
+
+Retry creates a pending assistant sibling under the selected user message, using the existing `regenerate` fork reason. It does not delete or rewrite the failed answer, other siblings, later descendants, comparison data, or normalized records. Creating the pending target before scheduling lets the existing Stop flow find queued work. The existing generation lock blocks another active admission; this slice does not add durable replay receipts or change global branch concurrency. A later send follows the conversation's selected retry leaf, while the other answer remains in the message tree.
 
 Regeneration and user-message retry resolve the intended parent through the DAG and create a new sibling assistant/Run. Preserve the old failed/partial answer, comparison siblings, attachments, sources and tool receipts. Selecting a different branch is not permission to delete later chronological messages. Automatic fallback records a new Attempt and failed-model exclusion; it may continue only from a safe persisted boundary, never replay a whole side-effecting conversation because the final prose failed.
 

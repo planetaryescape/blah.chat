@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { CreateNoteDialog } from "@/components/notes/CreateNoteDialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -74,7 +75,10 @@ export function MessageActions({
   const isUser = message.role === "user";
   const isGenerating = ["pending", "generating"].includes(message.status);
   const shouldShowRetry =
-    isUser && nextMessage?.status === "error" && !isGenerating;
+    isUser &&
+    nextMessage?.role === "assistant" &&
+    nextMessage.status === "error" &&
+    !isGenerating;
 
   // Listen for keyboard shortcut to trigger save as note
   useEffect(() => {
@@ -158,6 +162,19 @@ export function MessageActions({
       });
     } catch (error) {
       console.error("Failed to regenerate:", error);
+    }
+  };
+
+  const handleRetry = async () => {
+    if (!nextMessage || nextMessage.status !== "error") return;
+    try {
+      await retryMessage({
+        messageId: message._id as Id<"messages">,
+        failedMessageId: nextMessage._id as Id<"messages">,
+      });
+    } catch (error) {
+      console.error("Failed to retry message:", error);
+      toast.error("Failed to retry generation");
     }
   };
 
@@ -265,9 +282,7 @@ export function MessageActions({
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
-                    onClick={() =>
-                      retryMessage({ messageId: message._id as Id<"messages"> })
-                    }
+                    onClick={handleRetry}
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span className="sr-only">Retry</span>

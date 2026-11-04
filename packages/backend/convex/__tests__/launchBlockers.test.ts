@@ -119,7 +119,7 @@ afterEach(() => {
 
 it("completes a retry target with only its selected multi-parent ancestry and keeps B queryable", async () => {
   const { t, owner, conversationId, prompt, left, right } = await fixture();
-  const otherAParent = await t.run(async (ctx) => {
+  const { id: otherAParent, bFollowup } = await t.run(async (ctx) => {
     const id = await ctx.db.insert(
       "messages",
       createTestMessageData(conversationId, owner, {
@@ -127,21 +127,27 @@ it("completes a retry target with only its selected multi-parent ancestry and ke
         content: "OTHER A ANCESTRY",
         status: "complete",
         createdAt: 0,
-        isActiveBranch: false,
+        isActiveBranch: true,
       }),
     );
-    await ctx.db.patch(prompt, { content: "QUESTION A", status: "complete" });
+    await ctx.db.patch(prompt, {
+      content: "QUESTION A",
+      status: "complete",
+      isActiveBranch: true,
+    });
     await ctx.db.patch(left, {
       content: "FAILED A partial answer",
       status: "error",
       parentMessageIds: [prompt, id],
       parentMessageId: prompt,
       siblingIndex: 0,
+      isActiveBranch: true,
     });
     await ctx.db.patch(right, {
       content: "SUCCESSFUL B ANSWER",
       status: "complete",
       siblingIndex: 2,
+      isActiveBranch: true,
     });
     const bFollowup = await ctx.db.insert(
       "messages",
@@ -152,6 +158,7 @@ it("completes a retry target with only its selected multi-parent ancestry and ke
         createdAt: 4,
         parentMessageIds: [right],
         parentMessageId: right,
+        isActiveBranch: true,
       }),
     );
     await ctx.db.patch(conversationId, {
@@ -160,7 +167,7 @@ it("completes a retry target with only its selected multi-parent ancestry and ke
         { role: "system", content: "Retry action fixture" },
       ]),
     });
-    return id;
+    return { id, bFollowup };
   });
   const client = t.withIdentity(createMockIdentity({ subject: "owner" }));
   expect(
@@ -180,6 +187,18 @@ it("completes a retry target with only its selected multi-parent ancestry and ke
   );
   if (!pending) throw new Error("Retry did not create its pending target");
   expect(pending.parentMessageIds).toEqual([prompt, otherAParent]);
+  expect(
+    (await t.run((ctx) => ctx.db.get(conversationId)))?.activeLeafMessageId,
+  ).toBe(pending._id);
+  const activePage = await client.query(api.messages.listActivePathPaginated, {
+    conversationId,
+    paginationOpts: { numItems: 20, cursor: null },
+  });
+  expect(activePage.page.map(({ _id }) => _id)).toEqual([
+    otherAParent,
+    prompt,
+    pending._id,
+  ]);
 
   vi.stubEnv("TAVILY_API_KEY", "fixture-key-not-used-for-network");
   const network = vi.fn(() => {
@@ -198,9 +217,9 @@ it("completes a retry target with only its selected multi-parent ancestry and ke
     outputTokens: { total: 7, text: 7, reasoning: undefined },
   };
   const model = new MockLanguageModelV3({
-    doStream: async ({ prompt: sdkPrompt }) => {
+    doStream: ({ prompt: sdkPrompt }) => {
       promptSeen.value = sdkPrompt;
-      return {
+      return Promise.resolve({
         stream: new ReadableStream({
           start(controller) {
             controller.enqueue({ type: "stream-start", warnings: [] });
@@ -219,7 +238,7 @@ it("completes a retry target with only its selected multi-parent ancestry and ke
             controller.close();
           },
         }),
-      };
+      });
     },
   });
   vi.mocked(ai.streamText).mockImplementation(
@@ -247,6 +266,15 @@ it("completes a retry target with only its selected multi-parent ancestry and ke
   expect(serializedPrompt).toContain("OTHER A ANCESTRY");
   expect(serializedPrompt).not.toContain("SUCCESSFUL B ANSWER");
   expect(serializedPrompt).not.toContain("QUESTION B FOLLOW-UP");
+  const completedActivePage = await client.query(
+    api.messages.listActivePathPaginated,
+    { conversationId, paginationOpts: { numItems: 20, cursor: null } },
+  );
+  expect(completedActivePage.page.map(({ _id }) => _id)).toEqual([
+    otherAParent,
+    prompt,
+    pending._id,
+  ]);
 
   const nextSend = await client.mutation(api.chat.sendMessage, {
     conversationId,
@@ -254,7 +282,18 @@ it("completes a retry target with only its selected multi-parent ancestry and ke
     modelId: cheap,
   });
   const nextUser = await t.run((ctx) => ctx.db.get(nextSend.userMessageId));
-  expect(nextUser?.parentMessageIds).toEqual([pending._id]);
+  if (!nextUser) throw new Error("Next send did not persist its user message");
+  expect(nextUser.parentMessageIds).toEqual([pending._id]);
+  const reloadedActivePage = await client.query(
+    api.messages.listActivePathPaginated,
+    { conversationId, paginationOpts: { numItems: 20, cursor: null } },
+  );
+  const reloadedActiveIds = reloadedActivePage.page.map(({ _id }) => _id);
+  expect(reloadedActiveIds).toEqual(
+    expect.arrayContaining([otherAParent, prompt, pending._id, nextUser._id]),
+  );
+  expect(reloadedActiveIds).not.toEqual(expect.arrayContaining([left, right]));
+  expect(reloadedActiveIds).not.toContain(bFollowup);
   expect(
     await client.query(api.messages.getBranchesAtMessage, {
       messageId: prompt,

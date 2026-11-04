@@ -198,6 +198,45 @@ describe("useSendMessage durable recovery", () => {
     hook.unmount();
   });
 
+  it.each([
+    "get",
+    "delete",
+  ] as const)("keeps an accepted send successful when local outbox %s fails", async (operation) => {
+    const accepted = {
+      conversationId,
+      messageId: "accepted-user",
+      assistantMessageId: "accepted-assistant",
+    };
+    transport.post.mockResolvedValue(accepted);
+    const hook = renderHook(
+      () => useSendMessage(undefined, conversationId, false),
+      { wrapper },
+    );
+    const cleanup = vi
+      .spyOn(cache.pendingMutations, operation)
+      .mockRejectedValueOnce(new Error("IndexedDB delete failed"));
+    try {
+      await act(async () => {
+        await expect(
+          hook.result.current.mutateAsync({
+            conversationId,
+            content: "accepted sends must not become fresh-key drafts",
+            clientMessageId: "accepted-cleanup-key",
+          }),
+        ).resolves.toEqual(accepted);
+      });
+      expect(await cache.pendingMutations.toArray()).toMatchObject([
+        {
+          type: "sendMessageV2",
+          payload: { clientMessageId: "accepted-cleanup-key" },
+        },
+      ]);
+    } finally {
+      cleanup.mockRestore();
+      hook.unmount();
+    }
+  });
+
   it("keeps the durable request when acceptance IDs identify another target", async () => {
     transport.post.mockResolvedValue({
       conversationId: "different-conversation",

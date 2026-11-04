@@ -1,8 +1,11 @@
 "use client";
 
 import { RotateCcw, WifiOff } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { getActiveCache } from "@/lib/cache/db";
 import { messageQueue } from "@/lib/offline/messageQueue";
 
 /**
@@ -10,6 +13,8 @@ import { messageQueue } from "@/lib/offline/messageQueue";
  * Displays when messages are queued offline, auto-hides when queue empty
  */
 export function OfflineQueueIndicator() {
+  const router = useRouter();
+  const ownerCache = getActiveCache();
   const [queueCount, setQueueCount] = useState(0);
   const [isOnline, setIsOnline] = useState(
     () => typeof navigator !== "undefined" && navigator.onLine,
@@ -62,8 +67,19 @@ export function OfflineQueueIndicator() {
             variant="ghost"
             className="h-7 px-2"
             onClick={async () => {
-              await messageQueue.retryAllAttention();
-              window.dispatchEvent(new Event("online"));
+              if (!ownerCache || getActiveCache() !== ownerCache) return;
+              try {
+                await messageQueue.retryAllAttention(ownerCache);
+                const queue = await messageQueue.getQueue(ownerCache);
+                if (getActiveCache() !== ownerCache || !queue[0]) return;
+                // The composer owns replay. Open it when Retry is used from
+                // settings or another layout page with no mounted chat.
+                router.push(`/chat/${queue[0].conversationId}`);
+                window.dispatchEvent(new Event("online"));
+              } catch {
+                if (getActiveCache() === ownerCache)
+                  toast.error("Saved requests could not be read. Try again.");
+              }
             }}
           >
             <RotateCcw className="mr-1 h-3.5 w-3.5" />

@@ -140,7 +140,9 @@ export class MessageQueue {
         .where("type")
         .equals(REPLAYABLE_SEND_TYPE)
         .toArray();
+      pending.sort((left, right) => left.createdAt - right.createdAt);
       let incomplete = false;
+      const blockedConversations = new Set<string>();
       for (const row of pending) {
         if (getActiveCache() !== cache) return "cancelled";
         if (row.type !== REPLAYABLE_SEND_TYPE) continue;
@@ -154,7 +156,11 @@ export class MessageQueue {
           incomplete = true;
           continue;
         }
-        if (row.state === "attention") {
+        if (
+          row.state === "attention" ||
+          blockedConversations.has(message.conversationId)
+        ) {
+          blockedConversations.add(message.conversationId);
           incomplete = true;
           continue;
         }
@@ -165,6 +171,7 @@ export class MessageQueue {
         } catch (error) {
           if (getActiveCache() !== cache) return "cancelled";
           incomplete = true;
+          blockedConversations.add(message.conversationId);
           if (isDefinitiveRefusal(error)) {
             await this.markAttention(
               cache,
@@ -212,19 +219,20 @@ export class MessageQueue {
     cache: BlahChatCache | null = getActiveCache(),
   ): Promise<boolean> {
     if (!cache || getActiveCache() !== cache) return false;
-    const row = await cache.pendingMutations.get(id);
-    if (!row || row.type !== REPLAYABLE_SEND_TYPE) return false;
-    const message = parseReplayableMessage(row.payload);
-    if (!message) return false;
-    await cache.pendingMutations.put({
-      ...row,
-      state: "pending",
-      error: undefined,
-      retries: 0,
-      payload: { ...message, retries: 0 },
+    let retried = false;
+    await cache.pendingMutations.update(id, (row) => {
+      if (getActiveCache() !== cache || row.type !== REPLAYABLE_SEND_TYPE)
+        return false;
+      const message = parseReplayableMessage(row.payload);
+      if (!message) return false;
+      row.state = "pending";
+      row.error = undefined;
+      row.retries = 0;
+      row.payload = { ...message, retries: 0 };
+      retried = true;
     });
     this.dispatchQueueUpdate();
-    return getActiveCache() === cache;
+    return retried && getActiveCache() === cache;
   }
 
   async retryAllAttention(
@@ -247,13 +255,17 @@ export class MessageQueue {
     return retried;
   }
 
-  async getQueue(): Promise<QueuedMessage[]> {
+  async getQueue(
+    cache: BlahChatCache | null = getActiveCache(),
+  ): Promise<QueuedMessage[]> {
     try {
-      const cache = getCache();
+      if (!cache || getActiveCache() !== cache) return [];
       const pending = await cache.pendingMutations
         .where("type")
         .anyOf("sendMessage", REPLAYABLE_SEND_TYPE)
         .toArray();
+      if (getActiveCache() !== cache) return [];
+      pending.sort((left, right) => left.createdAt - right.createdAt);
       return pending.flatMap((row) => {
         if (row.type === REPLAYABLE_SEND_TYPE) {
           const parsed = parseReplayableMessage(row.payload);
@@ -329,16 +341,16 @@ export class MessageQueue {
       error?: string;
     },
   ): Promise<void> {
-    const row = await cache.pendingMutations.get(id);
-    if (!row || row.type !== REPLAYABLE_SEND_TYPE) return;
-    const message = parseReplayableMessage(row.payload);
-    await cache.pendingMutations.put({
-      ...row,
-      ...updates,
-      payload: message
+    // Dexie update reads and writes in one transaction and never inserts a
+    // missing row, so a concurrent acknowledgement cannot be resurrected.
+    await cache.pendingMutations.update(id, (row) => {
+      if (getActiveCache() !== cache || row.type !== REPLAYABLE_SEND_TYPE)
+        return false;
+      const message = parseReplayableMessage(row.payload);
+      Object.assign(row, updates);
+      row.payload = message
         ? { ...message, retries: updates.retries ?? message.retries }
-        : row.payload,
-      retries: updates.retries ?? row.retries,
+        : row.payload;
     });
     this.dispatchQueueUpdate();
   }

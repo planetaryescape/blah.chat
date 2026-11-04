@@ -31,6 +31,14 @@ indicator offers an explicit retry when online. Incognito sends bypass this dura
 outbox. Legacy `sendMessage` rows keep their existing compatibility path and do not
 gain replay guarantees retroactively.
 
+Replay visits saved sends oldest-first. An uncertain or attention-required request
+holds later requests in its conversation, while unrelated conversations can proceed.
+Retry from a non-chat page opens the oldest saved request's conversation so the
+composer can process it. Retry updates are atomic and never recreate a row already
+acknowledged by another processor. If local cleanup fails after confirmed acceptance,
+keep the send successful and retain its original saved request for reconciliation;
+never restore it as a new-key draft.
+
 ## Message reconciliation
 
 Only pass the complete authorized message tree to `syncMessageTree`. An active
@@ -57,7 +65,7 @@ authorize deletion. An explicit empty request scope performs no writes.
 From `apps/web`, run:
 
 ```sh
-agent-work run -- bun run test:run src/hooks/__tests__/cacheIdentity.test.tsx src/hooks/__tests__/useCacheSync.tree.test.ts src/lib/offline/__tests__/messageQueue.test.ts src/lib/hooks/mutations/__tests__/useSendMessage.test.ts src/lib/hooks/mutations/__tests__/useSendMessage.recovery.test.tsx src/components/chat/__tests__/ChatInput.send.test.tsx --maxWorkers=4
+agent-work run -- bun run test:run src/hooks/__tests__/cacheIdentity.test.tsx src/hooks/__tests__/useCacheSync.tree.test.ts src/lib/offline/__tests__/messageQueue.test.ts src/lib/hooks/mutations/__tests__/useSendMessage.test.ts src/lib/hooks/mutations/__tests__/useSendMessage.recovery.test.tsx src/components/chat/__tests__/ChatInput.send.test.tsx src/components/layout/__tests__/OfflineQueueIndicator.test.tsx --maxWorkers=1
 ```
 
 The suites combine storage mocks with `fake-indexeddb` and rendered hook/composer

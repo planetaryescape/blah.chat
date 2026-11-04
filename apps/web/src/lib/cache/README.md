@@ -57,8 +57,10 @@ authorize deletion. An explicit empty request scope performs no writes.
 From `apps/web`, run:
 
 ```sh
-agent-work run -- bun run test:run src/hooks/__tests__/cacheIdentity.test.tsx src/hooks/__tests__/useCacheSync.tree.test.ts src/lib/offline/__tests__/messageQueue.test.ts src/lib/hooks/mutations/__tests__/useSendMessage.test.ts --maxWorkers=4
+agent-work run -- bun run test:run src/hooks/__tests__/cacheIdentity.test.tsx src/hooks/__tests__/useCacheSync.tree.test.ts src/lib/offline/__tests__/messageQueue.test.ts src/lib/hooks/mutations/__tests__/useSendMessage.test.ts src/lib/hooks/mutations/__tests__/useSendMessage.recovery.test.tsx src/components/chat/__tests__/ChatInput.send.test.tsx --maxWorkers=4
 ```
 
-These unit tests use storage mocks. Check actual IndexedDB transaction rollback
-separately in an isolated browser using synthetic databases, never a user's cache.
+The suites combine storage mocks with `fake-indexeddb` and rendered hook/composer
+tests. They check persistence before dispatch, remount replay, private-send
+exclusion and stale-owner callbacks. Verify real-browser reload/reconnect and
+IndexedDB behavior separately with synthetic data, never unrelated user content.

@@ -47,7 +47,7 @@ vi.mock("@/lib/api/monitoring", () => ({
 
 // 2. Imports AFTER mocks
 import { messagesDAL } from "@/lib/api/dal/messages";
-import { ConflictError } from "@/lib/api/errors";
+import { ConflictError, NotFoundError } from "@/lib/api/errors";
 import {
   assertEnvelopeError,
   assertEnvelopeSuccess,
@@ -128,6 +128,26 @@ describe("/api/v1/conversations/[id]/messages", () => {
   });
 
   describe("POST /api/v1/conversations/:id/messages", () => {
+    it("returns a typed 404 envelope when the accepted target is unavailable", async () => {
+      vi.mocked(messagesDAL.send).mockRejectedValue(
+        new NotFoundError("Accepted send"),
+      );
+      const { POST } = await import("../conversations/[id]/messages/route");
+      const response = await POST(
+        createMockRequest("/api/v1/conversations/conv-123/messages", {
+          method: "POST",
+          body: { content: "retry", clientMessageId: "accepted-key" },
+        }),
+        { params: Promise.resolve({ id: "conv-123" }) },
+      );
+
+      expect(response.status).toBe(404);
+      expect(await response.json()).toMatchObject({
+        status: "error",
+        error: { code: "NOT_FOUND" },
+      });
+    });
+
     it("returns a typed 409 envelope for a reused send key with changed intent", async () => {
       vi.mocked(messagesDAL.send).mockRejectedValue(
         new ConflictError(
@@ -183,7 +203,7 @@ describe("/api/v1/conversations/[id]/messages", () => {
           conversationId: "conv-123",
           messageId: "msg-user" as any,
           assistantMessageId: "msg-assistant" as any,
-          status: "pending",
+          status: "pending" as const,
           pollUrl: "/api/v1/messages/msg-assistant",
         },
       };
@@ -214,7 +234,7 @@ describe("/api/v1/conversations/[id]/messages", () => {
           conversationId: "conv-123",
           messageId: "msg-1" as any,
           assistantMessageId: "msg-2" as any,
-          status: "pending",
+          status: "pending" as const,
           pollUrl: "/api/v1/messages/msg-2",
         },
       };
@@ -283,7 +303,7 @@ describe("/api/v1/conversations/[id]/messages", () => {
           conversationId: "conv-123",
           messageId: "msg-1" as any,
           assistantMessageId: "msg-2" as any,
-          status: "pending",
+          status: "pending" as const,
           pollUrl: "/api/v1/messages/msg-2",
         },
       };

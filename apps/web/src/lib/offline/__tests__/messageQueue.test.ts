@@ -207,6 +207,12 @@ describe("offline queue ownership", () => {
     expect(
       [...a.rows.values()].filter((row) => row.type === "sendMessage"),
     ).toHaveLength(0);
+    const legacyProcessor = vi.fn();
+    await expect(queue.processQueue(legacyProcessor, a.cache)).resolves.toBe(
+      "complete",
+    );
+    expect(legacyProcessor).not.toHaveBeenCalled();
+    expect(a.rows.size).toBe(1);
   });
 
   it("cancels without throwing while identity is unresolved", async () => {

@@ -2,7 +2,7 @@ import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { ConvexError } from "convex/values";
 import { getAuthenticatedConvexClient } from "@/lib/api/convex";
-import { ConflictError } from "@/lib/api/errors";
+import { ConflictError, NotFoundError } from "@/lib/api/errors";
 import { formatEntity } from "@/lib/utils/formatEntity";
 import "server-only";
 import type { z } from "zod";
@@ -33,7 +33,7 @@ export const messagesDAL = {
     )) as any;
 
     if (!conversation) {
-      throw new Error("Access denied");
+      throw new NotFoundError("Conversation", conversationId);
     }
 
     // Calls chat.sendMessage which creates user + pending assistant messages
@@ -59,22 +59,29 @@ export const messagesDAL = {
           "This request key was already used for a different send.",
         );
       }
+      if (isAcceptedSendNotFound(error)) {
+        throw new NotFoundError("Accepted send");
+      }
       throw error;
     }
 
+    const assistantMessageId = result.assistantMessageIds?.[0];
+    if (!assistantMessageId)
+      throw new Error("Accepted send did not return an assistant message ID");
+    const responseData = {
+      conversationId,
+      messageId: result.userMessageId,
+      assistantMessageId,
+      status: "pending" as const,
+      pollUrl: `/api/v1/messages/${assistantMessageId}`,
+    };
+    const response = formatEntity(responseData, "message");
+    if (!response.data)
+      throw new Error("Accepted send response could not be formatted");
     return {
-      status: "success" as const,
-      sys: {
-        entity: "message",
-        async: true,
-      },
-      data: {
-        conversationId,
-        messageId: result.userMessageId, // User message ID
-        assistantMessageId: result.assistantMessageIds?.[0], // First assistant message
-        status: "pending",
-        pollUrl: `/api/v1/messages/${result.assistantMessageIds?.[0]}`,
-      },
+      ...response,
+      sys: { ...response.sys, async: true },
+      data: response.data,
     };
   },
 
@@ -213,5 +220,23 @@ function isSendIntentConflict(error: unknown): boolean {
     data !== null &&
     "code" in data &&
     data.code === "CHAT_SEND_INTENT_CONFLICT"
+  );
+}
+
+function isAcceptedSendNotFound(error: unknown): boolean {
+  if (!(error instanceof ConvexError)) return false;
+  let data: unknown = error.data;
+  if (typeof data === "string") {
+    try {
+      data = JSON.parse(data);
+    } catch {
+      return false;
+    }
+  }
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "code" in data &&
+    data.code === "CHAT_SEND_NOT_FOUND"
   );
 }

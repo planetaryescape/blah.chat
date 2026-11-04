@@ -32,6 +32,7 @@ describe("useSendMessage durable recovery", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    transport.post.mockReset();
     cache = new BlahChatCache(`recovery-${crypto.randomUUID()}`);
     await cache.open();
     setActiveCache(cache);
@@ -60,6 +61,7 @@ describe("useSendMessage durable recovery", () => {
 
   it("persists complete intent before transport and recovers it after remount with the same key", async () => {
     let durableBeforeFirstRequest = false;
+    const optimisticUpdate = vi.fn();
     transport.post
       .mockImplementationOnce(
         async (_url: string, request: Record<string, unknown>) => {
@@ -80,7 +82,7 @@ describe("useSendMessage durable recovery", () => {
       });
 
     const first = renderHook(
-      () => useSendMessage(undefined, conversationId, false),
+      () => useSendMessage(optimisticUpdate, conversationId, false),
       { wrapper },
     );
     const intent = {
@@ -127,7 +129,7 @@ describe("useSendMessage durable recovery", () => {
       configurable: true,
     });
     const recovered = renderHook(
-      () => useSendMessage(undefined, conversationId, false),
+      () => useSendMessage(optimisticUpdate, conversationId, false),
       { wrapper },
     );
     await act(async () => {
@@ -144,6 +146,223 @@ describe("useSendMessage durable recovery", () => {
       thinkingEffort: "high",
       attachments: intent.attachments,
     });
+    expect(optimisticUpdate).toHaveBeenCalledOnce();
     recovered.unmount();
+  });
+
+  it("snapshots intent before persistence and transport can observe caller mutations", async () => {
+    transport.post.mockResolvedValue({
+      conversationId: "conversation-recovery",
+      messageId: "accepted-user",
+      assistantMessageId: "accepted-assistant",
+    });
+    const hook = renderHook(
+      () => useSendMessage(undefined, conversationId, false),
+      { wrapper },
+    );
+    const intent = {
+      conversationId,
+      content: "captured content",
+      models: ["model-a", "model-b"],
+      thinkingEffort: "high" as const,
+      clientMessageId: "captured-request",
+      attachments: [
+        {
+          type: "image" as const,
+          name: "captured.png",
+          storageId: "captured-storage",
+          mimeType: "image/png",
+          size: 42,
+        },
+      ],
+    };
+
+    const sending = hook.result.current.mutateAsync(intent);
+    intent.content = "mutated content";
+    intent.models.reverse();
+    intent.attachments[0]!.name = "mutated.png";
+    await sending;
+
+    expect(transport.post).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        content: "captured content",
+        models: ["model-a", "model-b"],
+        thinkingEffort: "high",
+        clientMessageId: "captured-request",
+        attachments: [
+          expect.objectContaining({ name: "captured.png", size: 42 }),
+        ],
+      }),
+    );
+    hook.unmount();
+  });
+
+  it("keeps the durable request when acceptance IDs identify another target", async () => {
+    transport.post.mockResolvedValue({
+      conversationId: "different-conversation",
+      messageId: "accepted-user",
+      assistantMessageId: "accepted-assistant",
+    });
+    const hook = renderHook(
+      () => useSendMessage(undefined, conversationId, false),
+      { wrapper },
+    );
+
+    await expect(
+      hook.result.current.mutateAsync({
+        conversationId,
+        content: "do not acknowledge a different target",
+        clientMessageId: "target-validation-key",
+      }),
+    ).rejects.toThrow("The send response did not confirm acceptance");
+    expect(await cache.pendingMutations.toArray()).toMatchObject([
+      {
+        type: "sendMessageV2",
+        payload: {
+          clientMessageId: "target-validation-key",
+          conversationId,
+        },
+      },
+    ]);
+    hook.unmount();
+  });
+
+  it("does not acknowledge or invalidate into a different active owner cache", async () => {
+    let accept!: (value: unknown) => void;
+    transport.post.mockImplementationOnce(
+      () => new Promise((resolve) => (accept = resolve)),
+    );
+    const hook = renderHook(
+      () => useSendMessage(undefined, conversationId, false),
+      { wrapper },
+    );
+    const invalidation = vi.spyOn(queryClient, "invalidateQueries");
+    const sending = hook.result.current.mutateAsync({
+      conversationId,
+      content: "owner-fenced request",
+      clientMessageId: "owner-fenced-key",
+    });
+    await waitFor(() => expect(transport.post).toHaveBeenCalledOnce());
+    const otherCache = new BlahChatCache(`other-owner-${crypto.randomUUID()}`);
+    await otherCache.open();
+    setActiveCache(otherCache);
+    await act(async () => {
+      accept({
+        conversationId: "conversation-recovery",
+        messageId: "accepted-user",
+        assistantMessageId: "accepted-assistant",
+      });
+      await sending;
+    });
+
+    expect(await cache.pendingMutations.toArray()).toHaveLength(1);
+    expect(invalidation).not.toHaveBeenCalled();
+    setActiveCache(cache);
+    otherCache.close();
+    await otherCache.delete();
+    hook.unmount();
+  });
+
+  it("rechecks owner identity after asynchronous acknowledgement", async () => {
+    const otherCache = new BlahChatCache(`ack-owner-${crypto.randomUUID()}`);
+    await otherCache.open();
+    transport.post.mockResolvedValue({
+      conversationId: "conversation-recovery",
+      messageId: "accepted-user",
+      assistantMessageId: "accepted-assistant",
+    });
+    const acknowledge = vi
+      .spyOn(messageQueue, "acknowledgeReplayable")
+      .mockImplementationOnce(async () => {
+        setActiveCache(otherCache);
+        return false;
+      });
+    const invalidation = vi.spyOn(queryClient, "invalidateQueries");
+    const hook = renderHook(
+      () => useSendMessage(undefined, conversationId, false),
+      { wrapper },
+    );
+
+    await hook.result.current.mutateAsync({
+      conversationId,
+      content: "identity changes during acknowledgement",
+      clientMessageId: "ack-owner-fence-key",
+    });
+
+    expect(acknowledge).toHaveBeenCalledOnce();
+    expect(invalidation).not.toHaveBeenCalled();
+    expect(await cache.pendingMutations.toArray()).toHaveLength(1);
+    setActiveCache(cache);
+    acknowledge.mockRestore();
+    otherCache.close();
+    await otherCache.delete();
+    hook.unmount();
+  });
+
+  it("does not let an old online callback process the next owner's outbox", async () => {
+    const hook = renderHook(
+      () => useSendMessage(undefined, conversationId, false),
+      { wrapper },
+    );
+    const otherCache = new BlahChatCache(`online-owner-${crypto.randomUUID()}`);
+    await otherCache.open();
+    try {
+      setActiveCache(otherCache);
+      await messageQueue.enqueueReplayable(
+        {
+          conversationId,
+          content: "belongs to the next owner",
+          clientMessageId: "next-owner-key",
+        },
+        otherCache,
+      );
+      const before = await otherCache.pendingMutations.toArray();
+      transport.post.mockResolvedValue({
+        conversationId,
+        messageId: "other-owner-message",
+        assistantMessageId: "other-owner-assistant",
+      });
+      await act(async () => {
+        window.dispatchEvent(new Event("online"));
+        await new Promise((resolve) => setTimeout(resolve, 30));
+      });
+      expect(transport.post).not.toHaveBeenCalled();
+      expect(await otherCache.pendingMutations.toArray()).toEqual(before);
+    } finally {
+      hook.unmount();
+      setActiveCache(cache);
+      otherCache.close();
+      await otherCache.delete();
+    }
+  });
+
+  it("does not let a stale mutate callback persist a send into the next owner's cache", async () => {
+    const hook = renderHook(
+      () => useSendMessage(undefined, conversationId, false),
+      { wrapper },
+    );
+    const oldMutate = hook.result.current.mutateAsync;
+    const otherCache = new BlahChatCache(`mutate-owner-${crypto.randomUUID()}`);
+    await otherCache.open();
+    try {
+      setActiveCache(otherCache);
+      await act(async () => {
+        await expect(
+          oldMutate({
+            conversationId,
+            content: "stale caller",
+            clientMessageId: "stale-owner-key",
+          }),
+        ).rejects.toThrow(/account|cache/i);
+      });
+      expect(transport.post).not.toHaveBeenCalled();
+      expect(await otherCache.pendingMutations.toArray()).toHaveLength(0);
+    } finally {
+      hook.unmount();
+      setActiveCache(cache);
+      otherCache.close();
+      await otherCache.delete();
+    }
   });
 });

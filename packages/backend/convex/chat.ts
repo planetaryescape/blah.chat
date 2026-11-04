@@ -374,7 +374,10 @@ export const sendMessage = mutation({
           user._id,
         ))
       ) {
-        throw new Error("Conversation not found or unauthorized");
+        throw new ConvexError({
+          code: "CHAT_SEND_NOT_FOUND",
+          message: "Accepted send is no longer available",
+        });
       }
 
       const acceptedUserMessage = await ctx.db.get(
@@ -396,7 +399,10 @@ export const sendMessage = mutation({
             message.role !== "assistant",
         )
       ) {
-        throw new Error("Accepted send is no longer available");
+        throw new ConvexError({
+          code: "CHAT_SEND_NOT_FOUND",
+          message: "Accepted send is no longer available",
+        });
       }
 
       return {

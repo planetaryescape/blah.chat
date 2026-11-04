@@ -177,10 +177,12 @@ export const ChatInput = memo(function ChatInput({
   useIOSKeyboard({ inputRef: textareaRef });
 
   const conversation = useQuery(api.conversations.get, { conversationId });
+  const isIncognito =
+    conversation == null ? undefined : conversation.isIncognito === true;
   const { mutate: sendMessage } = useSendMessage(
     onOptimisticUpdate,
     conversationId,
-    conversation?.isIncognito,
+    isIncognito,
   );
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const stopGeneration = useMutation(api.chat.stopGeneration);

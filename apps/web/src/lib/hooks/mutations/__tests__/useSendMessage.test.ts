@@ -220,19 +220,18 @@ describe("useSendMessage", () => {
     );
   });
 
-  it("invalidates conversations query on success", () => {
+  it("invalidates the message query after owner-fenced acceptance", async () => {
     renderHook(() => useSendMessage(undefined, conversationId, false));
-
-    mutationConfig?.onSuccess?.(
-      {
-        status: "success",
-        data: {
-          conversationId: "conv-123",
-          messageId: "m1",
-          assistantMessageId: "a1",
-        },
-      },
-      { conversationId, content: "Test" },
+    const args = {
+      conversationId,
+      content: "Test",
+      clientMessageId: "invalidate-accepted-key",
+    };
+    const context = await mutationConfig?.onMutate?.(args);
+    await mutationConfig?.onSuccess?.(
+      { conversationId, messageId: "m1", assistantMessageId: "a1" },
+      args,
+      context,
     );
 
     expect(mockInvalidateQueries).toHaveBeenCalledWith({

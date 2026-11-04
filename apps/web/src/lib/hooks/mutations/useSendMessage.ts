@@ -38,6 +38,7 @@ interface SendContext {
 
 const acceptedResult = (
   value: unknown,
+  expectedConversationId: string,
 ): value is {
   conversationId: string;
   messageId: string;
@@ -46,9 +47,11 @@ const acceptedResult = (
   if (!value || typeof value !== "object") return false;
   const result = value as Record<string, unknown>;
   return (
-    typeof result.conversationId === "string" &&
+    result.conversationId === expectedConversationId &&
     typeof result.messageId === "string" &&
-    typeof result.assistantMessageId === "string"
+    result.messageId.length > 0 &&
+    typeof result.assistantMessageId === "string" &&
+    result.assistantMessageId.length > 0
   );
 };
 
@@ -56,8 +59,7 @@ function markUnknownOutcome(error: unknown): Error & { queued: true } {
   const result =
     error instanceof Error ? error : new Error("Send outcome is unknown");
   try {
-    Object.assign(result, { queued: true as const });
-    return result as Error & { queued: true };
+    return Object.assign(result, { queued: true as const });
   } catch {
     return Object.assign(new Error(result.message), { queued: true as const });
   }
@@ -70,16 +72,20 @@ export function useSendMessage(
 ) {
   const apiClient = useApiClient();
   const queryClient = useQueryClient();
+  const ownerCache = getActiveCache();
   const cacheByRequestKey = useRef(new Map<string, BlahChatCache | null>());
 
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
 
   useEffect(() => {
+    // Bind this API actor to its owner, including callbacks retained across an
+    // account transition before React runs effect cleanup.
+    const cache = ownerCache;
+    if (!cache) return;
     let active = true;
     const handleOnline = async () => {
-      const cache = getActiveCache();
-      if (!active || !cache || getActiveCache() !== cache) return;
+      if (!active || getActiveCache() !== cache) return;
       const queueCount = await messageQueue.getCount(cache);
       if (!active || getActiveCache() !== cache || queueCount === 0) return;
 
@@ -106,7 +112,7 @@ export function useSendMessage(
               `/api/v1/conversations/${msg.conversationId}/messages`,
               replayPayload(msg),
             );
-            if (!acceptedResult(response))
+            if (!acceptedResult(response, msg.conversationId))
               throw new Error("The send response did not confirm acceptance");
           }, cache),
         ]);
@@ -131,7 +137,7 @@ export function useSendMessage(
       active = false;
       window.removeEventListener("online", handleOnline);
     };
-  }, [apiClient]);
+  }, [apiClient, ownerCache]);
 
   const mutation = useMutation<unknown, Error, SendMessageArgs, SendContext>({
     mutationFn: async (args) => {
@@ -144,7 +150,7 @@ export function useSendMessage(
           `/api/v1/conversations/${args.conversationId}/messages`,
           args,
         );
-        if (!acceptedResult(response))
+        if (!acceptedResult(response, args.conversationId))
           throw new Error("The send response did not confirm acceptance");
         return response;
       } catch (error) {
@@ -167,8 +173,9 @@ export function useSendMessage(
           "The send target changed before the request was saved.",
         );
 
-      const cache = getActiveCache();
-      if (!cache) throw new Error("The signed-in offline cache is not ready.");
+      const cache = ownerCache;
+      if (!cache || getActiveCache() !== cache)
+        throw new Error("The signed-in account cache is not ready or changed.");
       let queueId: string | undefined;
       if (!isIncognito) {
         const queued = await messageQueue.enqueueReplayable(
@@ -209,11 +216,14 @@ export function useSendMessage(
 
     onSuccess: async (_data, variables, context) => {
       cacheByRequestKey.current.delete(variables.clientMessageId ?? "");
-      if (context?.queueId)
+      if (!context?.cache || getActiveCache() !== context.cache) return;
+      if (context?.queueId) {
         await messageQueue.acknowledgeReplayable(
           context.queueId,
           context.cache,
         );
+        if (getActiveCache() !== context.cache) return;
+      }
       queryClient.invalidateQueries({
         queryKey: queryKeys.messages.list(variables.conversationId),
       });
@@ -227,6 +237,7 @@ export function useSendMessage(
 
     onError: async (error, variables, context) => {
       cacheByRequestKey.current.delete(variables.clientMessageId ?? "");
+      if (context?.cache && getActiveCache() !== context.cache) return;
       if (
         context?.queueId &&
         context.cache &&
@@ -237,13 +248,14 @@ export function useSendMessage(
             context.queueId,
             context.cache,
           );
+          if (getActiveCache() !== context.cache) return;
         } else {
           toast.info(
             "Send outcome unknown. The original request is saved to retry safely.",
           );
         }
       }
-      if (!(error as Error & { queued?: boolean })?.queued) {
+      if (!("queued" in error && error.queued === true)) {
         toast.error(error.message || "Failed to send message");
       }
     },
@@ -252,6 +264,8 @@ export function useSendMessage(
   const withRequestKey = (args: SendMessageArgs): SendMessageArgs => ({
     ...args,
     clientMessageId: args.clientMessageId ?? `client-${crypto.randomUUID()}`,
+    models: args.models ? [...args.models] : undefined,
+    attachments: args.attachments?.map((attachment) => ({ ...attachment })),
   });
 
   return {

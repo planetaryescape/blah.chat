@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 import "fake-indexeddb/auto";
+import { DEFAULT_MODEL_ID } from "@blah-chat/ai/models";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -50,6 +51,7 @@ describe("ChatInput ordinary conversation send binding", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    transport.post.mockReset();
     cache = new BlahChatCache(`chat-input-send-${crypto.randomUUID()}`);
     await cache.open();
     setActiveCache(cache);
@@ -91,7 +93,7 @@ describe("ChatInput ordinary conversation send binding", () => {
       <ChatInput
         conversationId={loadedOrdinaryConversation._id as Id<"conversations">}
         isGenerating={false}
-        selectedModel="openai:gpt-4o"
+        selectedModel={DEFAULT_MODEL_ID}
         onModelChange={vi.fn()}
         attachments={[]}
         onAttachmentsChange={vi.fn()}
@@ -99,10 +101,9 @@ describe("ChatInput ordinary conversation send binding", () => {
       { wrapper },
     );
 
-    await user.type(
-      screen.getByLabelText("Message input"),
-      "Ordinary send must remain available{Enter}",
-    );
+    await user.click(screen.getByLabelText("Message input"));
+    await user.paste("Ordinary send must remain available");
+    await user.keyboard("{Enter}");
 
     await waitFor(() => expect(transport.post).toHaveBeenCalledOnce());
     await act(async () => {
@@ -134,7 +135,7 @@ describe("ChatInput ordinary conversation send binding", () => {
       <ChatInput
         conversationId={loadedOrdinaryConversation._id as Id<"conversations">}
         isGenerating={false}
-        selectedModel="openai:gpt-4o"
+        selectedModel={DEFAULT_MODEL_ID}
         onModelChange={vi.fn()}
         attachments={[]}
         onAttachmentsChange={vi.fn()}
@@ -142,10 +143,9 @@ describe("ChatInput ordinary conversation send binding", () => {
       { wrapper },
     );
 
-    await user.type(
-      screen.getByLabelText("Message input"),
-      "private send{Enter}",
-    );
+    await user.click(screen.getByLabelText("Message input"));
+    await user.paste("private send");
+    await user.keyboard("{Enter}");
 
     await waitFor(() => expect(transport.post).toHaveBeenCalledOnce());
     expect(persist).not.toHaveBeenCalled();
@@ -163,7 +163,7 @@ describe("ChatInput ordinary conversation send binding", () => {
       <ChatInput
         conversationId={loadedOrdinaryConversation._id as Id<"conversations">}
         isGenerating={false}
-        selectedModel="openai:gpt-4o"
+        selectedModel={DEFAULT_MODEL_ID}
         onModelChange={vi.fn()}
         attachments={[]}
         onAttachmentsChange={vi.fn()}
@@ -171,7 +171,9 @@ describe("ChatInput ordinary conversation send binding", () => {
       { wrapper },
     );
     const input = screen.getByLabelText("Message input");
-    await user.type(input, "Keep this unsaved draft{Enter}");
+    await user.click(input);
+    await user.paste("Keep this unsaved draft");
+    await user.keyboard("{Enter}");
     await waitFor(() => expect(input).toHaveValue("Keep this unsaved draft"));
     expect(transport.post).not.toHaveBeenCalled();
     expect(await cache.pendingMutations.toArray()).toHaveLength(0);

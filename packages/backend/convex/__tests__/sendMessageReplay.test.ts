@@ -5,7 +5,7 @@ import {
 } from "@blah-chat/ai/models";
 import * as ai from "ai";
 import { MockLanguageModelV3 } from "ai/test";
-import type { FunctionReturnType } from "convex/server";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import {
   afterEach,
   beforeAll,
@@ -16,7 +16,7 @@ import {
   vi,
 } from "vitest";
 import { convexTest } from "../../__tests__/testSetup";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import {
   createMockIdentity,
   createTestConversationData,
@@ -641,8 +641,15 @@ describe("accepted send replay baseline", () => {
     ).toHaveLength(1);
   });
 
-  it("dispatches one real scheduled generation action and one fake SDK provider call across replay", async () => {
+  it("executes the admitted generation payload once through the real action and SDK across replay", async () => {
     const { t, owner, request } = await fixture();
+    await t.run((ctx) =>
+      ctx.db.patch(request.conversationId, {
+        cachedSystemPrompt: JSON.stringify([
+          { role: "system", content: "Replay action fixture" },
+        ]),
+      }),
+    );
     vi.stubEnv("TAVILY_API_KEY", "test-key-not-used-for-network");
     vi.stubGlobal(
       "fetch",
@@ -652,8 +659,9 @@ describe("accepted send replay baseline", () => {
     );
     let providerDispatches = 0;
     const model = new MockLanguageModelV3({
-      doStream: () =>
-        Promise.resolve({
+      doStream: () => {
+        providerDispatches++;
+        return Promise.resolve({
           stream: new ReadableStream({
             start(controller) {
               controller.enqueue({ type: "stream-start", warnings: [] });
@@ -680,28 +688,53 @@ describe("accepted send replay baseline", () => {
               controller.close();
             },
           }),
-        }),
+        });
+      },
     });
     const actualAi = await vi.importActual<typeof import("ai")>("ai");
     vi.mocked(ai.streamText).mockImplementation((options) => {
-      providerDispatches++;
       return actualAi.streamText({ ...options, model }) as ReturnType<
         typeof ai.streamText
       >;
     });
 
     const accepted = await owner.mutation(api.chat.sendMessage, request);
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    const generationJobs = await t.run(async (ctx) =>
+      (await ctx.db.system.query("_scheduled_functions").collect()).filter(
+        ({ name }) => name === "generation:generateResponse",
+      ),
+    );
+    expect(generationJobs).toHaveLength(1);
+    await expect(
+      owner.mutation(api.chat.sendMessage, request),
+    ).resolves.toEqual(accepted);
+    // SAFETY: this payload was written by the registered send mutation for the
+    // matching function above. The real action validates its arguments again.
+    const generationArgs = generationJobs[0]!.args[0] as FunctionArgs<
+      typeof internal.generation.generateResponse
+    >;
+    await t.action(internal.generation.generateResponse, generationArgs);
     expect(
       await t.run((ctx) => ctx.db.get(accepted.assistantMessageIds[0]!)),
     ).toMatchObject({ status: "complete", content: "Accepted once" });
 
+    const snapshot = () =>
+      t.run(async (ctx) => ({
+        messages: await ctx.db.query("messages").collect(),
+        receipts: await ctx.db.query("chatSendReceipts").collect(),
+        locks: await ctx.db.query("generationLocks").collect(),
+        usage: await ctx.db.query("usageRecords").collect(),
+        users: await ctx.db.query("users").collect(),
+        scheduled: await ctx.db.system.query("_scheduled_functions").collect(),
+      }));
+    const beforeReplay = await snapshot();
     await expect(
       owner.mutation(api.chat.sendMessage, request),
     ).resolves.toEqual(accepted);
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    expect(await snapshot()).toEqual(beforeReplay);
     expect(providerDispatches).toBe(1);
     expect(vi.mocked(ai.streamText)).toHaveBeenCalledOnce();
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it("keeps receipt keys owner-scoped and does not persist receipts for incognito", async () => {

@@ -287,6 +287,31 @@ describe("alternate chat mutation authorization", () => {
     );
   });
 
+  it("does not guess between an adjacent legacy error and a failed DAG child for an old caller", async () => {
+    const { t, userMessageId, assistantId, siblingId } = await fixture();
+    await t.run(async (ctx) => {
+      await ctx.db.patch(assistantId, { parentMessageId: undefined });
+      await ctx.db.patch(siblingId, {
+        status: "error",
+        parentMessageIds: [userMessageId],
+      });
+    });
+    const snapshot = () =>
+      t.run(async (ctx) => ({
+        messages: await ctx.db.query("messages").collect(),
+        conversations: await ctx.db.query("conversations").collect(),
+        locks: await ctx.db.query("generationLocks").collect(),
+        scheduled: await ctx.db.system.query("_scheduled_functions").collect(),
+      }));
+    const before = await snapshot();
+    await expect(
+      t
+        .withIdentity(createMockIdentity({ subject: "owner" }))
+        .mutation(api.chat.retryMessage, { messageId: userMessageId }),
+    ).rejects.toThrow(/ambiguous/);
+    expect(await snapshot()).toEqual(before);
+  });
+
   it.each([
     "complete",
     "wrong-role",

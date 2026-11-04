@@ -1059,31 +1059,30 @@ export const retryMessage = mutation({
     const failedChildren = children.filter(
       (message) => message.status === "error",
     );
-    let aiMessage = args.failedMessageId
-      ? allMessages.find((message) => message._id === args.failedMessageId)
-      : failedChildren.length === 1
-        ? failedChildren[0]
+    const userIndex = allMessages.findIndex(
+      (message) => message._id === userMessage._id,
+    );
+    const chronologicalNext = allMessages[userIndex + 1];
+    const legacyNext =
+      chronologicalNext?.role === "assistant" &&
+      !chronologicalNext.parentMessageIds?.length &&
+      !chronologicalNext.parentMessageId
+        ? chronologicalNext
         : undefined;
+    const failedCandidates =
+      legacyNext?.status === "error"
+        ? [...failedChildren, legacyNext]
+        : failedChildren;
+    const aiMessage = args.failedMessageId
+      ? allMessages.find((message) => message._id === args.failedMessageId)
+      : failedCandidates.length === 1
+        ? failedCandidates[0]
+        : failedCandidates.length === 0
+          ? legacyNext
+          : undefined;
 
-    if (!args.failedMessageId && failedChildren.length > 1) {
+    if (!args.failedMessageId && failedCandidates.length > 1) {
       throw new Error("Retry target is ambiguous; select the failed answer");
-    }
-    if (!aiMessage && failedChildren.length === 0) {
-      const userIndex = allMessages.findIndex((m) => m._id === args.messageId);
-      const chronologicalNext = allMessages[userIndex + 1];
-      if (
-        chronologicalNext?.role === "assistant" &&
-        (!chronologicalNext.parentMessageIds ||
-          chronologicalNext.parentMessageIds.length === 0) &&
-        !chronologicalNext.parentMessageId
-      ) {
-        if (
-          !args.failedMessageId ||
-          args.failedMessageId === chronologicalNext._id
-        ) {
-          aiMessage = chronologicalNext;
-        }
-      }
     }
     if (!aiMessage) throw new Error("No message to retry");
     if (aiMessage.conversationId !== userMessage.conversationId) {
@@ -1097,9 +1096,6 @@ export const retryMessage = mutation({
       : undefined;
     const legacyParent = aiMessage.parentMessageId;
     const parents = dagParents ?? (legacyParent ? [legacyParent] : undefined);
-    const userIndex = allMessages.findIndex(
-      (message) => message._id === userMessage._id,
-    );
     const isAdjacentLegacyTarget =
       !parents && allMessages[userIndex + 1]?._id === aiMessage._id;
     if (

@@ -1256,13 +1256,21 @@ export const retryMessage = mutation({
         [...allMessages, pendingMessage],
         pendingMessageId,
       );
+      // On repeat retry, keep using the original adjacent parentless failure as
+      // the legacy anchor, but only for its single-parent retry child.
+      const legacyPrefixAnchor =
+        !parents && isAdjacentLegacyTarget
+          ? aiMessage
+          : parents?.length === 1 && parents[0] === userMessage._id
+            ? legacyNext
+            : undefined;
       // Only carry forward a provably linear, parentless legacy display prefix.
       // Provider context remains DAG-only; this does not infer historical edges.
-      if (!parents && isAdjacentLegacyTarget) {
+      if (legacyPrefixAnchor?.status === "error") {
         for (const messageId of _getUnambiguousLegacyPrefixIds(
           allMessages,
           userMessage._id,
-          aiMessage._id,
+          legacyPrefixAnchor._id,
         )) {
           activePathIds.add(messageId);
         }

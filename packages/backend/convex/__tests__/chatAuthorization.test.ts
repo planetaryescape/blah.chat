@@ -276,7 +276,7 @@ describe("alternate chat mutation authorization", () => {
     ).toBe(userMessageId);
   });
 
-  it("preserves a visible linear legacy prefix in the public active path after retry", async () => {
+  it("preserves a visible linear legacy prefix after retrying the retry", async () => {
     const { t, owner, conversationId, userMessageId, assistantId, siblingId } =
       await fixture();
     const { oldUserId, oldAssistantId } = await t.run(async (ctx) => {
@@ -352,6 +352,67 @@ describe("alternate chat mutation authorization", () => {
     expect(generationContext.map(({ _id }) => _id)).not.toContain(
       oldAssistantId,
     );
+
+    const ownedLock = await t.run((ctx) =>
+      ctx.db
+        .query("generationLocks")
+        .withIndex("by_conversation", (q) =>
+          q.eq("conversationId", conversationId),
+        )
+        .first(),
+    );
+    if (!ownedLock) throw new Error("Retry did not retain its generation lock");
+    expect(ownedLock.messageId).toBe(retry._id);
+    expect(
+      await t.mutation(internal.messages.updateStatus, {
+        messageId: retry._id,
+        status: "generating",
+      }),
+    ).toBe(true);
+    await t.mutation(internal.messages.markError, {
+      messageId: retry._id,
+      error: "Synthetic terminal failure",
+    });
+    await t.mutation(internal.lib.generationLock.releaseLock, {
+      conversationId,
+      lockId: ownedLock._id,
+    });
+
+    await client.mutation(api.chat.retryMessage, {
+      messageId: userMessageId,
+      failedMessageId: retry._id,
+    });
+
+    const repeatedRetry = await t.run((ctx) =>
+      ctx.db
+        .query("messages")
+        .withIndex("by_conversation", (q) =>
+          q.eq("conversationId", conversationId),
+        )
+        .filter((q) => q.eq(q.field("status"), "pending"))
+        .first(),
+    );
+    if (!repeatedRetry)
+      throw new Error("Explicit retry did not create its pending target");
+    expect(repeatedRetry.parentMessageIds).toEqual([userMessageId]);
+    const repeatedActivePath = await client.query(
+      api.messages.listActivePathPaginated,
+      {
+        conversationId,
+        paginationOpts: { numItems: 20, cursor: null },
+      },
+    );
+    expect(repeatedActivePath.page.map(({ _id }) => _id)).toEqual([
+      oldUserId,
+      oldAssistantId,
+      userMessageId,
+      repeatedRetry._id,
+    ]);
+    expect((await t.run((ctx) => ctx.db.get(assistantId)))?.status).toBe(
+      "error",
+    );
+    expect((await t.run((ctx) => ctx.db.get(retry._id)))?.status).toBe("error");
+    expect(await t.run((ctx) => ctx.db.get(siblingId))).not.toBeNull();
   });
 
   it("does not infer a legacy prefix from ambiguous parentless chronology", async () => {

@@ -206,11 +206,11 @@ Every rung's **Done when** includes this contract. It does not demand all live p
 
 ## Rung 6: Every chat attempt contributes the right cost once
 
-**Previously:** Last-step totals and stopped/error paths under-record usage. **Now:** Chat's physical calls settle independently of answer state.
+**Previously:** Last-step totals and stopped/error paths under-record usage. **6a source implementation:** ordinary hosted text chat now has Run/Attempt/dispatch evidence and an owner-only persisted receipt independent of answer state. Staging/production proof is still required before calling 6a released.
 
 **Proposed demo promise, not BK quote:** “My receipt includes the work that ran, even when I stopped it.”
 
-**Build:** Minimum Run/Attempt/Usage slice, per-step keys, complete-dimension projections, estimated/unknown correction semantics; remove duplicate lifetime/context increment. No blanket new-domain schema (D-016; [14](14-cost-model.md#immutable-events-then-projections)).
+**Build:** Minimum hosted ordinary-text Run/Attempt/Usage slice, per-step keys, complete-dimension per-run/model projections, estimated/unknown correction semantics; remove duplicate lifetime/context increment. No blanket new-domain schema (D-016; [14](14-cost-model.md#immutable-events-then-projections)).
 
 **Design:** Small receipt marks reported/estimated/unsettled; context and monthly spend are distinct.
 
@@ -218,7 +218,9 @@ Every rung's **Done when** includes this contract. It does not demand all live p
 
 **Demo:** Three fake priced steps, continuation, failed retry and stop; duplicate/reorder settlement; reconcile estimated amount to reported amount.
 
-**Done when:** Sum of per-request tiered costs, once-only projection, no aggregate-plus-step/cache/reasoning double charge, retained historical totals. Canonical `attribution.kind=run` and stable physical/evidence/correction keys pass actual validators. Chat-only initial adoption does not invent auxiliary Runs; standalone writers follow the defined operation variant in rung7.
+**6a source done when:** Fake-provider real-action proof covers per-dispatch identity, continuation, retry, failure, stop, duplicate settlement, estimate-to-report correction, owner ACL and erasure; new projections preserve complete dimensions and historical rows remain unchanged. The web receipt distinguishes reported tokens from estimated USD and unresolved dispatches. Exact artifact staging and production journeys remain owned by the release coordinator.
+
+**Full Rung 6 done when:** Sum of per-request tiered costs, once-only projections, no aggregate-plus-step/cache/reasoning double charge, retained historical totals, and all remaining accepted 6b work are proven. Canonical `attribution.kind=run` and stable physical/evidence/correction keys pass actual validators. Chat-only 6a does not invent auxiliary Runs; standalone writers follow the defined operation variant in Rung 7.
 
 **Left out:** Live invoice certainty and standalone-operation writer adoption (rung7), not its already specified attribution contract.
 

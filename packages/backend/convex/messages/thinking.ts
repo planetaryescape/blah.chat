@@ -42,11 +42,17 @@ export const completeThinking = internalMutation({
     reasoningTokens: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const chatRun = await ctx.db
+      .query("agentRuns")
+      .withIndex("by_message", (q) => q.eq("messageId", args.messageId))
+      .first();
     await ctx.db.patch(args.messageId, {
       reasoning: args.reasoning,
       partialReasoning: undefined,
       thinkingCompletedAt: Date.now(),
-      reasoningTokens: args.reasoningTokens,
+      // Thinking completion publishes reasoning, not last-invocation totals
+      // over the ledger's all-attempt usage.
+      ...(chatRun ? {} : { reasoningTokens: args.reasoningTokens }),
       updatedAt: Date.now(),
     });
   },

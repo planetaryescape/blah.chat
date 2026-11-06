@@ -537,8 +537,8 @@ async function refreshRunProjection(
           event.inputTokens !== undefined &&
           event.outputTokens !== undefined,
       ) ??
-      group.find((event) => event.evidenceKind === "estimated") ??
-      group.find((event) => event.evidenceKind === "reported");
+      group.find((event) => event.evidenceKind === "reported") ??
+      group.find((event) => event.evidenceKind === "estimated");
     const date = utcDate(dispatch.dispatchAt ?? dispatch.occurredAt);
     const key = `${date}\0${dispatch.model}`;
     const target = totals.get(key) ?? {
@@ -831,9 +831,18 @@ export const getReceipt = query({
         )
         .map((event) => event.usageKey),
     );
+    const reportedEvidenceKeys = new Set(
+      events
+        .filter((event) => event.evidenceKind === "reported")
+        .map((event) => event.usageKey),
+    );
     const estimatedKeys = new Set(
       events
-        .filter((event) => event.evidenceKind === "estimated")
+        .filter(
+          (event) =>
+            event.evidenceKind === "estimated" &&
+            !reportedEvidenceKeys.has(event.usageKey),
+        )
         .map((event) => event.usageKey),
     );
     const projectionUnknownCost = projections.some(

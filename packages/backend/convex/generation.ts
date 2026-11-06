@@ -31,6 +31,7 @@ import {
   estimateToolCost,
   recordUsage,
 } from "./lib/budgetTracker";
+import { createChatAccounting } from "./lib/chatUsage";
 import {
   captureException,
   classifyStreamingError,
@@ -205,6 +206,7 @@ export const generateResponse = internalAction({
       | undefined;
 
     let accumulated = "";
+    let accounting: Awaited<ReturnType<typeof createChatAccounting>>;
     let inputTokenEstimate = 0;
     let toolNameDebugSnapshot: Array<{ name: string; length: number }> = [];
     try {
@@ -641,14 +643,25 @@ export const generateResponse = internalAction({
       // 9. Get model
       const model = getModel(modelId);
 
+      accounting = await createChatAccounting(ctx, {
+        ownerUserId: args.userId,
+        conversationId: args.conversationId,
+        messageId: assistantMessageId,
+        modelId,
+      });
+
       // 10. Apply middleware (e.g., DeepSeek tag extraction)
-      const finalModel = reasoningResult?.applyMiddleware
-        ? reasoningResult.applyMiddleware(model)
+      const accountedModel = accounting
+        ? await accounting.wrap(model, "main")
         : model;
+      const finalModel = reasoningResult?.applyMiddleware
+        ? reasoningResult.applyMiddleware(accountedModel)
+        : accountedModel;
 
       // 11. Build streamText options
       const options: any = {
         model: finalModel,
+        maxRetries: accounting ? 0 : undefined,
         messages: allMessages,
         stopWhen: hasFunctionCalling ? stepCountIs(MAX_TOOL_STEPS) : undefined,
         providerOptions: getGatewayOptions(modelId, args.userId, ["chat"]),
@@ -813,6 +826,7 @@ export const generateResponse = internalAction({
         messageId: assistantMessageId,
       });
       if (beforeProvider?.status !== "generating") {
+        await accounting?.finish("stopped");
         await releaseGenerationLock();
         return;
       }
@@ -844,6 +858,7 @@ export const generateResponse = internalAction({
           )) as { status?: string } | null;
           if (!currentMsg || currentMsg.status === "stopped") {
             abortController.abort();
+            await accounting?.finish("stopped");
             break;
           }
           lastStopCheck = now;
@@ -1042,6 +1057,7 @@ export const generateResponse = internalAction({
           tag: "Generation",
           messageId: assistantMessageId,
         });
+        await accounting?.finish("stopped");
         await releaseGenerationLock();
         return;
       }
@@ -1073,7 +1089,10 @@ export const generateResponse = internalAction({
         if (completedToolCalls.length > 0) {
           try {
             const continuationResult = await generateText({
-              model: getModel(modelId),
+              model: accounting
+                ? await accounting.wrap(getModel(modelId), "continuation")
+                : getModel(modelId),
+              maxRetries: accounting ? 0 : undefined,
               messages: [...allMessages, ...(await result.response).messages],
               providerOptions: getGatewayOptions(modelId, args.userId, [
                 "chat-continuation",
@@ -1110,6 +1129,7 @@ export const generateResponse = internalAction({
                     : undefined,
                 cost: contCost,
               });
+              await accounting?.finish("stopped");
               return;
             }
 
@@ -1140,7 +1160,7 @@ export const generateResponse = internalAction({
       }
 
       // Get final usage info
-      const usage = await result.usage;
+      const usage = accounting ? await result.totalUsage : await result.usage;
       const normalizedUsage = normalizeUsageTokens(usage);
 
       // Complete thinking if user requested reasoning (thinkingEffort not "none")
@@ -1454,6 +1474,9 @@ export const generateResponse = internalAction({
           // sources: removed - now using normalized tables only (Phase 2 complete)
           providerMetadata,
         });
+        await accounting?.finish("complete");
+      } else {
+        await accounting?.finish("stopped");
       }
 
       // Release generation lock (decrements pendingCount for comparison mode)
@@ -1520,24 +1543,24 @@ export const generateResponse = internalAction({
             modelConfig.contextWindow,
             modelId,
           );
-          // Run both token updates in parallel
-          await Promise.all([
-            ctx.runMutation(internal.conversations.updateTokenUsage, {
-              conversationId: args.conversationId,
-              tokenUsage,
-            }),
-            (ctx.runMutation as any)(
-              // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          // Context occupancy is replace-only; provider lifetime totals are
+          // owned by chat settlement and must not be incremented a second time.
+          await ctx.runMutation(internal.conversations.updateTokenUsage, {
+            conversationId: args.conversationId,
+            tokenUsage,
+          });
+          if (!accounting) {
+            await ctx.runMutation(
               internal.conversations.updateConversationTokenUsage,
               {
                 conversationId: args.conversationId,
                 model: modelId,
                 inputTokens,
                 outputTokens,
-                reasoningTokens: reasoningTokens || 0,
+                reasoningTokens,
               },
-            ),
-          ]);
+            );
+          }
         })(),
 
         // Auto-name if conversation still has default title
@@ -1562,6 +1585,7 @@ export const generateResponse = internalAction({
       });
       if (!cancelled || cancelled.status === "stopped") {
         await releaseGenerationLock();
+        await accounting?.finish("stopped");
         return;
       }
       // Handle AbortError (user stopped generation) - clean exit
@@ -1578,6 +1602,7 @@ export const generateResponse = internalAction({
         );
         // Release lock even on stop
         await releaseGenerationLock();
+        await accounting?.finish("stopped");
         return; // Clean exit - message already marked stopped
       }
 
@@ -1633,6 +1658,8 @@ export const generateResponse = internalAction({
               },
             )
           : 0;
+
+      await accounting?.finish("error");
 
       // Comprehensive error tracking with AI-specific context
       await captureException(
@@ -1945,6 +1972,8 @@ export const generateResponse = internalAction({
         messageId: assistantMessageId,
         error: userMessage,
       });
+
+      await accounting?.finish("error");
 
       // Release lock on error
       await releaseGenerationLock();

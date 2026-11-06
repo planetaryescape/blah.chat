@@ -1,6 +1,12 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import {
+  agentRunsTable,
+  chatUsageProjectionsTable,
+  runAttemptsTable,
+  usageEventsTable,
+} from "./chatSettlementSchema";
+import {
   autoRouterConfigTable,
   modelHistoryTable,
   modelProfilesTable,
@@ -13,6 +19,10 @@ import {
 import { routingExamplesTable, routingFeedbackTable } from "./schema/routing";
 
 export default defineSchema({
+  agentRuns: agentRunsTable,
+  runAttempts: runAttemptsTable,
+  usageEvents: usageEventsTable,
+  chatUsageProjections: chatUsageProjectionsTable,
   postgresRestoreRows,
   postgresRestoreRuns,
   rateLimitEvents: defineTable({

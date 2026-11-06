@@ -1,6 +1,38 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalMutation, mutation } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
+import {
+  internalMutation,
+  type MutationCtx,
+  mutation,
+} from "../_generated/server";
+
+/** Preserve the existing notification policy for both usage writers. */
+export async function queueExistingBudgetAlert(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+) {
+  const adminSettings = await ctx.db.query("adminSettings").first();
+  const monthlyBudget = adminSettings?.defaultMonthlyBudget ?? 10;
+  const alertThreshold = adminSettings?.defaultBudgetAlertThreshold ?? 0.8;
+  if (!(monthlyBudget > 0)) return;
+  const now = new Date();
+  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  const monthRecords = await ctx.db
+    .query("usageRecords")
+    .withIndex("by_user_date", (q) => q.eq("userId", userId))
+    .filter((q) => q.gte(q.field("date"), monthStart))
+    .collect();
+  const totalSpent = monthRecords.reduce((sum, row) => sum + row.cost, 0);
+  const percentUsed = totalSpent / monthlyBudget;
+  if (!(percentUsed >= alertThreshold || percentUsed >= 1)) return;
+  await ctx.scheduler.runAfter(0, internal.emails.utils.send.sendBudgetAlert, {
+    percentUsed: percentUsed * 100,
+    spent: totalSpent,
+    budget: monthlyBudget,
+    isExceeded: percentUsed >= 1,
+  });
+}
 
 const featureValidator = v.union(
   v.literal("chat"),
@@ -91,7 +123,7 @@ export const recordTextGeneration = internalMutation({
     const feature = args.feature ?? "chat";
 
     // Keep the existing daily upsert dimensions, while isolating feature buckets.
-    const existing = await ctx.db
+    const candidates = await ctx.db
       .query("usageRecords")
       .withIndex("by_user_date_model", (q) =>
         q.eq("userId", args.userId).eq("date", date).eq("model", args.model),
@@ -104,7 +136,23 @@ export const recordTextGeneration = internalMutation({
             )
           : q.eq(q.field("feature"), feature),
       )
-      .first();
+      .collect();
+
+    // Ledger projections have dedicated rows. A legacy helper upsert must not
+    // fold its spend into a row whose amount another settlement owns.
+    let existing: (typeof candidates)[number] | null = null;
+    for (const candidate of candidates) {
+      const projection = await ctx.db
+        .query("chatUsageProjections")
+        .withIndex("by_usage_record", (q) =>
+          q.eq("usageRecordId", candidate._id),
+        )
+        .first();
+      if (!projection) {
+        existing = candidate;
+        break;
+      }
+    }
 
     if (existing) {
       await ctx.db.patch(existing._id, {
@@ -132,54 +180,7 @@ export const recordTextGeneration = internalMutation({
       });
     }
 
-    // After upsert, check if budget thresholds crossed
-    const adminSettings = await ctx.db.query("adminSettings").first();
-    const monthlyBudget = adminSettings?.defaultMonthlyBudget ?? 10;
-    const alertThreshold = adminSettings?.defaultBudgetAlertThreshold ?? 0.8;
-
-    if (monthlyBudget > 0) {
-      // Get all records for current month
-      const now = new Date();
-      const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-
-      const monthRecords = await ctx.db
-        .query("usageRecords")
-        .withIndex("by_user_date", (q) => q.eq("userId", args.userId))
-        .filter((q) => q.gte(q.field("date"), monthStart))
-        .collect();
-
-      const totalSpent = monthRecords.reduce((sum, r) => sum + r.cost, 0);
-      const percentUsed = totalSpent / monthlyBudget;
-
-      // Trigger emails if thresholds crossed
-      if (percentUsed >= 1.0) {
-        // Budget exceeded (100%)
-        await ctx.scheduler.runAfter(
-          0,
-          // @ts-ignore - TypeScript recursion limit with 85+ Convex modules
-          internal.emails.utils.send.sendBudgetAlert,
-          {
-            percentUsed: percentUsed * 100,
-            spent: totalSpent,
-            budget: monthlyBudget,
-            isExceeded: true,
-          },
-        );
-      } else if (percentUsed >= alertThreshold) {
-        // Warning threshold (80%)
-        await ctx.scheduler.runAfter(
-          0,
-          // @ts-ignore - TypeScript recursion limit with 85+ Convex modules
-          internal.emails.utils.send.sendBudgetAlert,
-          {
-            percentUsed: percentUsed * 100,
-            spent: totalSpent,
-            budget: monthlyBudget,
-            isExceeded: false,
-          },
-        );
-      }
-    }
+    await queueExistingBudgetAlert(ctx, args.userId);
   },
 });
 

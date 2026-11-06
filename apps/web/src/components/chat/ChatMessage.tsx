@@ -20,6 +20,7 @@ import type { OptimisticMessage } from "@/types/optimistic";
 import { FeedbackModal } from "../feedback/FeedbackModal";
 import { ArtifactList } from "./ArtifactList";
 import { AttachmentRenderer } from "./AttachmentRenderer";
+import { ChatUsageReceipt } from "./ChatUsageReceipt";
 import { InlineToolCallContent } from "./InlineToolCallContent";
 import { MessageActions } from "./MessageActions";
 import { MessageBranchIndicator } from "./MessageBranchIndicator";
@@ -561,6 +562,17 @@ export const ChatMessage = memo(
                               ? message.routingDecision?.isSticky
                               : undefined
                           }
+                        />
+                      )}
+                    {!readOnly &&
+                      conversation &&
+                      !conversation.isIncognito &&
+                      (message.status === "complete" ||
+                        message.status === "stopped" ||
+                        message.status === "error") &&
+                      message._id && (
+                        <ChatUsageReceipt
+                          messageId={message._id as Id<"messages">}
                         />
                       )}
                   </div>

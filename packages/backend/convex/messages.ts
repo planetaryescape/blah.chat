@@ -802,8 +802,22 @@ export const completeMessage = internalMutation({
   handler: async (ctx, args) => {
     const message = await ctx.db.get(args.messageId);
     if (!message) throw new Error("Message not found");
+    const chatRun = await ctx.db
+      .query("agentRuns")
+      .withIndex("by_message", (q) => q.eq("messageId", args.messageId))
+      .first();
 
     const billingUserId = args.billingUserId ?? message.userId;
+    // The ledger owns totals across *all* physical attempts. Completion owns
+    // answer publication, not another last-step accounting write.
+    const usageMetrics = chatRun
+      ? {}
+      : {
+          inputTokens: args.inputTokens,
+          outputTokens: args.outputTokens,
+          reasoningTokens: args.reasoningTokens,
+          cost: args.cost,
+        };
     const content =
       message.role === "assistant"
         ? sanitizeAssistantDisplayContent(args.content)
@@ -829,10 +843,7 @@ export const completeMessage = internalMutation({
         );
       }
       await ctx.db.patch(args.messageId, {
-        inputTokens: args.inputTokens,
-        outputTokens: args.outputTokens,
-        reasoningTokens: args.reasoningTokens,
-        cost: args.cost,
+        ...usageMetrics,
         tokensPerSecond: args.tokensPerSecond,
         providerMetadata: args.providerMetadata,
         generationCompletedAt: Date.now(),
@@ -847,17 +858,14 @@ export const completeMessage = internalMutation({
       partialContent: undefined,
       partialReasoning: undefined,
       status: "complete",
-      inputTokens: args.inputTokens,
-      outputTokens: args.outputTokens,
-      reasoningTokens: args.reasoningTokens,
-      cost: args.cost,
+      ...usageMetrics,
       tokensPerSecond: args.tokensPerSecond,
       providerMetadata: args.providerMetadata,
       generationCompletedAt: Date.now(),
       updatedAt: Date.now(),
     });
 
-    if (message.model && billingUserId && args.cost > 0) {
+    if (!chatRun && message.model && billingUserId && args.cost > 0) {
       await ctx.scheduler.runAfter(
         0,
         args.usageType === "image"

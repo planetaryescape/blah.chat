@@ -33,6 +33,7 @@ export async function cascadeDeleteConversation(
     sources,
     canvasDocs,
     integrationSelections,
+    settlementRuns,
   ] = await Promise.all([
     ctx.db
       .query("bookmarks")
@@ -104,6 +105,12 @@ export async function cascadeDeleteConversation(
         q.eq("conversationId", conversationId),
       )
       .collect(),
+    ctx.db
+      .query("agentRuns")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", conversationId),
+      )
+      .collect(),
   ]);
 
   // Parallel deletions for independent tables
@@ -124,6 +131,43 @@ export async function cascadeDeleteConversation(
     ...files.map((f) => ctx.db.patch(f._id, { conversationId: undefined })),
     ...memories.map((m) => ctx.db.patch(m._id, { conversationId: undefined })),
   ]);
+
+  // Financial evidence outlives transcript deletion, but loses all links back
+  // to the deleted conversation and message. Owner erasure removes it below.
+  for (const run of settlementRuns) {
+    await ctx.db.patch(run._id, {
+      conversationId: undefined,
+      messageId: undefined,
+    });
+    const [events, projections] = await Promise.all([
+      ctx.db
+        .query("usageEvents")
+        .withIndex("by_run", (q) => q.eq("runId", run._id))
+        .collect(),
+      ctx.db
+        .query("chatUsageProjections")
+        .withIndex("by_run", (q) => q.eq("runId", run._id))
+        .collect(),
+    ]);
+    await Promise.all([
+      ...events.map((event) =>
+        ctx.db.patch(event._id, { conversationId: undefined }),
+      ),
+      ...projections.map((projection) =>
+        ctx.db.patch(projection._id, { conversationId: undefined }),
+      ),
+    ]);
+    for (const projection of projections) {
+      if (!projection.usageRecordId) continue;
+      const record = await ctx.db.get(projection.usageRecordId);
+      if (
+        record?.userId === run.ownerUserId &&
+        record.conversationId === conversationId
+      ) {
+        await ctx.db.patch(record._id, { conversationId: undefined });
+      }
+    }
+  }
 
   // Canvas docs have history children - must delete history first
   for (const doc of canvasDocs) {
@@ -435,6 +479,10 @@ export async function cascadeDeleteUserData(
     userApiKeys,
     userDatabaseConfig,
     byodMigrations,
+    settlementRuns,
+    settlementAttempts,
+    settlementEvents,
+    settlementProjections,
   ] = await Promise.all([
     ctx.db
       .query("userPreferences")
@@ -476,6 +524,22 @@ export async function cascadeDeleteUserData(
       .query("byodMigrations")
       .filter((q) => q.eq(q.field("userId"), userId))
       .collect(),
+    ctx.db
+      .query("agentRuns")
+      .withIndex("by_owner", (q) => q.eq("ownerUserId", userId))
+      .collect(),
+    ctx.db
+      .query("runAttempts")
+      .withIndex("by_owner", (q) => q.eq("ownerUserId", userId))
+      .collect(),
+    ctx.db
+      .query("usageEvents")
+      .withIndex("by_owner", (q) => q.eq("ownerUserId", userId))
+      .collect(),
+    ctx.db
+      .query("chatUsageProjections")
+      .withIndex("by_owner", (q) => q.eq("ownerUserId", userId))
+      .collect(),
   ]);
 
   await Promise.all([
@@ -489,6 +553,10 @@ export async function cascadeDeleteUserData(
     ...userApiKeys.map((r) => ctx.db.delete(r._id)),
     ...userDatabaseConfig.map((r) => ctx.db.delete(r._id)),
     ...byodMigrations.map((r) => ctx.db.delete(r._id)),
+    ...settlementEvents.map((r) => ctx.db.delete(r._id)),
+    ...settlementProjections.map((r) => ctx.db.delete(r._id)),
+    ...settlementAttempts.map((r) => ctx.db.delete(r._id)),
+    ...settlementRuns.map((r) => ctx.db.delete(r._id)),
   ]);
 
   // A shared blob is retained while another user's record still references it.

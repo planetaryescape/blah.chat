@@ -3,6 +3,7 @@ import {
   DEFAULT_MODEL_ID,
   MODEL_CONFIG,
 } from "@blah-chat/ai/models";
+import { getModel } from "@blah-chat/ai/registry";
 import * as ai from "ai";
 import { MockLanguageModelV3 } from "ai/test";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
@@ -29,6 +30,11 @@ vi.mock("ai", async (importOriginal) => ({
   ...(await importOriginal<typeof import("ai")>()),
   streamText: vi.fn(),
 }));
+vi.mock("@blah-chat/ai/registry", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@blah-chat/ai/registry")>();
+  return { ...actual, getModel: vi.fn(actual.getModel) };
+});
 
 beforeAll(async () => {
   await import("../generation");
@@ -734,11 +740,10 @@ describe("accepted send replay baseline", () => {
         });
       },
     });
+    vi.mocked(getModel).mockReturnValue(model);
     const actualAi = await vi.importActual<typeof import("ai")>("ai");
     vi.mocked(ai.streamText).mockImplementation((options) => {
-      return actualAi.streamText({ ...options, model }) as ReturnType<
-        typeof ai.streamText
-      >;
+      return actualAi.streamText(options) as ReturnType<typeof ai.streamText>;
     });
 
     const accepted = await owner.mutation(api.chat.sendMessage, request);
@@ -767,6 +772,12 @@ describe("accepted send replay baseline", () => {
         receipts: await ctx.db.query("chatSendReceipts").collect(),
         locks: await ctx.db.query("generationLocks").collect(),
         usage: await ctx.db.query("usageRecords").collect(),
+        usageEvents: await ctx.db.query("usageEvents").collect(),
+        chatUsageProjections: await ctx.db
+          .query("chatUsageProjections")
+          .collect(),
+        settlementRuns: await ctx.db.query("agentRuns").collect(),
+        settlementAttempts: await ctx.db.query("runAttempts").collect(),
         users: await ctx.db.query("users").collect(),
         scheduled: await ctx.db.system.query("_scheduled_functions").collect(),
       }));
@@ -777,6 +788,93 @@ describe("accepted send replay baseline", () => {
     expect(await snapshot()).toEqual(beforeReplay);
     expect(providerDispatches).toBe(1);
     expect(vi.mocked(ai.streamText)).toHaveBeenCalledOnce();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(beforeReplay.settlementRuns).toHaveLength(1);
+    expect(beforeReplay.settlementAttempts).toHaveLength(1);
+    expect(beforeReplay.usageEvents).toHaveLength(2);
+    expect(beforeReplay.usageEvents.map((event) => event.evidenceKind)).toEqual(
+      ["dispatch", "reported"],
+    );
+    expect(beforeReplay.usageEvents[0]?.dispatchRequestHash).toMatch(
+      /^[a-f0-9]{64}$/,
+    );
+    expect(beforeReplay.chatUsageProjections).toHaveLength(1);
+    expect(beforeReplay.chatUsageProjections[0]).toMatchObject({
+      inputTokens: 8,
+      outputTokens: 3,
+      measurement: "reported",
+      isByok: false,
+    });
+  });
+
+  it("keeps a failed provider dispatch unresolved in the persisted owner receipt", async () => {
+    const { t, owner, request } = await fixture();
+    await t.run((ctx) =>
+      ctx.db.patch(request.conversationId, {
+        cachedSystemPrompt: JSON.stringify([
+          { role: "system", content: "Failed dispatch receipt fixture" },
+        ]),
+      }),
+    );
+    vi.stubEnv("TAVILY_API_KEY", "test-key-not-used-for-network");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => {
+        throw new Error("Provider fixture must not use the network");
+      }),
+    );
+    const model = new MockLanguageModelV3({
+      doStream: () =>
+        Promise.resolve({
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue({ type: "stream-start", warnings: [] });
+              controller.enqueue({
+                type: "error",
+                error: new Error("synthetic provider interruption"),
+              });
+              controller.close();
+            },
+          }),
+        }),
+    });
+    vi.mocked(getModel).mockReturnValue(model);
+    const actualAi = await vi.importActual<typeof import("ai")>("ai");
+    vi.mocked(ai.streamText).mockImplementation(
+      (options) =>
+        actualAi.streamText(options) as ReturnType<typeof ai.streamText>,
+    );
+
+    const accepted = await owner.mutation(api.chat.sendMessage, request);
+    const generationJobs = await t.run(async (ctx) =>
+      (await ctx.db.system.query("_scheduled_functions").collect()).filter(
+        ({ name }) => name === "generation:generateResponse",
+      ),
+    );
+    const generationArgs = generationJobs[0]!.args[0] as FunctionArgs<
+      typeof internal.generation.generateResponse
+    >;
+    await expect(
+      t.action(internal.generation.generateResponse, generationArgs),
+    ).rejects.toThrow("synthetic provider interruption");
+
+    const messageId = accepted.assistantMessageIds[0]!;
+    expect(await t.run((ctx) => ctx.db.get(messageId))).toMatchObject({
+      status: "error",
+    });
+    const receipt = await owner.query(api.chatSettlement.getReceipt, {
+      messageId,
+    });
+    expect(receipt).toMatchObject({
+      status: "error",
+      dispatchCount: 1,
+      unresolvedDispatchCount: 1,
+    });
+    expect(receipt).toMatchObject({
+      costUsd: 0,
+      hasUnknownCost: true,
+      hasUnknownUsage: true,
+    });
     expect(fetch).not.toHaveBeenCalled();
   });
 

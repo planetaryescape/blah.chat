@@ -103,6 +103,37 @@ async function fixture(collaborative = false) {
 }
 
 describe("settlement compatibility and failure boundaries", () => {
+  it("keeps ledger reasoning totals when thinking completion publishes only the last invocation", async () => {
+    const f = await fixture();
+    await f.t.mutation(internal.chatSettlement.settleDispatch, f.report);
+    await f.t.mutation(internal.messages.completeThinking, {
+      messageId: f.messageId,
+      reasoning: "Final invocation reasoning",
+      reasoningTokens: 1,
+    });
+    expect(await f.t.run((ctx) => ctx.db.get(f.messageId))).toMatchObject({
+      reasoning: "Final invocation reasoning",
+      reasoningTokens: 3,
+    });
+    const legacyMessageId = await f.t.run((ctx) =>
+      ctx.db.insert(
+        "messages",
+        createTestMessageData(f.conversationId, f.ownerId, {
+          role: "assistant",
+          status: "generating",
+        }),
+      ),
+    );
+    await f.t.mutation(internal.messages.completeThinking, {
+      messageId: legacyMessageId,
+      reasoning: "Legacy reasoning",
+      reasoningTokens: 2,
+    });
+    expect(await f.t.run((ctx) => ctx.db.get(legacyMessageId))).toMatchObject({
+      reasoningTokens: 2,
+    });
+  });
+
   it("admits the initiating collaborator, hides their receipt from the conversation owner, and revokes new work", async () => {
     const f = await fixture(true);
     await f.t.mutation(internal.chatSettlement.settleDispatch, f.report);
@@ -242,6 +273,15 @@ describe("settlement compatibility and failure boundaries", () => {
     const f = await fixture();
     await f.t.mutation(internal.chatSettlement.settleDispatch, {
       ...f.report,
+      evidenceKind: "estimated",
+      measurement: "estimated",
+      inputTokens: 100,
+      outputTokens: 10,
+      costUsd: 0.01,
+      evidenceHash: "d".repeat(64),
+    });
+    await f.t.mutation(internal.chatSettlement.settleDispatch, {
+      ...f.report,
       outputTokens: undefined,
       reasoningTokens: undefined,
       costUsd: undefined,
@@ -274,7 +314,7 @@ describe("settlement compatibility and failure boundaries", () => {
       hasUnknownCost: false,
       costUsd: 0.008,
     });
-    expect((await f.snapshot()).events).toHaveLength(3);
+    expect((await f.snapshot()).events).toHaveLength(4);
   });
 
   it("rejects non-integer physical identities, changed rate lineage, and cross-run attempts without writes", async () => {

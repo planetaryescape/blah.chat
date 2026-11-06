@@ -564,17 +564,6 @@ export const ChatMessage = memo(
                           }
                         />
                       )}
-                    {!readOnly &&
-                      conversation &&
-                      !conversation.isIncognito &&
-                      (message.status === "complete" ||
-                        message.status === "stopped" ||
-                        message.status === "error") &&
-                      message._id && (
-                        <ChatUsageReceipt
-                          messageId={message._id as Id<"messages">}
-                        />
-                      )}
                   </div>
                 )}
 
@@ -590,6 +579,16 @@ export const ChatMessage = memo(
                 </time>
               </>
             )}
+            {!isUser &&
+              !readOnly &&
+              conversation &&
+              !conversation.isIncognito &&
+              (message.status === "complete" ||
+                message.status === "stopped" ||
+                message.status === "error") &&
+              message._id && (
+                <ChatUsageReceipt messageId={message._id as Id<"messages">} />
+              )}
           </article>
 
           {/* Action buttons - absolutely positioned, no layout shift */}

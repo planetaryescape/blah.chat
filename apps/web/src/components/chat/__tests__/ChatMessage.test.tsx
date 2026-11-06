@@ -35,7 +35,7 @@ vi.mock("../QuickModelSwitcher", () => ({
   QuickModelSwitcher: () => null,
 }));
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 // Import component AFTER mocks
 import { ChatMessage } from "../ChatMessage";
 
@@ -46,6 +46,20 @@ const baseMessage = {
   userId: "user-123" as Id<"users">,
   createdAt: Date.now(),
   updatedAt: Date.now(),
+};
+
+const conversation: Doc<"conversations"> = {
+  _id: baseMessage.conversationId,
+  _creationTime: 0,
+  userId: baseMessage.userId,
+  title: "Receipt fixture",
+  model: "openai:gpt-4o",
+  pinned: false,
+  archived: false,
+  starred: false,
+  lastMessageAt: 0,
+  createdAt: 0,
+  updatedAt: 0,
 };
 
 describe("ChatMessage", () => {
@@ -181,6 +195,66 @@ describe("ChatMessage", () => {
 
     expect(screen.getByText("Unable to generate response")).toBeInTheDocument();
     expect(screen.getByText("Rate limit exceeded")).toBeInTheDocument();
+  });
+
+  it.each([
+    "complete",
+    "stopped",
+    "error",
+  ] as const)("renders the ordinary receipt for a %s assistant answer", (status) => {
+    vi.mocked(useQuery).mockImplementation((...parameters) => {
+      const [reference] = parameters;
+      return getFunctionName(reference) === "chatSettlement:getReceipt"
+        ? {
+            inputTokens: 80,
+            outputTokens: 8,
+            costUsd: 0.008,
+            reportedDispatchCount: 1,
+            unresolvedDispatchCount: 0,
+            estimatedDispatchCount: 0,
+            hasUnknownCost: false,
+            hasUnknownUsage: false,
+          }
+        : null;
+    });
+    render(
+      <ChatMessage
+        conversation={conversation}
+        message={{
+          ...baseMessage,
+          role: "assistant",
+          content: "",
+          status,
+          error: status === "error" ? "Provider interrupted" : undefined,
+        }}
+      />,
+    );
+    expect(screen.getByText(/Usage receipt · ≈\$0.008000 USD/)).toBeVisible();
+  });
+
+  it.each([
+    { readOnly: true, conversation },
+    { readOnly: false, conversation: { ...conversation, isIncognito: true } },
+    { readOnly: false, conversation: undefined },
+  ])("does not subscribe to private receipts outside ordinary editable chat: %j", (props) => {
+    vi.mocked(useQuery).mockImplementation((...parameters) => {
+      const [reference] = parameters;
+      if (getFunctionName(reference) === "chatSettlement:getReceipt")
+        throw new Error("Private receipt must not be queried");
+      return null;
+    });
+    render(
+      <ChatMessage
+        {...props}
+        message={{
+          ...baseMessage,
+          role: "assistant",
+          content: "",
+          status: "error",
+        }}
+      />,
+    );
+    expect(screen.queryByText(/Usage receipt/)).not.toBeInTheDocument();
   });
 
   it("renders partial content during streaming", () => {

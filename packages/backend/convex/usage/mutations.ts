@@ -20,8 +20,9 @@ export async function queueExistingBudgetAlert(
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
   const monthRecords = await ctx.db
     .query("usageRecords")
-    .withIndex("by_user_date", (q) => q.eq("userId", userId))
-    .filter((q) => q.gte(q.field("date"), monthStart))
+    .withIndex("by_user_date", (q) =>
+      q.eq("userId", userId).gte("date", monthStart),
+    )
     .collect();
   const totalSpent = monthRecords.reduce((sum, row) => sum + row.cost, 0);
   const percentUsed = totalSpent / monthlyBudget;
